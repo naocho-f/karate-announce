@@ -23,6 +23,13 @@ export type Event = {
   name: string;
   court_count: number;
   status: "preparing" | "ongoing" | "finished";
+  is_active: boolean;
+  created_at: string;
+};
+
+export type Rule = {
+  id: string;
+  name: string;
   created_at: string;
 };
 
@@ -32,6 +39,7 @@ export type Tournament = {
   court: string;
   status: "preparing" | "ongoing" | "finished";
   event_id: string | null;
+  default_rules: string | null;
   created_at: string;
 };
 

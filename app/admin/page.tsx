@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import type { Dojo, Event, Fighter } from "@/lib/types";
+import type { Dojo, Event, Fighter, Rule } from "@/lib/types";
 import { TTS_VOICES, getTtsSettings, saveTtsSettings, announceCustom, type TtsVoice } from "@/lib/speech";
 import {
   worstCompatibility, getMismatchSettings, saveMismatchSettings,
@@ -15,7 +15,7 @@ import Link from "next/link";
 
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"dojos" | "fighters" | "events" | "settings">("dojos");
+  const [tab, setTab] = useState<"dojos" | "fighters" | "events" | "rules" | "settings">("dojos");
 
   return (
     <main className="min-h-screen bg-gray-900 text-white p-6">
@@ -25,8 +25,8 @@ export default function AdminPage() {
           <h1 className="text-2xl font-bold">管理画面</h1>
         </div>
 
-        <div className="flex gap-2 mb-6">
-          {(["dojos", "fighters", "events", "settings"] as const).map((t) => (
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {(["dojos", "fighters", "events", "rules", "settings"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -34,7 +34,7 @@ export default function AdminPage() {
                 tab === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
               }`}
             >
-              {t === "dojos" ? "流派" : t === "fighters" ? "選手" : t === "events" ? "試合" : "設定"}
+              {t === "dojos" ? "流派" : t === "fighters" ? "選手" : t === "events" ? "試合" : t === "rules" ? "ルール" : "設定"}
             </button>
           ))}
         </div>
@@ -42,6 +42,7 @@ export default function AdminPage() {
         {tab === "dojos" && <DojoPanel />}
         {tab === "fighters" && <FighterPanel />}
         {tab === "events" && <EventPanel />}
+        {tab === "rules" && <RulesPanel />}
         {tab === "settings" && <SettingsPanel />}
       </div>
     </main>
@@ -330,6 +331,14 @@ function EventPanel() {
     load();
   }
 
+  async function setActive(id: string, active: boolean) {
+    if (active) {
+      await supabase.from("events").update({ is_active: false }).neq("id", "00000000-0000-0000-0000-000000000000");
+    }
+    await supabase.from("events").update({ is_active: active }).eq("id", id);
+    load();
+  }
+
   const dojoMap = Object.fromEntries(dojos.map((d) => [d.id, d.name]));
   const selectedFighterObjects = fighters.filter((f) => selected.has(f.id));
 
@@ -408,18 +417,84 @@ function EventPanel() {
 
       <ul className="space-y-2">
         {events.map((e) => (
-          <li key={e.id} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3">
-            <div>
-              <span className="font-medium">{e.name}</span>
-              <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">{e.court_count}コート</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Link href={`/admin/events/${e.id}`} className="text-blue-400 hover:text-blue-300 text-sm">対戦表 →</Link>
-              <button onClick={() => remove(e.id)} className="text-red-400 hover:text-red-300 text-sm">削除</button>
+          <li key={e.id} className={`bg-gray-800 rounded-lg px-4 py-3 ${e.is_active ? "ring-1 ring-green-600" : ""}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                {e.is_active && <span className="text-xs bg-green-800 text-green-300 px-2 py-0.5 rounded shrink-0">進行中</span>}
+                <span className="font-medium truncate">{e.name}</span>
+                <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded shrink-0">{e.court_count}コート</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 ml-2">
+                <button
+                  onClick={() => setActive(e.id, !e.is_active)}
+                  className={`text-xs px-2 py-1 rounded transition ${
+                    e.is_active
+                      ? "bg-green-700 hover:bg-green-800 text-green-200"
+                      : "bg-gray-700 hover:bg-gray-600 text-gray-400"
+                  }`}
+                >
+                  {e.is_active ? "進行中 ✓" : "アクティブに設定"}
+                </button>
+                <Link href={`/admin/events/${e.id}`} className="text-blue-400 hover:text-blue-300 text-sm">対戦表 →</Link>
+                <button onClick={() => remove(e.id)} className="text-red-400 hover:text-red-300 text-sm">削除</button>
+              </div>
             </div>
           </li>
         ))}
         {events.length === 0 && <li className="text-gray-500 text-sm">試合が登録されていません</li>}
+      </ul>
+    </div>
+  );
+}
+
+// ── ルール ────────────────────────────────────────────────────────────────
+
+function RulesPanel() {
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [name, setName] = useState("");
+
+  async function load() {
+    const { data } = await supabase.from("rules").select("*").order("name");
+    setRules(data ?? []);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function add() {
+    if (!name.trim()) return;
+    await supabase.from("rules").insert({ name: name.trim() });
+    setName("");
+    load();
+  }
+
+  async function remove(id: string) {
+    if (!confirm("削除しますか？")) return;
+    await supabase.from("rules").delete().eq("id", id);
+    load();
+  }
+
+  return (
+    <div>
+      <p className="text-xs text-gray-400 mb-3">対戦表で選択できるルールを登録します（例: 組手3分・形・ワンマッチ）</p>
+      <form onSubmit={(e) => { e.preventDefault(); add(); }} className="flex gap-2 mb-4">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="ルール名（例: 組手3分・延長1分）"
+          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+        />
+        <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0">
+          追加
+        </button>
+      </form>
+      <ul className="space-y-2">
+        {rules.map((r) => (
+          <li key={r.id} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3">
+            <span className="text-sm">{r.name}</span>
+            <button onClick={() => remove(r.id)} className="text-red-400 hover:text-red-300 text-sm">削除</button>
+          </li>
+        ))}
+        {rules.length === 0 && <li className="text-gray-500 text-sm">ルールが登録されていません</li>}
       </ul>
     </div>
   );
