@@ -137,15 +137,35 @@ function FighterPanel() {
 
   useEffect(() => { load(); }, []);
 
+  const [weight, setWeight] = useState("");
+  const [height, setHeight] = useState("");
+  const [ageInfo, setAgeInfo] = useState("");
+
   async function add() {
     if (!name.trim() || !dojoId) return;
-    await supabase.from("fighters").insert({ name: name.trim(), name_reading: reading.trim() || null, dojo_id: dojoId });
-    setName(""); setReading("");
+    await supabase.from("fighters").insert({
+      name: name.trim(),
+      name_reading: reading.trim() || null,
+      dojo_id: dojoId,
+      weight: weight ? parseFloat(weight) : null,
+      height: height ? parseFloat(height) : null,
+      age_info: ageInfo.trim() || null,
+    });
+    setName(""); setReading(""); setWeight(""); setHeight(""); setAgeInfo("");
     load();
   }
 
   async function updateReading(id: string, value: string) {
     await supabase.from("fighters").update({ name_reading: value.trim() || null }).eq("id", id);
+    load();
+  }
+
+  async function updateProfile(id: string, weight: string, height: string, ageInfo: string) {
+    await supabase.from("fighters").update({
+      weight: weight ? parseFloat(weight) : null,
+      height: height ? parseFloat(height) : null,
+      age_info: ageInfo.trim() || null,
+    }).eq("id", id);
     load();
   }
 
@@ -169,13 +189,37 @@ function FighterPanel() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="選手名（例: 山田 太郎）"
+            placeholder="選手名"
             className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
           />
           <input
             value={reading}
             onChange={(e) => setReading(e.target.value)}
-            placeholder="読み（例: やまだ たろう）"
+            placeholder="読み"
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+          />
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={weight}
+            onChange={(e) => setWeight(e.target.value)}
+            placeholder="体重 kg"
+            type="number"
+            step="0.1"
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+          />
+          <input
+            value={height}
+            onChange={(e) => setHeight(e.target.value)}
+            placeholder="身長 cm"
+            type="number"
+            step="0.1"
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+          />
+          <input
+            value={ageInfo}
+            onChange={(e) => setAgeInfo(e.target.value)}
+            placeholder="年齢 / 学年（例: 25歳 / 小3）"
             className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
           />
           <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0">
@@ -190,6 +234,15 @@ function FighterPanel() {
               <span>
                 <span className="text-gray-400 text-sm mr-2">{(f.dojo as unknown as Dojo)?.name}</span>
                 <span className="font-medium">{f.name}</span>
+                {(f.weight || f.height || f.age_info) && (
+                  <span className="ml-2 text-xs text-gray-500">
+                    {[
+                      f.weight ? `${f.weight}kg` : null,
+                      f.height ? `${f.height}cm` : null,
+                      f.age_info ?? null,
+                    ].filter(Boolean).join(" / ")}
+                  </span>
+                )}
               </span>
               <button onClick={() => remove(f.id)} className="text-red-400 hover:text-red-300 text-sm">削除</button>
             </div>
@@ -197,6 +250,12 @@ function FighterPanel() {
               value={f.name_reading ?? ""}
               placeholder="読み仮名（例: やまだ たろう）"
               onSave={(v) => updateReading(f.id, v)}
+            />
+            <ProfileInput
+              weight={f.weight?.toString() ?? ""}
+              height={f.height?.toString() ?? ""}
+              ageInfo={f.age_info ?? ""}
+              onSave={(w, h, a) => updateProfile(f.id, w, h, a)}
             />
           </li>
         ))}
@@ -322,8 +381,17 @@ function TournamentPanel() {
           {fighters.map((f) => (
             <label key={f.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-700 cursor-pointer">
               <input type="checkbox" checked={selected.has(f.id)} onChange={() => toggle(f.id)} className="accent-blue-500" />
-              <span className="text-xs text-gray-400">{dojoMap[f.dojo_id]}</span>
+              <span className="text-xs text-gray-400 shrink-0">{dojoMap[f.dojo_id]}</span>
               <span className="text-sm">{f.name}</span>
+              {(f.weight || f.height || f.age_info) && (
+                <span className="ml-auto text-xs text-gray-500 shrink-0">
+                  {[
+                    f.weight ? `${f.weight}kg` : null,
+                    f.height ? `${f.height}cm` : null,
+                    f.age_info ?? null,
+                  ].filter(Boolean).join(" / ")}
+                </span>
+              )}
             </label>
           ))}
         </div>
@@ -461,6 +529,66 @@ function SettingsPanel() {
 }
 
 // ── 読み仮名インライン編集 ─────────────────────────────────────────────────
+
+function ProfileInput({ weight, height, ageInfo, onSave }: {
+  weight: string;
+  height: string;
+  ageInfo: string;
+  onSave: (weight: string, height: string, ageInfo: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [dw, setDw] = useState(weight);
+  const [dh, setDh] = useState(height);
+  const [da, setDa] = useState(ageInfo);
+
+  function commit() {
+    onSave(dw, dh, da);
+    setEditing(false);
+  }
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => { setDw(weight); setDh(height); setDa(ageInfo); setEditing(true); }}
+        className="text-xs text-gray-500 hover:text-blue-400 transition mt-0.5 block"
+      >
+        体格: {weight || height || ageInfo
+          ? [weight ? `${weight}kg` : null, height ? `${height}cm` : null, ageInfo || null].filter(Boolean).join(" / ")
+          : "未設定（タップして編集）"}
+      </button>
+    );
+  }
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); commit(); }} className="flex gap-1 mt-1">
+      <input
+        autoFocus
+        value={dw}
+        onChange={(e) => setDw(e.target.value)}
+        placeholder="体重kg"
+        type="number"
+        step="0.1"
+        className="w-20 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
+      />
+      <input
+        value={dh}
+        onChange={(e) => setDh(e.target.value)}
+        placeholder="身長cm"
+        type="number"
+        step="0.1"
+        className="w-20 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
+      />
+      <input
+        value={da}
+        onChange={(e) => setDa(e.target.value)}
+        placeholder="25歳 / 小3"
+        className="flex-1 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
+      />
+      <button type="submit" className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded">保存</button>
+      <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1">×</button>
+    </form>
+  );
+}
 
 function ReadingInput({ value, placeholder, onSave }: {
   value: string;

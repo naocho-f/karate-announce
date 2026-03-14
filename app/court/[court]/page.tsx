@@ -43,7 +43,6 @@ export default function CourtPage({ params }: Props) {
     if (!data) return;
     setMatches(data);
 
-    // 選手情報を一括取得
     const ids = new Set<string>();
     data.forEach((m) => {
       if (m.fighter1_id) ids.add(m.fighter1_id);
@@ -63,7 +62,6 @@ export default function CourtPage({ params }: Props) {
   useEffect(() => { loadTournaments(); }, [loadTournaments]);
   useEffect(() => { loadMatches(); }, [loadMatches]);
 
-  // 3秒ごとにポーリング
   useEffect(() => {
     const timer = setInterval(loadMatches, 3000);
     return () => clearInterval(timer);
@@ -91,6 +89,8 @@ export default function CourtPage({ params }: Props) {
       label,
       f1.name_reading, f1dojo?.name_reading,
       f2.name_reading, f2dojo?.name_reading,
+      match.match_label,
+      match.rules,
     );
   }
 
@@ -100,7 +100,6 @@ export default function CourtPage({ params }: Props) {
 
     await supabase.from("matches").update({ winner_id: winnerId, status: "done" }).eq("id", match.id);
 
-    // 次ラウンドに勝者を進める
     if (match.round < rounds) {
       const nextPosition = Math.floor(match.position / 2);
       const isSlot1 = match.position % 2 === 0;
@@ -111,7 +110,6 @@ export default function CourtPage({ params }: Props) {
         .eq("round", match.round + 1)
         .eq("position", nextPosition);
     } else {
-      // 決勝終了
       await supabase.from("tournaments").update({ status: "finished" }).eq("id", selectedTournamentId);
     }
 
@@ -177,6 +175,7 @@ export default function CourtPage({ params }: Props) {
                           match={m}
                           fighters={fighters}
                           onStart={() => startMatch(m)}
+                          onUpdated={loadMatches}
                         />
                       ))}
                     </div>
@@ -191,37 +190,98 @@ export default function CourtPage({ params }: Props) {
   );
 }
 
-function MatchCard({ match, fighters, onStart }: {
+function MatchCard({ match, fighters, onStart, onUpdated }: {
   match: Match;
   fighters: Record<string, Fighter>;
   onStart: () => void;
+  onUpdated: () => void;
 }) {
   const f1 = match.fighter1_id ? fighters[match.fighter1_id] : null;
   const f2 = match.fighter2_id ? fighters[match.fighter2_id] : null;
+  const [editing, setEditing] = useState(false);
+  const [label, setLabel] = useState(match.match_label ?? "");
+  const [rules, setRules] = useState(match.rules ?? "");
 
   const bgColor =
     match.status === "done" ? "bg-gray-800 opacity-60" :
     match.status === "ongoing" ? "bg-blue-900 border border-blue-600" :
     "bg-gray-800";
 
+  async function saveEdit() {
+    await supabase.from("matches").update({
+      match_label: label.trim() || null,
+      rules: rules.trim() || null,
+    }).eq("id", match.id);
+    setEditing(false);
+    onUpdated();
+  }
+
   return (
-    <div className={`rounded-xl px-4 py-3 flex items-center gap-3 ${bgColor}`}>
-      <div className="flex-1 min-w-0">
-        <FighterLine fighter={f1} isWinner={match.winner_id === f1?.id} />
-        <div className="text-gray-600 text-xs my-0.5 pl-1">vs</div>
-        <FighterLine fighter={f2} isWinner={match.winner_id === f2?.id} />
+    <div className={`rounded-xl px-4 py-3 ${bgColor}`}>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          {/* ラベル・ルール表示 */}
+          {(match.match_label || match.rules) && (
+            <div className="flex flex-wrap gap-2 mb-1.5">
+              {match.match_label && (
+                <span className="text-xs bg-blue-800 text-blue-200 px-2 py-0.5 rounded-full">{match.match_label}</span>
+              )}
+              {match.rules && (
+                <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full">{match.rules}</span>
+              )}
+            </div>
+          )}
+          <FighterLine fighter={f1} isWinner={match.winner_id === f1?.id} />
+          <div className="text-gray-600 text-xs my-0.5 pl-1">vs</div>
+          <FighterLine fighter={f2} isWinner={match.winner_id === f2?.id} />
+        </div>
+
+        <div className="shrink-0 flex flex-col items-end gap-1.5">
+          {match.status === "ready" && (
+            <button
+              onClick={onStart}
+              className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition"
+            >
+              試合開始
+            </button>
+          )}
+          {match.status === "done" && match.winner_id && (
+            <span className="text-green-400 text-xs font-medium">終了</span>
+          )}
+          {match.status !== "done" && (
+            <button
+              onClick={() => { setLabel(match.match_label ?? ""); setRules(match.rules ?? ""); setEditing(!editing); }}
+              className="text-gray-500 hover:text-gray-300 text-xs transition"
+            >
+              ✎ 設定
+            </button>
+          )}
+        </div>
       </div>
 
-      {match.status === "ready" && (
-        <button
-          onClick={onStart}
-          className="shrink-0 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition"
+      {/* インライン編集フォーム */}
+      {editing && (
+        <form
+          onSubmit={(e) => { e.preventDefault(); saveEdit(); }}
+          className="mt-3 pt-3 border-t border-gray-700 space-y-2"
         >
-          試合開始
-        </button>
-      )}
-      {match.status === "done" && match.winner_id && (
-        <span className="shrink-0 text-green-400 text-xs font-medium">終了</span>
+          <input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="試合ラベル（例: 第一試合 / ワンマッチ）"
+            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+          />
+          <input
+            value={rules}
+            onChange={(e) => setRules(e.target.value)}
+            placeholder="ルール（例: 2分1本制 / 延長戦あり）"
+            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+          />
+          <div className="flex gap-2">
+            <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-500 py-1.5 rounded-lg text-sm font-medium">保存</button>
+            <button type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-gray-400 hover:text-gray-200">キャンセル</button>
+          </div>
+        </form>
       )}
     </div>
   );
@@ -238,7 +298,15 @@ function OngoingMatchCard({ match, fighters, rounds, onSetWinner }: {
 
   return (
     <div className="bg-blue-950 border-2 border-blue-500 rounded-2xl p-5 mb-6">
-      <p className="text-blue-300 text-xs font-semibold uppercase tracking-widest mb-3">試合中</p>
+      <div className="flex items-center gap-2 mb-3">
+        <p className="text-blue-300 text-xs font-semibold uppercase tracking-widest">試合中</p>
+        {match.match_label && (
+          <span className="text-xs bg-blue-800 text-blue-200 px-2 py-0.5 rounded-full">{match.match_label}</span>
+        )}
+        {match.rules && (
+          <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full">{match.rules}</span>
+        )}
+      </div>
       <div className="flex gap-3">
         {[f1, f2].map((f, i) => (
           f ? (

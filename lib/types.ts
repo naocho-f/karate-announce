@@ -11,6 +11,9 @@ export type Fighter = {
   name_reading: string | null;
   dojo_id: string;
   dojo?: Dojo;
+  weight: number | null;
+  height: number | null;
+  age_info: string | null;
   created_at: string;
 };
 
@@ -31,6 +34,8 @@ export type Match = {
   fighter2_id: string | null;
   winner_id: string | null;
   status: "waiting" | "ready" | "ongoing" | "done";
+  match_label: string | null;
+  rules: string | null;
   fighter1?: Fighter | null;
   fighter2?: Fighter | null;
   winner?: Fighter | null;
