@@ -64,6 +64,42 @@ export type Tournament = {
   created_at: string;
 };
 
+export type EventRule = {
+  event_id: string;
+  rule_id: string;
+};
+
+export type Entry = {
+  id: string;
+  event_id: string;
+  family_name: string;
+  given_name: string | null;
+  family_name_reading: string | null;
+  given_name_reading: string | null;
+  dojo_name: string | null;
+  weight: number | null;
+  height: number | null;
+  age_info: string | null;
+  experience: string | null;
+  is_seed: boolean;
+  fighter_id: string | null;
+  created_at: string;
+};
+
+/** エントリーの表示用フルネーム */
+export function entryFullName(e: Entry): string {
+  if (e.given_name) return `${e.family_name} ${e.given_name}`;
+  return e.family_name;
+}
+
+/** エントリーの TTS 用読み */
+export function entryFullReading(e: Entry): string | null {
+  if (e.family_name_reading && e.given_name_reading) {
+    return `${e.family_name_reading} ${e.given_name_reading}`;
+  }
+  return e.family_name_reading ?? null;
+}
+
 export type Match = {
   id: string;
   tournament_id: string;

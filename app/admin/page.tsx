@@ -9,8 +9,8 @@ import type { Dojo, Event, Fighter, Rule } from "@/lib/types";
 import { fighterFullName } from "@/lib/types";
 import { TTS_VOICES, getTtsSettings, saveTtsSettings, announceCustom, type TtsVoice } from "@/lib/speech";
 import {
-  worstCompatibility, getMismatchSettings, saveMismatchSettings,
-  COMPAT_COLORS, COMPAT_LABEL, type CompatibilityLevel, type MismatchSettings,
+  getMismatchSettings, saveMismatchSettings,
+  type MismatchSettings,
 } from "@/lib/compatibility";
 import Link from "next/link";
 
@@ -266,41 +266,37 @@ function FighterPanel() {
 function EventPanel() {
   const router = useRouter();
   const [events, setEvents] = useState<Event[]>([]);
-  const [fighters, setFighters] = useState<Fighter[]>([]);
-  const [dojos, setDojos] = useState<Dojo[]>([]);
-  const [step, setStep] = useState<1 | 2>(1);
+  const [rules, setRules] = useState<Rule[]>([]);
   const [name, setName] = useState("");
   const [courtCount, setCourtCount] = useState(1);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selectedRuleIds, setSelectedRuleIds] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
-  const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: 5, maxHeightDiff: null });
 
-  useEffect(() => {
-    load();
-    setMismatchSettings(getMismatchSettings());
-  }, []);
+  useEffect(() => { load(); }, []);
 
   async function load() {
     const { data: es } = await supabase.from("events").select("*").order("created_at", { ascending: false });
-    const { data: fs } = await supabase.from("fighters").select("*, dojo:dojos(*)").order("name");
-    const { data: ds } = await supabase.from("dojos").select("*").order("name");
+    const { data: rs } = await supabase.from("rules").select("*").order("name");
     setEvents(es ?? []);
-    setFighters((fs ?? []) as Fighter[]);
-    setDojos(ds ?? []);
+    setRules(rs ?? []);
   }
 
-  function toggle(id: string) {
-    setSelected((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  function toggleRule(id: string) {
+    setSelectedRuleIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   }
 
   async function create() {
-    if (!name.trim() || selected.size < 2) return;
+    if (!name.trim()) return;
     setCreating(true);
     const { data: e } = await supabase.from("events")
       .insert({ name: name.trim(), court_count: courtCount, status: "preparing" })
       .select().single();
     if (!e) { setCreating(false); return; }
-    await supabase.from("event_fighters").insert([...selected].map((fid) => ({ event_id: e.id, fighter_id: fid })));
+    if (selectedRuleIds.size > 0) {
+      await supabase.from("event_rules").insert(
+        [...selectedRuleIds].map((rid) => ({ event_id: e.id, rule_id: rid }))
+      );
+    }
     router.push(`/admin/events/${e.id}`);
   }
 
@@ -318,80 +314,49 @@ function EventPanel() {
     load();
   }
 
-  const dojoMap = Object.fromEntries(dojos.map((d) => [d.id, d.name]));
-  const selectedFighterObjects = fighters.filter((f) => selected.has(f.id));
-
   return (
     <div className="space-y-6">
       <div className="bg-gray-800 rounded-xl p-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${step === 1 ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-300"}`}>1 基本設定</span>
-          <span className="text-gray-600 text-xs">→</span>
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${step === 2 ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-300"}`}>2 参加選手</span>
-        </div>
-
-        {step === 1 && (
-          <div className="space-y-4">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="試合名（例: 第○回○○空手道大会）"
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-            />
-            <div className="space-y-2">
-              <p className="text-xs text-gray-400">コート数</p>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4].map((n) => (
-                  <button key={n} onClick={() => setCourtCount(n)}
-                    className={`w-12 h-12 rounded-xl text-lg font-bold transition ${courtCount === n ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
-                  >{n}</button>
-                ))}
-              </div>
-            </div>
-            <button onClick={() => setStep(2)} disabled={!name.trim()}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition">
-              次へ：参加選手を選ぶ →
-            </button>
+        <p className="text-xs font-bold text-gray-400">新規試合を作成</p>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="試合名（例: 第○回○○空手道大会）"
+          className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+        />
+        <div className="space-y-2">
+          <p className="text-xs text-gray-400">コート数</p>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4].map((n) => (
+              <button key={n} onClick={() => setCourtCount(n)}
+                className={`w-12 h-12 rounded-xl text-lg font-bold transition ${courtCount === n ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+              >{n}</button>
+            ))}
           </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-3">
-            <div className="bg-gray-700 rounded-lg px-3 py-2 text-xs text-gray-300">
-              <span className="text-gray-500">試合名:</span> {name}　<span className="text-gray-500">コート数:</span> {courtCount}
-            </div>
-            <p className="text-xs text-gray-400">参加選手を選択（{selected.size}名）</p>
-            <div className="max-h-64 overflow-y-auto space-y-1">
-              {fighters.map((f) => {
-                const isSelected = selected.has(f.id);
-                const others = selectedFighterObjects.filter((s) => s.id !== f.id);
-                const compat: CompatibilityLevel = !isSelected && others.length > 0 ? worstCompatibility(f, others, mismatchSettings) : "unknown";
+        </div>
+        {rules.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs text-gray-400">開催ルール（複数選択可）</p>
+            <div className="flex flex-wrap gap-2">
+              {rules.map((r) => {
+                const checked = selectedRuleIds.has(r.id);
                 return (
-                  <label key={f.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-700 cursor-pointer ${isSelected ? "bg-gray-700" : ""}`}>
-                    <input type="checkbox" checked={isSelected} onChange={() => toggle(f.id)} className="accent-blue-500 shrink-0" />
-                    {!isSelected && others.length > 0
-                      ? <span className={`text-sm font-bold w-4 shrink-0 ${COMPAT_COLORS[compat]}`}>{COMPAT_LABEL[compat]}</span>
-                      : <span className="w-4 shrink-0" />}
-                    <span className="text-xs text-gray-400 shrink-0">{dojoMap[f.dojo_id]}</span>
-                    <span className="text-sm">{f.name}</span>
-                    {(f.weight || f.height || f.age_info || f.experience) && (
-                      <span className="ml-auto text-xs text-gray-500 shrink-0">
-                        {[f.weight ? `${f.weight}kg` : null, f.height ? `${f.height}cm` : null, f.age_info, f.experience].filter(Boolean).join(" / ")}
-                      </span>
-                    )}
-                  </label>
+                  <button
+                    key={r.id}
+                    onClick={() => toggleRule(r.id)}
+                    className={`text-xs px-3 py-1.5 rounded-lg transition ${checked ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}
+                  >
+                    {checked ? "✓ " : ""}{r.name}
+                  </button>
                 );
               })}
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => setStep(1)} className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-gray-200 bg-gray-700">← 戻る</button>
-              <button onClick={create} disabled={creating || selected.size < 2}
-                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition">
-                {creating ? "作成中..." : `試合を作成（${selected.size}名）`}
-              </button>
-            </div>
           </div>
         )}
+        <button onClick={create} disabled={creating || !name.trim()}
+          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition">
+          {creating ? "作成中..." : "試合を作成"}
+        </button>
       </div>
 
       <ul className="space-y-2">
