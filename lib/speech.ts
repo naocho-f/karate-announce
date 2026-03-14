@@ -1,19 +1,21 @@
 "use client";
 
-function speak(text: string) {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = "ja-JP";
-  utter.rate = 0.85;
-  utter.pitch = 0.95;
-
-  // 日本語音声を優先（Kyoko / Otoya / など）
-  const voices = window.speechSynthesis.getVoices();
-  const jaVoice = voices.find((v) => v.lang.startsWith("ja") && v.localService);
-  if (jaVoice) utter.voice = jaVoice;
-
-  window.speechSynthesis.speak(utter);
+async function speak(text: string) {
+  try {
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error("TTS API error");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.onended = () => URL.revokeObjectURL(url);
+    await audio.play();
+  } catch (e) {
+    console.error("TTS error:", e);
+  }
 }
 
 export function announceMatchStart(
