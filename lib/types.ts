@@ -18,11 +18,20 @@ export type Fighter = {
   created_at: string;
 };
 
+export type Event = {
+  id: string;
+  name: string;
+  court_count: number;
+  status: "preparing" | "ongoing" | "finished";
+  created_at: string;
+};
+
 export type Tournament = {
   id: string;
   name: string;
   court: string;
   status: "preparing" | "ongoing" | "finished";
+  event_id: string | null;
   created_at: string;
 };
 

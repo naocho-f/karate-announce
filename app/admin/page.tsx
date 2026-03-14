@@ -3,20 +3,19 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import type { Dojo, Fighter, Tournament } from "@/lib/types";
-import { generateFirstRound, totalRounds } from "@/lib/tournament";
+import type { Dojo, Event, Fighter } from "@/lib/types";
 import { TTS_VOICES, getTtsSettings, saveTtsSettings, announceCustom, type TtsVoice } from "@/lib/speech";
 import {
-  checkCompatibility, worstCompatibility, getMismatchSettings, saveMismatchSettings,
+  worstCompatibility, getMismatchSettings, saveMismatchSettings,
   COMPAT_COLORS, COMPAT_LABEL, type CompatibilityLevel, type MismatchSettings,
 } from "@/lib/compatibility";
-import { getCourtSettings, saveCourtSettings } from "@/lib/court-settings";
 import Link from "next/link";
 
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"dojos" | "fighters" | "tournaments" | "settings">("dojos");
+  const [tab, setTab] = useState<"dojos" | "fighters" | "events" | "settings">("dojos");
 
   return (
     <main className="min-h-screen bg-gray-900 text-white p-6">
@@ -27,7 +26,7 @@ export default function AdminPage() {
         </div>
 
         <div className="flex gap-2 mb-6">
-          {(["dojos", "fighters", "tournaments", "settings"] as const).map((t) => (
+          {(["dojos", "fighters", "events", "settings"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -35,14 +34,14 @@ export default function AdminPage() {
                 tab === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
               }`}
             >
-              {t === "dojos" ? "流派" : t === "fighters" ? "選手" : t === "tournaments" ? "トーナメント" : "設定"}
+              {t === "dojos" ? "流派" : t === "fighters" ? "選手" : t === "events" ? "試合" : "設定"}
             </button>
           ))}
         </div>
 
         {tab === "dojos" && <DojoPanel />}
         {tab === "fighters" && <FighterPanel />}
-        {tab === "tournaments" && <TournamentPanel />}
+        {tab === "events" && <EventPanel />}
         {tab === "settings" && <SettingsPanel />}
       </div>
     </main>
@@ -282,113 +281,52 @@ function FighterPanel() {
 
 // ── トーナメント ───────────────────────────────────────────────────────────
 
-const LABEL_PRESETS = ["第一試合", "第二試合", "第三試合", "第四試合", "第五試合", "ワンマッチ"];
+// ── 試合（イベント） ───────────────────────────────────────────────────────
 
-function TournamentPanel() {
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+function EventPanel() {
+  const router = useRouter();
+  const [events, setEvents] = useState<Event[]>([]);
   const [fighters, setFighters] = useState<Fighter[]>([]);
   const [dojos, setDojos] = useState<Dojo[]>([]);
-  const [courts, setCourts] = useState<string[]>([]);
-  // ウィザード state
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
-  const [court, setCourt] = useState("");
-  const [matchLabel, setMatchLabel] = useState("");
-  const [rules, setRules] = useState("");
+  const [courtCount, setCourtCount] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
   const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: 5, maxHeightDiff: null });
 
   useEffect(() => {
+    load();
     setMismatchSettings(getMismatchSettings());
-    const cs = getCourtSettings();
-    const names = cs.names.slice(0, cs.count);
-    setCourts(names);
-    setCourt(names[0] ?? "");
   }, []);
 
   async function load() {
-    const { data: ts } = await supabase.from("tournaments").select("*").order("created_at", { ascending: false });
+    const { data: es } = await supabase.from("events").select("*").order("created_at", { ascending: false });
     const { data: fs } = await supabase.from("fighters").select("*, dojo:dojos(*)").order("name");
     const { data: ds } = await supabase.from("dojos").select("*").order("name");
-    setTournaments(ts ?? []);
+    setEvents(es ?? []);
     setFighters((fs ?? []) as Fighter[]);
     setDojos(ds ?? []);
   }
 
-  useEffect(() => { load(); }, []);
-
   function toggle(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+    setSelected((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   }
 
   async function create() {
     if (!name.trim() || selected.size < 2) return;
     setCreating(true);
-    const { data: t } = await supabase.from("tournaments").insert({ name: name.trim(), court, status: "preparing" }).select().single();
-
-    if (!t) { setCreating(false); return; }
-
-    const selectedFighters = fighters.filter((f) => selected.has(f.id));
-    const matchDefs = generateFirstRound(selectedFighters);
-    const rounds = totalRounds(selectedFighters.length);
-
-    // 1回戦の試合を挿入（両選手揃っていれば ready）
-    const inserts = matchDefs.map((m) => ({
-      ...m,
-      tournament_id: t.id,
-      status: (m.fighter1_id && m.fighter2_id ? "ready" : "waiting") as "ready" | "waiting",
-    }));
-    await supabase.from("matches").insert(inserts);
-
-    // 以降のラウンドの空試合を挿入
-    for (let r = 2; r <= rounds; r++) {
-      const count = Math.pow(2, rounds - r);
-      const emptyMatches = Array.from({ length: count }, (_, i) => ({
-        tournament_id: t.id, round: r, position: i,
-        fighter1_id: null, fighter2_id: null, winner_id: null, status: "waiting" as const,
-      }));
-      await supabase.from("matches").insert(emptyMatches);
-    }
-
-    // シード（bye）を自動処理
-    for (const m of matchDefs) {
-      if (m.fighter1_id && !m.fighter2_id) {
-        // fighter1 が不戦勝 → 次ラウンドに進める
-        await advanceWinner(t.id, 1, m.position, m.fighter1_id, rounds);
-        await supabase.from("matches").update({ winner_id: m.fighter1_id, status: "done" })
-          .eq("tournament_id", t.id).eq("round", 1).eq("position", m.position);
-      }
-    }
-
-    // 1回戦にmatch_label/rulesを設定
-    if (matchLabel.trim() || rules.trim()) {
-      await supabase.from("matches")
-        .update({ match_label: matchLabel.trim() || null, rules: rules.trim() || null })
-        .eq("tournament_id", t.id).eq("round", 1);
-    }
-
-    setName(""); setMatchLabel(""); setRules(""); setSelected(new Set()); setCreating(false); setStep(1);
-    load();
-  }
-
-  async function advanceWinner(tournamentId: string, round: number, position: number, winnerId: string, maxRounds: number) {
-    if (round >= maxRounds) return;
-    const nextRound = round + 1;
-    const nextPosition = Math.floor(position / 2);
-    const isSlot1 = position % 2 === 0;
-    const field = isSlot1 ? "fighter1_id" : "fighter2_id";
-    await supabase.from("matches").update({ [field]: winnerId, status: "ready" })
-      .eq("tournament_id", tournamentId).eq("round", nextRound).eq("position", nextPosition);
+    const { data: e } = await supabase.from("events")
+      .insert({ name: name.trim(), court_count: courtCount, status: "preparing" })
+      .select().single();
+    if (!e) { setCreating(false); return; }
+    await supabase.from("event_fighters").insert([...selected].map((fid) => ({ event_id: e.id, fighter_id: fid })));
+    router.push(`/admin/events/${e.id}`);
   }
 
   async function remove(id: string) {
     if (!confirm("削除しますか？")) return;
-    await supabase.from("tournaments").delete().eq("id", id);
+    await supabase.from("events").delete().eq("id", id);
     load();
   }
 
@@ -397,87 +335,55 @@ function TournamentPanel() {
 
   return (
     <div className="space-y-6">
-      {/* 新規作成ウィザード */}
       <div className="bg-gray-800 rounded-xl p-4 space-y-4">
-        {/* ステップインジケーター */}
         <div className="flex items-center gap-2">
           <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${step === 1 ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-300"}`}>1 基本設定</span>
           <span className="text-gray-600 text-xs">→</span>
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${step === 2 ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-300"}`}>2 選手選択</span>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${step === 2 ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-300"}`}>2 参加選手</span>
         </div>
 
-        {/* Step 1: 基本設定 */}
         {step === 1 && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="トーナメント名（例: 男子一般部 組手）"
+              placeholder="試合名（例: 第○回○○空手道大会）"
               className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
             />
-            <div className="flex gap-2">
-              <select
-                value={court}
-                onChange={(e) => setCourt(e.target.value)}
-                className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
-              >
-                {courts.map((c) => <option key={c} value={c}>{c}コート</option>)}
-              </select>
-              <input
-                value={matchLabel}
-                onChange={(e) => setMatchLabel(e.target.value)}
-                placeholder="試合ラベル（任意）"
-                list="label-presets"
-                className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-              />
-              <datalist id="label-presets">
-                {LABEL_PRESETS.map((l) => <option key={l} value={l} />)}
-              </datalist>
+            <div className="space-y-2">
+              <p className="text-xs text-gray-400">コート数</p>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4].map((n) => (
+                  <button key={n} onClick={() => setCourtCount(n)}
+                    className={`w-12 h-12 rounded-xl text-lg font-bold transition ${courtCount === n ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                  >{n}</button>
+                ))}
+              </div>
             </div>
-            <input
-              value={rules}
-              onChange={(e) => setRules(e.target.value)}
-              placeholder="ルール（任意、例: 2分1本制 / 延長戦あり）"
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-            />
-            <button
-              onClick={() => setStep(2)}
-              disabled={!name.trim()}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition"
-            >
-              次へ：選手を選ぶ →
+            <button onClick={() => setStep(2)} disabled={!name.trim()}
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition">
+              次へ：参加選手を選ぶ →
             </button>
           </div>
         )}
 
-        {/* Step 2: 選手選択 */}
         {step === 2 && (
           <div className="space-y-3">
-            {/* 設定サマリー */}
-            <div className="bg-gray-700 rounded-lg px-3 py-2 text-xs text-gray-300 space-y-0.5">
-              <p><span className="text-gray-500">名前:</span> {name}</p>
-              <p><span className="text-gray-500">コート:</span> {court}コート{matchLabel ? `　ラベル: ${matchLabel}` : ""}{rules ? `　ルール: ${rules}` : ""}</p>
+            <div className="bg-gray-700 rounded-lg px-3 py-2 text-xs text-gray-300">
+              <span className="text-gray-500">試合名:</span> {name}　<span className="text-gray-500">コート数:</span> {courtCount}
             </div>
-
-            <p className="text-xs text-gray-400">出場選手を選択（{selected.size}名）</p>
+            <p className="text-xs text-gray-400">参加選手を選択（{selected.size}名）</p>
             <div className="max-h-64 overflow-y-auto space-y-1">
               {fighters.map((f) => {
                 const isSelected = selected.has(f.id);
-                const othersSelected = selectedFighterObjects.filter((s) => s.id !== f.id);
-                const compat: CompatibilityLevel = !isSelected && othersSelected.length > 0
-                  ? worstCompatibility(f, othersSelected, mismatchSettings)
-                  : "unknown";
+                const others = selectedFighterObjects.filter((s) => s.id !== f.id);
+                const compat: CompatibilityLevel = !isSelected && others.length > 0 ? worstCompatibility(f, others, mismatchSettings) : "unknown";
                 return (
                   <label key={f.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-700 cursor-pointer ${isSelected ? "bg-gray-700" : ""}`}>
                     <input type="checkbox" checked={isSelected} onChange={() => toggle(f.id)} className="accent-blue-500 shrink-0" />
-                    {!isSelected && othersSelected.length > 0 && (
-                      <span className={`text-sm font-bold w-4 shrink-0 ${COMPAT_COLORS[compat]}`} title={
-                        compat === "ok" ? "相性良好" : compat === "warn" ? "体格差あり" : compat === "ng" ? "体格差が大きすぎる" : "体格データなし"
-                      }>
-                        {COMPAT_LABEL[compat]}
-                      </span>
-                    )}
-                    {(isSelected || othersSelected.length === 0) && <span className="w-4 shrink-0" />}
+                    {!isSelected && others.length > 0
+                      ? <span className={`text-sm font-bold w-4 shrink-0 ${COMPAT_COLORS[compat]}`}>{COMPAT_LABEL[compat]}</span>
+                      : <span className="w-4 shrink-0" />}
                     <span className="text-xs text-gray-400 shrink-0">{dojoMap[f.dojo_id]}</span>
                     <span className="text-sm">{f.name}</span>
                     {(f.weight || f.height || f.age_info || f.experience) && (
@@ -489,65 +395,31 @@ function TournamentPanel() {
                 );
               })}
             </div>
-
-            {/* ミスマッチ警告 */}
-            {selectedFighterObjects.length >= 2 && (() => {
-              const pairs: { f1: Fighter; f2: Fighter; level: CompatibilityLevel }[] = [];
-              for (let i = 0; i < selectedFighterObjects.length; i++) {
-                for (let j = i + 1; j < selectedFighterObjects.length; j++) {
-                  const level = checkCompatibility(selectedFighterObjects[i], selectedFighterObjects[j], mismatchSettings);
-                  if (level === "warn" || level === "ng") {
-                    pairs.push({ f1: selectedFighterObjects[i], f2: selectedFighterObjects[j], level });
-                  }
-                }
-              }
-              if (pairs.length === 0) return null;
-              return (
-                <div className="space-y-1">
-                  {pairs.map((p, i) => (
-                    <p key={i} className={`text-xs px-2 py-1 rounded ${p.level === "ng" ? "bg-red-900 text-red-300" : "bg-yellow-900 text-yellow-300"}`}>
-                      {p.level === "ng" ? "✕" : "△"} {p.f1.name} vs {p.f2.name}
-                      {p.f1.weight && p.f2.weight ? ` 体重差${Math.abs(p.f1.weight - p.f2.weight).toFixed(1)}kg` : ""}
-                      {p.f1.height && p.f2.height ? ` 身長差${Math.abs(p.f1.height - p.f2.height).toFixed(0)}cm` : ""}
-                    </p>
-                  ))}
-                </div>
-              );
-            })()}
-
             <div className="flex gap-2">
               <button onClick={() => setStep(1)} className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-gray-200 bg-gray-700">← 戻る</button>
-              <button
-                onClick={create}
-                disabled={creating || selected.size < 2}
-                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition"
-              >
-                {creating ? "作成中..." : `トーナメントを作成（${selected.size}名）`}
+              <button onClick={create} disabled={creating || selected.size < 2}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition">
+                {creating ? "作成中..." : `試合を作成（${selected.size}名）`}
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* 一覧 */}
       <ul className="space-y-2">
-        {tournaments.map((t) => (
-          <li key={t.id} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3">
+        {events.map((e) => (
+          <li key={e.id} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3">
             <div>
-              <span className="font-medium">{t.name}</span>
-              <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">{t.court}コート</span>
-              <span className={`ml-2 text-xs px-2 py-0.5 rounded ${
-                t.status === "finished" ? "bg-green-900 text-green-300" :
-                t.status === "ongoing" ? "bg-yellow-900 text-yellow-300" :
-                "bg-gray-700 text-gray-400"
-              }`}>
-                {t.status === "preparing" ? "準備中" : t.status === "ongoing" ? "進行中" : "終了"}
-              </span>
+              <span className="font-medium">{e.name}</span>
+              <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">{e.court_count}コート</span>
             </div>
-            <button onClick={() => remove(t.id)} className="text-red-400 hover:text-red-300 text-sm">削除</button>
+            <div className="flex items-center gap-3">
+              <Link href={`/admin/events/${e.id}`} className="text-blue-400 hover:text-blue-300 text-sm">対戦表 →</Link>
+              <button onClick={() => remove(e.id)} className="text-red-400 hover:text-red-300 text-sm">削除</button>
+            </div>
           </li>
         ))}
-        {tournaments.length === 0 && <li className="text-gray-500 text-sm">トーナメントがありません</li>}
+        {events.length === 0 && <li className="text-gray-500 text-sm">試合が登録されていません</li>}
       </ul>
     </div>
   );
@@ -566,10 +438,6 @@ function SettingsPanel() {
   const [weightSlider, setWeightSlider] = useState(W_UNLIMITED);
   const [heightSlider, setHeightSlider] = useState(H_UNLIMITED);
   const [mismatchSaved, setMismatchSaved] = useState(false);
-  const [courtCount, setCourtCount] = useState(2);
-  const [courtNames, setCourtNames] = useState(["1", "2", "3", "4", "5", "6", "7", "8"]);
-  const [courtSaved, setCourtSaved] = useState(false);
-
   useEffect(() => {
     const s = getTtsSettings();
     setVoice(s.voice);
@@ -577,18 +445,7 @@ function SettingsPanel() {
     const m = getMismatchSettings();
     setWeightSlider(m.maxWeightDiff === null ? W_UNLIMITED : m.maxWeightDiff);
     setHeightSlider(m.maxHeightDiff === null ? H_UNLIMITED : m.maxHeightDiff);
-    const cs = getCourtSettings();
-    setCourtCount(cs.count);
-    const names = [...cs.names];
-    while (names.length < 8) names.push(String(names.length + 1));
-    setCourtNames(names);
   }, []);
-
-  function saveCourts() {
-    saveCourtSettings({ count: courtCount, names: courtNames.slice(0, 8) });
-    setCourtSaved(true);
-    setTimeout(() => setCourtSaved(false), 2000);
-  }
 
   function saveMismatch() {
     saveMismatchSettings({
@@ -680,54 +537,6 @@ function SettingsPanel() {
           </button>
         </div>
         <p className="text-xs text-gray-500">※ 設定はこのブラウザに保存されます</p>
-      </div>
-
-      {/* コート設定 */}
-      <div className="bg-gray-800 rounded-xl p-5 space-y-4">
-        <h2 className="font-semibold text-sm text-gray-300">コート設定</h2>
-
-        <div className="space-y-2">
-          <label className="text-xs text-gray-400">コート数</label>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5, 6].map((n) => (
-              <button
-                key={n}
-                onClick={() => setCourtCount(n)}
-                className={`w-10 h-10 rounded-lg text-sm font-bold transition ${courtCount === n ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-xs text-gray-400">コート名（使用する分だけ編集）</label>
-          <div className="grid grid-cols-3 gap-2">
-            {Array.from({ length: courtCount }, (_, i) => (
-              <div key={i} className="flex items-center gap-1">
-                <span className="text-xs text-gray-500 shrink-0">{i + 1}:</span>
-                <input
-                  value={courtNames[i] ?? ""}
-                  onChange={(e) => {
-                    const next = [...courtNames];
-                    next[i] = e.target.value;
-                    setCourtNames(next);
-                  }}
-                  className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <button
-          onClick={saveCourts}
-          className="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-medium transition"
-        >
-          {courtSaved ? "保存しました ✓" : "保存"}
-        </button>
-        <p className="text-xs text-gray-500">※ 保存後にホーム画面を再読み込みすると反映されます</p>
       </div>
 
       {/* ミスマッチルール */}
