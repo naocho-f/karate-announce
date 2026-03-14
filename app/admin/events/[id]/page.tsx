@@ -577,9 +577,9 @@ function MatchEditRow({ match, fighterMap, eventFighters, rules, mismatchSetting
 
   // F2 sorted by compat with F1
   const currentF1 = eventFighters.find((f) => f.id === f1Id);
-  const f2Options = [...eventFighters].sort((a, b) =>
-    currentF1 ? compatScore(a, currentF1) - compatScore(b, currentF1) : 0,
-  );
+  const f2Options = eventFighters
+    .filter((f) => f.id !== f1Id)
+    .sort((a, b) => currentF1 ? compatScore(a, currentF1) - compatScore(b, currentF1) : 0);
 
   return (
     <div className="border border-blue-600 rounded-lg p-3 space-y-2">
@@ -590,7 +590,7 @@ function MatchEditRow({ match, fighterMap, eventFighters, rules, mismatchSetting
           className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none"
         >
           <option value="">BYE</option>
-          {eventFighters.map((f) => (
+          {eventFighters.filter((f) => f.id !== f2Id).map((f) => (
             <option key={f.id} value={f.id}>{f.name}{f.weight ? ` ${f.weight}kg` : ""}</option>
           ))}
         </select>
