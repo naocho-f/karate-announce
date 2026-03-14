@@ -494,27 +494,37 @@ function ExistingTournamentSection({ courtNum, tournament, eventFighters, rules,
           {round1.length === 0 && (
             <p className="text-xs text-gray-500">試合データがありません</p>
           )}
-          {round1.map((m) => (
-            <MatchEditRow
-              key={m.id}
-              match={m}
-              fighterMap={fighterMap}
-              eventFighters={eventFighters}
-              rules={rules}
-              mismatchSettings={mismatchSettings}
-              onUpdated={load}
-            />
-          ))}
+          {round1.map((m) => {
+            // 他の試合で使用済みの選手IDセット（自分自身は除く）
+            const otherUsedIds = new Set(
+              round1
+                .filter((other) => other.id !== m.id)
+                .flatMap((other) => [other.fighter1_id, other.fighter2_id].filter((id): id is string => !!id)),
+            );
+            return (
+              <MatchEditRow
+                key={m.id}
+                match={m}
+                fighterMap={fighterMap}
+                eventFighters={eventFighters}
+                otherUsedIds={otherUsedIds}
+                rules={rules}
+                mismatchSettings={mismatchSettings}
+                onUpdated={load}
+              />
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-function MatchEditRow({ match, fighterMap, eventFighters, rules, mismatchSettings, onUpdated }: {
+function MatchEditRow({ match, fighterMap, eventFighters, otherUsedIds, rules, mismatchSettings, onUpdated }: {
   match: MatchRow;
   fighterMap: Record<string, Fighter>;
   eventFighters: Fighter[];
+  otherUsedIds: Set<string>;
   rules: Rule[];
   mismatchSettings: MismatchSettings;
   onUpdated: () => void;
@@ -628,6 +638,15 @@ function MatchEditRow({ match, fighterMap, eventFighters, rules, mismatchSetting
           {rules.map((r) => <option key={r.id} value={r.name}>{r.name}</option>)}
         </select>
       </div>
+      {/* 重複警告 */}
+      {(f1Id && otherUsedIds.has(f1Id)) || (f2Id && otherUsedIds.has(f2Id)) ? (
+        <p className="text-xs text-red-400 bg-red-900/40 rounded px-2 py-1">
+          ⚠ {[
+            f1Id && otherUsedIds.has(f1Id) ? `${fighterMap[f1Id]?.name ?? "選手1"}` : null,
+            f2Id && otherUsedIds.has(f2Id) ? `${fighterMap[f2Id]?.name ?? "選手2"}` : null,
+          ].filter(Boolean).join("、")} は他の試合にも割り当てられています
+        </p>
+      ) : null}
       <div className="flex gap-2">
         <button onClick={save} className="flex-1 bg-blue-600 hover:bg-blue-500 py-1.5 rounded text-xs font-medium">保存</button>
         <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200">キャンセル</button>
