@@ -163,11 +163,14 @@ export default function CourtPage({ params }: Props) {
             <div className="space-y-6">
               {Array.from({ length: rounds }, (_, i) => i + 1).map((round) => {
                 const roundMatches = matches.filter((m) => m.round === round);
+                const allLabeled = roundMatches.length > 0 && roundMatches.every((m) => m.match_label);
                 return (
                   <div key={round}>
-                    <h2 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wide">
-                      {roundName(round, rounds)}
-                    </h2>
+                    {!allLabeled && (
+                      <h2 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wide">
+                        {roundName(round, rounds)}
+                      </h2>
+                    )}
                     <div className="space-y-2">
                       {roundMatches.map((m) => (
                         <MatchCard

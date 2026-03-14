@@ -59,7 +59,7 @@ export function announceMatchStart(
   const f1dojo = fighter1DojoReading || fighter1Dojo;
   const f2name = fighter2NameReading || fighter2Name;
   const f2dojo = fighter2DojoReading || fighter2Dojo;
-  const prefix = matchLabel ? `${matchLabel}。${roundLabel}。` : `${roundLabel}。`;
+  const prefix = `${matchLabel || roundLabel}。`;
   const rulesText = rules ? `ルール、${rules}。` : "";
   const text =
     prefix +
