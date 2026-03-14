@@ -19,6 +19,8 @@ export default function CourtPage({ params }: Props) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [fighters, setFighters] = useState<Record<string, Fighter>>({});
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
+  // round -> match IDs in display order (does not affect bracket logic)
+  const [displayOrders, setDisplayOrders] = useState<Record<number, string[]>>({});
 
   const loadTournaments = useCallback(async () => {
     const { data } = await supabase
@@ -59,6 +61,41 @@ export default function CourtPage({ params }: Props) {
       setFighters(map);
     }
   }, [selectedTournamentId]);
+
+  // displayOrders をロード／初期化
+  useEffect(() => {
+    if (!selectedTournamentId || matches.length === 0) return;
+    const rounds = [...new Set(matches.map((m) => m.round))];
+    const orders: Record<number, string[]> = {};
+    for (const r of rounds) {
+      const defaultIds = matches.filter((m) => m.round === r).map((m) => m.id);
+      const key = `match_order_${selectedTournamentId}_r${r}`;
+      try {
+        const saved = localStorage.getItem(key);
+        if (saved) {
+          const savedArr: string[] = JSON.parse(saved);
+          const inSaved = new Set(savedArr);
+          orders[r] = [...savedArr.filter((id) => defaultIds.includes(id)), ...defaultIds.filter((id) => !inSaved.has(id))];
+        } else {
+          orders[r] = defaultIds;
+        }
+      } catch {
+        orders[r] = defaultIds;
+      }
+    }
+    setDisplayOrders(orders);
+  }, [matches, selectedTournamentId]);
+
+  function swapWithNext(round: number, matchId: string) {
+    const order = displayOrders[round] ?? [];
+    const idx = order.indexOf(matchId);
+    if (idx < 0 || idx >= order.length - 1) return;
+    const newOrder = [...order];
+    [newOrder[idx], newOrder[idx + 1]] = [newOrder[idx + 1], newOrder[idx]];
+    setDisplayOrders((prev) => ({ ...prev, [round]: newOrder }));
+    const key = `match_order_${selectedTournamentId}_r${round}`;
+    localStorage.setItem(key, JSON.stringify(newOrder));
+  }
 
   useEffect(() => { loadTournaments(); }, [loadTournaments]);
   useEffect(() => { loadMatches(); }, [loadMatches]);
@@ -163,7 +200,11 @@ export default function CourtPage({ params }: Props) {
             {/* トーナメント表 */}
             <div className="space-y-6">
               {Array.from({ length: rounds }, (_, i) => i + 1).map((round) => {
-                const roundMatches = matches.filter((m) => m.round === round);
+                const defaultRoundMatches = matches.filter((m) => m.round === round);
+                const order = displayOrders[round];
+                const roundMatches = order
+                  ? order.map((id) => defaultRoundMatches.find((m) => m.id === id)).filter((m): m is Match => !!m)
+                  : defaultRoundMatches;
                 const allLabeled = roundMatches.length > 0 && roundMatches.every((m) => m.match_label);
                 return (
                   <div key={round}>
@@ -173,15 +214,20 @@ export default function CourtPage({ params }: Props) {
                       </h2>
                     )}
                     <div className="space-y-2">
-                      {roundMatches.map((m) => (
-                        <MatchCard
-                          key={m.id}
-                          match={m}
-                          fighters={fighters}
-                          onStart={() => startMatch(m)}
-                          onUpdated={loadMatches}
-                        />
-                      ))}
+                      {roundMatches.map((m, idx) => {
+                        const isLast = idx === roundMatches.length - 1;
+                        const canSwap = !isLast && m.status !== "done" && m.status !== "ongoing";
+                        return (
+                          <MatchCard
+                            key={m.id}
+                            match={m}
+                            fighters={fighters}
+                            onStart={() => startMatch(m)}
+                            onUpdated={loadMatches}
+                            onSwapWithNext={canSwap ? () => swapWithNext(round, m.id) : undefined}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -194,11 +240,12 @@ export default function CourtPage({ params }: Props) {
   );
 }
 
-function MatchCard({ match, fighters, onStart, onUpdated }: {
+function MatchCard({ match, fighters, onStart, onUpdated, onSwapWithNext }: {
   match: Match;
   fighters: Record<string, Fighter>;
   onStart: () => void;
   onUpdated: () => void;
+  onSwapWithNext?: () => void;
 }) {
   const f1 = match.fighter1_id ? fighters[match.fighter1_id] : null;
   const f2 = match.fighter2_id ? fighters[match.fighter2_id] : null;
@@ -273,19 +320,29 @@ function MatchCard({ match, fighters, onStart, onUpdated }: {
             <span className="text-green-400 text-xs font-medium">終了</span>
           )}
           {match.status !== "done" && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setLabel(match.match_label ?? ""); setRules(match.rules ?? ""); setEditing(!editing); setReplacing(null); }}
-                className="text-gray-500 hover:text-gray-300 text-xs transition"
-              >
-                ✎ 設定
-              </button>
-              <button
-                onClick={() => { loadAllFighters(); setReplacing(replacing ? null : "f1"); setEditing(false); }}
-                className="text-gray-500 hover:text-yellow-300 text-xs transition"
-              >
-                ↺ 変更
-              </button>
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setLabel(match.match_label ?? ""); setRules(match.rules ?? ""); setEditing(!editing); setReplacing(null); }}
+                  className="text-gray-500 hover:text-gray-300 text-xs transition"
+                >
+                  ✎ 設定
+                </button>
+                <button
+                  onClick={() => { loadAllFighters(); setReplacing(replacing ? null : "f1"); setEditing(false); }}
+                  className="text-gray-500 hover:text-yellow-300 text-xs transition"
+                >
+                  ↺ 変更
+                </button>
+              </div>
+              {onSwapWithNext && (
+                <button
+                  onClick={onSwapWithNext}
+                  className="text-xs text-gray-500 hover:text-blue-400 transition bg-gray-700 hover:bg-gray-600 px-2 py-0.5 rounded"
+                >
+                  ↕ 次と入替
+                </button>
+              )}
             </div>
           )}
         </div>

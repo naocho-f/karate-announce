@@ -260,29 +260,16 @@ function CourtSection({ courtNum, eventId, eventFighters, seedSet, tournament, r
     onCreated();
   }
 
-  // 対戦表あり
+  // 対戦表あり → 表示・編集モード
   if (tournament) {
     return (
-      <div className="bg-gray-800 rounded-xl p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-gray-200">コート{courtNum}</h2>
-            <span className={`text-xs px-2 py-0.5 rounded ${
-              tournament.status === "finished" ? "bg-green-900 text-green-300" :
-              tournament.status === "ongoing"  ? "bg-yellow-900 text-yellow-300" :
-              "bg-gray-700 text-gray-400"
-            }`}>
-              {tournament.status === "preparing" ? "準備中" : tournament.status === "ongoing" ? "進行中" : "終了"}
-            </span>
-            {tournament.default_rules && (
-              <span className="text-xs text-gray-500">ルール: {tournament.default_rules}</span>
-            )}
-          </div>
-          <Link href={`/court/${courtNum}`} className="text-blue-400 hover:text-blue-300 text-sm">
-            コート画面 →
-          </Link>
-        </div>
-      </div>
+      <ExistingTournamentSection
+        courtNum={courtNum}
+        tournament={tournament}
+        eventFighters={eventFighters}
+        rules={rules}
+        mismatchSettings={mismatchSettings}
+      />
     );
   }
 
@@ -433,6 +420,217 @@ function CourtSection({ courtNum, eventId, eventFighters, seedSet, tournament, r
         >
           {confirming ? "保存中..." : `対戦表を確定（${pairs.length}対戦）`}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ── 確定済み対戦表の表示・編集 ──────────────────────────────────────────
+
+type MatchRow = {
+  id: string;
+  round: number;
+  position: number;
+  fighter1_id: string | null;
+  fighter2_id: string | null;
+  winner_id: string | null;
+  status: string;
+  match_label: string | null;
+  rules: string | null;
+};
+
+function ExistingTournamentSection({ courtNum, tournament, eventFighters, rules, mismatchSettings }: {
+  courtNum: number;
+  tournament: Tournament;
+  eventFighters: Fighter[];
+  rules: Rule[];
+  mismatchSettings: MismatchSettings;
+}) {
+  const [matches, setMatches] = useState<MatchRow[]>([]);
+  const [open, setOpen] = useState(true);
+
+  const load = useCallback(async () => {
+    const { data } = await supabase
+      .from("matches")
+      .select("id, round, position, fighter1_id, fighter2_id, winner_id, status, match_label, rules")
+      .eq("tournament_id", tournament.id)
+      .order("round").order("position");
+    setMatches(data ?? []);
+  }, [tournament.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const fighterMap = Object.fromEntries(eventFighters.map((f) => [f.id, f]));
+  const round1 = matches.filter((m) => m.round === 1);
+
+  return (
+    <div className="bg-gray-800 rounded-xl p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold text-gray-200">コート{courtNum}</h2>
+          <span className={`text-xs px-2 py-0.5 rounded ${
+            tournament.status === "finished" ? "bg-green-900 text-green-300" :
+            tournament.status === "ongoing"  ? "bg-yellow-900 text-yellow-300" :
+            "bg-gray-700 text-gray-400"
+          }`}>
+            {tournament.status === "preparing" ? "準備中" : tournament.status === "ongoing" ? "進行中" : "終了"}
+          </span>
+          {tournament.default_rules && (
+            <span className="text-xs text-gray-500">{tournament.default_rules}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setOpen((v) => !v)} className="text-xs text-gray-400 hover:text-gray-200">
+            {open ? "▲ 折りたたむ" : "▼ 対戦一覧を表示"}
+          </button>
+          <Link href={`/court/${courtNum}`} className="text-blue-400 hover:text-blue-300 text-sm">
+            コート画面 →
+          </Link>
+        </div>
+      </div>
+
+      {open && (
+        <div className="space-y-2">
+          {round1.length === 0 && (
+            <p className="text-xs text-gray-500">試合データがありません</p>
+          )}
+          {round1.map((m) => (
+            <MatchEditRow
+              key={m.id}
+              match={m}
+              fighterMap={fighterMap}
+              eventFighters={eventFighters}
+              rules={rules}
+              mismatchSettings={mismatchSettings}
+              onUpdated={load}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MatchEditRow({ match, fighterMap, eventFighters, rules, mismatchSettings, onUpdated }: {
+  match: MatchRow;
+  fighterMap: Record<string, Fighter>;
+  eventFighters: Fighter[];
+  rules: Rule[];
+  mismatchSettings: MismatchSettings;
+  onUpdated: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [f1Id, setF1Id] = useState(match.fighter1_id ?? "");
+  const [f2Id, setF2Id] = useState(match.fighter2_id ?? "");
+  const [label, setLabel] = useState(match.match_label ?? "");
+  const [ruleText, setRuleText] = useState(match.rules ?? "");
+
+  function startEdit() {
+    setF1Id(match.fighter1_id ?? "");
+    setF2Id(match.fighter2_id ?? "");
+    setLabel(match.match_label ?? "");
+    setRuleText(match.rules ?? "");
+    setEditing(true);
+  }
+
+  async function save() {
+    await supabase.from("matches").update({
+      fighter1_id: f1Id || null,
+      fighter2_id: f2Id || null,
+      match_label: label.trim() || null,
+      rules: ruleText.trim() || null,
+      status: (f1Id && f2Id) ? "ready" : "waiting",
+    }).eq("id", match.id);
+    setEditing(false);
+    onUpdated();
+  }
+
+  const f1 = match.fighter1_id ? fighterMap[match.fighter1_id] : null;
+  const f2 = match.fighter2_id ? fighterMap[match.fighter2_id] : null;
+  const compat: CompatibilityLevel = (f1 && f2)
+    ? checkCompatibility(f1, f2, mismatchSettings)
+    : "unknown";
+
+  const isDone = match.status === "done" || match.status === "ongoing";
+
+  if (!editing) {
+    return (
+      <div className={`border rounded-lg px-3 py-2 flex items-center gap-2 text-sm ${isDone ? "border-gray-700 opacity-60" : "border-gray-700"}`}>
+        {match.match_label && <span className="text-xs text-blue-300 shrink-0">{match.match_label}</span>}
+        <span className={`${match.winner_id === match.fighter1_id && match.winner_id ? "text-green-400 font-bold" : "text-gray-200"}`}>
+          {f1?.name ?? "BYE"}
+        </span>
+        <span className="text-gray-600 text-xs shrink-0">vs</span>
+        <span className={`${match.winner_id === match.fighter2_id && match.winner_id ? "text-green-400 font-bold" : "text-gray-200"}`}>
+          {f2?.name ?? "BYE"}
+        </span>
+        <span className={`text-xs font-bold shrink-0 ${COMPAT_COLORS[compat]}`}>{COMPAT_LABEL[compat]}</span>
+        {match.rules && <span className="text-xs text-gray-500 shrink-0">[{match.rules}]</span>}
+        {match.status === "done" && <span className="ml-auto text-xs text-green-400 shrink-0">完了</span>}
+        {match.status === "ongoing" && <span className="ml-auto text-xs text-yellow-400 shrink-0 animate-pulse">試合中</span>}
+        {!isDone && (
+          <button onClick={startEdit} className="ml-auto text-gray-500 hover:text-blue-400 text-xs shrink-0">✎ 編集</button>
+        )}
+      </div>
+    );
+  }
+
+  // F2 sorted by compat with F1
+  const currentF1 = eventFighters.find((f) => f.id === f1Id);
+  const f2Options = [...eventFighters].sort((a, b) =>
+    currentF1 ? compatScore(a, currentF1) - compatScore(b, currentF1) : 0,
+  );
+
+  return (
+    <div className="border border-blue-600 rounded-lg p-3 space-y-2">
+      <div className="flex gap-2 items-center">
+        <select
+          value={f1Id}
+          onChange={(e) => setF1Id(e.target.value)}
+          className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none"
+        >
+          <option value="">BYE</option>
+          {eventFighters.map((f) => (
+            <option key={f.id} value={f.id}>{f.name}{f.weight ? ` ${f.weight}kg` : ""}</option>
+          ))}
+        </select>
+        <span className="text-gray-600 text-xs shrink-0">vs</span>
+        <select
+          value={f2Id}
+          onChange={(e) => setF2Id(e.target.value)}
+          className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none"
+        >
+          <option value="">BYE</option>
+          {f2Options.map((f) => {
+            const c: CompatibilityLevel = currentF1 ? checkCompatibility(currentF1, f, mismatchSettings) : "unknown";
+            const cl = c === "ok" ? "◎ " : c === "warn" ? "△ " : c === "ng" ? "✕ " : "";
+            return (
+              <option key={f.id} value={f.id}>
+                {cl}{f.name}{f.weight ? ` ${f.weight}kg` : ""}{f.experience ? ` [${f.experience}]` : ""}
+              </option>
+            );
+          })}
+        </select>
+      </div>
+      <div className="flex gap-2">
+        <input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="試合名"
+          className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
+        />
+        <select
+          value={ruleText}
+          onChange={(e) => setRuleText(e.target.value)}
+          className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none"
+        >
+          <option value="">ルールなし</option>
+          {rules.map((r) => <option key={r.id} value={r.name}>{r.name}</option>)}
+        </select>
+      </div>
+      <div className="flex gap-2">
+        <button onClick={save} className="flex-1 bg-blue-600 hover:bg-blue-500 py-1.5 rounded text-xs font-medium">保存</button>
+        <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200">キャンセル</button>
       </div>
     </div>
   );
