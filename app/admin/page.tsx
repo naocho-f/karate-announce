@@ -75,7 +75,7 @@ function DojoPanel() {
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && add()}
+          onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && add()}
           placeholder="流派名（例: 極真会）"
           className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
         />
@@ -140,7 +140,7 @@ function FighterPanel() {
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && add()}
+          onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && add()}
           placeholder="選手名（例: 山田 太郎）"
           className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
         />
