@@ -202,8 +202,12 @@ function TournamentPanel() {
     const matchDefs = generateFirstRound(selectedFighters);
     const rounds = totalRounds(selectedFighters.length);
 
-    // 1回戦の試合を挿入
-    const inserts = matchDefs.map((m) => ({ ...m, tournament_id: t.id, status: "waiting" as const }));
+    // 1回戦の試合を挿入（両選手揃っていれば ready）
+    const inserts = matchDefs.map((m) => ({
+      ...m,
+      tournament_id: t.id,
+      status: (m.fighter1_id && m.fighter2_id ? "ready" : "waiting") as "ready" | "waiting",
+    }));
     await supabase.from("matches").insert(inserts);
 
     // 以降のラウンドの空試合を挿入
