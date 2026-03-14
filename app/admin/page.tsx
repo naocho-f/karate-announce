@@ -71,18 +71,17 @@ function DojoPanel() {
 
   return (
     <div>
-      <div className="flex gap-2 mb-4">
+      <form onSubmit={(e) => { e.preventDefault(); add(); }} className="flex gap-2 mb-4">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && add()}
           placeholder="流派名（例: 極真会）"
           className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
         />
-        <button onClick={add} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium">
+        <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium">
           追加
         </button>
-      </div>
+      </form>
       <ul className="space-y-2">
         {dojos.map((d) => (
           <li key={d.id} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3">
@@ -129,7 +128,7 @@ function FighterPanel() {
 
   return (
     <div>
-      <div className="flex gap-2 mb-4">
+      <form onSubmit={(e) => { e.preventDefault(); add(); }} className="flex gap-2 mb-4">
         <select
           value={dojoId}
           onChange={(e) => setDojoId(e.target.value)}
@@ -140,14 +139,13 @@ function FighterPanel() {
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && add()}
           placeholder="選手名（例: 山田 太郎）"
           className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
         />
-        <button onClick={add} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium">
+        <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium">
           追加
         </button>
-      </div>
+      </form>
       <ul className="space-y-2">
         {fighters.map((f) => (
           <li key={f.id} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3">
