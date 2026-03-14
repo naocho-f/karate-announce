@@ -11,9 +11,9 @@ import {
   checkCompatibility, worstCompatibility, getMismatchSettings, saveMismatchSettings,
   COMPAT_COLORS, COMPAT_LABEL, type CompatibilityLevel, type MismatchSettings,
 } from "@/lib/compatibility";
+import { getCourtSettings, saveCourtSettings } from "@/lib/court-settings";
 import Link from "next/link";
 
-const COURTS = ["A", "B", "C", "D"];
 
 export default function AdminPage() {
   const [tab, setTab] = useState<"dojos" | "fighters" | "tournaments" | "settings">("dojos");
@@ -288,17 +288,24 @@ function TournamentPanel() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [fighters, setFighters] = useState<Fighter[]>([]);
   const [dojos, setDojos] = useState<Dojo[]>([]);
+  const [courts, setCourts] = useState<string[]>([]);
   // ウィザード state
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
-  const [court, setCourt] = useState("A");
+  const [court, setCourt] = useState("");
   const [matchLabel, setMatchLabel] = useState("");
   const [rules, setRules] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
   const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: 5, maxHeightDiff: null });
 
-  useEffect(() => { setMismatchSettings(getMismatchSettings()); }, []);
+  useEffect(() => {
+    setMismatchSettings(getMismatchSettings());
+    const cs = getCourtSettings();
+    const names = cs.names.slice(0, cs.count);
+    setCourts(names);
+    setCourt(names[0] ?? "");
+  }, []);
 
   async function load() {
     const { data: ts } = await supabase.from("tournaments").select("*").order("created_at", { ascending: false });
@@ -414,7 +421,7 @@ function TournamentPanel() {
                 onChange={(e) => setCourt(e.target.value)}
                 className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
               >
-                {COURTS.map((c) => <option key={c} value={c}>{c}コート</option>)}
+                {courts.map((c) => <option key={c} value={c}>{c}コート</option>)}
               </select>
               <input
                 value={matchLabel}
@@ -559,6 +566,9 @@ function SettingsPanel() {
   const [weightSlider, setWeightSlider] = useState(W_UNLIMITED);
   const [heightSlider, setHeightSlider] = useState(H_UNLIMITED);
   const [mismatchSaved, setMismatchSaved] = useState(false);
+  const [courtCount, setCourtCount] = useState(2);
+  const [courtNames, setCourtNames] = useState(["1", "2", "3", "4", "5", "6", "7", "8"]);
+  const [courtSaved, setCourtSaved] = useState(false);
 
   useEffect(() => {
     const s = getTtsSettings();
@@ -567,7 +577,18 @@ function SettingsPanel() {
     const m = getMismatchSettings();
     setWeightSlider(m.maxWeightDiff === null ? W_UNLIMITED : m.maxWeightDiff);
     setHeightSlider(m.maxHeightDiff === null ? H_UNLIMITED : m.maxHeightDiff);
+    const cs = getCourtSettings();
+    setCourtCount(cs.count);
+    const names = [...cs.names];
+    while (names.length < 8) names.push(String(names.length + 1));
+    setCourtNames(names);
   }, []);
+
+  function saveCourts() {
+    saveCourtSettings({ count: courtCount, names: courtNames.slice(0, 8) });
+    setCourtSaved(true);
+    setTimeout(() => setCourtSaved(false), 2000);
+  }
 
   function saveMismatch() {
     saveMismatchSettings({
@@ -659,6 +680,54 @@ function SettingsPanel() {
           </button>
         </div>
         <p className="text-xs text-gray-500">※ 設定はこのブラウザに保存されます</p>
+      </div>
+
+      {/* コート設定 */}
+      <div className="bg-gray-800 rounded-xl p-5 space-y-4">
+        <h2 className="font-semibold text-sm text-gray-300">コート設定</h2>
+
+        <div className="space-y-2">
+          <label className="text-xs text-gray-400">コート数</label>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <button
+                key={n}
+                onClick={() => setCourtCount(n)}
+                className={`w-10 h-10 rounded-lg text-sm font-bold transition ${courtCount === n ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs text-gray-400">コート名（使用する分だけ編集）</label>
+          <div className="grid grid-cols-3 gap-2">
+            {Array.from({ length: courtCount }, (_, i) => (
+              <div key={i} className="flex items-center gap-1">
+                <span className="text-xs text-gray-500 shrink-0">{i + 1}:</span>
+                <input
+                  value={courtNames[i] ?? ""}
+                  onChange={(e) => {
+                    const next = [...courtNames];
+                    next[i] = e.target.value;
+                    setCourtNames(next);
+                  }}
+                  className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <button
+          onClick={saveCourts}
+          className="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-medium transition"
+        >
+          {courtSaved ? "保存しました ✓" : "保存"}
+        </button>
+        <p className="text-xs text-gray-500">※ 保存後にホーム画面を再読み込みすると反映されます</p>
       </div>
 
       {/* ミスマッチルール */}
