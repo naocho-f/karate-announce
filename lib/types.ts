@@ -14,6 +14,7 @@ export type Fighter = {
   weight: number | null;
   height: number | null;
   age_info: string | null;
+  experience: string | null;
   created_at: string;
 };
 

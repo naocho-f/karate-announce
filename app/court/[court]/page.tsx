@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import type { Fighter, Match, Tournament } from "@/lib/types";
 import { roundName, totalRounds } from "@/lib/tournament";
 import { announceMatchStart, announceWinner } from "@/lib/speech";
+import { checkCompatibility, getMismatchSettings, COMPAT_COLORS, COMPAT_LABEL } from "@/lib/compatibility";
 import Link from "next/link";
 
 type Props = { params: Promise<{ court: string }> };
@@ -202,8 +203,28 @@ function MatchCard({ match, fighters, onStart, onUpdated }: {
   const f1 = match.fighter1_id ? fighters[match.fighter1_id] : null;
   const f2 = match.fighter2_id ? fighters[match.fighter2_id] : null;
   const [editing, setEditing] = useState(false);
+  const [replacing, setReplacing] = useState<"f1" | "f2" | null>(null);
   const [label, setLabel] = useState(match.match_label ?? "");
   const [rules, setRules] = useState(match.rules ?? "");
+  const [allFighters, setAllFighters] = useState<Fighter[]>([]);
+
+  async function loadAllFighters() {
+    const { data } = await supabase.from("fighters").select("*, dojo:dojos(*)").order("name");
+    setAllFighters((data ?? []) as Fighter[]);
+  }
+
+  async function replaceFighter(slot: "f1" | "f2", newFighterId: string) {
+    const field = slot === "f1" ? "fighter1_id" : "fighter2_id";
+    const bothPresent = slot === "f1"
+      ? (newFighterId && match.fighter2_id)
+      : (match.fighter1_id && newFighterId);
+    await supabase.from("matches").update({
+      [field]: newFighterId,
+      status: bothPresent ? "ready" : "waiting",
+    }).eq("id", match.id);
+    setReplacing(null);
+    onUpdated();
+  }
 
   const bgColor =
     match.status === "done" ? "bg-gray-800 opacity-60" :
@@ -252,15 +273,67 @@ function MatchCard({ match, fighters, onStart, onUpdated }: {
             <span className="text-green-400 text-xs font-medium">終了</span>
           )}
           {match.status !== "done" && (
-            <button
-              onClick={() => { setLabel(match.match_label ?? ""); setRules(match.rules ?? ""); setEditing(!editing); }}
-              className="text-gray-500 hover:text-gray-300 text-xs transition"
-            >
-              ✎ 設定
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setLabel(match.match_label ?? ""); setRules(match.rules ?? ""); setEditing(!editing); setReplacing(null); }}
+                className="text-gray-500 hover:text-gray-300 text-xs transition"
+              >
+                ✎ 設定
+              </button>
+              <button
+                onClick={() => { loadAllFighters(); setReplacing(replacing ? null : "f1"); setEditing(false); }}
+                className="text-gray-500 hover:text-yellow-300 text-xs transition"
+              >
+                ↺ 変更
+              </button>
+            </div>
           )}
         </div>
       </div>
+
+      {/* 選手変更ピッカー */}
+      {replacing && (
+        <div className="mt-3 pt-3 border-t border-gray-700 space-y-2">
+          <div className="flex gap-2 mb-2">
+            <button onClick={() => setReplacing("f1")} className={`text-xs px-3 py-1 rounded-lg ${replacing === "f1" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}>
+              {f1?.name ?? "選手1"} を変更
+            </button>
+            <button onClick={() => setReplacing("f2")} className={`text-xs px-3 py-1 rounded-lg ${replacing === "f2" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}>
+              {f2?.name ?? "選手2"} を変更
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mb-1">対戦相手との相性: ◎良好 △差あり ✕差大きい</p>
+          <div className="max-h-48 overflow-y-auto space-y-1">
+            {(() => {
+              const opponent = replacing === "f1" ? f2 : f1;
+              const settings = getMismatchSettings();
+              return allFighters
+                .filter((f) => f.id !== match.fighter1_id && f.id !== match.fighter2_id)
+                .map((f) => {
+                  const compat = opponent ? checkCompatibility(f, opponent, settings) : "unknown";
+                  const dojo = (f.dojo as unknown as { name: string })?.name ?? "";
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => replaceFighter(replacing, f.id)}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-left"
+                    >
+                      <span className={`text-sm font-bold shrink-0 ${COMPAT_COLORS[compat]}`}>{COMPAT_LABEL[compat]}</span>
+                      <span className="text-xs text-gray-400 shrink-0">{dojo}</span>
+                      <span className="text-sm text-white">{f.name}</span>
+                      {(f.weight || f.height || f.age_info) && (
+                        <span className="ml-auto text-xs text-gray-500">
+                          {[f.weight ? `${f.weight}kg` : null, f.height ? `${f.height}cm` : null, f.age_info].filter(Boolean).join("/")}
+                        </span>
+                      )}
+                    </button>
+                  );
+                });
+            })()}
+          </div>
+          <button onClick={() => setReplacing(null)} className="text-xs text-gray-400 hover:text-gray-200">キャンセル</button>
+        </div>
+      )}
 
       {/* インライン編集フォーム */}
       {editing && (

@@ -7,6 +7,10 @@ import { supabase } from "@/lib/supabase";
 import type { Dojo, Fighter, Tournament } from "@/lib/types";
 import { generateFirstRound, totalRounds } from "@/lib/tournament";
 import { TTS_VOICES, getTtsSettings, saveTtsSettings, announceCustom, type TtsVoice } from "@/lib/speech";
+import {
+  checkCompatibility, worstCompatibility, getMismatchSettings, saveMismatchSettings,
+  COMPAT_COLORS, COMPAT_LABEL, type CompatibilityLevel, type MismatchSettings,
+} from "@/lib/compatibility";
 import Link from "next/link";
 
 const COURTS = ["A", "B", "C", "D"];
@@ -140,6 +144,7 @@ function FighterPanel() {
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [ageInfo, setAgeInfo] = useState("");
+  const [experience, setExperience] = useState("");
 
   async function add() {
     if (!name.trim() || !dojoId) return;
@@ -150,8 +155,9 @@ function FighterPanel() {
       weight: weight ? parseFloat(weight) : null,
       height: height ? parseFloat(height) : null,
       age_info: ageInfo.trim() || null,
+      experience: experience.trim() || null,
     });
-    setName(""); setReading(""); setWeight(""); setHeight(""); setAgeInfo("");
+    setName(""); setReading(""); setWeight(""); setHeight(""); setAgeInfo(""); setExperience("");
     load();
   }
 
@@ -160,11 +166,12 @@ function FighterPanel() {
     load();
   }
 
-  async function updateProfile(id: string, weight: string, height: string, ageInfo: string) {
+  async function updateProfile(id: string, weight: string, height: string, ageInfo: string, experience: string) {
     await supabase.from("fighters").update({
       weight: weight ? parseFloat(weight) : null,
       height: height ? parseFloat(height) : null,
       age_info: ageInfo.trim() || null,
+      experience: experience.trim() || null,
     }).eq("id", id);
     load();
   }
@@ -222,6 +229,12 @@ function FighterPanel() {
             placeholder="年齢 / 学年（例: 25歳 / 小3）"
             className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
           />
+          <input
+            value={experience}
+            onChange={(e) => setExperience(e.target.value)}
+            placeholder="格闘技経験（例: 空手初段）"
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+          />
           <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0">
             追加
           </button>
@@ -234,12 +247,13 @@ function FighterPanel() {
               <span>
                 <span className="text-gray-400 text-sm mr-2">{(f.dojo as unknown as Dojo)?.name}</span>
                 <span className="font-medium">{f.name}</span>
-                {(f.weight || f.height || f.age_info) && (
+                {(f.weight || f.height || f.age_info || f.experience) && (
                   <span className="ml-2 text-xs text-gray-500">
                     {[
                       f.weight ? `${f.weight}kg` : null,
                       f.height ? `${f.height}cm` : null,
                       f.age_info ?? null,
+                      f.experience ?? null,
                     ].filter(Boolean).join(" / ")}
                   </span>
                 )}
@@ -255,7 +269,8 @@ function FighterPanel() {
               weight={f.weight?.toString() ?? ""}
               height={f.height?.toString() ?? ""}
               ageInfo={f.age_info ?? ""}
-              onSave={(w, h, a) => updateProfile(f.id, w, h, a)}
+              experience={f.experience ?? ""}
+              onSave={(w, h, a, e) => updateProfile(f.id, w, h, a, e)}
             />
           </li>
         ))}
@@ -275,6 +290,9 @@ function TournamentPanel() {
   const [court, setCourt] = useState("A");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
+  const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: 5, maxHeightDiff: 10 });
+
+  useEffect(() => { setMismatchSettings(getMismatchSettings()); }, []);
 
   async function load() {
     const { data: ts } = await supabase.from("tournaments").select("*").order("created_at", { ascending: false });
@@ -354,6 +372,7 @@ function TournamentPanel() {
   }
 
   const dojoMap = Object.fromEntries(dojos.map((d) => [d.id, d.name]));
+  const selectedFighterObjects = fighters.filter((f) => selected.has(f.id));
 
   return (
     <div className="space-y-6">
@@ -378,23 +397,62 @@ function TournamentPanel() {
 
         <p className="text-xs text-gray-400">出場選手を選択（{selected.size}名選択中）</p>
         <div className="max-h-48 overflow-y-auto space-y-1">
-          {fighters.map((f) => (
-            <label key={f.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-700 cursor-pointer">
-              <input type="checkbox" checked={selected.has(f.id)} onChange={() => toggle(f.id)} className="accent-blue-500" />
-              <span className="text-xs text-gray-400 shrink-0">{dojoMap[f.dojo_id]}</span>
-              <span className="text-sm">{f.name}</span>
-              {(f.weight || f.height || f.age_info) && (
-                <span className="ml-auto text-xs text-gray-500 shrink-0">
-                  {[
-                    f.weight ? `${f.weight}kg` : null,
-                    f.height ? `${f.height}cm` : null,
-                    f.age_info ?? null,
-                  ].filter(Boolean).join(" / ")}
-                </span>
-              )}
-            </label>
-          ))}
+          {fighters.map((f) => {
+            const isSelected = selected.has(f.id);
+            const othersSelected = selectedFighterObjects.filter((s) => s.id !== f.id);
+            const compat: CompatibilityLevel = !isSelected && othersSelected.length > 0
+              ? worstCompatibility(f, othersSelected, mismatchSettings)
+              : "unknown";
+            return (
+              <label key={f.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-700 cursor-pointer ${isSelected ? "bg-gray-700" : ""}`}>
+                <input type="checkbox" checked={isSelected} onChange={() => toggle(f.id)} className="accent-blue-500 shrink-0" />
+                {!isSelected && othersSelected.length > 0 && (
+                  <span className={`text-sm font-bold shrink-0 ${COMPAT_COLORS[compat]}`} title={
+                    compat === "ok" ? "相性良好" : compat === "warn" ? "体格差あり" : compat === "ng" ? "体格差が大きすぎる" : "体格データなし"
+                  }>
+                    {COMPAT_LABEL[compat]}
+                  </span>
+                )}
+                <span className="text-xs text-gray-400 shrink-0">{dojoMap[f.dojo_id]}</span>
+                <span className="text-sm">{f.name}</span>
+                {(f.weight || f.height || f.age_info || f.experience) && (
+                  <span className="ml-auto text-xs text-gray-500 shrink-0">
+                    {[
+                      f.weight ? `${f.weight}kg` : null,
+                      f.height ? `${f.height}cm` : null,
+                      f.age_info ?? null,
+                      f.experience ?? null,
+                    ].filter(Boolean).join(" / ")}
+                  </span>
+                )}
+              </label>
+            );
+          })}
         </div>
+        {/* ミスマッチ警告 */}
+        {selectedFighterObjects.length >= 2 && (() => {
+          const pairs: { f1: Fighter; f2: Fighter; level: CompatibilityLevel }[] = [];
+          for (let i = 0; i < selectedFighterObjects.length; i++) {
+            for (let j = i + 1; j < selectedFighterObjects.length; j++) {
+              const level = checkCompatibility(selectedFighterObjects[i], selectedFighterObjects[j], mismatchSettings);
+              if (level === "warn" || level === "ng") {
+                pairs.push({ f1: selectedFighterObjects[i], f2: selectedFighterObjects[j], level });
+              }
+            }
+          }
+          if (pairs.length === 0) return null;
+          return (
+            <div className="space-y-1">
+              {pairs.map((p, i) => (
+                <p key={i} className={`text-xs px-2 py-1 rounded ${p.level === "ng" ? "bg-red-900 text-red-300" : "bg-yellow-900 text-yellow-300"}`}>
+                  {p.level === "ng" ? "✕" : "△"} {p.f1.name} vs {p.f2.name}：体格差大
+                  {p.f1.weight && p.f2.weight ? `（体重差 ${Math.abs(p.f1.weight - p.f2.weight).toFixed(1)}kg）` : ""}
+                  {p.f1.height && p.f2.height ? `（身長差 ${Math.abs(p.f1.height - p.f2.height).toFixed(0)}cm）` : ""}
+                </p>
+              ))}
+            </div>
+          );
+        })()}
         <button
           onClick={create}
           disabled={creating || !name.trim() || selected.size < 2}
@@ -435,12 +493,24 @@ function SettingsPanel() {
   const [speed, setSpeed] = useState(1.0);
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [maxWeightDiff, setMaxWeightDiff] = useState(5);
+  const [maxHeightDiff, setMaxHeightDiff] = useState(10);
+  const [mismatchSaved, setMismatchSaved] = useState(false);
 
   useEffect(() => {
     const s = getTtsSettings();
     setVoice(s.voice);
     setSpeed(s.speed);
+    const m = getMismatchSettings();
+    setMaxWeightDiff(m.maxWeightDiff);
+    setMaxHeightDiff(m.maxHeightDiff);
   }, []);
+
+  function saveMismatch() {
+    saveMismatchSettings({ maxWeightDiff, maxHeightDiff });
+    setMismatchSaved(true);
+    setTimeout(() => setMismatchSaved(false), 2000);
+  }
 
   function save() {
     saveTtsSettings(voice, speed);
@@ -524,43 +594,97 @@ function SettingsPanel() {
         </div>
         <p className="text-xs text-gray-500">※ 設定はこのブラウザに保存されます</p>
       </div>
+
+      {/* ミスマッチルール */}
+      <div className="bg-gray-800 rounded-xl p-5 space-y-4">
+        <h2 className="font-semibold text-sm text-gray-300">体格ミスマッチルール</h2>
+        <p className="text-xs text-gray-500">この差を超えると△警告、2倍を超えると✕で表示されます</p>
+
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <label className="text-xs text-gray-400">体重差の上限</label>
+              <span className="text-sm font-mono text-white">{maxWeightDiff} kg</span>
+            </div>
+            <input
+              type="range" min="1" max="20" step="0.5"
+              value={maxWeightDiff}
+              onChange={(e) => setMaxWeightDiff(parseFloat(e.target.value))}
+              className="w-full accent-blue-500"
+            />
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>1kg</span><span>20kg</span>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <label className="text-xs text-gray-400">身長差の上限</label>
+              <span className="text-sm font-mono text-white">{maxHeightDiff} cm</span>
+            </div>
+            <input
+              type="range" min="1" max="30" step="1"
+              value={maxHeightDiff}
+              onChange={(e) => setMaxHeightDiff(parseFloat(e.target.value))}
+              className="w-full accent-blue-500"
+            />
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>1cm</span><span>30cm</span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={saveMismatch}
+          className="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-medium transition"
+        >
+          {mismatchSaved ? "保存しました ✓" : "保存"}
+        </button>
+      </div>
     </div>
   );
 }
 
 // ── 読み仮名インライン編集 ─────────────────────────────────────────────────
 
-function ProfileInput({ weight, height, ageInfo, onSave }: {
+function ProfileInput({ weight, height, ageInfo, experience, onSave }: {
   weight: string;
   height: string;
   ageInfo: string;
-  onSave: (weight: string, height: string, ageInfo: string) => void;
+  experience: string;
+  onSave: (weight: string, height: string, ageInfo: string, experience: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [dw, setDw] = useState(weight);
   const [dh, setDh] = useState(height);
   const [da, setDa] = useState(ageInfo);
+  const [de, setDe] = useState(experience);
 
   function commit() {
-    onSave(dw, dh, da);
+    onSave(dw, dh, da, de);
     setEditing(false);
   }
+
+  const summary = [
+    weight ? `${weight}kg` : null,
+    height ? `${height}cm` : null,
+    ageInfo || null,
+    experience || null,
+  ].filter(Boolean).join(" / ");
 
   if (!editing) {
     return (
       <button
-        onClick={() => { setDw(weight); setDh(height); setDa(ageInfo); setEditing(true); }}
+        onClick={() => { setDw(weight); setDh(height); setDa(ageInfo); setDe(experience); setEditing(true); }}
         className="text-xs text-gray-500 hover:text-blue-400 transition mt-0.5 block"
       >
-        体格: {weight || height || ageInfo
-          ? [weight ? `${weight}kg` : null, height ? `${height}cm` : null, ageInfo || null].filter(Boolean).join(" / ")
-          : "未設定（タップして編集）"}
+        体格・経験: {summary || "未設定（タップして編集）"}
       </button>
     );
   }
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); commit(); }} className="flex gap-1 mt-1">
+    <form onSubmit={(e) => { e.preventDefault(); commit(); }} className="flex flex-wrap gap-1 mt-1">
       <input
         autoFocus
         value={dw}
@@ -582,7 +706,13 @@ function ProfileInput({ weight, height, ageInfo, onSave }: {
         value={da}
         onChange={(e) => setDa(e.target.value)}
         placeholder="25歳 / 小3"
-        className="flex-1 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
+        className="w-24 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
+      />
+      <input
+        value={de}
+        onChange={(e) => setDe(e.target.value)}
+        placeholder="格闘技経験（例: 空手初段）"
+        className="flex-1 min-w-32 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
       />
       <button type="submit" className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded">保存</button>
       <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1">×</button>
