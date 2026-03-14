@@ -1,11 +1,35 @@
 "use client";
 
+export type TtsVoice = "alloy" | "echo" | "fable" | "nova" | "onyx" | "shimmer";
+
+export const TTS_VOICES: { value: TtsVoice; label: string }[] = [
+  { value: "nova",    label: "Nova（女性・明瞭）" },
+  { value: "shimmer", label: "Shimmer（女性・柔らか）" },
+  { value: "alloy",   label: "Alloy（中性）" },
+  { value: "echo",    label: "Echo（男性・軽め）" },
+  { value: "fable",   label: "Fable（男性・物語風）" },
+  { value: "onyx",    label: "Onyx（男性・重厚）" },
+];
+
+export function getTtsSettings(): { voice: TtsVoice; speed: number } {
+  if (typeof window === "undefined") return { voice: "nova", speed: 1.0 };
+  const voice = (localStorage.getItem("tts_voice") as TtsVoice) ?? "nova";
+  const speed = parseFloat(localStorage.getItem("tts_speed") ?? "1.0");
+  return { voice, speed: isNaN(speed) ? 1.0 : speed };
+}
+
+export function saveTtsSettings(voice: TtsVoice, speed: number) {
+  localStorage.setItem("tts_voice", voice);
+  localStorage.setItem("tts_speed", String(speed));
+}
+
 async function speak(text: string) {
+  const { voice, speed } = getTtsSettings();
   try {
     const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, voice, speed }),
     });
     if (!res.ok) throw new Error("TTS API error");
     const blob = await res.blob();

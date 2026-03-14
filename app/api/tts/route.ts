@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const ALLOWED_VOICES = ["alloy", "echo", "fable", "nova", "onyx", "shimmer"];
+
 export async function POST(req: NextRequest) {
-  const { text } = await req.json();
+  const { text, voice, speed } = await req.json();
   if (!text) return NextResponse.json({ error: "text required" }, { status: 400 });
+
+  const safeVoice = ALLOWED_VOICES.includes(voice) ? voice : "nova";
+  const safeSpeed = typeof speed === "number" && speed >= 0.25 && speed <= 4.0 ? speed : 1.0;
 
   const res = await fetch("https://api.openai.com/v1/audio/speech", {
     method: "POST",
@@ -10,7 +15,7 @@ export async function POST(req: NextRequest) {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model: "tts-1", voice: "nova", input: text }),
+    body: JSON.stringify({ model: "tts-1", voice: safeVoice, input: text, speed: safeSpeed }),
   });
 
   if (!res.ok) {

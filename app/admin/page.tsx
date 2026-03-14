@@ -6,12 +6,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Dojo, Fighter, Tournament } from "@/lib/types";
 import { generateFirstRound, totalRounds } from "@/lib/tournament";
+import { TTS_VOICES, getTtsSettings, saveTtsSettings, announceCustom, type TtsVoice } from "@/lib/speech";
 import Link from "next/link";
 
 const COURTS = ["A", "B", "C", "D"];
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"dojos" | "fighters" | "tournaments">("dojos");
+  const [tab, setTab] = useState<"dojos" | "fighters" | "tournaments" | "settings">("dojos");
 
   return (
     <main className="min-h-screen bg-gray-900 text-white p-6">
@@ -22,7 +23,7 @@ export default function AdminPage() {
         </div>
 
         <div className="flex gap-2 mb-6">
-          {(["dojos", "fighters", "tournaments"] as const).map((t) => (
+          {(["dojos", "fighters", "tournaments", "settings"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -30,7 +31,7 @@ export default function AdminPage() {
                 tab === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
               }`}
             >
-              {t === "dojos" ? "流派" : t === "fighters" ? "選手" : "トーナメント"}
+              {t === "dojos" ? "流派" : t === "fighters" ? "選手" : t === "tournaments" ? "トーナメント" : "設定"}
             </button>
           ))}
         </div>
@@ -38,6 +39,7 @@ export default function AdminPage() {
         {tab === "dojos" && <DojoPanel />}
         {tab === "fighters" && <FighterPanel />}
         {tab === "tournaments" && <TournamentPanel />}
+        {tab === "settings" && <SettingsPanel />}
       </div>
     </main>
   );
@@ -354,6 +356,106 @@ function TournamentPanel() {
         ))}
         {tournaments.length === 0 && <li className="text-gray-500 text-sm">トーナメントがありません</li>}
       </ul>
+    </div>
+  );
+}
+
+// ── TTS設定 ───────────────────────────────────────────────────────────────
+
+function SettingsPanel() {
+  const [voice, setVoice] = useState<TtsVoice>("nova");
+  const [speed, setSpeed] = useState(1.0);
+  const [playing, setPlaying] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const s = getTtsSettings();
+    setVoice(s.voice);
+    setSpeed(s.speed);
+  }, []);
+
+  function save() {
+    saveTtsSettings(voice, speed);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function preview() {
+    saveTtsSettings(voice, speed);
+    setPlaying(true);
+    await new Promise<void>((resolve) => {
+      // announceCustom は fire-and-forget なので少し待つ
+      announceCustom("Aコート、男子一般部、準決勝。極真会所属、山田太郎選手。対。正道会館所属、鈴木一郎選手。これより試合を開始します。");
+      setTimeout(resolve, 500);
+    });
+    setPlaying(false);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800 rounded-xl p-5 space-y-5">
+        <h2 className="font-semibold text-sm text-gray-300">音声設定</h2>
+
+        {/* 声質 */}
+        <div className="space-y-2">
+          <label className="text-xs text-gray-400">声質</label>
+          <div className="grid grid-cols-2 gap-2">
+            {TTS_VOICES.map((v) => (
+              <button
+                key={v.value}
+                onClick={() => setVoice(v.value)}
+                className={`px-3 py-2.5 rounded-lg text-sm text-left transition ${
+                  voice === v.value
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                }`}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 速度 */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <label className="text-xs text-gray-400">速度</label>
+            <span className="text-sm font-mono text-white">{speed.toFixed(2)}x</span>
+          </div>
+          <input
+            type="range"
+            min="0.5"
+            max="1.5"
+            step="0.05"
+            value={speed}
+            onChange={(e) => setSpeed(parseFloat(e.target.value))}
+            className="w-full accent-blue-500"
+          />
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>0.5x（遅い）</span>
+            <span>1.0x（標準）</span>
+            <span>1.5x（速い）</span>
+          </div>
+        </div>
+
+        {/* ボタン */}
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={preview}
+            disabled={playing}
+            className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-2.5 rounded-lg text-sm font-medium transition"
+          >
+            {playing ? "再生中..." : "試し聞き"}
+          </button>
+          <button
+            onClick={save}
+            className="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-medium transition"
+          >
+            {saved ? "保存しました ✓" : "保存"}
+          </button>
+        </div>
+        <p className="text-xs text-gray-500">※ 設定はこのブラウザに保存されます</p>
+      </div>
     </div>
   );
 }
