@@ -48,6 +48,7 @@ export default function AdminPage() {
 function DojoPanel() {
   const [dojos, setDojos] = useState<Dojo[]>([]);
   const [name, setName] = useState("");
+  const [reading, setReading] = useState("");
 
   async function load() {
     const { data } = await supabase.from("dojos").select("*").order("name");
@@ -58,8 +59,13 @@ function DojoPanel() {
 
   async function add() {
     if (!name.trim()) return;
-    await supabase.from("dojos").insert({ name: name.trim() });
-    setName("");
+    await supabase.from("dojos").insert({ name: name.trim(), name_reading: reading.trim() || null });
+    setName(""); setReading("");
+    load();
+  }
+
+  async function updateReading(id: string, value: string) {
+    await supabase.from("dojos").update({ name_reading: value.trim() || null }).eq("id", id);
     load();
   }
 
@@ -71,22 +77,37 @@ function DojoPanel() {
 
   return (
     <div>
-      <form onSubmit={(e) => { e.preventDefault(); add(); }} className="flex gap-2 mb-4">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="流派名（例: 極真会）"
-          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-        />
-        <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium">
-          追加
-        </button>
+      <form onSubmit={(e) => { e.preventDefault(); add(); }} className="space-y-2 mb-4">
+        <div className="flex gap-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="流派名（例: 極真会）"
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+          />
+          <input
+            value={reading}
+            onChange={(e) => setReading(e.target.value)}
+            placeholder="読み仮名（例: きょくしんかい）"
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+          />
+          <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0">
+            追加
+          </button>
+        </div>
       </form>
       <ul className="space-y-2">
         {dojos.map((d) => (
-          <li key={d.id} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3">
-            <span>{d.name}</span>
-            <button onClick={() => remove(d.id)} className="text-red-400 hover:text-red-300 text-sm">削除</button>
+          <li key={d.id} className="bg-gray-800 rounded-lg px-4 py-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-medium">{d.name}</span>
+              <button onClick={() => remove(d.id)} className="text-red-400 hover:text-red-300 text-sm">削除</button>
+            </div>
+            <ReadingInput
+              value={d.name_reading ?? ""}
+              placeholder="読み仮名（例: きょくしんかい）"
+              onSave={(v) => updateReading(d.id, v)}
+            />
           </li>
         ))}
         {dojos.length === 0 && <li className="text-gray-500 text-sm">流派が登録されていません</li>}
@@ -101,6 +122,7 @@ function FighterPanel() {
   const [dojos, setDojos] = useState<Dojo[]>([]);
   const [fighters, setFighters] = useState<Fighter[]>([]);
   const [name, setName] = useState("");
+  const [reading, setReading] = useState("");
   const [dojoId, setDojoId] = useState("");
 
   async function load() {
@@ -115,8 +137,13 @@ function FighterPanel() {
 
   async function add() {
     if (!name.trim() || !dojoId) return;
-    await supabase.from("fighters").insert({ name: name.trim(), dojo_id: dojoId });
-    setName("");
+    await supabase.from("fighters").insert({ name: name.trim(), name_reading: reading.trim() || null, dojo_id: dojoId });
+    setName(""); setReading("");
+    load();
+  }
+
+  async function updateReading(id: string, value: string) {
+    await supabase.from("fighters").update({ name_reading: value.trim() || null }).eq("id", id);
     load();
   }
 
@@ -128,32 +155,47 @@ function FighterPanel() {
 
   return (
     <div>
-      <form onSubmit={(e) => { e.preventDefault(); add(); }} className="flex gap-2 mb-4">
-        <select
-          value={dojoId}
-          onChange={(e) => setDojoId(e.target.value)}
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
-        >
-          {dojos.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="選手名（例: 山田 太郎）"
-          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-        />
-        <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium">
-          追加
-        </button>
+      <form onSubmit={(e) => { e.preventDefault(); add(); }} className="space-y-2 mb-4">
+        <div className="flex gap-2">
+          <select
+            value={dojoId}
+            onChange={(e) => setDojoId(e.target.value)}
+            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500 shrink-0"
+          >
+            {dojos.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="選手名（例: 山田 太郎）"
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+          />
+          <input
+            value={reading}
+            onChange={(e) => setReading(e.target.value)}
+            placeholder="読み（例: やまだ たろう）"
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+          />
+          <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0">
+            追加
+          </button>
+        </div>
       </form>
       <ul className="space-y-2">
         {fighters.map((f) => (
-          <li key={f.id} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3">
-            <span>
-              <span className="text-gray-400 text-sm mr-2">{(f.dojo as unknown as Dojo)?.name}</span>
-              {f.name}
-            </span>
-            <button onClick={() => remove(f.id)} className="text-red-400 hover:text-red-300 text-sm">削除</button>
+          <li key={f.id} className="bg-gray-800 rounded-lg px-4 py-3">
+            <div className="flex items-center justify-between mb-1">
+              <span>
+                <span className="text-gray-400 text-sm mr-2">{(f.dojo as unknown as Dojo)?.name}</span>
+                <span className="font-medium">{f.name}</span>
+              </span>
+              <button onClick={() => remove(f.id)} className="text-red-400 hover:text-red-300 text-sm">削除</button>
+            </div>
+            <ReadingInput
+              value={f.name_reading ?? ""}
+              placeholder="読み仮名（例: やまだ たろう）"
+              onSave={(v) => updateReading(f.id, v)}
+            />
           </li>
         ))}
         {fighters.length === 0 && <li className="text-gray-500 text-sm">選手が登録されていません</li>}
@@ -313,5 +355,46 @@ function TournamentPanel() {
         {tournaments.length === 0 && <li className="text-gray-500 text-sm">トーナメントがありません</li>}
       </ul>
     </div>
+  );
+}
+
+// ── 読み仮名インライン編集 ─────────────────────────────────────────────────
+
+function ReadingInput({ value, placeholder, onSave }: {
+  value: string;
+  placeholder: string;
+  onSave: (v: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  function commit() {
+    onSave(draft);
+    setEditing(false);
+  }
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => { setDraft(value); setEditing(true); }}
+        className="text-xs text-gray-500 hover:text-blue-400 transition"
+      >
+        読み: {value || "未設定（タップして編集）"}
+      </button>
+    );
+  }
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); commit(); }} className="flex gap-1 mt-1">
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        placeholder={placeholder}
+        className="flex-1 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
+      />
+      <button type="submit" className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded">保存</button>
+      <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1">×</button>
+    </form>
   );
 }

@@ -1,12 +1,14 @@
 export type Dojo = {
   id: string;
   name: string;
+  name_reading: string | null;
   created_at: string;
 };
 
 export type Fighter = {
   id: string;
   name: string;
+  name_reading: string | null;
   dojo_id: string;
   dojo?: Dojo;
   created_at: string;

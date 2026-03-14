@@ -83,10 +83,14 @@ export default function CourtPage({ params }: Props) {
     loadMatches();
 
     const label = roundName(match.round, rounds);
+    const f1dojo = f1.dojo as unknown as { name: string; name_reading?: string | null };
+    const f2dojo = f2.dojo as unknown as { name: string; name_reading?: string | null };
     announceMatchStart(
-      f1.name, (f1.dojo as unknown as { name: string })?.name ?? "",
-      f2.name, (f2.dojo as unknown as { name: string })?.name ?? "",
-      label
+      f1.name, f1dojo?.name ?? "",
+      f2.name, f2dojo?.name ?? "",
+      label,
+      f1.name_reading, f1dojo?.name_reading,
+      f2.name_reading, f2dojo?.name_reading,
     );
   }
 
@@ -113,7 +117,8 @@ export default function CourtPage({ params }: Props) {
 
     setCurrentMatchId(null);
     loadMatches();
-    announceWinner(winner.name, (winner.dojo as unknown as { name: string })?.name ?? "");
+    const winnerDojo = winner.dojo as unknown as { name: string; name_reading?: string | null };
+    announceWinner(winner.name, winnerDojo?.name ?? "", winner.name_reading, winnerDojo?.name_reading);
   }
 
   const currentMatch = matches.find((m) => m.id === currentMatchId) ?? matches.find((m) => m.status === "ongoing");

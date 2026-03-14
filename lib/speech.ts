@@ -21,19 +21,29 @@ export function announceMatchStart(
   fighter1Dojo: string,
   fighter2Name: string,
   fighter2Dojo: string,
-  roundLabel: string
+  roundLabel: string,
+  fighter1NameReading?: string | null,
+  fighter1DojoReading?: string | null,
+  fighter2NameReading?: string | null,
+  fighter2DojoReading?: string | null,
 ) {
+  const f1name = fighter1NameReading || fighter1Name;
+  const f1dojo = fighter1DojoReading || fighter1Dojo;
+  const f2name = fighter2NameReading || fighter2Name;
+  const f2dojo = fighter2DojoReading || fighter2Dojo;
   const text =
     `${roundLabel}。` +
-    `${fighter1Dojo}所属、${fighter1Name}選手。` +
+    `${f1dojo}所属、${f1name}選手。` +
     `対。` +
-    `${fighter2Dojo}所属、${fighter2Name}選手。` +
+    `${f2dojo}所属、${f2name}選手。` +
     `これより試合を開始します。`;
   speak(text);
 }
 
-export function announceWinner(winnerName: string, winnerDojo: string) {
-  const text = `ただいまの試合は、${winnerDojo}所属、${winnerName}選手の勝ちです。`;
+export function announceWinner(winnerName: string, winnerDojo: string, nameReading?: string | null, dojoReading?: string | null) {
+  const name = nameReading || winnerName;
+  const dojo = dojoReading || winnerDojo;
+  const text = `ただいまの試合は、${dojo}所属、${name}選手の勝ちです。`;
   speak(text);
 }
 
