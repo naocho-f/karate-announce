@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { use, useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Fighter, Match, Tournament } from "@/lib/types";
+import { fighterFullName, fighterFullReading } from "@/lib/types";
 import { roundName, totalRounds } from "@/lib/tournament";
 import { announceMatchStart, announceWinner } from "@/lib/speech";
 import { checkCompatibility, getMismatchSettings, COMPAT_COLORS, COMPAT_LABEL } from "@/lib/compatibility";
@@ -122,11 +123,11 @@ export default function CourtPage({ params }: Props) {
     const f1dojo = f1.dojo as unknown as { name: string; name_reading?: string | null };
     const f2dojo = f2.dojo as unknown as { name: string; name_reading?: string | null };
     announceMatchStart(
-      f1.name, f1dojo?.name ?? "",
-      f2.name, f2dojo?.name ?? "",
+      fighterFullName(f1), f1dojo?.name ?? "",
+      fighterFullName(f2), f2dojo?.name ?? "",
       label,
-      f1.name_reading, f1dojo?.name_reading,
-      f2.name_reading, f2dojo?.name_reading,
+      fighterFullReading(f1), f1dojo?.name_reading,
+      fighterFullReading(f2), f2dojo?.name_reading,
       match.match_label,
       match.rules,
     );
@@ -154,7 +155,7 @@ export default function CourtPage({ params }: Props) {
     setCurrentMatchId(null);
     loadMatches();
     const winnerDojo = winner.dojo as unknown as { name: string; name_reading?: string | null };
-    announceWinner(winner.name, winnerDojo?.name ?? "", winner.name_reading, winnerDojo?.name_reading);
+    announceWinner(fighterFullName(winner), winnerDojo?.name ?? "", fighterFullReading(winner), winnerDojo?.name_reading);
   }
 
   const currentMatch = matches.find((m) => m.id === currentMatchId) ?? matches.find((m) => m.status === "ongoing");

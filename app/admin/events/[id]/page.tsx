@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { use, useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Event, Fighter, Tournament, Rule } from "@/lib/types";
+import { fighterFullName } from "@/lib/types";
 import { createTournamentBracketFromPairs } from "@/lib/bracket";
 import {
   checkCompatibility, getMismatchSettings,
@@ -37,6 +38,8 @@ export default function EventDetailPage({ params }: Props) {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
   const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: 5, maxHeightDiff: null });
+  // entryRuleIds[fighter_id] = Set of rule_ids this fighter entered for this event
+  const [entryRuleIds, setEntryRuleIds] = useState<Record<string, Set<string>>>({});
 
   const load = useCallback(async () => {
     const { data: e } = await supabase.from("events").select("*").eq("id", id).single();
@@ -54,6 +57,15 @@ export default function EventDetailPage({ params }: Props) {
       setSeedSet(new Set());
     }
 
+    // エントリールール
+    const { data: efr } = await supabase.from("event_fighter_rules").select("fighter_id, rule_id").eq("event_id", id);
+    const map: Record<string, Set<string>> = {};
+    (efr ?? []).forEach((r) => {
+      if (!map[r.fighter_id]) map[r.fighter_id] = new Set();
+      map[r.fighter_id].add(r.rule_id);
+    });
+    setEntryRuleIds(map);
+
     const { data: ts } = await supabase.from("tournaments").select("*").eq("event_id", id);
     setTournaments(ts ?? []);
 
@@ -62,6 +74,22 @@ export default function EventDetailPage({ params }: Props) {
 
     setMismatchSettings(getMismatchSettings());
   }, [id]);
+
+  async function toggleEntryRule(fighterId: string, ruleId: string) {
+    const has = entryRuleIds[fighterId]?.has(ruleId);
+    if (has) {
+      await supabase.from("event_fighter_rules").delete()
+        .eq("event_id", id).eq("fighter_id", fighterId).eq("rule_id", ruleId);
+    } else {
+      await supabase.from("event_fighter_rules").insert({ event_id: id, fighter_id: fighterId, rule_id: ruleId });
+    }
+    setEntryRuleIds((prev) => {
+      const next = { ...prev };
+      next[fighterId] = new Set(prev[fighterId] ?? []);
+      has ? next[fighterId].delete(ruleId) : next[fighterId].add(ruleId);
+      return next;
+    });
+  }
 
   useEffect(() => { load(); }, [load]);
 
@@ -92,7 +120,7 @@ export default function EventDetailPage({ params }: Props) {
         </div>
 
         {/* シード設定 */}
-        <div className="bg-gray-800 rounded-xl p-4 mb-6 space-y-3">
+        <div className="bg-gray-800 rounded-xl p-4 mb-4 space-y-3">
           <div>
             <h2 className="text-sm font-semibold text-gray-300">シード選手</h2>
             <p className="text-xs text-gray-500 mt-0.5">タップでシード指定。自動振り分け時に優先的に BYE を割り当て、対戦相手は非シードから選択します。</p>
@@ -108,13 +136,48 @@ export default function EventDetailPage({ params }: Props) {
                     : "bg-gray-700 text-gray-400 hover:bg-gray-600"
                 }`}
               >
-                {seedSet.has(f.id) ? "★ " : "☆ "}{f.name}
+                {seedSet.has(f.id) ? "★ " : "☆ "}{fighterFullName(f)}
                 {f.weight ? ` ${f.weight}kg` : ""}
               </button>
             ))}
             {eventFighters.length === 0 && <p className="text-xs text-gray-500">参加選手が登録されていません</p>}
           </div>
         </div>
+
+        {/* エントリールール設定 */}
+        {rules.length > 0 && eventFighters.length > 0 && (
+          <div className="bg-gray-800 rounded-xl p-4 mb-6 space-y-3">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-300">エントリールール</h2>
+              <p className="text-xs text-gray-500 mt-0.5">各選手がエントリーしているルールを設定します。コートのルールが選択されると、そのルールにエントリーした選手のみが対象になります。</p>
+            </div>
+            <div className="space-y-2">
+              {eventFighters.map((f) => (
+                <div key={f.id} className="flex items-center gap-3 flex-wrap">
+                  <span className="text-sm text-gray-200 w-28 shrink-0 truncate">{fighterFullName(f)}</span>
+                  <div className="flex flex-wrap gap-2">
+                    {rules.map((r) => {
+                      const checked = entryRuleIds[f.id]?.has(r.id) ?? false;
+                      return (
+                        <button
+                          key={r.id}
+                          onClick={() => toggleEntryRule(f.id, r.id)}
+                          className={`text-xs px-2 py-1 rounded transition ${
+                            checked
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                          }`}
+                        >
+                          {checked ? "✓ " : ""}{r.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-6">
           {Array.from({ length: event.court_count }, (_, i) => i + 1).map((courtNum) => (
@@ -124,6 +187,7 @@ export default function EventDetailPage({ params }: Props) {
               eventId={id}
               eventFighters={eventFighters}
               seedSet={seedSet}
+              entryRuleIds={entryRuleIds}
               tournament={tournaments.find((t) => t.court === String(courtNum)) ?? null}
               rules={rules}
               mismatchSettings={mismatchSettings}
@@ -138,11 +202,12 @@ export default function EventDetailPage({ params }: Props) {
 
 // ── コートセクション ──────────────────────────────────────────────────────
 
-function CourtSection({ courtNum, eventId, eventFighters, seedSet, tournament, rules, mismatchSettings, onCreated }: {
+function CourtSection({ courtNum, eventId, eventFighters, seedSet, entryRuleIds, tournament, rules, mismatchSettings, onCreated }: {
   courtNum: number;
   eventId: string;
   eventFighters: Fighter[];
   seedSet: Set<string>;
+  entryRuleIds: Record<string, Set<string>>;
   tournament: Tournament | null;
   rules: Rule[];
   mismatchSettings: MismatchSettings;
@@ -152,18 +217,23 @@ function CourtSection({ courtNum, eventId, eventFighters, seedSet, tournament, r
   const [defaultRuleId, setDefaultRuleId] = useState("");
   const [confirming, setConfirming] = useState(false);
 
+  // ルールでフィルタした選手（ルール未選択 or エントリーなしの場合は全員）
+  const filteredFighters = defaultRuleId
+    ? eventFighters.filter((f) => entryRuleIds[f.id]?.has(defaultRuleId))
+    : eventFighters;
+
   const assignedIds = new Set(
     pairs.flatMap((p) => [p.f1.id, p.f2?.id].filter((x): x is string => !!x)),
   );
-  const unassigned = eventFighters.filter((f) => !assignedIds.has(f.id));
+  const unassigned = filteredFighters.filter((f) => !assignedIds.has(f.id));
 
   function autoAssign() {
-    const seeds = eventFighters.filter((f) => seedSet.has(f.id));
-    const nonSeeds = eventFighters
+    const seeds = filteredFighters.filter((f) => seedSet.has(f.id));
+    const nonSeeds = filteredFighters
       .filter((f) => !seedSet.has(f.id))
       .sort((a, b) => (a.weight ?? 999) - (b.weight ?? 999));
 
-    const total = eventFighters.length;
+    const total = filteredFighters.length;
     const newPairs: Pair[] = [];
     const used = new Set<string>();
 
@@ -279,7 +349,10 @@ function CourtSection({ courtNum, eventId, eventFighters, seedSet, tournament, r
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-gray-200">コート{courtNum} の対戦表</h2>
         <span className="text-xs text-gray-500">
-          参加{eventFighters.length}名 / 割当{assignedIds.size}名 / 未割当{unassigned.length}名
+          {defaultRuleId && filteredFighters.length < eventFighters.length
+            ? `対象${filteredFighters.length}名（ルール絞込）`
+            : `参加${eventFighters.length}名`}
+          {" / "}割当{assignedIds.size}名 / 未割当{unassigned.length}名
         </span>
       </div>
 
@@ -336,7 +409,7 @@ function CourtSection({ courtNum, eventId, eventFighters, seedSet, tournament, r
                   >
                     {f1Options.map((f) => (
                       <option key={f.id} value={f.id}>
-                        {f.name}{f.weight ? ` ${f.weight}kg` : ""}{f.height ? ` ${f.height}cm` : ""}
+                        {fighterFullName(f)}{f.weight ? ` ${f.weight}kg` : ""}{f.height ? ` ${f.height}cm` : ""}
                       </option>
                     ))}
                   </select>
@@ -355,7 +428,7 @@ function CourtSection({ courtNum, eventId, eventFighters, seedSet, tournament, r
                       const label = c === "ok" ? "◎ " : c === "warn" ? "△ " : c === "ng" ? "✕ " : "";
                       return (
                         <option key={f.id} value={f.id}>
-                          {label}{f.name}{f.weight ? ` ${f.weight}kg` : ""}{f.height ? ` ${f.height}cm` : ""}
+                          {label}{fighterFullName(f)}{f.weight ? ` ${f.weight}kg` : ""}{f.height ? ` ${f.height}cm` : ""}
                           {f.experience ? ` [${f.experience}]` : ""}
                         </option>
                       );

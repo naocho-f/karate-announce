@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Dojo, Event, Fighter, Rule } from "@/lib/types";
+import { fighterFullName } from "@/lib/types";
 import { TTS_VOICES, getTtsSettings, saveTtsSettings, announceCustom, type TtsVoice } from "@/lib/speech";
 import {
   worstCompatibility, getMismatchSettings, saveMismatchSettings,
@@ -127,9 +128,15 @@ function DojoPanel() {
 function FighterPanel() {
   const [dojos, setDojos] = useState<Dojo[]>([]);
   const [fighters, setFighters] = useState<Fighter[]>([]);
-  const [name, setName] = useState("");
-  const [reading, setReading] = useState("");
   const [dojoId, setDojoId] = useState("");
+  const [familyName, setFamilyName] = useState("");
+  const [givenName, setGivenName] = useState("");
+  const [familyReading, setFamilyReading] = useState("");
+  const [givenReading, setGivenReading] = useState("");
+  const [weight, setWeight] = useState("");
+  const [height, setHeight] = useState("");
+  const [ageInfo, setAgeInfo] = useState("");
+  const [experience, setExperience] = useState("");
 
   async function load() {
     const { data: ds } = await supabase.from("dojos").select("*").order("name");
@@ -141,37 +148,47 @@ function FighterPanel() {
 
   useEffect(() => { load(); }, []);
 
-  const [weight, setWeight] = useState("");
-  const [height, setHeight] = useState("");
-  const [ageInfo, setAgeInfo] = useState("");
-  const [experience, setExperience] = useState("");
-
   async function add() {
-    if (!name.trim() || !dojoId) return;
+    if (!familyName.trim() || !dojoId) return;
+    const fullName = givenName.trim() ? `${familyName.trim()} ${givenName.trim()}` : familyName.trim();
+    const fullReading = (familyReading.trim() && givenReading.trim())
+      ? `${familyReading.trim()} ${givenReading.trim()}`
+      : familyReading.trim() || null;
     await supabase.from("fighters").insert({
-      name: name.trim(),
-      name_reading: reading.trim() || null,
+      name: fullName,
+      name_reading: fullReading,
+      family_name: familyName.trim(),
+      given_name: givenName.trim() || null,
+      family_name_reading: familyReading.trim() || null,
+      given_name_reading: givenReading.trim() || null,
       dojo_id: dojoId,
       weight: weight ? parseFloat(weight) : null,
       height: height ? parseFloat(height) : null,
       age_info: ageInfo.trim() || null,
       experience: experience.trim() || null,
     });
-    setName(""); setReading(""); setWeight(""); setHeight(""); setAgeInfo(""); setExperience("");
+    setFamilyName(""); setGivenName(""); setFamilyReading(""); setGivenReading("");
+    setWeight(""); setHeight(""); setAgeInfo(""); setExperience("");
     load();
   }
 
-  async function updateReading(id: string, value: string) {
-    await supabase.from("fighters").update({ name_reading: value.trim() || null }).eq("id", id);
-    load();
-  }
-
-  async function updateProfile(id: string, weight: string, height: string, ageInfo: string, experience: string) {
+  async function updateName(id: string, fn: string, gn: string, fr: string, gr: string) {
+    const fullName = gn ? `${fn} ${gn}` : fn;
+    const fullReading = (fr && gr) ? `${fr} ${gr}` : fr || null;
     await supabase.from("fighters").update({
-      weight: weight ? parseFloat(weight) : null,
-      height: height ? parseFloat(height) : null,
-      age_info: ageInfo.trim() || null,
-      experience: experience.trim() || null,
+      name: fullName, name_reading: fullReading,
+      family_name: fn || null, given_name: gn || null,
+      family_name_reading: fr || null, given_name_reading: gr || null,
+    }).eq("id", id);
+    load();
+  }
+
+  async function updateProfile(id: string, w: string, h: string, a: string, e: string) {
+    await supabase.from("fighters").update({
+      weight: w ? parseFloat(w) : null,
+      height: h ? parseFloat(h) : null,
+      age_info: a.trim() || null,
+      experience: e.trim() || null,
     }).eq("id", id);
     load();
   }
@@ -182,88 +199,50 @@ function FighterPanel() {
     load();
   }
 
+  const inp = "flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
+
   return (
     <div>
       <form onSubmit={(e) => { e.preventDefault(); add(); }} className="space-y-2 mb-4">
         <div className="flex gap-2">
-          <select
-            value={dojoId}
-            onChange={(e) => setDojoId(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500 shrink-0"
-          >
+          <select value={dojoId} onChange={(e) => setDojoId(e.target.value)}
+            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500 shrink-0">
             {dojos.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="選手名"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-          />
-          <input
-            value={reading}
-            onChange={(e) => setReading(e.target.value)}
-            placeholder="読み"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-          />
+          <input value={familyName} onChange={(e) => setFamilyName(e.target.value)} placeholder="姓" className={inp} />
+          <input value={givenName} onChange={(e) => setGivenName(e.target.value)} placeholder="名" className={inp} />
+          <input value={familyReading} onChange={(e) => setFamilyReading(e.target.value)} placeholder="姓読み（やまだ）" className={inp} />
+          <input value={givenReading} onChange={(e) => setGivenReading(e.target.value)} placeholder="名読み（たろう）" className={inp} />
         </div>
         <div className="flex gap-2">
-          <input
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            placeholder="体重 kg"
-            type="number"
-            step="0.1"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-          />
-          <input
-            value={height}
-            onChange={(e) => setHeight(e.target.value)}
-            placeholder="身長 cm"
-            type="number"
-            step="0.1"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-          />
-          <input
-            value={ageInfo}
-            onChange={(e) => setAgeInfo(e.target.value)}
-            placeholder="年齢 / 学年（例: 25歳 / 小3）"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-          />
-          <input
-            value={experience}
-            onChange={(e) => setExperience(e.target.value)}
-            placeholder="格闘技経験（例: 空手初段）"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-          />
-          <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0">
-            追加
-          </button>
+          <input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="体重 kg" type="number" step="0.1" className={inp} />
+          <input value={height} onChange={(e) => setHeight(e.target.value)} placeholder="身長 cm" type="number" step="0.1" className={inp} />
+          <input value={ageInfo} onChange={(e) => setAgeInfo(e.target.value)} placeholder="年齢・学年（例: 25歳 / 小3）" className={inp} />
+          <input value={experience} onChange={(e) => setExperience(e.target.value)} placeholder="格闘技経験（例: 空手初段）" className={inp} />
+          <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0">追加</button>
         </div>
       </form>
       <ul className="space-y-2">
         {fighters.map((f) => (
           <li key={f.id} className="bg-gray-800 rounded-lg px-4 py-3">
             <div className="flex items-center justify-between mb-1">
-              <span>
-                <span className="text-gray-400 text-sm mr-2">{(f.dojo as unknown as Dojo)?.name}</span>
-                <span className="font-medium">{f.name}</span>
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="text-gray-400 text-sm shrink-0">{(f.dojo as unknown as Dojo)?.name}</span>
+                <span className="font-medium">{fighterFullName(f)}</span>
                 {(f.weight || f.height || f.age_info || f.experience) && (
-                  <span className="ml-2 text-xs text-gray-500">
-                    {[
-                      f.weight ? `${f.weight}kg` : null,
-                      f.height ? `${f.height}cm` : null,
-                      f.age_info ?? null,
-                      f.experience ?? null,
-                    ].filter(Boolean).join(" / ")}
+                  <span className="text-xs text-gray-500">
+                    {[f.weight ? `${f.weight}kg` : null, f.height ? `${f.height}cm` : null, f.age_info, f.experience].filter(Boolean).join(" / ")}
                   </span>
                 )}
               </span>
-              <button onClick={() => remove(f.id)} className="text-red-400 hover:text-red-300 text-sm">削除</button>
+              <button onClick={() => remove(f.id)} className="text-red-400 hover:text-red-300 text-sm shrink-0">削除</button>
             </div>
-            <ReadingInput
-              value={f.name_reading ?? ""}
-              placeholder="読み仮名（例: やまだ たろう）"
-              onSave={(v) => updateReading(f.id, v)}
+            <NameInput
+              familyName={f.family_name ?? f.name ?? ""}
+              givenName={f.given_name ?? ""}
+              familyReading={f.family_name_reading ?? ""}
+              givenReading={f.given_name_reading ?? ""}
+              onSave={(fn, gn, fr, gr) => updateName(f.id, fn, gn, fr, gr)}
             />
             <ProfileInput
               weight={f.weight?.toString() ?? ""}
@@ -737,6 +716,48 @@ function ProfileInput({ weight, height, ageInfo, experience, onSave }: {
         placeholder="格闘技経験（例: 空手初段）"
         className="flex-1 min-w-32 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
       />
+      <button type="submit" className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded">保存</button>
+      <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1">×</button>
+    </form>
+  );
+}
+
+function NameInput({ familyName, givenName, familyReading, givenReading, onSave }: {
+  familyName: string;
+  givenName: string;
+  familyReading: string;
+  givenReading: string;
+  onSave: (fn: string, gn: string, fr: string, gr: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [fn, setFn] = useState(familyName);
+  const [gn, setGn] = useState(givenName);
+  const [fr, setFr] = useState(familyReading);
+  const [gr, setGr] = useState(givenReading);
+
+  function commit() { onSave(fn, gn, fr, gr); setEditing(false); }
+
+  const inp = "bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none";
+
+  if (!editing) {
+    const summary = [
+      familyName || givenName ? `${familyName} ${givenName}`.trim() : "未設定",
+      familyReading || givenReading ? `（${familyReading} ${givenReading}`.trim() + "）" : "",
+    ].join("");
+    return (
+      <button onClick={() => { setFn(familyName); setGn(givenName); setFr(familyReading); setGr(givenReading); setEditing(true); }}
+        className="text-xs text-gray-500 hover:text-blue-400 transition mt-0.5 block">
+        氏名: {summary}
+      </button>
+    );
+  }
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); commit(); }} className="flex flex-wrap gap-1 mt-1">
+      <input autoFocus value={fn} onChange={(e) => setFn(e.target.value)} placeholder="姓" className={`w-20 ${inp}`} />
+      <input value={gn} onChange={(e) => setGn(e.target.value)} placeholder="名" className={`w-20 ${inp}`} />
+      <input value={fr} onChange={(e) => setFr(e.target.value)} placeholder="姓読み" className={`w-24 ${inp}`} />
+      <input value={gr} onChange={(e) => setGr(e.target.value)} placeholder="名読み" className={`w-24 ${inp}`} />
       <button type="submit" className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded">保存</button>
       <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1">×</button>
     </form>

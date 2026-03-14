@@ -9,6 +9,11 @@ export type Fighter = {
   id: string;
   name: string;
   name_reading: string | null;
+  // 姓名分割フィールド（任意）
+  family_name: string | null;
+  given_name: string | null;
+  family_name_reading: string | null;
+  given_name_reading: string | null;
   dojo_id: string;
   dojo?: Dojo;
   weight: number | null;
@@ -17,6 +22,22 @@ export type Fighter = {
   experience: string | null;
   created_at: string;
 };
+
+/** 表示用フルネーム（姓名分割済みの場合はそちら優先） */
+export function fighterFullName(f: Fighter): string {
+  if (f.family_name && f.given_name) return `${f.family_name} ${f.given_name}`;
+  if (f.family_name) return f.family_name;
+  return f.name;
+}
+
+/** TTS用フルネーム読み（姓名読み分割済みの場合はそちら優先） */
+export function fighterFullReading(f: Fighter): string | null {
+  if (f.family_name_reading && f.given_name_reading) {
+    return `${f.family_name_reading} ${f.given_name_reading}`;
+  }
+  if (f.family_name_reading) return f.family_name_reading;
+  return f.name_reading;
+}
 
 export type Event = {
   id: string;
