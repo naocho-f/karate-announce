@@ -1,19 +1,22 @@
 export type CompatibilityLevel = "ok" | "warn" | "ng" | "unknown";
 
 export interface MismatchSettings {
+  enabled: boolean;
   maxWeightDiff: number;
   maxHeightDiff: number;
 }
 
 export function getMismatchSettings(): MismatchSettings {
-  if (typeof window === "undefined") return { maxWeightDiff: 5, maxHeightDiff: 10 };
+  if (typeof window === "undefined") return { enabled: true, maxWeightDiff: 5, maxHeightDiff: 10 };
   return {
+    enabled: localStorage.getItem("mismatch_enabled") !== "false",
     maxWeightDiff: parseFloat(localStorage.getItem("mismatch_weight_max") ?? "5"),
     maxHeightDiff: parseFloat(localStorage.getItem("mismatch_height_max") ?? "10"),
   };
 }
 
 export function saveMismatchSettings(s: MismatchSettings) {
+  localStorage.setItem("mismatch_enabled", String(s.enabled));
   localStorage.setItem("mismatch_weight_max", String(s.maxWeightDiff));
   localStorage.setItem("mismatch_height_max", String(s.maxHeightDiff));
 }
@@ -23,6 +26,8 @@ export function checkCompatibility(
   f2: { weight: number | null; height: number | null },
   settings: MismatchSettings,
 ): CompatibilityLevel {
+  if (!settings.enabled) return "unknown";
+
   let warns = 0;
   let ngs = 0;
   let checks = 0;

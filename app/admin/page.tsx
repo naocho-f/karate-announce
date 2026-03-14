@@ -290,7 +290,7 @@ function TournamentPanel() {
   const [court, setCourt] = useState("A");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
-  const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: 5, maxHeightDiff: 10 });
+  const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ enabled: true, maxWeightDiff: 5, maxHeightDiff: 10 });
 
   useEffect(() => { setMismatchSettings(getMismatchSettings()); }, []);
 
@@ -493,6 +493,7 @@ function SettingsPanel() {
   const [speed, setSpeed] = useState(1.0);
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [mismatchEnabled, setMismatchEnabled] = useState(true);
   const [maxWeightDiff, setMaxWeightDiff] = useState(5);
   const [maxHeightDiff, setMaxHeightDiff] = useState(10);
   const [mismatchSaved, setMismatchSaved] = useState(false);
@@ -502,12 +503,13 @@ function SettingsPanel() {
     setVoice(s.voice);
     setSpeed(s.speed);
     const m = getMismatchSettings();
+    setMismatchEnabled(m.enabled);
     setMaxWeightDiff(m.maxWeightDiff);
     setMaxHeightDiff(m.maxHeightDiff);
   }, []);
 
   function saveMismatch() {
-    saveMismatchSettings({ maxWeightDiff, maxHeightDiff });
+    saveMismatchSettings({ enabled: mismatchEnabled, maxWeightDiff, maxHeightDiff });
     setMismatchSaved(true);
     setTimeout(() => setMismatchSaved(false), 2000);
   }
@@ -597,10 +599,18 @@ function SettingsPanel() {
 
       {/* ミスマッチルール */}
       <div className="bg-gray-800 rounded-xl p-5 space-y-4">
-        <h2 className="font-semibold text-sm text-gray-300">体格ミスマッチルール</h2>
-        <p className="text-xs text-gray-500">この差を超えると△警告、2倍を超えると✕で表示されます</p>
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-sm text-gray-300">体格ミスマッチルール</h2>
+          <button
+            onClick={() => setMismatchEnabled(!mismatchEnabled)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${mismatchEnabled ? "bg-blue-600" : "bg-gray-600"}`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${mismatchEnabled ? "translate-x-6" : "translate-x-1"}`} />
+          </button>
+        </div>
+        {mismatchEnabled && <p className="text-xs text-gray-500">この差を超えると△警告、2倍を超えると✕で表示されます</p>}
 
-        <div className="space-y-3">
+        {mismatchEnabled && <div className="space-y-3">
           <div className="space-y-1">
             <div className="flex justify-between items-center">
               <label className="text-xs text-gray-400">体重差の上限</label>
@@ -632,7 +642,7 @@ function SettingsPanel() {
               <span>1cm</span><span>30cm</span>
             </div>
           </div>
-        </div>
+        </div>}
 
         <button
           onClick={saveMismatch}
