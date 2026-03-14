@@ -1,24 +1,26 @@
 export type CompatibilityLevel = "ok" | "warn" | "ng" | "unknown";
 
 export interface MismatchSettings {
-  enabled: boolean;
-  maxWeightDiff: number;
-  maxHeightDiff: number;
+  maxWeightDiff: number | null; // null = 無制限
+  maxHeightDiff: number | null; // null = 無制限
 }
 
+export const WEIGHT_MAX = 20;  // スライダー上限。これより大きい値 = 無制限
+export const HEIGHT_MAX = 30;  // スライダー上限。これより大きい値 = 無制限
+
 export function getMismatchSettings(): MismatchSettings {
-  if (typeof window === "undefined") return { enabled: true, maxWeightDiff: 5, maxHeightDiff: 10 };
+  if (typeof window === "undefined") return { maxWeightDiff: 5, maxHeightDiff: null };
+  const w = localStorage.getItem("mismatch_weight_max");
+  const h = localStorage.getItem("mismatch_height_max");
   return {
-    enabled: localStorage.getItem("mismatch_enabled") !== "false",
-    maxWeightDiff: parseFloat(localStorage.getItem("mismatch_weight_max") ?? "5"),
-    maxHeightDiff: parseFloat(localStorage.getItem("mismatch_height_max") ?? "10"),
+    maxWeightDiff: w === "null" || w === null ? null : parseFloat(w),
+    maxHeightDiff: h === "null" || h === null ? null : parseFloat(h),
   };
 }
 
 export function saveMismatchSettings(s: MismatchSettings) {
-  localStorage.setItem("mismatch_enabled", String(s.enabled));
-  localStorage.setItem("mismatch_weight_max", String(s.maxWeightDiff));
-  localStorage.setItem("mismatch_height_max", String(s.maxHeightDiff));
+  localStorage.setItem("mismatch_weight_max", s.maxWeightDiff === null ? "null" : String(s.maxWeightDiff));
+  localStorage.setItem("mismatch_height_max", s.maxHeightDiff === null ? "null" : String(s.maxHeightDiff));
 }
 
 export function checkCompatibility(
@@ -26,19 +28,17 @@ export function checkCompatibility(
   f2: { weight: number | null; height: number | null },
   settings: MismatchSettings,
 ): CompatibilityLevel {
-  if (!settings.enabled) return "unknown";
-
   let warns = 0;
   let ngs = 0;
   let checks = 0;
 
-  if (f1.weight && f2.weight) {
+  if (settings.maxWeightDiff !== null && f1.weight && f2.weight) {
     checks++;
     const diff = Math.abs(f1.weight - f2.weight);
     if (diff > settings.maxWeightDiff * 2) ngs++;
     else if (diff > settings.maxWeightDiff) warns++;
   }
-  if (f1.height && f2.height) {
+  if (settings.maxHeightDiff !== null && f1.height && f2.height) {
     checks++;
     const diff = Math.abs(f1.height - f2.height);
     if (diff > settings.maxHeightDiff * 2) ngs++;

@@ -282,15 +282,21 @@ function FighterPanel() {
 
 // ── トーナメント ───────────────────────────────────────────────────────────
 
+const LABEL_PRESETS = ["第一試合", "第二試合", "第三試合", "第四試合", "第五試合", "ワンマッチ"];
+
 function TournamentPanel() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [fighters, setFighters] = useState<Fighter[]>([]);
   const [dojos, setDojos] = useState<Dojo[]>([]);
+  // ウィザード state
+  const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
   const [court, setCourt] = useState("A");
+  const [matchLabel, setMatchLabel] = useState("");
+  const [rules, setRules] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
-  const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ enabled: true, maxWeightDiff: 5, maxHeightDiff: 10 });
+  const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: 5, maxHeightDiff: null });
 
   useEffect(() => { setMismatchSettings(getMismatchSettings()); }, []);
 
@@ -317,6 +323,7 @@ function TournamentPanel() {
     if (!name.trim() || selected.size < 2) return;
     setCreating(true);
     const { data: t } = await supabase.from("tournaments").insert({ name: name.trim(), court, status: "preparing" }).select().single();
+
     if (!t) { setCreating(false); return; }
 
     const selectedFighters = fighters.filter((f) => selected.has(f.id));
@@ -351,7 +358,14 @@ function TournamentPanel() {
       }
     }
 
-    setName(""); setSelected(new Set()); setCreating(false);
+    // 1回戦にmatch_label/rulesを設定
+    if (matchLabel.trim() || rules.trim()) {
+      await supabase.from("matches")
+        .update({ match_label: matchLabel.trim() || null, rules: rules.trim() || null })
+        .eq("tournament_id", t.id).eq("round", 1);
+    }
+
+    setName(""); setMatchLabel(""); setRules(""); setSelected(new Set()); setCreating(false); setStep(1);
     load();
   }
 
@@ -376,90 +390,136 @@ function TournamentPanel() {
 
   return (
     <div className="space-y-6">
-      {/* 新規作成 */}
-      <div className="bg-gray-800 rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold text-sm text-gray-300">新規トーナメント作成</h2>
-        <div className="flex gap-2">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="トーナメント名（例: 男子一般部）"
-            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-          />
-          <select
-            value={court}
-            onChange={(e) => setCourt(e.target.value)}
-            className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
-          >
-            {COURTS.map((c) => <option key={c} value={c}>{c}コート</option>)}
-          </select>
+      {/* 新規作成ウィザード */}
+      <div className="bg-gray-800 rounded-xl p-4 space-y-4">
+        {/* ステップインジケーター */}
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${step === 1 ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-300"}`}>1 基本設定</span>
+          <span className="text-gray-600 text-xs">→</span>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${step === 2 ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-300"}`}>2 選手選択</span>
         </div>
 
-        <p className="text-xs text-gray-400">出場選手を選択（{selected.size}名選択中）</p>
-        <div className="max-h-48 overflow-y-auto space-y-1">
-          {fighters.map((f) => {
-            const isSelected = selected.has(f.id);
-            const othersSelected = selectedFighterObjects.filter((s) => s.id !== f.id);
-            const compat: CompatibilityLevel = !isSelected && othersSelected.length > 0
-              ? worstCompatibility(f, othersSelected, mismatchSettings)
-              : "unknown";
-            return (
-              <label key={f.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-700 cursor-pointer ${isSelected ? "bg-gray-700" : ""}`}>
-                <input type="checkbox" checked={isSelected} onChange={() => toggle(f.id)} className="accent-blue-500 shrink-0" />
-                {!isSelected && othersSelected.length > 0 && (
-                  <span className={`text-sm font-bold shrink-0 ${COMPAT_COLORS[compat]}`} title={
-                    compat === "ok" ? "相性良好" : compat === "warn" ? "体格差あり" : compat === "ng" ? "体格差が大きすぎる" : "体格データなし"
-                  }>
-                    {COMPAT_LABEL[compat]}
-                  </span>
-                )}
-                <span className="text-xs text-gray-400 shrink-0">{dojoMap[f.dojo_id]}</span>
-                <span className="text-sm">{f.name}</span>
-                {(f.weight || f.height || f.age_info || f.experience) && (
-                  <span className="ml-auto text-xs text-gray-500 shrink-0">
-                    {[
-                      f.weight ? `${f.weight}kg` : null,
-                      f.height ? `${f.height}cm` : null,
-                      f.age_info ?? null,
-                      f.experience ?? null,
-                    ].filter(Boolean).join(" / ")}
-                  </span>
-                )}
-              </label>
-            );
-          })}
-        </div>
-        {/* ミスマッチ警告 */}
-        {selectedFighterObjects.length >= 2 && (() => {
-          const pairs: { f1: Fighter; f2: Fighter; level: CompatibilityLevel }[] = [];
-          for (let i = 0; i < selectedFighterObjects.length; i++) {
-            for (let j = i + 1; j < selectedFighterObjects.length; j++) {
-              const level = checkCompatibility(selectedFighterObjects[i], selectedFighterObjects[j], mismatchSettings);
-              if (level === "warn" || level === "ng") {
-                pairs.push({ f1: selectedFighterObjects[i], f2: selectedFighterObjects[j], level });
-              }
-            }
-          }
-          if (pairs.length === 0) return null;
-          return (
-            <div className="space-y-1">
-              {pairs.map((p, i) => (
-                <p key={i} className={`text-xs px-2 py-1 rounded ${p.level === "ng" ? "bg-red-900 text-red-300" : "bg-yellow-900 text-yellow-300"}`}>
-                  {p.level === "ng" ? "✕" : "△"} {p.f1.name} vs {p.f2.name}：体格差大
-                  {p.f1.weight && p.f2.weight ? `（体重差 ${Math.abs(p.f1.weight - p.f2.weight).toFixed(1)}kg）` : ""}
-                  {p.f1.height && p.f2.height ? `（身長差 ${Math.abs(p.f1.height - p.f2.height).toFixed(0)}cm）` : ""}
-                </p>
-              ))}
+        {/* Step 1: 基本設定 */}
+        {step === 1 && (
+          <div className="space-y-3">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="トーナメント名（例: 男子一般部 組手）"
+              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+            />
+            <div className="flex gap-2">
+              <select
+                value={court}
+                onChange={(e) => setCourt(e.target.value)}
+                className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+              >
+                {COURTS.map((c) => <option key={c} value={c}>{c}コート</option>)}
+              </select>
+              <input
+                value={matchLabel}
+                onChange={(e) => setMatchLabel(e.target.value)}
+                placeholder="試合ラベル（任意）"
+                list="label-presets"
+                className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+              />
+              <datalist id="label-presets">
+                {LABEL_PRESETS.map((l) => <option key={l} value={l} />)}
+              </datalist>
             </div>
-          );
-        })()}
-        <button
-          onClick={create}
-          disabled={creating || !name.trim() || selected.size < 2}
-          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition"
-        >
-          {creating ? "作成中..." : "トーナメントを作成"}
-        </button>
+            <input
+              value={rules}
+              onChange={(e) => setRules(e.target.value)}
+              placeholder="ルール（任意、例: 2分1本制 / 延長戦あり）"
+              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+            />
+            <button
+              onClick={() => setStep(2)}
+              disabled={!name.trim()}
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition"
+            >
+              次へ：選手を選ぶ →
+            </button>
+          </div>
+        )}
+
+        {/* Step 2: 選手選択 */}
+        {step === 2 && (
+          <div className="space-y-3">
+            {/* 設定サマリー */}
+            <div className="bg-gray-700 rounded-lg px-3 py-2 text-xs text-gray-300 space-y-0.5">
+              <p><span className="text-gray-500">名前:</span> {name}</p>
+              <p><span className="text-gray-500">コート:</span> {court}コート{matchLabel ? `　ラベル: ${matchLabel}` : ""}{rules ? `　ルール: ${rules}` : ""}</p>
+            </div>
+
+            <p className="text-xs text-gray-400">出場選手を選択（{selected.size}名）</p>
+            <div className="max-h-64 overflow-y-auto space-y-1">
+              {fighters.map((f) => {
+                const isSelected = selected.has(f.id);
+                const othersSelected = selectedFighterObjects.filter((s) => s.id !== f.id);
+                const compat: CompatibilityLevel = !isSelected && othersSelected.length > 0
+                  ? worstCompatibility(f, othersSelected, mismatchSettings)
+                  : "unknown";
+                return (
+                  <label key={f.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-700 cursor-pointer ${isSelected ? "bg-gray-700" : ""}`}>
+                    <input type="checkbox" checked={isSelected} onChange={() => toggle(f.id)} className="accent-blue-500 shrink-0" />
+                    {!isSelected && othersSelected.length > 0 && (
+                      <span className={`text-sm font-bold w-4 shrink-0 ${COMPAT_COLORS[compat]}`} title={
+                        compat === "ok" ? "相性良好" : compat === "warn" ? "体格差あり" : compat === "ng" ? "体格差が大きすぎる" : "体格データなし"
+                      }>
+                        {COMPAT_LABEL[compat]}
+                      </span>
+                    )}
+                    {(isSelected || othersSelected.length === 0) && <span className="w-4 shrink-0" />}
+                    <span className="text-xs text-gray-400 shrink-0">{dojoMap[f.dojo_id]}</span>
+                    <span className="text-sm">{f.name}</span>
+                    {(f.weight || f.height || f.age_info || f.experience) && (
+                      <span className="ml-auto text-xs text-gray-500 shrink-0">
+                        {[f.weight ? `${f.weight}kg` : null, f.height ? `${f.height}cm` : null, f.age_info, f.experience].filter(Boolean).join(" / ")}
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* ミスマッチ警告 */}
+            {selectedFighterObjects.length >= 2 && (() => {
+              const pairs: { f1: Fighter; f2: Fighter; level: CompatibilityLevel }[] = [];
+              for (let i = 0; i < selectedFighterObjects.length; i++) {
+                for (let j = i + 1; j < selectedFighterObjects.length; j++) {
+                  const level = checkCompatibility(selectedFighterObjects[i], selectedFighterObjects[j], mismatchSettings);
+                  if (level === "warn" || level === "ng") {
+                    pairs.push({ f1: selectedFighterObjects[i], f2: selectedFighterObjects[j], level });
+                  }
+                }
+              }
+              if (pairs.length === 0) return null;
+              return (
+                <div className="space-y-1">
+                  {pairs.map((p, i) => (
+                    <p key={i} className={`text-xs px-2 py-1 rounded ${p.level === "ng" ? "bg-red-900 text-red-300" : "bg-yellow-900 text-yellow-300"}`}>
+                      {p.level === "ng" ? "✕" : "△"} {p.f1.name} vs {p.f2.name}
+                      {p.f1.weight && p.f2.weight ? ` 体重差${Math.abs(p.f1.weight - p.f2.weight).toFixed(1)}kg` : ""}
+                      {p.f1.height && p.f2.height ? ` 身長差${Math.abs(p.f1.height - p.f2.height).toFixed(0)}cm` : ""}
+                    </p>
+                  ))}
+                </div>
+              );
+            })()}
+
+            <div className="flex gap-2">
+              <button onClick={() => setStep(1)} className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-gray-200 bg-gray-700">← 戻る</button>
+              <button
+                onClick={create}
+                disabled={creating || selected.size < 2}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition"
+              >
+                {creating ? "作成中..." : `トーナメントを作成（${selected.size}名）`}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 一覧 */}
@@ -493,9 +553,11 @@ function SettingsPanel() {
   const [speed, setSpeed] = useState(1.0);
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [mismatchEnabled, setMismatchEnabled] = useState(true);
-  const [maxWeightDiff, setMaxWeightDiff] = useState(5);
-  const [maxHeightDiff, setMaxHeightDiff] = useState(10);
+  // スライダー値: 1〜20(kg) or 1〜30(cm)。最大値+1 = 無制限
+  const W_UNLIMITED = 21;
+  const H_UNLIMITED = 31;
+  const [weightSlider, setWeightSlider] = useState(W_UNLIMITED);
+  const [heightSlider, setHeightSlider] = useState(H_UNLIMITED);
   const [mismatchSaved, setMismatchSaved] = useState(false);
 
   useEffect(() => {
@@ -503,13 +565,15 @@ function SettingsPanel() {
     setVoice(s.voice);
     setSpeed(s.speed);
     const m = getMismatchSettings();
-    setMismatchEnabled(m.enabled);
-    setMaxWeightDiff(m.maxWeightDiff);
-    setMaxHeightDiff(m.maxHeightDiff);
+    setWeightSlider(m.maxWeightDiff === null ? W_UNLIMITED : m.maxWeightDiff);
+    setHeightSlider(m.maxHeightDiff === null ? H_UNLIMITED : m.maxHeightDiff);
   }, []);
 
   function saveMismatch() {
-    saveMismatchSettings({ enabled: mismatchEnabled, maxWeightDiff, maxHeightDiff });
+    saveMismatchSettings({
+      maxWeightDiff: weightSlider >= W_UNLIMITED ? null : weightSlider,
+      maxHeightDiff: heightSlider >= H_UNLIMITED ? null : heightSlider,
+    });
     setMismatchSaved(true);
     setTimeout(() => setMismatchSaved(false), 2000);
   }
@@ -599,50 +663,46 @@ function SettingsPanel() {
 
       {/* ミスマッチルール */}
       <div className="bg-gray-800 rounded-xl p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-sm text-gray-300">体格ミスマッチルール</h2>
-          <button
-            onClick={() => setMismatchEnabled(!mismatchEnabled)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${mismatchEnabled ? "bg-blue-600" : "bg-gray-600"}`}
-          >
-            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${mismatchEnabled ? "translate-x-6" : "translate-x-1"}`} />
-          </button>
-        </div>
-        {mismatchEnabled && <p className="text-xs text-gray-500">この差を超えると△警告、2倍を超えると✕で表示されます</p>}
+        <h2 className="font-semibold text-sm text-gray-300">体格ミスマッチルール</h2>
+        <p className="text-xs text-gray-500">この差を超えると△警告、2倍を超えると✕。右端まで動かすと無制限（チェックしない）。</p>
 
-        {mismatchEnabled && <div className="space-y-3">
+        <div className="space-y-4">
           <div className="space-y-1">
             <div className="flex justify-between items-center">
               <label className="text-xs text-gray-400">体重差の上限</label>
-              <span className="text-sm font-mono text-white">{maxWeightDiff} kg</span>
+              <span className={`text-sm font-mono ${weightSlider >= W_UNLIMITED ? "text-gray-500" : "text-white"}`}>
+                {weightSlider >= W_UNLIMITED ? "無制限" : `${weightSlider} kg`}
+              </span>
             </div>
             <input
-              type="range" min="1" max="20" step="0.5"
-              value={maxWeightDiff}
-              onChange={(e) => setMaxWeightDiff(parseFloat(e.target.value))}
+              type="range" min="1" max={W_UNLIMITED} step="0.5"
+              value={weightSlider}
+              onChange={(e) => setWeightSlider(parseFloat(e.target.value))}
               className="w-full accent-blue-500"
             />
             <div className="flex justify-between text-xs text-gray-500">
-              <span>1kg</span><span>20kg</span>
+              <span>1kg</span><span>無制限</span>
             </div>
           </div>
 
           <div className="space-y-1">
             <div className="flex justify-between items-center">
               <label className="text-xs text-gray-400">身長差の上限</label>
-              <span className="text-sm font-mono text-white">{maxHeightDiff} cm</span>
+              <span className={`text-sm font-mono ${heightSlider >= H_UNLIMITED ? "text-gray-500" : "text-white"}`}>
+                {heightSlider >= H_UNLIMITED ? "無制限" : `${heightSlider} cm`}
+              </span>
             </div>
             <input
-              type="range" min="1" max="30" step="1"
-              value={maxHeightDiff}
-              onChange={(e) => setMaxHeightDiff(parseFloat(e.target.value))}
+              type="range" min="1" max={H_UNLIMITED} step="1"
+              value={heightSlider}
+              onChange={(e) => setHeightSlider(parseFloat(e.target.value))}
               className="w-full accent-blue-500"
             />
             <div className="flex justify-between text-xs text-gray-500">
-              <span>1cm</span><span>30cm</span>
+              <span>1cm</span><span>無制限</span>
             </div>
           </div>
-        </div>}
+        </div>
 
         <button
           onClick={saveMismatch}
