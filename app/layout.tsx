@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "空手大会アナウンスシステム",
-  description: "空手大会の進行・アナウンスシステム",
+  title: "柔空会 - 試合管理 ＆ AI アナウンス",
+  description: "試合管理・エントリー受付・対戦表作成・AI アナウンス",
 };
 
 export default function RootLayout({
