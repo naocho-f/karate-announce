@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { use, useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Entry, Event, Fighter, Tournament, Rule } from "@/lib/types";
+import type { Entry, Event, Fighter, Match, Tournament, Rule } from "@/lib/types";
 import { entryFullName } from "@/lib/types";
 import { createTournamentBracketFromPairs } from "@/lib/bracket";
 import { ensureFighterFromEntry } from "@/lib/entry-utils";
@@ -690,35 +690,41 @@ function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, to
 
             return (
               <div key={pair.id} className="border border-gray-700 rounded-lg p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 w-5 shrink-0 text-center">{idx + 1}</span>
-                  <select value={pair.e1.id} onChange={(ev) => updateE1(pair.id, ev.target.value)}
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500">
-                    {e1Options.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {entryFullName(e)}{e.weight ? ` ${e.weight}kg` : ""}{e.height ? ` ${e.height}cm` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="text-gray-600 text-xs shrink-0">vs</span>
-                  <select value={pair.e2?.id ?? ""} onChange={(ev) => updateE2(pair.id, ev.target.value || null)}
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500">
-                    <option value="">BYE（不戦勝）</option>
-                    {e2Sorted.map((e) => {
-                      const c: CompatibilityLevel = checkCompatibility(pair.e1, e, mismatchSettings);
-                      const label = c === "ok" ? "◎ " : c === "warn" ? "△ " : c === "ng" ? "✕ " : "";
-                      return (
+                <div className="flex items-start gap-2">
+                  <span className="text-xs text-gray-500 w-5 shrink-0 text-center pt-2">{idx + 1}</span>
+                  <div className="flex-1 flex flex-wrap gap-2 min-w-0">
+                    <select value={pair.e1.id} onChange={(ev) => updateE1(pair.id, ev.target.value)}
+                      className="flex-1 min-w-[140px] bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500">
+                      {e1Options.map((e) => (
                         <option key={e.id} value={e.id}>
-                          {label}{entryFullName(e)}{e.weight ? ` ${e.weight}kg` : ""}{e.height ? ` ${e.height}cm` : ""}
-                          {e.experience ? ` [${e.experience}]` : ""}
+                          {entryFullName(e)}{e.weight ? ` ${e.weight}kg` : ""}{e.height ? ` ${e.height}cm` : ""}
                         </option>
-                      );
-                    })}
-                  </select>
-                  <span className={`text-sm font-bold w-5 text-center shrink-0 ${COMPAT_COLORS[compat]}`}>
-                    {COMPAT_LABEL[compat]}
-                  </span>
-                  <button onClick={() => removePair(pair.id)} className="text-red-400 hover:text-red-300 text-sm shrink-0">✕</button>
+                      ))}
+                    </select>
+                    <div className="flex items-center gap-2 flex-1 min-w-[140px]">
+                      <span className="text-gray-600 text-xs shrink-0">vs</span>
+                      <select value={pair.e2?.id ?? ""} onChange={(ev) => updateE2(pair.id, ev.target.value || null)}
+                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500">
+                        <option value="">BYE（不戦勝）</option>
+                        {e2Sorted.map((e) => {
+                          const c: CompatibilityLevel = checkCompatibility(pair.e1, e, mismatchSettings);
+                          const label = c === "ok" ? "◎ " : c === "warn" ? "△ " : c === "ng" ? "✕ " : "";
+                          return (
+                            <option key={e.id} value={e.id}>
+                              {label}{entryFullName(e)}{e.weight ? ` ${e.weight}kg` : ""}{e.height ? ` ${e.height}cm` : ""}
+                              {e.experience ? ` [${e.experience}]` : ""}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 pt-1">
+                    <span className={`text-sm font-bold w-5 text-center ${COMPAT_COLORS[compat]}`}>
+                      {COMPAT_LABEL[compat]}
+                    </span>
+                    <button onClick={() => removePair(pair.id)} className="text-red-400 hover:text-red-300 text-sm">✕</button>
+                  </div>
                 </div>
                 <div className="flex gap-2 pl-5">
                   <input value={pair.matchLabel} onChange={(ev) => updateField(pair.id, "matchLabel", ev.target.value)}
@@ -763,17 +769,7 @@ function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, to
 
 // ── 確定済み対戦表の表示・編集 ──────────────────────────────────────────
 
-type MatchRow = {
-  id: string;
-  round: number;
-  position: number;
-  fighter1_id: string | null;
-  fighter2_id: string | null;
-  winner_id: string | null;
-  status: string;
-  match_label: string | null;
-  rules: string | null;
-};
+type MatchRow = Omit<Match, "tournament_id" | "fighter1" | "fighter2" | "winner">;
 
 function ExistingTournamentSection({ courtNum, tournament, eventId, rules, mismatchSettings }: {
   courtNum: number;
@@ -949,9 +945,9 @@ function MatchEditRow({ match, fighterMap, allFighters, otherUsedIds, rules, mis
 
   return (
     <div className="border border-blue-600 rounded-lg p-3 space-y-2">
-      <div className="flex gap-2 items-center">
+      <div className="flex flex-wrap gap-2 items-center">
         <select value={f1Id} onChange={(e) => setF1Id(e.target.value)}
-          className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none">
+          className="flex-1 min-w-[140px] bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none">
           <option value="">BYE</option>
           {allFighters.filter((f) => f.id !== f2Id).map((f) => (
             <option key={f.id} value={f.id}>{f.name}{f.weight ? ` ${f.weight}kg` : ""}</option>
@@ -959,7 +955,7 @@ function MatchEditRow({ match, fighterMap, allFighters, otherUsedIds, rules, mis
         </select>
         <span className="text-gray-600 text-xs shrink-0">vs</span>
         <select value={f2Id} onChange={(e) => setF2Id(e.target.value)}
-          className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none">
+          className="flex-1 min-w-[140px] bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none">
           <option value="">BYE</option>
           {f2Options.map((f) => {
             const c: CompatibilityLevel = currentF1 ? checkCompatibility(currentF1, f, mismatchSettings) : "unknown";

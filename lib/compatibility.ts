@@ -5,24 +5,6 @@ export interface MismatchSettings {
   maxHeightDiff: number | null; // null = 無制限
 }
 
-export const WEIGHT_MAX = 20;  // スライダー上限。これより大きい値 = 無制限
-export const HEIGHT_MAX = 30;  // スライダー上限。これより大きい値 = 無制限
-
-export function getMismatchSettings(): MismatchSettings {
-  if (typeof window === "undefined") return { maxWeightDiff: 5, maxHeightDiff: null };
-  const w = localStorage.getItem("mismatch_weight_max");
-  const h = localStorage.getItem("mismatch_height_max");
-  return {
-    maxWeightDiff: w === "null" || w === null ? null : parseFloat(w),
-    maxHeightDiff: h === "null" || h === null ? null : parseFloat(h),
-  };
-}
-
-export function saveMismatchSettings(s: MismatchSettings) {
-  localStorage.setItem("mismatch_weight_max", s.maxWeightDiff === null ? "null" : String(s.maxWeightDiff));
-  localStorage.setItem("mismatch_height_max", s.maxHeightDiff === null ? "null" : String(s.maxHeightDiff));
-}
-
 export function checkCompatibility(
   f1: { weight: number | null; height: number | null },
   f2: { weight: number | null; height: number | null },

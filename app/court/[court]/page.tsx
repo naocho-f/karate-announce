@@ -8,7 +8,7 @@ import type { Fighter, Match, Tournament } from "@/lib/types";
 import { fighterFullName, fighterFullReading } from "@/lib/types";
 import { roundName, totalRounds } from "@/lib/tournament";
 import { announceMatchStart, announceWinner } from "@/lib/speech";
-import { checkCompatibility, getMismatchSettings, COMPAT_COLORS, COMPAT_LABEL } from "@/lib/compatibility";
+import { checkCompatibility, COMPAT_COLORS, COMPAT_LABEL, type MismatchSettings } from "@/lib/compatibility";
 import Link from "next/link";
 
 type Props = { params: Promise<{ court: string }> };
@@ -20,6 +20,7 @@ export default function CourtPage({ params }: Props) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [fighters, setFighters] = useState<Record<string, Fighter>>({});
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
+  const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: null, maxHeightDiff: null });
   // round -> match IDs in display order (does not affect bracket logic)
   const [displayOrders, setDisplayOrders] = useState<Record<number, string[]>>({});
 
@@ -98,6 +99,26 @@ export default function CourtPage({ params }: Props) {
     localStorage.setItem(key, JSON.stringify(newOrder));
   }
 
+  // 選択中トーナメントのイベントからミスマッチ設定を取得
+  useEffect(() => {
+    const tournament = tournaments.find((t) => t.id === selectedTournamentId);
+    if (!tournament?.event_id) {
+      setMismatchSettings({ maxWeightDiff: null, maxHeightDiff: null });
+      return;
+    }
+    supabase
+      .from("events")
+      .select("max_weight_diff, max_height_diff")
+      .eq("id", tournament.event_id)
+      .single()
+      .then(({ data }) => {
+        setMismatchSettings({
+          maxWeightDiff: data?.max_weight_diff ?? null,
+          maxHeightDiff: data?.max_height_diff ?? null,
+        });
+      });
+  }, [selectedTournamentId, tournaments]);
+
   useEffect(() => { loadTournaments(); }, [loadTournaments]);
   useEffect(() => { loadMatches(); }, [loadMatches]);
 
@@ -120,14 +141,12 @@ export default function CourtPage({ params }: Props) {
     loadMatches();
 
     const label = roundName(match.round, rounds);
-    const f1dojo = f1.dojo as unknown as { name: string; name_reading?: string | null };
-    const f2dojo = f2.dojo as unknown as { name: string; name_reading?: string | null };
     announceMatchStart(
-      fighterFullName(f1), f1dojo?.name ?? "",
-      fighterFullName(f2), f2dojo?.name ?? "",
+      fighterFullName(f1), f1.dojo?.name ?? "",
+      fighterFullName(f2), f2.dojo?.name ?? "",
       label,
-      fighterFullReading(f1), f1dojo?.name_reading,
-      fighterFullReading(f2), f2dojo?.name_reading,
+      fighterFullReading(f1), f1.dojo?.name_reading,
+      fighterFullReading(f2), f2.dojo?.name_reading,
       match.match_label,
       match.rules,
     );
@@ -154,8 +173,7 @@ export default function CourtPage({ params }: Props) {
 
     setCurrentMatchId(null);
     loadMatches();
-    const winnerDojo = winner.dojo as unknown as { name: string; name_reading?: string | null };
-    announceWinner(fighterFullName(winner), winnerDojo?.name ?? "", fighterFullReading(winner), winnerDojo?.name_reading);
+    announceWinner(fighterFullName(winner), winner.dojo?.name ?? "", fighterFullReading(winner), winner.dojo?.name_reading);
   }
 
   const currentMatch = matches.find((m) => m.id === currentMatchId) ?? matches.find((m) => m.status === "ongoing");
@@ -223,6 +241,7 @@ export default function CourtPage({ params }: Props) {
                             key={m.id}
                             match={m}
                             fighters={fighters}
+                            mismatchSettings={mismatchSettings}
                             onStart={() => startMatch(m)}
                             onUpdated={loadMatches}
                             onSwapWithNext={canSwap ? () => swapWithNext(round, m.id) : undefined}
@@ -241,9 +260,10 @@ export default function CourtPage({ params }: Props) {
   );
 }
 
-function MatchCard({ match, fighters, onStart, onUpdated, onSwapWithNext }: {
+function MatchCard({ match, fighters, mismatchSettings, onStart, onUpdated, onSwapWithNext }: {
   match: Match;
   fighters: Record<string, Fighter>;
+  mismatchSettings: MismatchSettings;
   onStart: () => void;
   onUpdated: () => void;
   onSwapWithNext?: () => void;
@@ -364,12 +384,11 @@ function MatchCard({ match, fighters, onStart, onUpdated, onSwapWithNext }: {
           <div className="max-h-48 overflow-y-auto space-y-1">
             {(() => {
               const opponent = replacing === "f1" ? f2 : f1;
-              const settings = getMismatchSettings();
               return allFighters
                 .filter((f) => f.id !== match.fighter1_id && f.id !== match.fighter2_id)
                 .map((f) => {
-                  const compat = opponent ? checkCompatibility(f, opponent, settings) : "unknown";
-                  const dojo = (f.dojo as unknown as { name: string })?.name ?? "";
+                  const compat = opponent ? checkCompatibility(f, opponent, mismatchSettings) : "unknown";
+                  const dojo = f.dojo?.name ?? "";
                   return (
                     <button
                       key={f.id}
@@ -450,7 +469,7 @@ function OngoingMatchCard({ match, fighters, rounds, onSetWinner }: {
               className="flex-1 bg-gray-800 hover:bg-green-800 border border-gray-600 hover:border-green-500 active:bg-green-700 rounded-xl p-4 text-center transition group"
             >
               <p className="text-xs text-gray-400 group-hover:text-green-300 mb-1">
-                {(f.dojo as unknown as { name: string })?.name}
+                {f.dojo?.name}
               </p>
               <p className="text-lg font-bold">{f.name}</p>
               <p className="text-xs text-gray-500 group-hover:text-green-400 mt-2">タップして勝者に</p>
@@ -471,7 +490,7 @@ function FighterLine({ fighter, isWinner }: { fighter: Fighter | null; isWinner:
   return (
     <div className={`flex items-center gap-2 py-0.5 ${isWinner ? "text-green-400" : "text-white"}`}>
       <span className="text-xs text-gray-500">
-        {(fighter.dojo as unknown as { name: string })?.name}
+        {fighter.dojo?.name}
       </span>
       <span className="font-medium text-sm">{fighter.name}</span>
       {isWinner && <span className="text-xs text-green-400">✓ 勝</span>}
