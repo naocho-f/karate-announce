@@ -8,10 +8,6 @@ import { supabase } from "@/lib/supabase";
 import type { Dojo, Event, Fighter, Rule } from "@/lib/types";
 import { fighterFullName } from "@/lib/types";
 import { TTS_VOICES, getTtsSettings, saveTtsSettings, announceCustom, type TtsVoice } from "@/lib/speech";
-import {
-  getMismatchSettings, saveMismatchSettings,
-  type MismatchSettings,
-} from "@/lib/compatibility";
 import Link from "next/link";
 
 
@@ -375,7 +371,7 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
             </div>
           ))}
         </div>
-        <p className="text-xs text-gray-600 mt-3">しきい値は「設定」タブの「体格ミスマッチルール」で変更できます。</p>
+        <p className="text-xs text-gray-600 mt-3">体格差のしきい値は試合詳細画面の「体格ミスマッチ設定」で変更できます。</p>
       </div>
     </div>
   );
@@ -782,29 +778,11 @@ function SettingsPanel() {
   const [speed, setSpeed] = useState(1.0);
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
-  // スライダー値: 1〜20(kg) or 1〜30(cm)。最大値+1 = 無制限
-  const W_UNLIMITED = 21;
-  const H_UNLIMITED = 31;
-  const [weightSlider, setWeightSlider] = useState(W_UNLIMITED);
-  const [heightSlider, setHeightSlider] = useState(H_UNLIMITED);
-  const [mismatchSaved, setMismatchSaved] = useState(false);
   useEffect(() => {
     const s = getTtsSettings();
     setVoice(s.voice);
     setSpeed(s.speed);
-    const m = getMismatchSettings();
-    setWeightSlider(m.maxWeightDiff === null ? W_UNLIMITED : m.maxWeightDiff);
-    setHeightSlider(m.maxHeightDiff === null ? H_UNLIMITED : m.maxHeightDiff);
   }, []);
-
-  function saveMismatch() {
-    saveMismatchSettings({
-      maxWeightDiff: weightSlider >= W_UNLIMITED ? null : weightSlider,
-      maxHeightDiff: heightSlider >= H_UNLIMITED ? null : heightSlider,
-    });
-    setMismatchSaved(true);
-    setTimeout(() => setMismatchSaved(false), 2000);
-  }
 
   function save() {
     saveTtsSettings(voice, speed);
@@ -889,56 +867,6 @@ function SettingsPanel() {
         <p className="text-xs text-gray-500">※ 設定はこのブラウザに保存されます</p>
       </div>
 
-      {/* ミスマッチルール */}
-      <div className="bg-gray-800 rounded-xl p-5 space-y-4">
-        <h2 className="font-semibold text-sm text-gray-300">体格ミスマッチルール</h2>
-        <p className="text-xs text-gray-500">この差を超えると△警告、2倍を超えると✕。右端まで動かすと無制限（チェックしない）。</p>
-
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <div className="flex justify-between items-center">
-              <label className="text-xs text-gray-400">体重差の上限</label>
-              <span className={`text-sm font-mono ${weightSlider >= W_UNLIMITED ? "text-gray-500" : "text-white"}`}>
-                {weightSlider >= W_UNLIMITED ? "無制限" : `${weightSlider} kg`}
-              </span>
-            </div>
-            <input
-              type="range" min="1" max={W_UNLIMITED} step="0.5"
-              value={weightSlider}
-              onChange={(e) => setWeightSlider(parseFloat(e.target.value))}
-              className="w-full accent-blue-500"
-            />
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>1kg</span><span>無制限</span>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <div className="flex justify-between items-center">
-              <label className="text-xs text-gray-400">身長差の上限</label>
-              <span className={`text-sm font-mono ${heightSlider >= H_UNLIMITED ? "text-gray-500" : "text-white"}`}>
-                {heightSlider >= H_UNLIMITED ? "無制限" : `${heightSlider} cm`}
-              </span>
-            </div>
-            <input
-              type="range" min="1" max={H_UNLIMITED} step="1"
-              value={heightSlider}
-              onChange={(e) => setHeightSlider(parseFloat(e.target.value))}
-              className="w-full accent-blue-500"
-            />
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>1cm</span><span>無制限</span>
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={saveMismatch}
-          className="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-medium transition"
-        >
-          {mismatchSaved ? "保存しました ✓" : "保存"}
-        </button>
-      </div>
     </div>
   );
 }

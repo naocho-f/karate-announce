@@ -9,7 +9,7 @@ import { entryFullName } from "@/lib/types";
 import { createTournamentBracketFromPairs } from "@/lib/bracket";
 import { ensureFighterFromEntry } from "@/lib/entry-utils";
 import {
-  checkCompatibility, getMismatchSettings,
+  checkCompatibility,
   COMPAT_COLORS, COMPAT_LABEL, type CompatibilityLevel, type MismatchSettings,
 } from "@/lib/compatibility";
 import Link from "next/link";
@@ -74,8 +74,19 @@ export default function EventDetailPage({ params }: Props) {
     const { data: rs } = await supabase.from("rules").select("*").order("name");
     setRules(rs ?? []);
 
-    setMismatchSettings(getMismatchSettings());
+    setMismatchSettings({
+      maxWeightDiff: e?.max_weight_diff ?? null,
+      maxHeightDiff: e?.max_height_diff ?? null,
+    });
   }, [id]);
+
+  async function saveMismatchToDb(settings: MismatchSettings) {
+    await supabase.from("events").update({
+      max_weight_diff: settings.maxWeightDiff,
+      max_height_diff: settings.maxHeightDiff,
+    }).eq("id", id);
+    setMismatchSettings(settings);
+  }
 
   async function toggleSeed(entryId: string) {
     const entry = entries.find((e) => e.id === entryId);
@@ -136,6 +147,9 @@ export default function EventDetailPage({ params }: Props) {
 
         {/* エントリーフォーム URL */}
         <EntryFormUrl eventId={id} />
+
+        {/* 体格ミスマッチ設定 */}
+        <MismatchSettingsSection settings={mismatchSettings} onSave={saveMismatchToDb} />
 
         {/* エントリー管理 */}
         <EntriesSection
@@ -204,6 +218,78 @@ function EntryFormUrl({ eventId }: { eventId: string }) {
           }`}
         >
           {copied ? "コピー済 ✓" : "コピー"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── 体格ミスマッチ設定 ────────────────────────────────────────────────────
+
+function MismatchSettingsSection({ settings, onSave }: {
+  settings: MismatchSettings;
+  onSave: (s: MismatchSettings) => void;
+}) {
+  const [weightDiff, setWeightDiff] = useState<string>(settings.maxWeightDiff != null ? String(settings.maxWeightDiff) : "");
+  const [heightDiff, setHeightDiff] = useState<string>(settings.maxHeightDiff != null ? String(settings.maxHeightDiff) : "");
+  const [saved, setSaved] = useState(false);
+
+  // 親の settings が変わったら同期
+  useEffect(() => {
+    setWeightDiff(settings.maxWeightDiff != null ? String(settings.maxWeightDiff) : "");
+    setHeightDiff(settings.maxHeightDiff != null ? String(settings.maxHeightDiff) : "");
+  }, [settings.maxWeightDiff, settings.maxHeightDiff]);
+
+  async function handleSave() {
+    const s: MismatchSettings = {
+      maxWeightDiff: weightDiff !== "" ? parseFloat(weightDiff) : null,
+      maxHeightDiff: heightDiff !== "" ? parseFloat(heightDiff) : null,
+    };
+    await onSave(s);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  return (
+    <div className="bg-gray-800 rounded-xl px-4 py-3 mb-4 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-gray-400 font-medium">体格ミスマッチ設定</span>
+        <span className="text-xs text-gray-600">空欄 = チェックなし</span>
+      </div>
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-400 shrink-0">体重差上限</label>
+          <input
+            type="number"
+            min="0"
+            step="0.5"
+            value={weightDiff}
+            onChange={(e) => setWeightDiff(e.target.value)}
+            placeholder="なし"
+            className="w-20 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
+          />
+          <span className="text-xs text-gray-500">kg</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-400 shrink-0">身長差上限</label>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            value={heightDiff}
+            onChange={(e) => setHeightDiff(e.target.value)}
+            placeholder="なし"
+            className="w-20 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
+          />
+          <span className="text-xs text-gray-500">cm</span>
+        </div>
+        <button
+          onClick={handleSave}
+          className={`text-xs px-3 py-1.5 rounded-lg transition font-medium ${
+            saved ? "bg-green-700 text-green-200" : "bg-blue-600 hover:bg-blue-500 text-white"
+          }`}
+        >
+          {saved ? "保存済 ✓" : "保存"}
         </button>
       </div>
     </div>

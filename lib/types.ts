@@ -45,6 +45,8 @@ export type Event = {
   court_count: number;
   status: "preparing" | "ongoing" | "finished";
   is_active: boolean;
+  max_weight_diff: number | null;
+  max_height_diff: number | null;
   created_at: string;
 };
 
