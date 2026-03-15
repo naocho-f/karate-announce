@@ -46,7 +46,7 @@ export default function AdminLoginPage() {
               onChange={(e) => setUsername(e.target.value)}
               autoFocus
               autoComplete="username"
-              placeholder="admin"
+              placeholder="ID"
               className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition"
             />
           </div>
