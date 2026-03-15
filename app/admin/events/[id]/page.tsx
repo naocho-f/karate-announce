@@ -134,6 +134,9 @@ export default function EventDetailPage({ params }: Props) {
           </div>
         )}
 
+        {/* エントリーフォーム URL */}
+        <EntryFormUrl eventId={id} />
+
         {/* エントリー管理 */}
         <EntriesSection
           eventId={id}
@@ -165,6 +168,45 @@ export default function EventDetailPage({ params }: Props) {
         </div>
       </div>
     </main>
+  );
+}
+
+// ── エントリーフォーム URL ────────────────────────────────────────────────
+
+function EntryFormUrl({ eventId }: { eventId: string }) {
+  const [copied, setCopied] = useState(false);
+  const url = typeof window !== "undefined"
+    ? `${window.location.origin}/entry/${eventId}`
+    : `/entry/${eventId}`;
+
+  function copy() {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="bg-gray-800 rounded-xl px-4 py-3 mb-4 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-gray-400 font-medium">エントリーフォーム URL</span>
+        <a href={`/entry/${eventId}`} target="_blank" rel="noopener noreferrer"
+          className="text-xs text-blue-400 hover:text-blue-300">フォームを開く →</a>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="flex-1 text-xs text-gray-300 bg-gray-700 rounded px-3 py-2 truncate font-mono select-all">
+          {url}
+        </span>
+        <button
+          onClick={copy}
+          className={`shrink-0 text-xs px-3 py-2 rounded-lg transition font-medium ${
+            copied ? "bg-green-700 text-green-200" : "bg-gray-700 hover:bg-gray-600 text-gray-300"
+          }`}
+        >
+          {copied ? "コピー済 ✓" : "コピー"}
+        </button>
+      </div>
+    </div>
   );
 }
 
