@@ -18,6 +18,7 @@ export default function EntryPage({ params }: Props) {
   const [givenName, setGivenName] = useState("");
   const [familyReading, setFamilyReading] = useState("");
   const [givenReading, setGivenReading] = useState("");
+  const [schoolName, setSchoolName] = useState("");
   const [dojoName, setDojoName] = useState("");
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
@@ -52,12 +53,26 @@ export default function EntryPage({ params }: Props) {
     if (!familyName.trim()) return;
     setSubmitting(true);
     setError("");
+    // 流派をマスタに自動登録（完全一致がなければ追加）
+    const trimmedSchool = schoolName.trim();
+    if (trimmedSchool) {
+      const { data: existing } = await supabase
+        .from("dojos")
+        .select("id")
+        .eq("name", trimmedSchool)
+        .maybeSingle();
+      if (!existing) {
+        await supabase.from("dojos").insert({ name: trimmedSchool });
+      }
+    }
+
     const { data: entry, error: err } = await supabase.from("entries").insert({
       event_id: eventId,
       family_name: familyName.trim(),
       given_name: givenName.trim() || null,
       family_name_reading: familyReading.trim() || null,
       given_name_reading: givenReading.trim() || null,
+      school_name: trimmedSchool || null,
       dojo_name: dojoName.trim() || null,
       weight: weight ? parseFloat(weight) : null,
       height: height ? parseFloat(height) : null,
@@ -107,7 +122,7 @@ export default function EntryPage({ params }: Props) {
             onClick={() => {
               setSubmitted(false);
               setFamilyName(""); setGivenName(""); setFamilyReading(""); setGivenReading("");
-              setDojoName(""); setWeight(""); setHeight(""); setAgeInfo(""); setExperience("");
+              setSchoolName(""); setDojoName(""); setWeight(""); setHeight(""); setAgeInfo(""); setExperience("");
               setSelectedRules(new Set());
             }}
             className="text-blue-400 hover:text-blue-300 text-sm underline"
@@ -155,11 +170,19 @@ export default function EntryPage({ params }: Props) {
             </div>
           </div>
 
-          {/* 道場 */}
-          <div className="space-y-1">
-            <label className="text-xs text-gray-500">道場・所属</label>
-            <input value={dojoName} onChange={(e) => setDojoName(e.target.value)}
-              placeholder="○○空手道場" className={inp} />
+          {/* 道場・流派 */}
+          <div className="space-y-2">
+            <p className="text-xs text-gray-400 font-medium">所属</p>
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500">流派</label>
+              <input value={schoolName} onChange={(e) => setSchoolName(e.target.value)}
+                placeholder="極真会" className={inp} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500">道場・所属</label>
+              <input value={dojoName} onChange={(e) => setDojoName(e.target.value)}
+                placeholder="○○支部道場" className={inp} />
+            </div>
           </div>
 
           {/* 体格 */}

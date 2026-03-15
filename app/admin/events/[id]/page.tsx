@@ -234,7 +234,8 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, onToggleSe
                     {e.is_seed ? "★シード" : "☆"}
                   </button>
                   <span className="font-medium text-sm">{entryFullName(e)}</span>
-                  {e.dojo_name && <span className="text-xs text-gray-400">{e.dojo_name}</span>}
+                  {e.school_name && <span className="text-xs text-gray-400">{e.school_name}</span>}
+                  {e.dojo_name && <span className="text-xs text-gray-500">{e.dojo_name}</span>}
                   <span className="text-xs text-gray-500">
                     {[
                       e.weight ? `${e.weight}kg` : null,
@@ -279,6 +280,7 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
   const [givenName, setGivenName] = useState("");
   const [familyReading, setFamilyReading] = useState("");
   const [givenReading, setGivenReading] = useState("");
+  const [schoolName, setSchoolName] = useState("");
   const [dojoName, setDojoName] = useState("");
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
@@ -295,12 +297,21 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
     ev.preventDefault();
     if (!familyName.trim()) return;
     setSaving(true);
+
+    // 流派をマスタに自動登録
+    const trimmedSchool = schoolName.trim();
+    if (trimmedSchool) {
+      const { data: existing } = await supabase.from("dojos").select("id").eq("name", trimmedSchool).maybeSingle();
+      if (!existing) await supabase.from("dojos").insert({ name: trimmedSchool });
+    }
+
     const { data: entry } = await supabase.from("entries").insert({
       event_id: eventId,
       family_name: familyName.trim(),
       given_name: givenName.trim() || null,
       family_name_reading: familyReading.trim() || null,
       given_name_reading: givenReading.trim() || null,
+      school_name: trimmedSchool || null,
       dojo_name: dojoName.trim() || null,
       weight: weight ? parseFloat(weight) : null,
       height: height ? parseFloat(height) : null,
@@ -326,6 +337,7 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
         <input value={givenName} onChange={(e) => setGivenName(e.target.value)} placeholder="名" className={`w-24 ${inp}`} />
         <input value={familyReading} onChange={(e) => setFamilyReading(e.target.value)} placeholder="姓読み" className={`w-28 ${inp}`} />
         <input value={givenReading} onChange={(e) => setGivenReading(e.target.value)} placeholder="名読み" className={`w-28 ${inp}`} />
+        <input value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="流派" className={`w-28 ${inp}`} />
         <input value={dojoName} onChange={(e) => setDojoName(e.target.value)} placeholder="道場名" className={`w-32 ${inp}`} />
       </div>
       <div className="flex gap-2 flex-wrap">

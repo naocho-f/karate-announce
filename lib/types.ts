@@ -77,6 +77,7 @@ export type Entry = {
   family_name_reading: string | null;
   given_name_reading: string | null;
   dojo_name: string | null;
+  school_name: string | null;
   weight: number | null;
   height: number | null;
   age_info: string | null;

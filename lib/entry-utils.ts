@@ -8,8 +8,8 @@ import type { Entry } from "@/lib/types";
 export async function ensureFighterFromEntry(entry: Entry): Promise<string | null> {
   if (entry.fighter_id) return entry.fighter_id;
 
-  // 道場を検索または作成
-  const dojoName = entry.dojo_name?.trim() || "未所属";
+  // 流派（school_name）を道場マスタと紐付け
+  const dojoName = entry.school_name?.trim() || entry.dojo_name?.trim() || "未所属";
   let dojoId: string;
   const { data: existingDojo } = await supabase
     .from("dojos")
