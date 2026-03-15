@@ -35,6 +35,7 @@ export default function AdminPage() {
         <div className="flex items-center gap-4 mb-6">
           <Link href="/" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
           <h1 className="text-2xl font-bold">管理画面</h1>
+          <LogoutButton />
         </div>
 
         <div className="flex gap-2 mb-6 flex-wrap">
@@ -59,6 +60,27 @@ export default function AdminPage() {
         {tab === "settings" && <SettingsPanel />}
       </div>
     </main>
+  );
+}
+
+// ── ログアウト ────────────────────────────────────────────────────────────
+
+function LogoutButton() {
+  const router = useRouter();
+
+  async function logout() {
+    await fetch("/api/admin/login", { method: "DELETE" });
+    router.push("/admin/login");
+    router.refresh();
+  }
+
+  return (
+    <button
+      onClick={logout}
+      className="ml-auto text-xs text-gray-500 hover:text-gray-300 transition"
+    >
+      ログアウト
+    </button>
   );
 }
 
