@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 export default function AdminLoginPage() {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,7 +16,7 @@ export default function AdminLoginPage() {
     const res = await fetch("/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ username, password }),
     });
 
     if (res.ok) {
@@ -38,12 +39,24 @@ export default function AdminLoginPage() {
 
         <form onSubmit={handleSubmit} className="bg-gray-800 rounded-2xl p-6 space-y-4">
           <div className="space-y-1.5">
+            <label className="text-sm text-gray-400">ID</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoFocus
+              autoComplete="username"
+              placeholder="admin"
+              className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition"
+            />
+          </div>
+          <div className="space-y-1.5">
             <label className="text-sm text-gray-400">パスワード</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoFocus
+              autoComplete="current-password"
               placeholder="••••••••"
               className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition"
             />
@@ -55,7 +68,7 @@ export default function AdminLoginPage() {
 
           <button
             type="submit"
-            disabled={loading || !password}
+            disabled={loading || !username || !password}
             className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-3 rounded-xl font-semibold transition"
           >
             {loading ? "ログイン中..." : "ログイン"}
