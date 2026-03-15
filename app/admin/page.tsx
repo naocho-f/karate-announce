@@ -15,8 +15,19 @@ import {
 import Link from "next/link";
 
 
+type Tab = "home" | "dojos" | "fighters" | "events" | "rules" | "settings";
+
+const TAB_LABELS: Record<Tab, string> = {
+  home: "ホーム",
+  dojos: "流派",
+  fighters: "選手",
+  events: "試合",
+  rules: "ルール",
+  settings: "設定",
+};
+
 export default function AdminPage() {
-  const [tab, setTab] = useState<"dojos" | "fighters" | "events" | "rules" | "settings">("dojos");
+  const [tab, setTab] = useState<Tab>("home");
 
   return (
     <main className="min-h-screen bg-gray-900 text-white p-6">
@@ -27,7 +38,7 @@ export default function AdminPage() {
         </div>
 
         <div className="flex gap-2 mb-6 flex-wrap">
-          {(["dojos", "fighters", "events", "rules", "settings"] as const).map((t) => (
+          {(["home", "dojos", "fighters", "events", "rules", "settings"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -35,18 +46,335 @@ export default function AdminPage() {
                 tab === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
               }`}
             >
-              {t === "dojos" ? "流派" : t === "fighters" ? "選手" : t === "events" ? "試合" : t === "rules" ? "ルール" : "設定"}
+              {TAB_LABELS[t]}
             </button>
           ))}
         </div>
 
-        {tab === "dojos" && <DojoPanel />}
+        {tab === "home"     && <HomePanel onNavigate={setTab} />}
+        {tab === "dojos"    && <DojoPanel />}
         {tab === "fighters" && <FighterPanel />}
-        {tab === "events" && <EventPanel />}
-        {tab === "rules" && <RulesPanel />}
+        {tab === "events"   && <EventPanel />}
+        {tab === "rules"    && <RulesPanel />}
         {tab === "settings" && <SettingsPanel />}
       </div>
     </main>
+  );
+}
+
+// ── ホーム ────────────────────────────────────────────────────────────────
+
+function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
+  return (
+    <div className="space-y-8">
+
+      {/* 画面説明 */}
+      <section>
+        <h2 className="text-base font-bold text-white mb-3">各タブの役割</h2>
+        <div className="grid grid-cols-1 gap-3">
+          {[
+            {
+              tab: "rules" as Tab,
+              icon: "📋",
+              title: "ルール",
+              desc: "組手3分・形・ワンマッチなど、この大会で使う試合形式を登録します。対戦ごとにルールを割り当てたり、エントリー受付の区分として使います。",
+              badge: "まず登録",
+              badgeColor: "bg-yellow-700 text-yellow-200",
+            },
+            {
+              tab: "dojos" as Tab,
+              icon: "🏯",
+              title: "流派",
+              desc: "極真会・正道会館などの流派マスタを登録します。エントリーフォームで流派名が入力されると自動追加されますが、事前に登録しておくことも可能です。",
+              badge: "任意",
+              badgeColor: "bg-gray-700 text-gray-300",
+            },
+            {
+              tab: "fighters" as Tab,
+              icon: "🥋",
+              title: "選手",
+              desc: "選手マスタを管理します。姓・名・読み仮名・体重・身長・年齢・経験を登録できます。エントリーから対戦表を確定すると自動で選手レコードが作成されるため、直接登録は任意です。",
+              badge: "任意",
+              badgeColor: "bg-gray-700 text-gray-300",
+            },
+            {
+              tab: "events" as Tab,
+              icon: "🏆",
+              title: "試合",
+              desc: "大会を作成します。試合名・コート数・開催ルールを設定して作成すると、エントリー受付・対戦表作成の画面へ移動します。進行中の大会をアクティブに設定するとトップページに表示されます。",
+              badge: "メイン操作",
+              badgeColor: "bg-blue-700 text-blue-200",
+            },
+            {
+              tab: "settings" as Tab,
+              icon: "🔊",
+              title: "設定",
+              desc: "AI アナウンスの声質・読み上げ速度を調整できます。試し聞きボタンで実際の音声を確認できます。体格ミスマッチの警告しきい値もここで設定します。",
+              badge: "任意",
+              badgeColor: "bg-gray-700 text-gray-300",
+            },
+          ].map(({ tab, icon, title, desc, badge, badgeColor }) => (
+            <button
+              key={tab}
+              onClick={() => onNavigate(tab)}
+              className="text-left bg-gray-800 hover:bg-gray-750 border border-gray-700 hover:border-gray-500 rounded-xl p-4 transition group"
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-2xl shrink-0 mt-0.5">{icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-sm text-white group-hover:text-blue-300 transition">{title}</span>
+                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${badgeColor}`}>{badge}</span>
+                  </div>
+                  <p className="text-xs text-gray-400 leading-relaxed">{desc}</p>
+                </div>
+                <span className="text-gray-600 group-hover:text-gray-400 text-sm shrink-0 mt-0.5">→</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* 手順ガイド */}
+      <section>
+        <h2 className="text-base font-bold text-white mb-3">対戦表作成〜AIアナウンスまでの手順</h2>
+        <div className="space-y-2">
+          {[
+            {
+              step: 1,
+              icon: "📋",
+              title: "ルールを登録する",
+              tab: "rules" as Tab,
+              color: "border-yellow-600",
+              details: [
+                "「ルール」タブを開く",
+                "「組手3分延長1分」「形」など開催する試合形式を追加",
+              ],
+              screen: (
+                <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-1.5">
+                  <div className="text-gray-400 mb-2">ルールタブ</div>
+                  <div className="flex items-center justify-between bg-gray-800 rounded px-3 py-2">
+                    <span className="text-white">組手3分・延長1分</span>
+                    <span className="text-red-400 text-xs">削除</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-gray-800 rounded px-3 py-2">
+                    <span className="text-white">形（演武）</span>
+                    <span className="text-red-400 text-xs">削除</span>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <div className="flex-1 bg-gray-700 rounded px-2 py-1 text-gray-400">ルール名を入力...</div>
+                    <div className="bg-blue-600 rounded px-2 py-1 text-white">追加</div>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              step: 2,
+              icon: "🏆",
+              title: "試合を作成する",
+              tab: "events" as Tab,
+              color: "border-blue-600",
+              details: [
+                "「試合」タブを開く",
+                "試合名・コート数を入力",
+                "開催するルールをチェックして「試合を作成」",
+              ],
+              screen: (
+                <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
+                  <div className="text-gray-400 mb-1">試合タブ → 新規作成</div>
+                  <div className="bg-gray-800 rounded px-3 py-2 text-gray-300">第1回○○空手道大会</div>
+                  <div className="flex gap-2">
+                    {["1","2","3","4"].map((n) => (
+                      <div key={n} className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${n==="2" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400"}`}>{n}</div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <div className="bg-blue-600 text-white rounded px-2 py-1">✓ 組手3分</div>
+                    <div className="bg-gray-700 text-gray-400 rounded px-2 py-1">形</div>
+                  </div>
+                  <div className="bg-blue-600 text-white rounded px-3 py-1.5 text-center">試合を作成</div>
+                </div>
+              ),
+            },
+            {
+              step: 3,
+              icon: "📝",
+              title: "エントリーを集める",
+              tab: null,
+              color: "border-green-600",
+              details: [
+                "試合詳細画面に表示される「エントリーフォーム URL」をコピー",
+                "参加者に URL を共有（LINE・メール等）",
+                "管理者が「+ 追加」から手動で追加することも可能",
+                "エントリーが入ると一覧に表示される",
+              ],
+              screen: (
+                <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
+                  <div className="text-gray-400 mb-1">試合詳細 → エントリーフォーム URL</div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-gray-700 rounded px-2 py-1.5 text-gray-300 font-mono truncate">https://…/entry/xxxx</div>
+                    <div className="bg-gray-600 text-white rounded px-2 py-1.5 shrink-0">コピー</div>
+                  </div>
+                  <div className="border border-gray-700 rounded p-2 space-y-1">
+                    <div className="text-gray-400">エントリー一覧 3名</div>
+                    {["山田 太郎　極真会　65kg", "鈴木 一郎　正道会館　70kg", "田中 花子　新極真　55kg"].map((name) => (
+                      <div key={name} className="flex items-center justify-between bg-gray-800 rounded px-2 py-1">
+                        <span className="text-gray-200">{name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              step: 4,
+              icon: "⚙️",
+              title: "シード・エントリールールを設定する",
+              tab: null,
+              color: "border-purple-600",
+              details: [
+                "エントリー一覧でシードにしたい選手の「☆」をタップ → 「★シード」に変わる",
+                "各エントリーに対してエントリーするルールをチェック（どの種目に出るか）",
+                "コートルールを設定すると、そのルールにエントリーした選手だけが自動振り分け対象になる",
+              ],
+              screen: (
+                <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
+                  <div className="text-gray-400 mb-1">エントリー一覧</div>
+                  <div className="border border-gray-700 rounded p-2 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-yellow-600 text-white rounded px-2 py-0.5">★シード</div>
+                      <span className="text-white font-medium">山田 太郎</span>
+                      <span className="text-gray-400">極真会</span>
+                    </div>
+                    <div className="flex items-center gap-2 pl-1">
+                      <span className="text-gray-500">エントリー:</span>
+                      <div className="bg-blue-600 text-white rounded px-2 py-0.5">✓ 組手3分</div>
+                      <div className="bg-gray-700 text-gray-400 rounded px-2 py-0.5">形</div>
+                    </div>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              step: 5,
+              icon: "🥊",
+              title: "対戦表を組む",
+              tab: null,
+              color: "border-orange-600",
+              details: [
+                "コートのルールを選択（絞り込み対象が変わる）",
+                "「自動振り分け」でざっくり割り当て → 体重差が近い順にペアリング",
+                "各対戦のセレクトボックスで手動調整（◎△✕で相性を表示）",
+                "「対戦表を確定」で保存",
+              ],
+              screen: (
+                <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">コート1の対戦表</span>
+                    <div className="bg-purple-700 text-white rounded px-2 py-1">自動振り分け</div>
+                  </div>
+                  <div className="border border-gray-700 rounded p-2 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500 w-4">1</span>
+                      <div className="flex-1 bg-gray-700 rounded px-2 py-1 text-gray-200">山田 太郎 65kg</div>
+                      <span className="text-gray-600">vs</span>
+                      <div className="flex-1 bg-gray-700 rounded px-2 py-1 text-gray-200">鈴木 一郎 70kg</div>
+                      <span className="text-yellow-400 font-bold">△</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500 w-4">2</span>
+                      <div className="flex-1 bg-gray-700 rounded px-2 py-1 text-gray-200">田中 花子 55kg</div>
+                      <span className="text-gray-600">vs</span>
+                      <div className="flex-1 bg-gray-700 rounded px-2 py-1 text-gray-400">BYE</div>
+                      <span className="text-gray-500 font-bold">－</span>
+                    </div>
+                  </div>
+                  <div className="bg-blue-600 text-white rounded px-3 py-1.5 text-center">対戦表を確定（2対戦）</div>
+                </div>
+              ),
+            },
+            {
+              step: 6,
+              icon: "📡",
+              title: "試合をアクティブにして進行する",
+              tab: "events" as Tab,
+              color: "border-green-500",
+              details: [
+                "「試合」タブで「アクティブに設定」をクリック → トップページに試合が表示される",
+                "コート画面（/court/コート番号）を大きなモニターに表示",
+                "試合を選択して「アナウンス」ボタンを押すと AI 読み上げ開始",
+                "「次と入替」ボタンで試合順をその場で変更可能",
+              ],
+              screen: (
+                <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
+                  <div className="text-gray-400 mb-1">コート画面（/court/1）</div>
+                  <div className="bg-yellow-900/40 border border-yellow-700 rounded p-2 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-yellow-600 text-white rounded px-1.5 py-0.5 text-xs">試合中</span>
+                      <span className="text-white font-bold">第1試合</span>
+                    </div>
+                    <div className="text-gray-300">山田 太郎 vs 鈴木 一郎</div>
+                    <div className="flex gap-2 mt-1">
+                      <div className="bg-blue-600 text-white rounded px-2 py-1">🔊 アナウンス</div>
+                      <div className="bg-green-700 text-white rounded px-2 py-1">山田 勝利</div>
+                    </div>
+                  </div>
+                  <div className="bg-gray-800 rounded p-2 text-gray-300">第2試合　田中 花子 vs BYE</div>
+                </div>
+              ),
+            },
+          ].map(({ step, icon, title, tab, color, details, screen }) => (
+            <div key={step} className={`border-l-4 ${color} bg-gray-800 rounded-r-xl rounded-bl-none overflow-hidden`}>
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="bg-gray-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">{step}</span>
+                  <span className="text-lg">{icon}</span>
+                  <span className="font-semibold text-sm text-white">{title}</span>
+                  {tab && (
+                    <button onClick={() => onNavigate(tab)}
+                      className="ml-auto text-xs text-blue-400 hover:text-blue-300 shrink-0">
+                      {TAB_LABELS[tab]}タブへ →
+                    </button>
+                  )}
+                </div>
+                <ul className="space-y-1 mb-3 pl-8">
+                  {details.map((d, i) => (
+                    <li key={i} className="text-xs text-gray-400 flex gap-1.5">
+                      <span className="text-gray-600 shrink-0">•</span>
+                      <span>{d}</span>
+                    </li>
+                  ))}
+                </ul>
+                {screen}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 相性マーク凡例 */}
+      <section>
+        <h2 className="text-base font-bold text-white mb-3">対戦相性マークの見方</h2>
+        <div className="bg-gray-800 rounded-xl p-4 grid grid-cols-2 gap-3">
+          {[
+            { mark: "◎", color: "text-green-400", label: "良好", desc: "体重・身長差が許容範囲内" },
+            { mark: "△", color: "text-yellow-400", label: "注意", desc: "差が上限を超えている" },
+            { mark: "✕", color: "text-red-400",    label: "警告", desc: "差が上限の2倍を超えている" },
+            { mark: "－", color: "text-gray-500",   label: "不明", desc: "体重・身長データなし" },
+          ].map(({ mark, color, label, desc }) => (
+            <div key={mark} className="flex items-start gap-3">
+              <span className={`text-xl font-bold shrink-0 ${color}`}>{mark}</span>
+              <div>
+                <p className="text-xs font-medium text-white">{label}</p>
+                <p className="text-xs text-gray-500">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500 mt-2 pl-1">しきい値は「設定」タブの「体格ミスマッチルール」で変更できます。</p>
+      </section>
+
+    </div>
   );
 }
 
