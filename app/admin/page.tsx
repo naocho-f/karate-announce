@@ -375,7 +375,63 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
         </div>
         <p className="text-xs text-gray-600 mt-3">しきい値は試合詳細画面の「体格ミスマッチ設定」で変更できます。上限の2倍を超えると✕、超えただけだと△、以内なら◎。体重・身長データがない場合は－（チェックしない）。</p>
       </div>
+
+      {/* 試合速報ページ案内 */}
+      <div className="bg-gray-800 border border-blue-800 rounded-xl p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-base">📺</span>
+          <p className="text-sm font-semibold text-white">観客向け「試合速報」ページ</p>
+          <span className="text-xs bg-blue-700 text-blue-200 px-2 py-0.5 rounded-full">共有用</span>
+        </div>
+        <p className="text-xs text-gray-400 leading-relaxed">
+          ログイン不要で誰でも見られる観客向けページです。現在進行中の試合と全対戦表をリアルタイムで表示します（5秒ごとに自動更新）。試合当日に参加者や観客へ URL を共有してください。
+        </p>
+        <ul className="space-y-0.5">
+          {[
+            "アクティブな試合の全コートの対戦表を表示",
+            "試合中の対戦をハイライト表示",
+            "勝者・結果もリアルタイムで反映",
+            "ログイン不要・スマホ対応",
+          ].map((d) => (
+            <li key={d} className="text-xs text-gray-500 flex gap-1.5">
+              <span className="text-gray-700 shrink-0">•</span><span>{d}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="flex items-center gap-3 pt-1">
+          <a
+            href="/live"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-400 hover:text-blue-300 underline"
+          >
+            /live を開く →
+          </a>
+          <CopyLiveUrlButton />
+        </div>
+      </div>
     </div>
+  );
+}
+
+function CopyLiveUrlButton() {
+  const [copied, setCopied] = useState(false);
+  function copy() {
+    const url = typeof window !== "undefined" ? `${window.location.origin}/live` : "/live";
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+  return (
+    <button
+      onClick={copy}
+      className={`text-xs px-3 py-1.5 rounded-lg transition font-medium ${
+        copied ? "bg-green-700 text-green-200" : "bg-gray-700 hover:bg-gray-600 text-gray-300"
+      }`}
+    >
+      {copied ? "コピー済 ✓" : "URL をコピー"}
+    </button>
   );
 }
 
