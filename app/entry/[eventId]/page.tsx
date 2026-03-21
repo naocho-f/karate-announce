@@ -23,7 +23,8 @@ export default function EntryPage({ params }: Props) {
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [birthDate, setBirthDate] = useState("");
-  const [ageInfo, setAgeInfo] = useState("");
+  const [age, setAge] = useState("");
+  const [grade, setGrade] = useState("");
   const [experience, setExperience] = useState("");
   const [selectedRules, setSelectedRules] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
@@ -72,7 +73,8 @@ export default function EntryPage({ params }: Props) {
           birth_date: birthDate || null,
           weight: weight ? parseFloat(weight) : null,
           height: height ? parseFloat(height) : null,
-          age_info: ageInfo.trim() || null,
+          age: age ? parseInt(age) : null,
+          grade: grade.trim() || null,
           experience: experience.trim() || null,
         },
       }),
@@ -114,7 +116,7 @@ export default function EntryPage({ params }: Props) {
             onClick={() => {
               setSubmitted(false);
               setFamilyName(""); setGivenName(""); setFamilyReading(""); setGivenReading("");
-              setSchoolName(""); setDojoName(""); setBirthDate(""); setWeight(""); setHeight(""); setAgeInfo(""); setExperience("");
+              setSchoolName(""); setDojoName(""); setBirthDate(""); setWeight(""); setHeight(""); setAge(""); setGrade(""); setExperience("");
               setSelectedRules(new Set());
             }}
             className="text-blue-400 hover:text-blue-300 text-sm underline"
@@ -203,9 +205,14 @@ export default function EntryPage({ params }: Props) {
                   placeholder="170" type="number" step="0.1" className={inp} />
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-gray-500">年齢・学年</label>
-                <input value={ageInfo} onChange={(e) => setAgeInfo(e.target.value)}
-                  placeholder="25歳 / 小学3年" className={inp} />
+                <label className="text-xs text-gray-500">年齢 <span className="text-red-400">*</span></label>
+                <input value={age} onChange={(e) => setAge(e.target.value)}
+                  placeholder="25" type="number" min="1" max="99" className={inp} required />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-gray-500">学年（任意）</label>
+                <input value={grade} onChange={(e) => setGrade(e.target.value)}
+                  placeholder="小学3年" className={inp} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-gray-500">格闘技経験</label>

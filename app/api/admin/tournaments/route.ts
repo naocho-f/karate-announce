@@ -54,7 +54,7 @@ async function ensureFighterFromEntry(entry: Entry): Promise<string | null> {
       dojo_id: dojoId,
       weight: entry.weight,
       height: entry.height,
-      age_info: entry.age_info,
+      age_info: [entry.age != null ? `${entry.age}歳` : null, entry.grade].filter(Boolean).join(" ") || null,
       experience: entry.experience,
     })
     .select("id")

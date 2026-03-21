@@ -84,7 +84,8 @@ export type Entry = {
   weight: number | null;
   height: number | null;
   birth_date: string | null;
-  age_info: string | null;
+  age: number | null;
+  grade: string | null;
   experience: string | null;
   is_seed: boolean;
   fighter_id: string | null;

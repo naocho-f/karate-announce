@@ -327,7 +327,8 @@ function generateDemoEntries(eventId: string, count: number) {
         dojo_name: r(DEMO_DOJOS),
         weight: Math.round((40 + Math.random() * 60) * 10) / 10,
         height: Math.round((150 + Math.random() * 40) * 10) / 10,
-        age_info: `${18 + Math.floor(Math.random() * 22)}歳`,
+        age: 18 + Math.floor(Math.random() * 22),
+        grade: null,
         experience: i < 4 ? "空手歴10年以上" : r(DEMO_EXPERIENCES),
       },
     };
@@ -429,7 +430,8 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, onToggleSe
                     {[
                       e.weight ? `${e.weight}kg` : null,
                       e.height ? `${e.height}cm` : null,
-                      e.age_info,
+                      e.age != null ? `${e.age}歳` : null,
+                      e.grade,
                       e.experience,
                     ].filter(Boolean).join(" / ")}
                   </span>
@@ -473,7 +475,8 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
   const [dojoName, setDojoName] = useState("");
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
-  const [ageInfo, setAgeInfo] = useState("");
+  const [age, setAge] = useState("");
+  const [grade, setGrade] = useState("");
   const [experience, setExperience] = useState("");
   const [selectedRules, setSelectedRules] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
@@ -504,7 +507,8 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
           dojo_name: dojoName.trim() || null,
           weight: weight ? parseFloat(weight) : null,
           height: height ? parseFloat(height) : null,
-          age_info: ageInfo.trim() || null,
+          age: age ? parseInt(age) : null,
+          grade: grade.trim() || null,
           experience: experience.trim() || null,
         },
       }),
@@ -529,7 +533,8 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
       <div className="flex gap-2 flex-wrap">
         <input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="体重 kg" type="number" step="0.1" className={`w-24 ${inp}`} />
         <input value={height} onChange={(e) => setHeight(e.target.value)} placeholder="身長 cm" type="number" step="0.1" className={`w-24 ${inp}`} />
-        <input value={ageInfo} onChange={(e) => setAgeInfo(e.target.value)} placeholder="年齢・学年" className={`w-28 ${inp}`} />
+        <input value={age} onChange={(e) => setAge(e.target.value)} placeholder="年齢" type="number" min="1" max="99" className={`w-20 ${inp}`} />
+        <input value={grade} onChange={(e) => setGrade(e.target.value)} placeholder="学年（任意）" className={`w-28 ${inp}`} />
         <input value={experience} onChange={(e) => setExperience(e.target.value)} placeholder="格闘技経験" className={`flex-1 min-w-32 ${inp}`} />
       </div>
       {eventRules.length > 0 && (
