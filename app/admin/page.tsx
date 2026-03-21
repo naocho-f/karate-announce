@@ -323,93 +323,120 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
     },
   ];
 
-  return (
-    <div className="space-y-6">
-      <p className="text-sm text-gray-400">対戦表の作成から AI アナウンスまでの流れを解説します。タブ名をクリックすると各画面に移動できます。</p>
+  return <HomePanelContent steps={steps} onNavigate={onNavigate} />;
+}
 
-      <div className="space-y-3">
-        {steps.map(({ step, icon, title, tab, tabLabel, color, desc, details, screen }) => (
-          <div key={step} className={`border-l-4 ${color} bg-gray-800 rounded-r-xl overflow-hidden`}>
-            <div className="p-4 space-y-3">
-              {/* ヘッダー */}
-              <div className="flex items-center gap-2">
+type StepItem = {
+  step: number; icon: string; title: string; tab: Tab | null; tabLabel?: string;
+  color: string; desc: string; details: string[]; screen: React.ReactNode;
+};
+
+function HomePanelContent({ steps, onNavigate }: { steps: StepItem[]; onNavigate: (tab: Tab) => void }) {
+  const [openStep, setOpenStep] = useState<number | null>(null);
+
+  return (
+    <div className="space-y-5">
+      <p className="text-sm text-gray-400">対戦表の作成から AI アナウンスまでの流れです。各ステップをクリックすると詳細を表示します。</p>
+
+      {/* ステップ一覧（アコーディオン） */}
+      <div className="space-y-1.5">
+        {steps.map(({ step, icon, title, tab, tabLabel, color, desc, details, screen }) => {
+          const isOpen = openStep === step;
+          return (
+            <div key={step} className={`border-l-4 ${color} bg-gray-800 rounded-r-xl overflow-hidden`}>
+              {/* ヘッダー行（常に表示） */}
+              <button
+                onClick={() => setOpenStep(isOpen ? null : step)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-750 transition"
+              >
                 <span className="bg-gray-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">{step}</span>
-                <span className="text-base">{icon}</span>
+                <span className="text-base shrink-0">{icon}</span>
                 <span className="font-semibold text-sm text-white flex-1">{title}</span>
-                {tab && (
-                  <button onClick={() => onNavigate(tab)}
-                    className="text-xs text-blue-400 hover:text-blue-300 shrink-0 transition">
-                    {tabLabel ?? `${TAB_LABELS[tab]}タブへ →`}
-                  </button>
-                )}
-              </div>
-              {/* 説明 + 詳細 */}
-              <p className="text-xs text-gray-400 leading-relaxed pl-8">{desc}</p>
-              <ul className="space-y-0.5 pl-8">
-                {details.map((d, i) => (
-                  <li key={i} className="text-xs text-gray-500 flex gap-1.5">
-                    <span className="text-gray-700 shrink-0">•</span><span>{d}</span>
-                  </li>
-                ))}
-              </ul>
-              {/* スクリーンショット風モック */}
-              <div className="pl-8">{screen}</div>
+                <span className={`text-xs text-gray-500 shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`}>▶</span>
+              </button>
+
+              {/* 展開コンテンツ */}
+              {isOpen && (
+                <div className="px-4 pb-4 space-y-3 border-t border-gray-700/50">
+                  <p className="text-xs text-gray-400 leading-relaxed pt-3">{desc}</p>
+                  <ul className="space-y-1">
+                    {details.map((d, i) => (
+                      <li key={i} className="text-xs text-gray-400 flex gap-2">
+                        <span className="text-gray-600 shrink-0 mt-0.5">•</span>
+                        <span>{d}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="pt-1">{screen}</div>
+                  {tab && (
+                    <button
+                      onClick={() => onNavigate(tab)}
+                      className="text-xs bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition font-medium"
+                    >
+                      {tabLabel ?? `${TAB_LABELS[tab]}タブへ →`}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* 相性マーク凡例 */}
-      <div className="bg-gray-800 rounded-xl p-4">
-        <p className="text-xs font-semibold text-gray-300 mb-3">対戦相性マークの見方</p>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { mark: "◎", color: "text-green-400", label: "良好", desc: "体重・身長差が許容範囲内" },
-            { mark: "△", color: "text-yellow-400", label: "注意", desc: "差が上限を超えている" },
-            { mark: "✕", color: "text-red-400",    label: "警告", desc: "差が上限の2倍を超えている" },
-            { mark: "－", color: "text-gray-500",   label: "不明", desc: "体重・身長データなし" },
-          ].map(({ mark, color, label, desc }) => (
-            <div key={mark} className="flex items-center gap-3">
-              <span className={`text-lg font-bold w-5 text-center shrink-0 ${color}`}>{mark}</span>
-              <div>
-                <p className="text-xs font-medium text-white">{label}</p>
-                <p className="text-xs text-gray-500">{desc}</p>
-              </div>
+      <div className="bg-gray-800 rounded-xl overflow-hidden">
+        <button
+          onClick={() => setOpenStep(openStep === 99 ? null : 99)}
+          className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-gray-750 transition"
+        >
+          <span className="text-sm font-semibold text-gray-300 flex-1">対戦相性マークの見方</span>
+          <span className={`text-xs text-gray-500 transition-transform ${openStep === 99 ? "rotate-90" : ""}`}>▶</span>
+        </button>
+        {openStep === 99 && (
+          <div className="px-4 pb-4 border-t border-gray-700/50 pt-3 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { mark: "◎", color: "text-green-400", label: "良好", desc: "体重・身長差が許容範囲内" },
+                { mark: "△", color: "text-yellow-400", label: "注意", desc: "差が上限を超えている" },
+                { mark: "✕", color: "text-red-400",    label: "警告", desc: "差が上限の2倍を超えている" },
+                { mark: "－", color: "text-gray-500",   label: "不明", desc: "体重・身長データなし" },
+              ].map(({ mark, color, label, desc }) => (
+                <div key={mark} className="flex items-center gap-3">
+                  <span className={`text-lg font-bold w-5 text-center shrink-0 ${color}`}>{mark}</span>
+                  <div>
+                    <p className="text-xs font-medium text-white">{label}</p>
+                    <p className="text-xs text-gray-500">{desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <p className="text-xs text-gray-600 mt-3">しきい値は試合詳細画面の「体格ミスマッチ設定」で変更できます。上限の2倍を超えると✕、超えただけだと△、以内なら◎。体重・身長データがない場合は－（チェックしない）。</p>
+            <p className="text-xs text-gray-600">しきい値は試合詳細画面の「体格ミスマッチ設定」で変更できます。上限の2倍を超えると✕、超えただけだと△、以内なら◎。体重・身長データがない場合は－（チェックしない）。</p>
+          </div>
+        )}
       </div>
 
       {/* 試合速報ページ案内 */}
       <div className="bg-gray-800 border border-blue-800 rounded-xl p-4 space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-base">📺</span>
-          <p className="text-sm font-semibold text-white">観客向け「試合速報」ページ</p>
+          <p className="text-sm font-semibold text-white flex-1">観客向け「試合速報」ページ</p>
           <span className="text-xs bg-blue-700 text-blue-200 px-2 py-0.5 rounded-full">共有用</span>
         </div>
-        <p className="text-xs text-gray-400 leading-relaxed">
-          ログイン不要で誰でも見られる観客向けページです。現在進行中の試合と全対戦表をリアルタイムで表示します（5秒ごとに自動更新）。試合当日に参加者や観客へ URL を共有してください。
-        </p>
-        <ul className="space-y-0.5">
+        <div className="grid grid-cols-2 gap-1.5">
           {[
-            "アクティブな試合の全コートの対戦表を表示",
-            "試合中の対戦をハイライト表示",
-            "勝者・結果もリアルタイムで反映",
+            "全コートの対戦表をリアルタイム表示（5秒更新）",
+            "試合中の対戦をハイライト",
+            "勝者・結果も即時反映",
             "ログイン不要・スマホ対応",
           ].map((d) => (
-            <li key={d} className="text-xs text-gray-500 flex gap-1.5">
-              <span className="text-gray-700 shrink-0">•</span><span>{d}</span>
-            </li>
+            <div key={d} className="flex items-start gap-1.5 text-xs text-gray-400">
+              <span className="text-blue-500 shrink-0 mt-0.5">✓</span><span>{d}</span>
+            </div>
           ))}
-        </ul>
+        </div>
         <div className="flex items-center gap-3 pt-1">
-          <a
-            href="/live"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-blue-400 hover:text-blue-300 underline"
-          >
+          <a href="/live" target="_blank" rel="noopener noreferrer"
+            className="text-xs text-blue-400 hover:text-blue-300 underline">
             /live を開く →
           </a>
           <CopyLiveUrlButton />
