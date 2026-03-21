@@ -532,7 +532,7 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
 
   async function submit(ev: React.FormEvent) {
     ev.preventDefault();
-    if (!familyName.trim()) return;
+    if (!familyName.trim() || !schoolName.trim()) return;
     setSaving(true);
 
     const trimmedSchool = schoolName.trim();
@@ -560,6 +560,11 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
         },
       }),
     });
+    // フォームリセット
+    setFamilyName(""); setGivenName(""); setFamilyReading(""); setGivenReading("");
+    setSchoolName(""); setSchoolNameReading(""); setDojoName(""); setDojoNameReading("");
+    setWeight(""); setHeight(""); setAge(""); setGrade(""); setExperience("");
+    setSelectedRules(new Set());
     setSaving(false);
     onAdded();
   }
@@ -574,7 +579,7 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
         <input value={givenName} onChange={(e) => setGivenName(e.target.value)} placeholder="名" className={`w-24 ${inp}`} />
         <input value={familyReading} onChange={(e) => setFamilyReading(e.target.value)} placeholder="姓読み" className={`w-28 ${inp}`} />
         <input value={givenReading} onChange={(e) => setGivenReading(e.target.value)} placeholder="名読み" className={`w-28 ${inp}`} />
-        <input value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="流派 *" className={`w-28 ${inp}`} />
+        <input value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="流派 *" className={`w-28 ${inp}`} required />
         <input value={schoolNameReading} onChange={(e) => setSchoolNameReading(e.target.value)} placeholder="流派読み" className={`w-28 ${inp}`} />
         <input value={dojoName} onChange={(e) => setDojoName(e.target.value)} placeholder="道場名" className={`w-32 ${inp}`} />
         <input value={dojoNameReading} onChange={(e) => setDojoNameReading(e.target.value)} placeholder="道場読み" className={`w-32 ${inp}`} />
