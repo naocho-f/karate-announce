@@ -631,6 +631,7 @@ function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, to
         eventId={eventId}
         rules={rules}
         mismatchSettings={mismatchSettings}
+        onDeleted={onCreated}
       />
     );
   }
@@ -766,17 +767,129 @@ function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, to
 
 type MatchRow = Omit<Match, "tournament_id" | "fighter1" | "fighter2" | "winner">;
 
-function ExistingTournamentSection({ courtNum, tournament, eventId, rules, mismatchSettings }: {
+function roundLabel(round: number, totalRounds: number): string {
+  const diff = totalRounds - round;
+  if (diff === 0) return "決勝";
+  if (diff === 1) return "準決勝";
+  if (diff === 2) return "準々決勝";
+  return `第${round}回戦`;
+}
+
+// ── ブラケット表示 ──────────────────────────────────────────────────────
+
+function BracketView({ matches, fighterMap }: {
+  matches: MatchRow[];
+  fighterMap: Record<string, Fighter>;
+}) {
+  if (matches.length === 0) return null;
+
+  const maxRound = Math.max(...matches.map((m) => m.round));
+  const rounds = Array.from({ length: maxRound }, (_, i) => i + 1);
+
+  // ラウンドごとのスロット高さ（ラウンドが上がるごとに2倍）
+  const BASE_H = 52; // px per fighter slot
+  const slotHeight = (round: number) => BASE_H * Math.pow(2, round - 1);
+
+  return (
+    <div className="overflow-x-auto pb-2">
+      <div className="flex gap-0 min-w-max">
+        {rounds.map((round) => {
+          const roundMatches = matches
+            .filter((m) => m.round === round)
+            .sort((a, b) => a.position - b.position);
+          const sh = slotHeight(round);
+
+          return (
+            <div key={round} className="flex flex-col" style={{ minWidth: 160 }}>
+              {/* ラウンドヘッダー */}
+              <div className="text-xs text-gray-500 text-center py-1 px-2 border-b border-gray-700 mb-1">
+                {roundLabel(round, maxRound)}
+              </div>
+
+              {/* 試合カード */}
+              <div className="flex flex-col">
+                {roundMatches.map((m) => {
+                  const f1 = m.fighter1_id ? fighterMap[m.fighter1_id] : null;
+                  const f2 = m.fighter2_id ? fighterMap[m.fighter2_id] : null;
+                  const isDone = m.status === "done";
+                  const isOngoing = m.status === "ongoing";
+
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex flex-col justify-center px-2"
+                      style={{ height: sh }}
+                    >
+                      <div className={`border rounded-lg overflow-hidden text-xs ${
+                        isDone ? "border-green-800" :
+                        isOngoing ? "border-yellow-600 shadow-[0_0_6px_rgba(202,138,4,0.4)]" :
+                        "border-gray-700"
+                      }`}>
+                        {/* 選手1 */}
+                        <div className={`px-2 py-1 flex items-center gap-1 border-b border-gray-700 ${
+                          isDone && m.winner_id === m.fighter1_id ? "bg-green-900/40" : "bg-gray-800"
+                        }`}>
+                          {isDone && m.winner_id === m.fighter1_id && (
+                            <span className="text-green-400 shrink-0">▶</span>
+                          )}
+                          <span className={`truncate ${
+                            isDone && m.winner_id === m.fighter1_id
+                              ? "text-green-300 font-bold"
+                              : m.fighter1_id ? "text-gray-200" : "text-gray-600"
+                          }`}>
+                            {f1?.name ?? (m.fighter1_id ? "?" : "BYE")}
+                          </span>
+                        </div>
+                        {/* 選手2 */}
+                        <div className={`px-2 py-1 flex items-center gap-1 ${
+                          isDone && m.winner_id === m.fighter2_id ? "bg-green-900/40" : "bg-gray-800"
+                        }`}>
+                          {isDone && m.winner_id === m.fighter2_id && (
+                            <span className="text-green-400 shrink-0">▶</span>
+                          )}
+                          <span className={`truncate ${
+                            isDone && m.winner_id === m.fighter2_id
+                              ? "text-green-300 font-bold"
+                              : m.fighter2_id ? "text-gray-200" : "text-gray-600"
+                          }`}>
+                            {f2?.name ?? (m.fighter2_id ? "?" : "BYE")}
+                          </span>
+                        </div>
+                        {/* ステータス・ラベル */}
+                        {(m.match_label || isOngoing) && (
+                          <div className={`px-2 py-0.5 text-[10px] border-t border-gray-700 ${
+                            isOngoing ? "text-yellow-400 animate-pulse" : "text-gray-500"
+                          }`}>
+                            {isOngoing ? "試合中" : m.match_label}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ExistingTournamentSection({ courtNum, tournament, eventId, rules, mismatchSettings, onDeleted }: {
   courtNum: number;
   tournament: Tournament;
   eventId: string;
   rules: Rule[];
   mismatchSettings: MismatchSettings;
+  onDeleted: () => void;
 }) {
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [fighterMap, setFighterMap] = useState<Record<string, Fighter>>({});
   const [allFighters, setAllFighters] = useState<Fighter[]>([]);
   const [open, setOpen] = useState(true);
+  const [viewMode, setViewMode] = useState<"bracket" | "list">("bracket");
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -787,12 +900,10 @@ function ExistingTournamentSection({ courtNum, tournament, eventId, rules, misma
     const matchList = data ?? [];
     setMatches(matchList);
 
-    // マッチ内の fighter_id + エントリーから生成された fighter_id を収集
     const matchFids = matchList
       .flatMap((m) => [m.fighter1_id, m.fighter2_id])
       .filter((id): id is string => !!id);
 
-    // イベントのエントリーに紐づく fighter_id も取得
     const { data: ents } = await supabase
       .from("entries")
       .select("fighter_id")
@@ -811,11 +922,25 @@ function ExistingTournamentSection({ courtNum, tournament, eventId, rules, misma
 
   useEffect(() => { load(); }, [load]);
 
+  async function handleDelete() {
+    if (!confirm(`コート${courtNum} の対戦表を削除して組み直しますか？\n進行中・完了済みのデータもすべて失われます。`)) return;
+    setDeleting(true);
+    const res = await fetch(`/api/admin/tournaments/${tournament.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      alert("削除に失敗しました");
+      setDeleting(false);
+      return;
+    }
+    onDeleted();
+  }
+
   const round1 = matches.filter((m) => m.round === 1);
+  const maxRound = matches.length > 0 ? Math.max(...matches.map((m) => m.round)) : 1;
+  const isBracket = maxRound > 1;
 
   return (
     <div className="bg-gray-800 rounded-xl p-4 space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <h2 className="font-semibold text-gray-200">コート{courtNum}</h2>
           <span className={`text-xs px-2 py-0.5 rounded ${
@@ -829,9 +954,32 @@ function ExistingTournamentSection({ courtNum, tournament, eventId, rules, misma
             <span className="text-xs text-gray-500">{tournament.default_rules}</span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {isBracket && open && (
+            <div className="flex rounded-lg overflow-hidden border border-gray-700 text-xs">
+              <button
+                onClick={() => setViewMode("bracket")}
+                className={`px-2 py-1 transition ${viewMode === "bracket" ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}
+              >
+                ブラケット
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`px-2 py-1 transition ${viewMode === "list" ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}
+              >
+                リスト
+              </button>
+            </div>
+          )}
           <button onClick={() => setOpen((v) => !v)} className="text-xs text-gray-400 hover:text-gray-200">
             {open ? "▲ 折りたたむ" : "▼ 対戦一覧を表示"}
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="text-xs text-red-400 hover:text-red-300 disabled:opacity-40 transition"
+          >
+            {deleting ? "削除中..." : "削除して組み直す"}
           </button>
           <Link href={`/court/${courtNum}`} className="text-blue-400 hover:text-blue-300 text-sm">
             コート画面 →
@@ -840,30 +988,36 @@ function ExistingTournamentSection({ courtNum, tournament, eventId, rules, misma
       </div>
 
       {open && (
-        <div className="space-y-2">
-          {round1.length === 0 && (
-            <p className="text-xs text-gray-500">試合データがありません</p>
+        <>
+          {isBracket && viewMode === "bracket" ? (
+            <BracketView matches={matches} fighterMap={fighterMap} />
+          ) : (
+            <div className="space-y-2">
+              {round1.length === 0 && (
+                <p className="text-xs text-gray-500">試合データがありません</p>
+              )}
+              {round1.map((m) => {
+                const otherUsedIds = new Set(
+                  round1
+                    .filter((other) => other.id !== m.id)
+                    .flatMap((other) => [other.fighter1_id, other.fighter2_id].filter((id): id is string => !!id)),
+                );
+                return (
+                  <MatchEditRow
+                    key={m.id}
+                    match={m}
+                    fighterMap={fighterMap}
+                    allFighters={allFighters}
+                    otherUsedIds={otherUsedIds}
+                    rules={rules}
+                    mismatchSettings={mismatchSettings}
+                    onUpdated={load}
+                  />
+                );
+              })}
+            </div>
           )}
-          {round1.map((m) => {
-            const otherUsedIds = new Set(
-              round1
-                .filter((other) => other.id !== m.id)
-                .flatMap((other) => [other.fighter1_id, other.fighter2_id].filter((id): id is string => !!id)),
-            );
-            return (
-              <MatchEditRow
-                key={m.id}
-                match={m}
-                fighterMap={fighterMap}
-                allFighters={allFighters}
-                otherUsedIds={otherUsedIds}
-                rules={rules}
-                mismatchSettings={mismatchSettings}
-                onUpdated={load}
-              />
-            );
-          })}
-        </div>
+        </>
       )}
     </div>
   );
