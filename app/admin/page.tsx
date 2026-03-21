@@ -765,27 +765,34 @@ function EventPanel() {
 
       <ul className="space-y-2">
         {events.map((e) => (
-          <li key={e.id} className={`bg-gray-800 rounded-lg px-4 py-3 ${e.is_active ? "ring-1 ring-green-600" : ""}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                {e.is_active && <span className="text-xs bg-green-800 text-green-300 px-2 py-0.5 rounded shrink-0">進行中</span>}
-                <span className="font-medium truncate">{e.name}</span>
-                <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded shrink-0">{e.court_count}コート</span>
-              </div>
-              <div className="flex items-center gap-2 shrink-0 ml-2">
-                <button
-                  onClick={() => setActive(e.id, !e.is_active)}
-                  className={`text-xs px-2 py-1 rounded transition ${
-                    e.is_active
-                      ? "bg-green-700 hover:bg-green-800 text-green-200"
-                      : "bg-gray-700 hover:bg-gray-600 text-gray-400"
-                  }`}
-                >
-                  {e.is_active ? "進行中 ✓" : "アクティブに設定"}
-                </button>
-                <Link href={`/admin/events/${e.id}`} className="text-blue-400 hover:text-blue-300 text-sm">対戦表 →</Link>
-                <button onClick={() => remove(e.id)} className="text-red-400 hover:text-red-300 text-sm">削除</button>
-              </div>
+          <li key={e.id} className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active ? "ring-2 ring-green-500" : ""}`}>
+            {/* 試合名 + コート数 */}
+            <div className="flex items-center gap-2 min-w-0">
+              {e.is_active && (
+                <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold shrink-0">● 進行中</span>
+              )}
+              <span className="font-medium truncate">{e.name}</span>
+              <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded shrink-0">{e.court_count}コート</span>
+            </div>
+            {/* アクション行 */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setActive(e.id, !e.is_active)}
+                className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
+                  e.is_active
+                    ? "bg-green-700 hover:bg-green-800 text-green-100"
+                    : "bg-amber-500 hover:bg-amber-400 text-white"
+                }`}
+              >
+                {e.is_active ? "進行中（クリックで停止）" : "▶ アクティブに設定"}
+              </button>
+              <Link
+                href={`/admin/events/${e.id}`}
+                className="text-xs px-3 py-1.5 rounded-lg font-medium bg-blue-700 hover:bg-blue-600 text-white transition"
+              >
+                管理画面を開く →
+              </Link>
+              <button onClick={() => remove(e.id)} className="text-xs text-red-500 hover:text-red-400 ml-auto transition">削除</button>
             </div>
           </li>
         ))}
