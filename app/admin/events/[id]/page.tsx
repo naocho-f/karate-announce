@@ -497,6 +497,48 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
 
 // ── コートセクション ──────────────────────────────────────────────────────
 
+// ペア配列からブラケットプレビュー用データを生成
+function buildBracketPreview(pairs: Pair[]): { matches: MatchRow[]; nameMap: Record<string, string> } {
+  const nameMap: Record<string, string> = {};
+  const round1: MatchRow[] = pairs.map((p, i) => {
+    nameMap[p.e1.id] = entryFullName(p.e1);
+    if (p.e2) nameMap[p.e2.id] = entryFullName(p.e2);
+    return {
+      id: `preview-1-${i}`,
+      round: 1,
+      position: i,
+      fighter1_id: p.e1.id,
+      fighter2_id: p.e2?.id ?? null,
+      winner_id: null,
+      status: "ready" as const,
+      match_label: p.matchLabel || null,
+      rules: null,
+    };
+  });
+
+  const allMatches: MatchRow[] = [...round1];
+  let count = pairs.length;
+  let r = 2;
+  while (count > 1) {
+    count = Math.ceil(count / 2);
+    for (let i = 0; i < count; i++) {
+      allMatches.push({
+        id: `preview-${r}-${i}`,
+        round: r,
+        position: i,
+        fighter1_id: null,
+        fighter2_id: null,
+        winner_id: null,
+        status: "waiting" as const,
+        match_label: null,
+        rules: null,
+      });
+    }
+    r++;
+  }
+  return { matches: allMatches, nameMap };
+}
+
 function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, tournament, rules, mismatchSettings, onCreated }: {
   courtNum: number;
   eventId: string;
@@ -511,6 +553,7 @@ function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, to
   const [pairs, setPairs] = useState<Pair[]>([]);
   const [defaultRuleId, setDefaultRuleId] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
 
   // ルールでフィルタしたエントリー
   const filteredEntries = defaultRuleId
@@ -636,129 +679,170 @@ function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, to
     );
   }
 
+  // プレビュー用データ（previewMode の時だけ計算）
+  const preview = previewMode && pairs.length > 1 ? buildBracketPreview(pairs) : null;
+
   return (
     <div className="bg-gray-800 rounded-xl p-4 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="font-semibold text-gray-200">コート{courtNum} の対戦表</h2>
-        <span className="text-xs text-gray-500">
-          {defaultRuleId && filteredEntries.length < entries.length
-            ? `対象${filteredEntries.length}名（ルール絞込）`
-            : `エントリー${entries.length}名`}
-          {" / "}割当{assignedIds.size}名 / 未割当{unassigned.length}名
-        </span>
+        <div className="flex items-center gap-2">
+          {pairs.length > 1 && (
+            <div className="flex rounded-lg overflow-hidden border border-gray-700 text-xs">
+              <button
+                onClick={() => setPreviewMode(false)}
+                className={`px-2 py-1 transition ${!previewMode ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}
+              >
+                編集
+              </button>
+              <button
+                onClick={() => setPreviewMode(true)}
+                className={`px-2 py-1 transition ${previewMode ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}
+              >
+                ブラケット確認
+              </button>
+            </div>
+          )}
+          <span className="text-xs text-gray-500">
+            {defaultRuleId && filteredEntries.length < entries.length
+              ? `対象${filteredEntries.length}名（ルール絞込）`
+              : `エントリー${entries.length}名`}
+            {" / "}割当{assignedIds.size}名 / 未割当{unassigned.length}名
+          </span>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-gray-400 shrink-0">コートルール:</label>
-        <select
-          value={defaultRuleId}
-          onChange={(e) => setDefaultRuleId(e.target.value)}
-          className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
-        >
-          <option value="">なし</option>
-          {(eventRules.length > 0 ? eventRules : rules).map((r) => (
-            <option key={r.id} value={r.id}>{r.name}</option>
-          ))}
-        </select>
-        <button
-          onClick={autoAssign}
-          disabled={filteredEntries.length < 2}
-          className="shrink-0 bg-purple-700 hover:bg-purple-600 disabled:opacity-40 px-3 py-2 rounded-lg text-xs font-medium transition"
-        >
-          自動振り分け
-        </button>
-      </div>
+      {previewMode && preview ? (
+        // ── ブラケットプレビュー ──────────────────────────────────────────
+        <>
+          <BracketView matches={preview.matches} nameMap={preview.nameMap} />
+          <div className="flex gap-2 pt-2">
+            <button onClick={() => setPreviewMode(false)}
+              className="flex-1 bg-gray-700 hover:bg-gray-600 py-2 rounded-lg text-sm transition">
+              ← 編集に戻る
+            </button>
+            <button onClick={confirm} disabled={confirming}
+              className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition">
+              {confirming ? "保存中..." : `対戦表を確定（${pairs.length}対戦）`}
+            </button>
+          </div>
+        </>
+      ) : (
+        // ── 編集モード ────────────────────────────────────────────────────
+        <>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-400 shrink-0">コートルール:</label>
+            <select
+              value={defaultRuleId}
+              onChange={(e) => setDefaultRuleId(e.target.value)}
+              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
+            >
+              <option value="">なし</option>
+              {(eventRules.length > 0 ? eventRules : rules).map((r) => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+            <button
+              onClick={autoAssign}
+              disabled={filteredEntries.length < 2}
+              className="shrink-0 bg-purple-700 hover:bg-purple-600 disabled:opacity-40 px-3 py-2 rounded-lg text-xs font-medium transition"
+            >
+              自動振り分け
+            </button>
+          </div>
 
-      {pairs.length > 0 ? (
-        <div className="space-y-2">
-          {pairs.map((pair, idx) => {
-            const compat: CompatibilityLevel = pair.e2
-              ? checkCompatibility(pair.e1, pair.e2, mismatchSettings)
-              : "unknown";
-            const defaultRule = rules.find((r) => r.id === defaultRuleId);
-            const effectiveRuleName = pair.ruleId
-              ? rules.find((r) => r.id === pair.ruleId)?.name
-              : defaultRule?.name;
+          {pairs.length > 0 ? (
+            <div className="space-y-2">
+              {pairs.map((pair, idx) => {
+                const compat: CompatibilityLevel = pair.e2
+                  ? checkCompatibility(pair.e1, pair.e2, mismatchSettings)
+                  : "unknown";
+                const defaultRule = rules.find((r) => r.id === defaultRuleId);
+                const effectiveRuleName = pair.ruleId
+                  ? rules.find((r) => r.id === pair.ruleId)?.name
+                  : defaultRule?.name;
 
-            const e1Options = [pair.e1, ...unassigned];
-            const e2Options = [...(pair.e2 ? [pair.e2] : []), ...unassigned.filter((e) => e.id !== pair.e1.id)];
-            const e2Sorted = [...e2Options].sort((a, b) => entryCompatScore(a, pair.e1) - entryCompatScore(b, pair.e1));
+                const e1Options = [pair.e1, ...unassigned];
+                const e2Options = [...(pair.e2 ? [pair.e2] : []), ...unassigned.filter((e) => e.id !== pair.e1.id)];
+                const e2Sorted = [...e2Options].sort((a, b) => entryCompatScore(a, pair.e1) - entryCompatScore(b, pair.e1));
 
-            return (
-              <div key={pair.id} className="border border-gray-700 rounded-lg p-3 space-y-2">
-                <div className="flex items-start gap-2">
-                  <span className="text-xs text-gray-500 w-5 shrink-0 text-center pt-2">{idx + 1}</span>
-                  <div className="flex-1 flex flex-wrap gap-2 min-w-0">
-                    <select value={pair.e1.id} onChange={(ev) => updateE1(pair.id, ev.target.value)}
-                      className="flex-1 min-w-[140px] bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500">
-                      {e1Options.map((e) => (
-                        <option key={e.id} value={e.id}>
-                          {entryFullName(e)}{e.weight ? ` ${e.weight}kg` : ""}{e.height ? ` ${e.height}cm` : ""}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="flex items-center gap-2 flex-1 min-w-[140px]">
-                      <span className="text-gray-600 text-xs shrink-0">vs</span>
-                      <select value={pair.e2?.id ?? ""} onChange={(ev) => updateE2(pair.id, ev.target.value || null)}
-                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500">
-                        <option value="">BYE（不戦勝）</option>
-                        {e2Sorted.map((e) => {
-                          const c: CompatibilityLevel = checkCompatibility(pair.e1, e, mismatchSettings);
-                          const label = c === "ok" ? "◎ " : c === "warn" ? "△ " : c === "ng" ? "✕ " : "";
-                          return (
+                return (
+                  <div key={pair.id} className="border border-gray-700 rounded-lg p-3 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs text-gray-500 w-5 shrink-0 text-center pt-2">{idx + 1}</span>
+                      <div className="flex-1 flex flex-wrap gap-2 min-w-0">
+                        <select value={pair.e1.id} onChange={(ev) => updateE1(pair.id, ev.target.value)}
+                          className="flex-1 min-w-[140px] bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500">
+                          {e1Options.map((e) => (
                             <option key={e.id} value={e.id}>
-                              {label}{entryFullName(e)}{e.weight ? ` ${e.weight}kg` : ""}{e.height ? ` ${e.height}cm` : ""}
-                              {e.experience ? ` [${e.experience}]` : ""}
+                              {entryFullName(e)}{e.weight ? ` ${e.weight}kg` : ""}{e.height ? ` ${e.height}cm` : ""}
                             </option>
-                          );
-                        })}
+                          ))}
+                        </select>
+                        <div className="flex items-center gap-2 flex-1 min-w-[140px]">
+                          <span className="text-gray-600 text-xs shrink-0">vs</span>
+                          <select value={pair.e2?.id ?? ""} onChange={(ev) => updateE2(pair.id, ev.target.value || null)}
+                            className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500">
+                            <option value="">BYE（不戦勝）</option>
+                            {e2Sorted.map((e) => {
+                              const c: CompatibilityLevel = checkCompatibility(pair.e1, e, mismatchSettings);
+                              const label = c === "ok" ? "◎ " : c === "warn" ? "△ " : c === "ng" ? "✕ " : "";
+                              return (
+                                <option key={e.id} value={e.id}>
+                                  {label}{entryFullName(e)}{e.weight ? ` ${e.weight}kg` : ""}{e.height ? ` ${e.height}cm` : ""}
+                                  {e.experience ? ` [${e.experience}]` : ""}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 pt-1">
+                        <span className={`text-sm font-bold w-5 text-center ${COMPAT_COLORS[compat]}`}>
+                          {COMPAT_LABEL[compat]}
+                        </span>
+                        <button onClick={() => removePair(pair.id)} className="text-red-400 hover:text-red-300 text-sm">✕</button>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pl-5">
+                      <input value={pair.matchLabel} onChange={(ev) => updateField(pair.id, "matchLabel", ev.target.value)}
+                        placeholder="試合名（例: 第1試合・ワンマッチ）"
+                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+                      />
+                      <select value={pair.ruleId} onChange={(ev) => updateField(pair.id, "ruleId", ev.target.value)}
+                        className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500">
+                        <option value="">デフォルト{effectiveRuleName ? `（${effectiveRuleName}）` : ""}</option>
+                        {rules.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                       </select>
                     </div>
+                    {pair.e2 && (compat === "warn" || compat === "ng") && (
+                      <p className={`text-xs pl-5 ${compat === "ng" ? "text-red-400" : "text-yellow-400"}`}>
+                        {pair.e1.weight && pair.e2.weight ? `体重差 ${Math.abs(pair.e1.weight - pair.e2.weight).toFixed(1)}kg` : ""}
+                        {pair.e1.height && pair.e2.height ? ` 身長差 ${Math.abs(pair.e1.height - pair.e2.height).toFixed(0)}cm` : ""}
+                      </p>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0 pt-1">
-                    <span className={`text-sm font-bold w-5 text-center ${COMPAT_COLORS[compat]}`}>
-                      {COMPAT_LABEL[compat]}
-                    </span>
-                    <button onClick={() => removePair(pair.id)} className="text-red-400 hover:text-red-300 text-sm">✕</button>
-                  </div>
-                </div>
-                <div className="flex gap-2 pl-5">
-                  <input value={pair.matchLabel} onChange={(ev) => updateField(pair.id, "matchLabel", ev.target.value)}
-                    placeholder="試合名（例: 第1試合・ワンマッチ）"
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-                  />
-                  <select value={pair.ruleId} onChange={(ev) => updateField(pair.id, "ruleId", ev.target.value)}
-                    className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500">
-                    <option value="">デフォルト{effectiveRuleName ? `（${effectiveRuleName}）` : ""}</option>
-                    {rules.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                  </select>
-                </div>
-                {pair.e2 && (compat === "warn" || compat === "ng") && (
-                  <p className={`text-xs pl-5 ${compat === "ng" ? "text-red-400" : "text-yellow-400"}`}>
-                    {pair.e1.weight && pair.e2.weight ? `体重差 ${Math.abs(pair.e1.weight - pair.e2.weight).toFixed(1)}kg` : ""}
-                    {pair.e1.height && pair.e2.height ? ` 身長差 ${Math.abs(pair.e1.height - pair.e2.height).toFixed(0)}cm` : ""}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="text-sm text-gray-500 text-center py-6">
-          「自動振り分け」で一括設定するか、「対戦を追加」で手動で組んでください
-        </p>
-      )}
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 text-center py-6">
+              「自動振り分け」で一括設定するか、「対戦を追加」で手動で組んでください
+            </p>
+          )}
 
-      <div className="flex gap-2">
-        <button onClick={addEmptyPair} disabled={unassigned.length === 0}
-          className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-2 rounded-lg text-sm transition">
-          + 対戦を追加
-        </button>
-        <button onClick={confirm} disabled={confirming || pairs.length === 0}
-          className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition">
-          {confirming ? "保存中..." : `対戦表を確定（${pairs.length}対戦）`}
-        </button>
-      </div>
+          <div className="flex gap-2">
+            <button onClick={addEmptyPair} disabled={unassigned.length === 0}
+              className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-2 rounded-lg text-sm transition">
+              + 対戦を追加
+            </button>
+            <button onClick={confirm} disabled={confirming || pairs.length === 0}
+              className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition">
+              {confirming ? "保存中..." : `対戦表を確定（${pairs.length}対戦）`}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -783,9 +867,9 @@ const BRACKET_GAP_W = 36;  // カード間の接続線スペース
 const BRACKET_COL_W = BRACKET_CARD_W + BRACKET_GAP_W;
 const BRACKET_BASE_SLOT = 84; // round 1 の 1 試合あたりの高さ
 
-function BracketView({ matches, fighterMap }: {
+function BracketView({ matches, nameMap }: {
   matches: MatchRow[];
-  fighterMap: Record<string, Fighter>;
+  nameMap: Record<string, string>; // id → 表示名
 }) {
   if (matches.length === 0) return null;
 
@@ -851,11 +935,11 @@ function BracketView({ matches, fighterMap }: {
 
         {/* 試合カード */}
         {matches.map((m) => {
-          const f1 = m.fighter1_id ? fighterMap[m.fighter1_id] : null;
-          const f2 = m.fighter2_id ? fighterMap[m.fighter2_id] : null;
           const isDone = m.status === "done";
           const isOngoing = m.status === "ongoing";
           const halfH = BRACKET_CARD_H / 2;
+          const name1 = m.fighter1_id ? (nameMap[m.fighter1_id] ?? "?") : "BYE";
+          const name2 = m.fighter2_id ? (nameMap[m.fighter2_id] ?? "?") : "BYE";
 
           return (
             <div
@@ -886,7 +970,7 @@ function BracketView({ matches, fighterMap }: {
                   isDone && m.winner_id === m.fighter1_id ? "text-green-300 font-bold" :
                   m.fighter1_id ? "text-gray-200" : "text-gray-600 italic"
                 }`}>
-                  {f1?.name ?? (m.fighter1_id ? "?" : "BYE")}
+                  {name1}
                 </span>
               </div>
 
@@ -904,7 +988,7 @@ function BracketView({ matches, fighterMap }: {
                   isDone && m.winner_id === m.fighter2_id ? "text-green-300 font-bold" :
                   m.fighter2_id ? "text-gray-200" : "text-gray-600 italic"
                 }`}>
-                  {f2?.name ?? (m.fighter2_id ? "?" : "BYE")}
+                  {name2}
                 </span>
               </div>
             </div>
@@ -1029,7 +1113,10 @@ function ExistingTournamentSection({ courtNum, tournament, eventId, rules, misma
       {open && (
         <>
           {isBracket && viewMode === "bracket" ? (
-            <BracketView matches={matches} fighterMap={fighterMap} />
+            <BracketView
+              matches={matches}
+              nameMap={Object.fromEntries(Object.entries(fighterMap).map(([id, f]) => [id, f.name]))}
+            />
           ) : (
             <div className="space-y-2">
               {round1.length === 0 && (
