@@ -90,7 +90,7 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
     tab: Tab | null;
     tabLabel?: string;
     color: string;
-    desc: string;
+    desc: React.ReactNode;
     details: string[];
     screen: React.ReactNode;
   }[] = [
@@ -100,11 +100,19 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
       title: "ルールを登録する",
       tab: "rules",
       color: "border-yellow-500",
-      desc: "「組手3分」「形」など大会で使う試合形式を登録します。対戦ごとのルール割り当てやエントリー受付の区分として使います。",
-      details: [
-        "「ルール」タブで試合形式を追加（例: 組手3分延長1分・形・ワンマッチ）",
-        "複数ルールを登録しておくと試合作成時にまとめて選択できる",
-      ],
+      desc: (
+        <div className="space-y-2">
+          <div>
+            <span className="text-xs font-bold text-green-400">ビギナー</span>
+            <p className="text-xs text-gray-400 mt-0.5">種目名を1つだけ入力して「追加」を押してください。「組手」「形」などシンプルな名前でOKです。ルールが1種類だけの大会なら、登録しなくてもシステムは使えます。</p>
+          </div>
+          <div>
+            <span className="text-xs font-bold text-blue-400">エキスパート</span>
+            <p className="text-xs text-gray-400 mt-0.5">複数ルールを登録すると、エントリーフォームの種目選択・コートのルール絞り込み・対戦ごとの個別ルール割り当てができるようになります。</p>
+          </div>
+        </div>
+      ),
+      details: [],
       screen: (
         <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-1.5">
           <p className="text-gray-500 mb-2">ルールタブ</p>
@@ -213,14 +221,14 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
     {
       step: 5,
       icon: "⚙️",
-      title: "シード・出場ルールを設定する",
+      title: "出場ルールを設定する",
       tab: null,
       color: "border-purple-500",
-      desc: "エントリー一覧でシード指定と出場ルールを設定します。コートのルールを選ぶと、そのルールにエントリーした選手だけが自動振り分けの対象になります。",
+      desc: "複数ルールを登録している場合、各エントリーがどの種目に出るかを設定します。コートのルールを絞り込むと、そのルールにエントリーした選手だけが自動振り分けの対象になります。",
       details: [
-        "「☆」をタップ → 「★シード」に。自動振り分け時に BYE が優先割り当てられる",
-        "各エントリーの「エントリー:」欄でどの種目に出るかをチェック",
-        "コートルール ＝ 組手 に設定すると、組手にエントリーした選手のみ対象",
+        "各エントリーの「エントリー:」欄で出場する種目をチェック",
+        "対戦表作成時に「コートルール」を選ぶと、その種目の参加者だけに絞り込まれる",
+        "1種類しかルールがない場合はこの手順は不要",
       ],
       screen: (
         <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
@@ -339,14 +347,16 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
                 )}
               </div>
               {/* 説明 + 詳細 */}
-              <p className="text-xs text-gray-400 leading-relaxed pl-8">{desc}</p>
-              <ul className="space-y-0.5 pl-8">
-                {details.map((d, i) => (
-                  <li key={i} className="text-xs text-gray-500 flex gap-1.5">
-                    <span className="text-gray-700 shrink-0">•</span><span>{d}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="text-xs text-gray-400 leading-relaxed pl-8">{desc}</div>
+              {details.length > 0 && (
+                <ul className="space-y-0.5 pl-8">
+                  {details.map((d, i) => (
+                    <li key={i} className="text-xs text-gray-500 flex gap-1.5">
+                      <span className="text-gray-700 shrink-0">•</span><span>{d}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
               {/* スクリーンショット風モック */}
               <div className="pl-8">{screen}</div>
             </div>
