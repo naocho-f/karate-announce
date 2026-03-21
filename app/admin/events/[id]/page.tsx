@@ -610,6 +610,23 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
 // ── コートセクション ──────────────────────────────────────────────────────
 
 // ペア配列からブラケットプレビュー用データを生成
+/** ペア数がブラケットとして綺麗か判定する */
+function bracketQuality(pairCount: number): {
+  isClean: boolean;
+  nextCleanPairs: number;
+  prevCleanPairs: number;
+  addNeeded: number;
+  removeNeeded: number;
+} {
+  if (pairCount <= 0) return { isClean: true, nextCleanPairs: 0, prevCleanPairs: 0, addNeeded: 0, removeNeeded: 0 };
+  const isClean = pairCount >= 1 && (pairCount & (pairCount - 1)) === 0;
+  if (isClean) return { isClean: true, nextCleanPairs: pairCount, prevCleanPairs: pairCount, addNeeded: 0, removeNeeded: 0 };
+  let next = 1;
+  while (next < pairCount) next <<= 1;
+  const prev = next >> 1;
+  return { isClean: false, nextCleanPairs: next, prevCleanPairs: prev, addNeeded: next - pairCount, removeNeeded: pairCount - prev };
+}
+
 function buildBracketPreview(pairs: Pair[]): { matches: MatchRow[]; nameMap: Record<string, string> } {
   const nameMap: Record<string, string> = {};
   const round1: MatchRow[] = pairs.map((p, i) => {
@@ -901,6 +918,43 @@ function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, to
   );
 }
 
+function BracketQualityBadge({ pairCount }: { pairCount: number }) {
+  if (pairCount === 0) return <span className="text-xs text-gray-500 shrink-0">0対戦</span>;
+
+  const q = bracketQuality(pairCount);
+  const entryCount = pairCount * 2; // BYE 含む全スロット換算ではなく "対戦数"
+
+  if (q.isClean) {
+    return (
+      <span className="text-xs text-green-400 shrink-0 font-medium">
+        {pairCount}対戦 ✓
+      </span>
+    );
+  }
+
+  // 不規則ブラケット — 警告レベルを距離で判断
+  const fillRatio = pairCount / q.nextCleanPairs; // 0.5〜1.0
+  const isNearNext = q.addNeeded <= q.removeNeeded; // 増やす方が近い
+  const isYellow = q.addNeeded <= 2 || q.removeNeeded <= 2;
+
+  const hint = isNearNext
+    ? `あと${q.addNeeded}ペア（${q.addNeeded * 2}名）追加か BYE シードで ${q.nextCleanPairs} 対戦になります`
+    : `あと${q.removeNeeded}ペア（${q.removeNeeded * 2}名）減らすと ${q.prevCleanPairs} 対戦になります`;
+
+  return (
+    <span
+      title={`${pairCount}対戦は2の累乗でないため、ブラケットが不規則になります。\n推奨: ${q.prevCleanPairs}対戦（${q.prevCleanPairs * 2}名以下）または ${q.nextCleanPairs}対戦（${q.nextCleanPairs * 2}名以下）\n${hint}`}
+      className={`text-xs shrink-0 font-medium cursor-help rounded px-1.5 py-0.5 ${
+        isYellow
+          ? "bg-yellow-900/50 text-yellow-300 border border-yellow-700"
+          : "bg-red-900/50 text-red-300 border border-red-800"
+      }`}
+    >
+      {pairCount}対戦 ⚠
+    </span>
+  );
+}
+
 function GroupSection({ group, entries, unassigned, rules, defaultRuleId, mismatchSettings, canRemove, onRename, onRemove, onAutoAssign, onUpdateMismatch, onAddPair, onRemovePair, onUpdateE1, onUpdateE2, onUpdateField }: {
   group: Group;
   entries: Entry[];
@@ -973,7 +1027,7 @@ function GroupSection({ group, entries, unassigned, rules, defaultRuleId, mismat
           />
           <span className="text-xs text-gray-500">cm以内</span>
         </div>
-        <span className="text-xs text-gray-500 shrink-0">{group.pairs.length}対戦</span>
+        <BracketQualityBadge pairCount={group.pairs.length} />
         {group.pairs.length > 1 && (
           <div className="flex rounded overflow-hidden border border-gray-700 text-xs shrink-0">
             <button onClick={() => setPreviewMode(false)}
@@ -1041,6 +1095,27 @@ function GroupSection({ group, entries, unassigned, rules, defaultRuleId, mismat
                 );
               })}
             </div>
+            {(() => {
+              const totalEntries = group.pairs.reduce((s, p) => s + 1 + (p.e2 ? 1 : 0), 0) + filteredUnassigned.length;
+              const totalPairs = Math.ceil(totalEntries / 2);
+              const q = bracketQuality(totalPairs);
+              if (!q.isClean && totalPairs > 1) {
+                return (
+                  <p className={`text-xs px-2 py-1 rounded ${
+                    q.addNeeded <= 2 || q.removeNeeded <= 2
+                      ? "bg-yellow-900/40 text-yellow-300 border border-yellow-800"
+                      : "bg-red-900/40 text-red-300 border border-red-900"
+                  }`}>
+                    ⚠ 追加後 {totalPairs} 対戦 — ブラケットが不規則になります。
+                    理想は{" "}
+                    {q.prevCleanPairs > 0 && <><b>{q.prevCleanPairs * 2}名以下</b>（{q.prevCleanPairs}対戦）</>}
+                    {q.prevCleanPairs > 0 && <> または </>}
+                    <b>{q.nextCleanPairs * 2}名以下</b>（{q.nextCleanPairs}対戦）
+                  </p>
+                );
+              }
+              return null;
+            })()}
             <button
               onClick={() => onAutoAssign(filteredUnassigned)}
               className="w-full bg-blue-700 hover:bg-blue-600 py-1.5 rounded text-xs font-medium transition"
