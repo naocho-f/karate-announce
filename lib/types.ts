@@ -42,6 +42,7 @@ export function fighterFullReading(f: Fighter): string | null {
 export type Event = {
   id: string;
   name: string;
+  event_date: string | null;
   court_count: number;
   status: "preparing" | "ongoing" | "finished";
   is_active: boolean;
@@ -82,6 +83,7 @@ export type Entry = {
   school_name: string | null;
   weight: number | null;
   height: number | null;
+  birth_date: string | null;
   age_info: string | null;
   experience: string | null;
   is_seed: boolean;

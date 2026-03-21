@@ -674,6 +674,7 @@ function EventPanel() {
   const [events, setEvents] = useState<Event[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
   const [name, setName] = useState("");
+  const [eventDate, setEventDate] = useState("");
   const [courtCount, setCourtCount] = useState(1);
   const [selectedRuleIds, setSelectedRuleIds] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
@@ -697,7 +698,7 @@ function EventPanel() {
     const res = await fetch("/api/admin/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), court_count: courtCount, rule_ids: [...selectedRuleIds] }),
+      body: JSON.stringify({ name: name.trim(), event_date: eventDate || null, court_count: courtCount, rule_ids: [...selectedRuleIds] }),
     });
     if (!res.ok) { setCreating(false); return; }
     const { id } = await res.json();
@@ -729,6 +730,15 @@ function EventPanel() {
           placeholder="試合名（例: 第○回○○空手道大会）"
           className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
         />
+        <div className="space-y-1">
+          <p className="text-xs text-gray-400">開催日（任意）</p>
+          <input
+            type="date"
+            value={eventDate}
+            onChange={(e) => setEventDate(e.target.value)}
+            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+          />
+        </div>
         <div className="space-y-2">
           <p className="text-xs text-gray-400">コート数</p>
           <div className="flex gap-2">
@@ -773,6 +783,9 @@ function EventPanel() {
                 <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold shrink-0">● 進行中</span>
               )}
               <span className="font-medium truncate">{e.name}</span>
+              {e.event_date && (
+                <span className="text-xs text-gray-400 shrink-0">{e.event_date.replace(/-/g, "/")}</span>
+              )}
               <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded shrink-0">{e.court_count}コート</span>
             </div>
             {/* アクション行 */}

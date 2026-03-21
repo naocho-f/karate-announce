@@ -22,6 +22,7 @@ export default function EntryPage({ params }: Props) {
   const [dojoName, setDojoName] = useState("");
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [ageInfo, setAgeInfo] = useState("");
   const [experience, setExperience] = useState("");
   const [selectedRules, setSelectedRules] = useState<Set<string>>(new Set());
@@ -68,6 +69,7 @@ export default function EntryPage({ params }: Props) {
           given_name_reading: givenReading.trim() || null,
           school_name: trimmedSchool || null,
           dojo_name: dojoName.trim() || null,
+          birth_date: birthDate || null,
           weight: weight ? parseFloat(weight) : null,
           height: height ? parseFloat(height) : null,
           age_info: ageInfo.trim() || null,
@@ -112,7 +114,7 @@ export default function EntryPage({ params }: Props) {
             onClick={() => {
               setSubmitted(false);
               setFamilyName(""); setGivenName(""); setFamilyReading(""); setGivenReading("");
-              setSchoolName(""); setDojoName(""); setWeight(""); setHeight(""); setAgeInfo(""); setExperience("");
+              setSchoolName(""); setDojoName(""); setBirthDate(""); setWeight(""); setHeight(""); setAgeInfo(""); setExperience("");
               setSelectedRules(new Set());
             }}
             className="text-blue-400 hover:text-blue-300 text-sm underline"
@@ -173,6 +175,17 @@ export default function EntryPage({ params }: Props) {
               <input value={dojoName} onChange={(e) => setDojoName(e.target.value)}
                 placeholder="○○支部道場" className={inp} />
             </div>
+          </div>
+
+          {/* 生年月日 */}
+          <div className="space-y-1">
+            <p className="text-xs text-gray-400 font-medium">生年月日</p>
+            <input
+              type="date"
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              className={inp}
+            />
           </div>
 
           {/* 体格 */}
