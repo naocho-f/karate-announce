@@ -301,6 +301,39 @@ function MismatchSettingsSection({ settings, onSave }: {
 
 // ── エントリー管理セクション ──────────────────────────────────────────────
 
+const DEMO_FAMILY_NAMES = ["山田","田中","鈴木","佐藤","伊藤","渡辺","中村","小林","加藤","吉田","山本","松本","井上","木村","林","斎藤","清水","山口","池田","橋本"];
+const DEMO_FAMILY_READINGS = ["やまだ","たなか","すずき","さとう","いとう","わたなべ","なかむら","こばやし","かとう","よしだ","やまもと","まつもと","いのうえ","きむら","はやし","さいとう","しみず","やまぐち","いけだ","はしもと"];
+const DEMO_GIVEN_NAMES = ["太郎","次郎","三郎","健太","翔太","大輝","蓮","颯","陸","悠斗","花","葵","凛","結衣","莉奈","美咲","愛","彩","優","梨花"];
+const DEMO_GIVEN_READINGS = ["たろう","じろう","さぶろう","けんた","しょうた","だいき","れん","そう","りく","ゆうと","はな","あおい","りん","ゆい","りな","みさき","あい","あや","ゆう","りか"];
+const DEMO_DOJOS = ["○○支部道場","△△道場","□□空手クラブ","◇◇格闘ジム","☆☆空手教室","本部直轄道場","南地区道場","北地区道場","東支部","西支部"];
+const DEMO_SCHOOLS = ["極真会","新極真会","芦原会館","正道会館","士道館","大山空手","国際空手連盟","全日本空手道連盟","WKF","フルコンタクト空手"];
+const DEMO_EXPERIENCES = ["空手歴1年","空手歴2年","空手歴3年","空手歴5年","空手歴7年","空手歴10年","格闘技歴3年","初参加","大会経験あり","全国大会出場経験あり"];
+
+function generateDemoEntries(eventId: string, count: number) {
+  const r = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+  return Array.from({ length: count }, (_, i) => {
+    const fi = Math.floor(Math.random() * DEMO_FAMILY_NAMES.length);
+    const gi = Math.floor(Math.random() * DEMO_GIVEN_NAMES.length);
+    return {
+      school_name: r(DEMO_SCHOOLS),
+      rule_ids: [],
+      entry: {
+        event_id: eventId,
+        family_name: DEMO_FAMILY_NAMES[fi],
+        given_name: DEMO_GIVEN_NAMES[gi],
+        family_name_reading: DEMO_FAMILY_READINGS[fi],
+        given_name_reading: DEMO_GIVEN_READINGS[gi],
+        school_name: r(DEMO_SCHOOLS),
+        dojo_name: r(DEMO_DOJOS),
+        weight: Math.round((40 + Math.random() * 60) * 10) / 10,
+        height: Math.round((150 + Math.random() * 40) * 10) / 10,
+        age_info: `${18 + Math.floor(Math.random() * 22)}歳`,
+        experience: i < 4 ? "空手歴10年以上" : r(DEMO_EXPERIENCES),
+      },
+    };
+  });
+}
+
 function EntriesSection({ eventId, entries, entryRuleIds, eventRules, onToggleSeed, onToggleRule, onDelete, onAdded }: {
   eventId: string;
   entries: Entry[];
@@ -313,6 +346,24 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, onToggleSe
 }) {
   const [open, setOpen] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+  async function addDemoEntries() {
+    if (!confirm("テスト用に32名のダミーエントリーを追加しますか？")) return;
+    setGenerating(true);
+    const entries = generateDemoEntries(eventId, 32);
+    await Promise.all(
+      entries.map((e) =>
+        fetch("/api/admin/entries", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(e),
+        }),
+      ),
+    );
+    setGenerating(false);
+    onAdded();
+  }
 
   return (
     <div className="bg-gray-800 rounded-xl p-4 space-y-3">
@@ -322,6 +373,13 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, onToggleSe
           <span className="text-xs text-gray-500">{entries.length}名</span>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={addDemoEntries}
+            disabled={generating}
+            className="text-xs text-gray-500 hover:text-gray-300 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition"
+          >
+            {generating ? "生成中..." : "テスト32名"}
+          </button>
           <button onClick={() => setShowForm((v) => !v)}
             className="text-xs bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition">
             {showForm ? "キャンセル" : "+ 追加"}
