@@ -945,13 +945,14 @@ function BracketQualityBadge({ pairCount }: { pairCount: number }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`text-xs font-medium rounded px-1.5 py-0.5 ${
+        className={`text-xs font-medium rounded px-2 py-1 flex items-center gap-1 transition ${
           isYellow
-            ? "bg-yellow-900/50 text-yellow-300 border border-yellow-700"
-            : "bg-red-900/50 text-red-300 border border-red-800"
+            ? "bg-yellow-900/60 text-yellow-200 border border-yellow-600 hover:bg-yellow-800/60"
+            : "bg-red-900/60 text-red-200 border border-red-700 hover:bg-red-800/60"
         }`}
       >
-        {pairCount}対戦 ⚠
+        <span>⚠ {pairCount}対戦 — 不規則</span>
+        <span className="text-[10px] opacity-70">{open ? "▲" : "▼"}</span>
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 z-50 w-64 bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 space-y-1.5">
@@ -1164,8 +1165,21 @@ function GroupSection({ group, entries, unassigned, rules, defaultRuleId, mismat
                 const e2Options = [...(pair.e2 ? [pair.e2] : []), ...unassigned.filter((e) => e.id !== pair.e1.id)];
                 const e2Sorted = [...e2Options].sort((a, b) => entryCompatScore(a, pair.e1) - entryCompatScore(b, pair.e1));
 
+                // 体格差テキスト
+                const weightDiffText = pair.e2 && pair.e1.weight && pair.e2.weight
+                  ? `体重差 ${Math.abs(pair.e1.weight - pair.e2.weight).toFixed(1)}kg`
+                  : null;
+                const heightDiffText = pair.e2 && pair.e1.height && pair.e2.height
+                  ? `身長差 ${Math.abs(pair.e1.height - pair.e2.height).toFixed(0)}cm`
+                  : null;
+                const compatText =
+                  compat === "ok"      ? `規定内${[weightDiffText, heightDiffText].filter(Boolean).map(t => `（${t}）`).join("")}` :
+                  compat === "warn"    ? `注意 — ${[weightDiffText, heightDiffText].filter(Boolean).join("・")}` :
+                  compat === "ng"      ? `超過 — ${[weightDiffText, heightDiffText].filter(Boolean).join("・")}` :
+                  null;
+
                 return (
-                  <div key={pair.id} className="border border-gray-700 rounded-lg p-2.5 space-y-2">
+                  <div key={pair.id} className="border border-gray-700 rounded-lg p-2.5 space-y-1.5">
                     <div className="flex items-start gap-2">
                       <span className="text-xs text-gray-500 w-5 shrink-0 text-center pt-2">{idx + 1}</span>
                       <div className="flex-1 flex flex-wrap gap-2 min-w-0">
@@ -1195,28 +1209,14 @@ function GroupSection({ group, entries, unassigned, rules, defaultRuleId, mismat
                           </select>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0 pt-1">
-                        <span className={`text-sm font-bold w-5 text-center ${COMPAT_COLORS[compat]}`}>
-                          {COMPAT_LABEL[compat]}
-                        </span>
-                        <button onClick={() => onRemovePair(pair.id)} className="text-red-400 hover:text-red-300 text-sm">✕</button>
-                      </div>
+                      <button onClick={() => onRemovePair(pair.id)}
+                        className="text-xs text-red-400 hover:text-red-300 shrink-0 pt-2 transition">
+                        削除
+                      </button>
                     </div>
-                    <div className="flex gap-2 pl-5">
-                      <input value={pair.matchLabel} onChange={(ev) => onUpdateField(pair.id, "matchLabel", ev.target.value)}
-                        placeholder="試合名（例: 第1試合・ワンマッチ）"
-                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-                      />
-                      <select value={pair.ruleId} onChange={(ev) => onUpdateField(pair.id, "ruleId", ev.target.value)}
-                        className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500">
-                        <option value="">デフォルト{effectiveRuleName ? `（${effectiveRuleName}）` : ""}</option>
-                        {rules.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                      </select>
-                    </div>
-                    {pair.e2 && (compat === "warn" || compat === "ng") && (
-                      <p className={`text-xs pl-5 ${compat === "ng" ? "text-red-400" : "text-yellow-400"}`}>
-                        {pair.e1.weight && pair.e2.weight ? `体重差 ${Math.abs(pair.e1.weight - pair.e2.weight).toFixed(1)}kg` : ""}
-                        {pair.e1.height && pair.e2.height ? ` 身長差 ${Math.abs(pair.e1.height - pair.e2.height).toFixed(0)}cm` : ""}
+                    {pair.e2 && compatText && (
+                      <p className={`text-xs pl-7 font-medium ${COMPAT_COLORS[compat]}`}>
+                        {COMPAT_LABEL[compat]} {compatText}
                       </p>
                     )}
                     {/* メモ表示 */}
