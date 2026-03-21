@@ -777,6 +777,12 @@ function roundLabel(round: number, totalRounds: number): string {
 
 // ── ブラケット表示 ──────────────────────────────────────────────────────
 
+const BRACKET_CARD_W = 156;
+const BRACKET_CARD_H = 58;
+const BRACKET_GAP_W = 36;  // カード間の接続線スペース
+const BRACKET_COL_W = BRACKET_CARD_W + BRACKET_GAP_W;
+const BRACKET_BASE_SLOT = 84; // round 1 の 1 試合あたりの高さ
+
 function BracketView({ matches, fighterMap }: {
   matches: MatchRow[];
   fighterMap: Record<string, Fighter>;
@@ -784,89 +790,122 @@ function BracketView({ matches, fighterMap }: {
   if (matches.length === 0) return null;
 
   const maxRound = Math.max(...matches.map((m) => m.round));
-  const rounds = Array.from({ length: maxRound }, (_, i) => i + 1);
+  const round1 = matches.filter((m) => m.round === 1);
+  const totalSlots = round1.length > 0 ? Math.max(...round1.map((m) => m.position)) + 1 : 1;
 
-  // ラウンドごとのスロット高さ（ラウンドが上がるごとに2倍）
-  const BASE_H = 52; // px per fighter slot
-  const slotHeight = (round: number) => BASE_H * Math.pow(2, round - 1);
+  const slotH = (round: number) => BRACKET_BASE_SLOT * Math.pow(2, round - 1);
+  const centerY = (round: number, pos: number) => pos * slotH(round) + slotH(round) / 2;
+  const cardTop = (round: number, pos: number) => pos * slotH(round) + (slotH(round) - BRACKET_CARD_H) / 2;
+  const cardLeft = (round: number) => (round - 1) * BRACKET_COL_W;
+
+  const totalHeight = totalSlots * BRACKET_BASE_SLOT;
+  const totalWidth = maxRound * BRACKET_COL_W - BRACKET_GAP_W;
+
+  // 接続線：各試合の右端→次ラウンドの試合の左端
+  const connectors = matches
+    .filter((m) => m.round < maxRound)
+    .map((m) => {
+      const nextPos = Math.floor(m.position / 2);
+      const x1 = cardLeft(m.round) + BRACKET_CARD_W;
+      const y1 = centerY(m.round, m.position);
+      const x2 = cardLeft(m.round + 1);
+      const y2 = centerY(m.round + 1, nextPos);
+      const xMid = x1 + BRACKET_GAP_W / 2;
+      return { x1, y1, x2, y2, xMid, key: m.id };
+    });
 
   return (
-    <div className="overflow-x-auto pb-2">
-      <div className="flex gap-0 min-w-max">
-        {rounds.map((round) => {
-          const roundMatches = matches
-            .filter((m) => m.round === round)
-            .sort((a, b) => a.position - b.position);
-          const sh = slotHeight(round);
+    <div className="overflow-x-auto pb-4">
+      {/* ラウンドヘッダー */}
+      <div className="flex mb-2" style={{ width: totalWidth }}>
+        {Array.from({ length: maxRound }, (_, i) => i + 1).map((round) => (
+          <div
+            key={round}
+            className="text-xs text-gray-500 text-center shrink-0"
+            style={{ width: round === maxRound ? BRACKET_CARD_W : BRACKET_COL_W }}
+          >
+            {roundLabel(round, maxRound)}
+          </div>
+        ))}
+      </div>
+
+      {/* ブラケット本体 */}
+      <div className="relative" style={{ width: totalWidth, height: totalHeight }}>
+        {/* SVG 接続線 */}
+        <svg
+          className="absolute inset-0 pointer-events-none"
+          width={totalWidth}
+          height={totalHeight}
+          style={{ overflow: "visible" }}
+        >
+          {connectors.map((c) => (
+            <path
+              key={c.key}
+              d={`M ${c.x1} ${c.y1} H ${c.xMid} V ${c.y2} H ${c.x2}`}
+              fill="none"
+              stroke="#374151"
+              strokeWidth={1.5}
+            />
+          ))}
+        </svg>
+
+        {/* 試合カード */}
+        {matches.map((m) => {
+          const f1 = m.fighter1_id ? fighterMap[m.fighter1_id] : null;
+          const f2 = m.fighter2_id ? fighterMap[m.fighter2_id] : null;
+          const isDone = m.status === "done";
+          const isOngoing = m.status === "ongoing";
+          const halfH = BRACKET_CARD_H / 2;
 
           return (
-            <div key={round} className="flex flex-col" style={{ minWidth: 160 }}>
-              {/* ラウンドヘッダー */}
-              <div className="text-xs text-gray-500 text-center py-1 px-2 border-b border-gray-700 mb-1">
-                {roundLabel(round, maxRound)}
+            <div
+              key={m.id}
+              className={`absolute border rounded-lg overflow-hidden text-xs ${
+                isDone    ? "border-green-800" :
+                isOngoing ? "border-yellow-600 shadow-[0_0_8px_rgba(202,138,4,0.4)]" :
+                            "border-gray-700"
+              }`}
+              style={{
+                left: cardLeft(m.round),
+                top: cardTop(m.round, m.position),
+                width: BRACKET_CARD_W,
+                height: BRACKET_CARD_H,
+              }}
+            >
+              {/* 選手1 */}
+              <div
+                className={`px-2 flex items-center gap-1 border-b border-gray-700 ${
+                  isDone && m.winner_id === m.fighter1_id ? "bg-green-900/50" : "bg-gray-800"
+                }`}
+                style={{ height: halfH }}
+              >
+                {isDone && m.winner_id === m.fighter1_id && (
+                  <span className="text-green-400 text-[9px] shrink-0">▶</span>
+                )}
+                <span className={`truncate ${
+                  isDone && m.winner_id === m.fighter1_id ? "text-green-300 font-bold" :
+                  m.fighter1_id ? "text-gray-200" : "text-gray-600 italic"
+                }`}>
+                  {f1?.name ?? (m.fighter1_id ? "?" : "BYE")}
+                </span>
               </div>
 
-              {/* 試合カード */}
-              <div className="flex flex-col">
-                {roundMatches.map((m) => {
-                  const f1 = m.fighter1_id ? fighterMap[m.fighter1_id] : null;
-                  const f2 = m.fighter2_id ? fighterMap[m.fighter2_id] : null;
-                  const isDone = m.status === "done";
-                  const isOngoing = m.status === "ongoing";
-
-                  return (
-                    <div
-                      key={m.id}
-                      className="flex flex-col justify-center px-2"
-                      style={{ height: sh }}
-                    >
-                      <div className={`border rounded-lg overflow-hidden text-xs ${
-                        isDone ? "border-green-800" :
-                        isOngoing ? "border-yellow-600 shadow-[0_0_6px_rgba(202,138,4,0.4)]" :
-                        "border-gray-700"
-                      }`}>
-                        {/* 選手1 */}
-                        <div className={`px-2 py-1 flex items-center gap-1 border-b border-gray-700 ${
-                          isDone && m.winner_id === m.fighter1_id ? "bg-green-900/40" : "bg-gray-800"
-                        }`}>
-                          {isDone && m.winner_id === m.fighter1_id && (
-                            <span className="text-green-400 shrink-0">▶</span>
-                          )}
-                          <span className={`truncate ${
-                            isDone && m.winner_id === m.fighter1_id
-                              ? "text-green-300 font-bold"
-                              : m.fighter1_id ? "text-gray-200" : "text-gray-600"
-                          }`}>
-                            {f1?.name ?? (m.fighter1_id ? "?" : "BYE")}
-                          </span>
-                        </div>
-                        {/* 選手2 */}
-                        <div className={`px-2 py-1 flex items-center gap-1 ${
-                          isDone && m.winner_id === m.fighter2_id ? "bg-green-900/40" : "bg-gray-800"
-                        }`}>
-                          {isDone && m.winner_id === m.fighter2_id && (
-                            <span className="text-green-400 shrink-0">▶</span>
-                          )}
-                          <span className={`truncate ${
-                            isDone && m.winner_id === m.fighter2_id
-                              ? "text-green-300 font-bold"
-                              : m.fighter2_id ? "text-gray-200" : "text-gray-600"
-                          }`}>
-                            {f2?.name ?? (m.fighter2_id ? "?" : "BYE")}
-                          </span>
-                        </div>
-                        {/* ステータス・ラベル */}
-                        {(m.match_label || isOngoing) && (
-                          <div className={`px-2 py-0.5 text-[10px] border-t border-gray-700 ${
-                            isOngoing ? "text-yellow-400 animate-pulse" : "text-gray-500"
-                          }`}>
-                            {isOngoing ? "試合中" : m.match_label}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* 選手2 */}
+              <div
+                className={`px-2 flex items-center gap-1 ${
+                  isDone && m.winner_id === m.fighter2_id ? "bg-green-900/50" : "bg-gray-800"
+                }`}
+                style={{ height: halfH }}
+              >
+                {isDone && m.winner_id === m.fighter2_id && (
+                  <span className="text-green-400 text-[9px] shrink-0">▶</span>
+                )}
+                <span className={`truncate ${
+                  isDone && m.winner_id === m.fighter2_id ? "text-green-300 font-bold" :
+                  m.fighter2_id ? "text-gray-200" : "text-gray-600 italic"
+                }`}>
+                  {f2?.name ?? (m.fighter2_id ? "?" : "BYE")}
+                </span>
               </div>
             </div>
           );
