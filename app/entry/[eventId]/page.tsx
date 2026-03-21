@@ -75,7 +75,6 @@ export default function EntryPage({ params }: Props) {
   const [schoolNameReading, setSchoolNameReading] = useState("");
   const [dojoName, setDojoName] = useState("");
   const [dojoNameReading, setDojoNameReading] = useState("");
-  const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [age, setAge] = useState("");
@@ -201,7 +200,7 @@ export default function EntryPage({ params }: Props) {
           dojo_name: dojoName.trim() || null,
           dojo_name_reading: dojoNameReading.trim() || null,
           birth_date: birthDate || null,
-          weight: weight ? parseFloat(weight) : null,
+          weight: null,
           height: height ? parseFloat(height) : null,
           age: age ? parseInt(age) : null,
           grade: grade.trim() || null,
@@ -247,7 +246,7 @@ export default function EntryPage({ params }: Props) {
             onClick={() => {
               setSubmitted(false);
               setFamilyName(""); setGivenName(""); setFamilyReading(""); setGivenReading("");
-              setSchoolName(""); setSchoolNameReading(""); setDojoName(""); setDojoNameReading(""); setBirthDate(""); setWeight(""); setHeight(""); setAge(""); setGrade(""); setExperience(""); setMemo("");
+              setSchoolName(""); setSchoolNameReading(""); setDojoName(""); setDojoNameReading(""); setBirthDate(""); setHeight(""); setAge(""); setGrade(""); setExperience(""); setMemo("");
               setSelectedRules(new Set());
             }}
             className="text-blue-400 hover:text-blue-300 text-sm underline"
@@ -351,11 +350,6 @@ export default function EntryPage({ params }: Props) {
           <div className="space-y-2">
             <p className="text-xs text-gray-400 font-medium">体格・経歴</p>
             <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <label className="text-xs text-gray-500">体重（kg）</label>
-                <input value={weight} onChange={(e) => setWeight(e.target.value)}
-                  placeholder="65" type="number" step="0.1" className={inp} />
-              </div>
               <div className="space-y-1">
                 <label className="text-xs text-gray-500">身長（cm）</label>
                 <input value={height} onChange={(e) => setHeight(e.target.value)}
