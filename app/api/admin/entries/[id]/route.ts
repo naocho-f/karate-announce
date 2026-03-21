@@ -16,6 +16,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 export async function DELETE(request: NextRequest, { params }: Params) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { id } = await params;
+  // entry_rules の関連レコードを先に削除（CASCADE が設定されていない場合に備えて）
+  await supabaseAdmin.from("entry_rules").delete().eq("entry_id", id);
   const { error } = await supabaseAdmin.from("entries").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
