@@ -1264,6 +1264,15 @@ function roundLabel(round: number, totalRounds: number): string {
   return `第${round}回戦`;
 }
 
+/** ブラケット上の未確定スロットに表示するラベル */
+function pendingSlotLabel(round: number, position: number, slot: 0 | 1, totalRounds: number): string {
+  if (round === 1) return "BYE";
+  const feederRound = round - 1;
+  const feederPos = position * 2 + slot;
+  if (feederRound === 1) return `第${feederPos + 1}試合の勝者`;
+  return `${roundLabel(feederRound, totalRounds)} 第${feederPos + 1}試合勝者`;
+}
+
 // ── ブラケット表示 ──────────────────────────────────────────────────────
 
 const BRACKET_CARD_W = 156;
@@ -1343,8 +1352,8 @@ function BracketView({ matches, nameMap }: {
           const isDone = m.status === "done";
           const isOngoing = m.status === "ongoing";
           const halfH = BRACKET_CARD_H / 2;
-          const name1 = m.fighter1_id ? (nameMap[m.fighter1_id] ?? "?") : "BYE";
-          const name2 = m.fighter2_id ? (nameMap[m.fighter2_id] ?? "?") : "BYE";
+          const name1 = m.fighter1_id ? (nameMap[m.fighter1_id] ?? "?") : pendingSlotLabel(m.round, m.position, 0, maxRound);
+          const name2 = m.fighter2_id ? (nameMap[m.fighter2_id] ?? "?") : pendingSlotLabel(m.round, m.position, 1, maxRound);
 
           return (
             <div
