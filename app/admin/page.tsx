@@ -90,7 +90,7 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
     tab: Tab | null;
     tabLabel?: string;
     color: string;
-    desc: React.ReactNode;
+    desc: string;
     details: string[];
     screen: React.ReactNode;
   }[] = [
@@ -100,19 +100,12 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
       title: "ルールを登録する",
       tab: "rules",
       color: "border-yellow-500",
-      desc: (
-        <div className="space-y-2">
-          <div>
-            <span className="text-xs font-bold text-green-400">ビギナー</span>
-            <p className="text-xs text-gray-400 mt-0.5">種目名を1つだけ入力して「追加」を押してください。「組手」「形」などシンプルな名前でOKです。ルールが1種類だけの大会なら、登録しなくてもシステムは使えます。</p>
-          </div>
-          <div>
-            <span className="text-xs font-bold text-blue-400">エキスパート</span>
-            <p className="text-xs text-gray-400 mt-0.5">複数ルールを登録すると、エントリーフォームの種目選択・コートのルール絞り込み・対戦ごとの個別ルール割り当てができるようになります。</p>
-          </div>
-        </div>
-      ),
-      details: [],
+      desc: "「ビギナー」「エキスパート」など大会の部門・クラスをルールとして登録します。エントリー時に参加者が自分の出る部門を選択でき、対戦表作成時にコートごとに部門を絞り込んで組み分けできます。",
+      details: [
+        "例: ビギナー・エキスパート・形・ワンマッチ など部門名をそのまま登録",
+        "エントリーフォームで「ビギナーに出る」「エキスパートに出る」と選択できるようになる",
+        "対戦表作成時に「コートルール: ビギナー」に設定するとビギナー参加者だけが振り分け対象になる",
+      ],
       screen: (
         <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-1.5">
           <p className="text-gray-500 mb-2">ルールタブ</p>
@@ -347,16 +340,14 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
                 )}
               </div>
               {/* 説明 + 詳細 */}
-              <div className="text-xs text-gray-400 leading-relaxed pl-8">{desc}</div>
-              {details.length > 0 && (
-                <ul className="space-y-0.5 pl-8">
-                  {details.map((d, i) => (
-                    <li key={i} className="text-xs text-gray-500 flex gap-1.5">
-                      <span className="text-gray-700 shrink-0">•</span><span>{d}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <p className="text-xs text-gray-400 leading-relaxed pl-8">{desc}</p>
+              <ul className="space-y-0.5 pl-8">
+                {details.map((d, i) => (
+                  <li key={i} className="text-xs text-gray-500 flex gap-1.5">
+                    <span className="text-gray-700 shrink-0">•</span><span>{d}</span>
+                  </li>
+                ))}
+              </ul>
               {/* スクリーンショット風モック */}
               <div className="pl-8">{screen}</div>
             </div>
