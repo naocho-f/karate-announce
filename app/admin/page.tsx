@@ -2,12 +2,16 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Dojo, Event, Fighter, Rule } from "@/lib/types";
 import { fighterFullName } from "@/lib/types";
-import { TTS_VOICES, getTtsSettings, saveTtsSettings, announceCustom, type TtsVoice } from "@/lib/speech";
+import {
+  TTS_VOICES, getTtsSettings, saveTtsSettings, announceCustom, type TtsVoice,
+  getTemplates, saveTemplates, renderTemplate, DEFAULT_TEMPLATES,
+  MATCH_VARS, WINNER_VARS, SAMPLE_MATCH_VARS, SAMPLE_WINNER_VARS, type AnnounceTemplates,
+} from "@/lib/speech";
 import Link from "next/link";
 
 
@@ -896,7 +900,6 @@ function SettingsPanel() {
     saveTtsSettings(voice, speed);
     setPlaying(true);
     await new Promise<void>((resolve) => {
-      // announceCustom は fire-and-forget なので少し待つ
       announceCustom("Aコート、男子一般部、準決勝。極真会所属、山田太郎選手。対。正道会館所属、鈴木一郎選手。これより試合を開始します。");
       setTimeout(resolve, 500);
     });
@@ -969,6 +972,164 @@ function SettingsPanel() {
         <p className="text-xs text-gray-500">※ 設定はこのブラウザに保存されます</p>
       </div>
 
+      <TemplateEditor />
+    </div>
+  );
+}
+
+// ── アナウンス文テンプレートエディタ ─────────────────────────────────────────
+
+function TemplateEditor() {
+  const [templates, setTemplates] = useState<AnnounceTemplates>(DEFAULT_TEMPLATES);
+  const [activeTab, setActiveTab] = useState<"matchStart" | "winner">("matchStart");
+  const [playing, setPlaying] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setTemplates(getTemplates());
+  }, []);
+
+  const currentTemplate = templates[activeTab];
+  const vars = activeTab === "matchStart" ? MATCH_VARS : WINNER_VARS;
+  const sampleVars = activeTab === "matchStart" ? SAMPLE_MATCH_VARS : SAMPLE_WINNER_VARS;
+  const preview = renderTemplate(currentTemplate, sampleVars);
+
+  function updateTemplate(value: string) {
+    setTemplates((prev) => ({ ...prev, [activeTab]: value }));
+  }
+
+  function insertVar(key: string) {
+    const ta = textareaRef.current;
+    if (!ta) {
+      updateTemplate(currentTemplate + `{{${key}}}`);
+      return;
+    }
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const insert = `{{${key}}}`;
+    const newVal = currentTemplate.slice(0, start) + insert + currentTemplate.slice(end);
+    updateTemplate(newVal);
+    // カーソルを挿入後に移動
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(start + insert.length, start + insert.length);
+    });
+  }
+
+  function save() {
+    saveTemplates(templates);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  function resetToDefault() {
+    if (!confirm("デフォルトのテンプレートに戻しますか？")) return;
+    setTemplates(DEFAULT_TEMPLATES);
+    saveTemplates(DEFAULT_TEMPLATES);
+  }
+
+  async function playPreview() {
+    setPlaying(true);
+    await new Promise<void>((resolve) => {
+      announceCustom(preview);
+      setTimeout(resolve, 500);
+    });
+    setPlaying(false);
+  }
+
+  return (
+    <div className="bg-gray-800 rounded-xl p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold text-sm text-gray-300">アナウンス文カスタマイズ</h2>
+        <button
+          onClick={resetToDefault}
+          className="text-xs text-gray-500 hover:text-gray-300 transition"
+        >
+          デフォルトに戻す
+        </button>
+      </div>
+
+      {/* タブ */}
+      <div className="flex gap-1">
+        {(["matchStart", "winner"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+              activeTab === tab
+                ? "bg-blue-600 text-white"
+                : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+            }`}
+          >
+            {tab === "matchStart" ? "試合開始" : "勝者発表"}
+          </button>
+        ))}
+      </div>
+
+      {/* 変数チップ */}
+      <div className="space-y-1.5">
+        <p className="text-xs text-gray-500">クリックしてカーソル位置に挿入</p>
+        <div className="flex flex-wrap gap-1.5">
+          {vars.map(({ key, desc }) => (
+            <button
+              key={key}
+              onClick={() => insertVar(key)}
+              title={desc}
+              className="px-2 py-1 bg-gray-700 hover:bg-blue-700 text-xs text-blue-300 hover:text-white rounded transition font-mono"
+            >
+              {`{{${key}}}`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* テンプレートテキストエリア */}
+      <textarea
+        ref={textareaRef}
+        value={currentTemplate}
+        onChange={(e) => updateTemplate(e.target.value)}
+        rows={4}
+        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500 resize-none font-mono leading-relaxed"
+      />
+
+      {/* プレビュー */}
+      <div className="space-y-1.5">
+        <p className="text-xs text-gray-500">プレビュー（サンプル値で展開）</p>
+        <div className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 leading-relaxed min-h-[3rem]">
+          {preview || <span className="text-gray-600">（空）</span>}
+        </div>
+      </div>
+
+      {/* ボタン */}
+      <div className="flex gap-2">
+        <button
+          onClick={playPreview}
+          disabled={playing}
+          className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-2.5 rounded-lg text-sm font-medium transition"
+        >
+          {playing ? "再生中..." : "試し聞き"}
+        </button>
+        <button
+          onClick={save}
+          className="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-medium transition"
+        >
+          {saved ? "保存しました ✓" : "保存"}
+        </button>
+      </div>
+
+      {/* 変数一覧 */}
+      <div className="border-t border-gray-700 pt-3 space-y-1.5">
+        <p className="text-xs text-gray-500 font-medium">使用できる変数</p>
+        {vars.map(({ key, desc }) => (
+          <div key={key} className="flex items-start gap-2 text-xs">
+            <span className="text-blue-400 font-mono shrink-0">{`{{${key}}}`}</span>
+            <span className="text-gray-500">{desc}</span>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-xs text-gray-600">※ テンプレートはこのブラウザに保存されます</p>
     </div>
   );
 }

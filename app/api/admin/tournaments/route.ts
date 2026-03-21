@@ -52,6 +52,8 @@ async function ensureFighterFromEntry(entry: Entry): Promise<string | null> {
       family_name_reading: entry.family_name_reading ?? null,
       given_name_reading: entry.given_name_reading ?? null,
       dojo_id: dojoId,
+      affiliation: [entry.school_name, entry.dojo_name].filter(Boolean).join("　") || null,
+      affiliation_reading: [entry.school_name_reading, entry.dojo_name_reading].filter(Boolean).join("　") || null,
       weight: entry.weight,
       height: entry.height,
       age_info: [entry.age != null ? `${entry.age}歳` : null, entry.grade].filter(Boolean).join(" ") || null,
@@ -74,12 +76,14 @@ function roundsFromPairCount(n: number): number {
 export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
 
-  const { courtName, courtNum, pairs, eventId, defaultRuleName } = await request.json() as {
+  const { courtName, courtNum, pairs, eventId, defaultRuleName, maxWeightDiff, maxHeightDiff } = await request.json() as {
     courtName: string;
     courtNum: string;
     pairs: PairInput[];
     eventId?: string;
     defaultRuleName?: string | null;
+    maxWeightDiff?: number | null;
+    maxHeightDiff?: number | null;
   };
 
   if (!pairs || pairs.length === 0) {
@@ -93,6 +97,8 @@ export async function POST(request: NextRequest) {
       court: courtNum,
       status: "preparing",
       default_rules: defaultRuleName ?? null,
+      max_weight_diff: maxWeightDiff ?? null,
+      max_height_diff: maxHeightDiff ?? null,
       ...(eventId ? { event_id: eventId } : {}),
     })
     .select()

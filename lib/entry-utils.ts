@@ -38,6 +38,9 @@ export async function ensureFighterFromEntry(entry: Entry): Promise<string | nul
       ? `${entry.family_name_reading} ${entry.given_name_reading}`
       : entry.family_name_reading ?? null;
 
+  const affiliation = [entry.school_name, entry.dojo_name].filter(Boolean).join("　") || null;
+  const affiliationReading = [entry.school_name_reading, entry.dojo_name_reading].filter(Boolean).join("　") || null;
+
   const { data: fighter } = await supabase
     .from("fighters")
     .insert({
@@ -48,6 +51,8 @@ export async function ensureFighterFromEntry(entry: Entry): Promise<string | nul
       family_name_reading: entry.family_name_reading ?? null,
       given_name_reading: entry.given_name_reading ?? null,
       dojo_id: dojoId,
+      affiliation,
+      affiliation_reading: affiliationReading,
       weight: entry.weight,
       height: entry.height,
       age_info: [entry.age != null ? `${entry.age}歳` : null, entry.grade].filter(Boolean).join(" ") || null,

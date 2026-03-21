@@ -16,6 +16,8 @@ export type Fighter = {
   given_name_reading: string | null;
   dojo_id: string;
   dojo?: Dojo;
+  affiliation: string | null;        // "柔空会　本部道場" など表示用
+  affiliation_reading: string | null; // "じゅうくうかい　ほんぶどうじょう" など読み上げ用
   weight: number | null;
   height: number | null;
   age_info: string | null;
@@ -64,6 +66,8 @@ export type Tournament = {
   status: "preparing" | "ongoing" | "finished";
   event_id: string | null;
   default_rules: string | null;
+  max_weight_diff: number | null;
+  max_height_diff: number | null;
   created_at: string;
 };
 
@@ -80,7 +84,9 @@ export type Entry = {
   family_name_reading: string | null;
   given_name_reading: string | null;
   dojo_name: string | null;
+  dojo_name_reading: string | null;
   school_name: string | null;
+  school_name_reading: string | null;
   weight: number | null;
   height: number | null;
   birth_date: string | null;
@@ -88,6 +94,8 @@ export type Entry = {
   grade: string | null;
   experience: string | null;
   is_seed: boolean;
+  memo: string | null;         // 申込者の備考・要望
+  admin_memo: string | null;   // 管理者メモ（対戦組み用）
   fighter_id: string | null;
   created_at: string;
 };

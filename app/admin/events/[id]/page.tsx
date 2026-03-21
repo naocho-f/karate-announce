@@ -22,6 +22,14 @@ type Pair = {
   ruleId: string; // "" = use court default
 };
 
+type Group = {
+  id: string;
+  name: string;
+  pairs: Pair[];
+  maxWeightDiff: number | null;
+  maxHeightDiff: number | null;
+};
+
 function entryCompatScore(e1: Entry, e2: Entry): number {
   let s = 0;
   if (e1.weight && e2.weight) s += Math.abs(e1.weight - e2.weight) * 2;
@@ -176,7 +184,7 @@ export default function EventDetailPage({ params }: Props) {
               entries={entries}
               entryRuleIds={entryRuleIds}
               eventRules={eventRules}
-              tournament={tournaments.find((t) => t.court === String(courtNum)) ?? null}
+              tournaments={tournaments.filter((t) => t.court === String(courtNum))}
               rules={rules}
               mismatchSettings={mismatchSettings}
               onCreated={load}
@@ -454,10 +462,45 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, onToggleSe
                   })}
                 </div>
               )}
+              {e.memo && (
+                <p className="text-xs text-gray-400 italic pl-1">
+                  <span className="text-gray-600 not-italic">申込備考: </span>{e.memo}
+                </p>
+              )}
+              <AdminMemoField entryId={e.id} value={e.admin_memo} />
             </div>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function AdminMemoField({ entryId, value }: { entryId: string; value: string | null }) {
+  const [memo, setMemo] = useState(value ?? "");
+  useEffect(() => { setMemo(value ?? ""); }, [value]);
+
+  async function save() {
+    const trimmed = memo.trim() || null;
+    if (trimmed === (value ?? null)) return;
+    await fetch(`/api/admin/entries/${entryId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ admin_memo: trimmed }),
+    });
+  }
+
+  return (
+    <div className="flex items-start gap-1.5 pl-1">
+      <span className="text-yellow-500 text-xs mt-1 shrink-0">📋</span>
+      <textarea
+        value={memo}
+        onChange={(e) => setMemo(e.target.value)}
+        onBlur={save}
+        placeholder="管理者メモ（例: 初試合・怪我注意・誰と当てたい等）"
+        rows={1}
+        className="flex-1 bg-gray-700 border border-yellow-800/50 rounded px-2 py-1 text-xs text-yellow-200 placeholder:text-gray-600 outline-none focus:border-yellow-600 resize-none"
+      />
     </div>
   );
 }
@@ -472,7 +515,9 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
   const [familyReading, setFamilyReading] = useState("");
   const [givenReading, setGivenReading] = useState("");
   const [schoolName, setSchoolName] = useState("");
+  const [schoolNameReading, setSchoolNameReading] = useState("");
   const [dojoName, setDojoName] = useState("");
+  const [dojoNameReading, setDojoNameReading] = useState("");
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [age, setAge] = useState("");
@@ -504,7 +549,9 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
           family_name_reading: familyReading.trim() || null,
           given_name_reading: givenReading.trim() || null,
           school_name: trimmedSchool || null,
+          school_name_reading: schoolNameReading.trim() || null,
           dojo_name: dojoName.trim() || null,
+          dojo_name_reading: dojoNameReading.trim() || null,
           weight: weight ? parseFloat(weight) : null,
           height: height ? parseFloat(height) : null,
           age: age ? parseInt(age) : null,
@@ -527,8 +574,10 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
         <input value={givenName} onChange={(e) => setGivenName(e.target.value)} placeholder="名" className={`w-24 ${inp}`} />
         <input value={familyReading} onChange={(e) => setFamilyReading(e.target.value)} placeholder="姓読み" className={`w-28 ${inp}`} />
         <input value={givenReading} onChange={(e) => setGivenReading(e.target.value)} placeholder="名読み" className={`w-28 ${inp}`} />
-        <input value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="流派" className={`w-28 ${inp}`} />
+        <input value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="流派 *" className={`w-28 ${inp}`} />
+        <input value={schoolNameReading} onChange={(e) => setSchoolNameReading(e.target.value)} placeholder="流派読み" className={`w-28 ${inp}`} />
         <input value={dojoName} onChange={(e) => setDojoName(e.target.value)} placeholder="道場名" className={`w-32 ${inp}`} />
+        <input value={dojoNameReading} onChange={(e) => setDojoNameReading(e.target.value)} placeholder="道場読み" className={`w-32 ${inp}`} />
       </div>
       <div className="flex gap-2 flex-wrap">
         <input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="体重 kg" type="number" step="0.1" className={`w-24 ${inp}`} />
@@ -602,239 +651,435 @@ function buildBracketPreview(pairs: Pair[]): { matches: MatchRow[]; nameMap: Rec
   return { matches: allMatches, nameMap };
 }
 
-function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, tournament, rules, mismatchSettings, onCreated }: {
+function pairsFromEntries(chunk: Entry[]): Pair[] {
+  const pool = [...chunk].sort((a, b) => (a.weight ?? 999) - (b.weight ?? 999));
+  const result: Pair[] = [];
+  if (pool.length % 2 === 1) {
+    result.push({ id: crypto.randomUUID(), e1: pool.shift()!, e2: null, matchLabel: "", ruleId: "" });
+  }
+  while (pool.length >= 2) {
+    const e1 = pool.shift()!;
+    let bestIdx = 0, best = Infinity;
+    for (let i = 0; i < pool.length; i++) {
+      const s = entryCompatScore(e1, pool[i]);
+      if (s < best) { best = s; bestIdx = i; }
+    }
+    const e2 = pool.splice(bestIdx, 1)[0];
+    result.push({ id: crypto.randomUUID(), e1, e2, matchLabel: "", ruleId: "" });
+  }
+  return result;
+}
+
+function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, tournaments, rules, mismatchSettings, onCreated }: {
   courtNum: number;
   eventId: string;
   entries: Entry[];
   entryRuleIds: Record<string, Set<string>>;
   eventRules: Rule[];
-  tournament: Tournament | null;
+  tournaments: Tournament[];
   rules: Rule[];
   mismatchSettings: MismatchSettings;
   onCreated: () => void;
 }) {
-  const [pairs, setPairs] = useState<Pair[]>([]);
+  const [groups, setGroups] = useState<Group[]>([
+    { id: crypto.randomUUID(), name: "トーナメント1", pairs: [], maxWeightDiff: mismatchSettings.maxWeightDiff, maxHeightDiff: mismatchSettings.maxHeightDiff },
+  ]);
   const [defaultRuleId, setDefaultRuleId] = useState("");
   const [confirming, setConfirming] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
-  // ルールでフィルタしたエントリー
   const filteredEntries = defaultRuleId
     ? entries.filter((e) => entryRuleIds[e.id]?.has(defaultRuleId))
     : entries;
 
   const assignedIds = new Set(
-    pairs.flatMap((p) => [p.e1.id, p.e2?.id].filter((x): x is string => !!x)),
+    groups.flatMap((g) => g.pairs.flatMap((p) => [p.e1.id, p.e2?.id].filter((x): x is string => !!x))),
   );
   const unassigned = filteredEntries.filter((e) => !assignedIds.has(e.id));
 
-  function autoAssign() {
-    const seeds = filteredEntries.filter((e) => e.is_seed);
-    const nonSeeds = filteredEntries
-      .filter((e) => !e.is_seed)
-      .sort((a, b) => (a.weight ?? 999) - (b.weight ?? 999));
-
-    const total = filteredEntries.length;
-    const newPairs: Pair[] = [];
-    const used = new Set<string>();
-
-    if (total % 2 === 1) {
-      const byeTarget = seeds[0] ?? nonSeeds[0];
-      if (byeTarget) {
-        newPairs.push({ id: crypto.randomUUID(), e1: byeTarget, e2: null, matchLabel: "", ruleId: "" });
-        used.add(byeTarget.id);
-      }
-    }
-
-    for (const seed of seeds.filter((e) => !used.has(e.id))) {
-      const partner = nonSeeds
-        .filter((e) => !used.has(e.id))
-        .sort((a, b) => entryCompatScore(seed, a) - entryCompatScore(seed, b))[0];
-      if (partner) {
-        used.add(seed.id); used.add(partner.id);
-        newPairs.push({ id: crypto.randomUUID(), e1: seed, e2: partner, matchLabel: "", ruleId: "" });
-      }
-    }
-
-    const remainingSeeds = seeds.filter((e) => !used.has(e.id));
-    for (let i = 0; i + 1 < remainingSeeds.length; i += 2) {
-      used.add(remainingSeeds[i].id); used.add(remainingSeeds[i + 1].id);
-      newPairs.push({ id: crypto.randomUUID(), e1: remainingSeeds[i], e2: remainingSeeds[i + 1], matchLabel: "", ruleId: "" });
-    }
-
-    const pool = filteredEntries.filter((e) => !used.has(e.id)).sort((a, b) => (a.weight ?? 999) - (b.weight ?? 999));
-    while (pool.length >= 2) {
-      const e1 = pool.shift()!;
-      let bestIdx = 0, best = Infinity;
-      for (let i = 0; i < pool.length; i++) {
-        const s = entryCompatScore(e1, pool[i]);
-        if (s < best) { best = s; bestIdx = i; }
-      }
-      const e2 = pool.splice(bestIdx, 1)[0];
-      newPairs.push({ id: crypto.randomUUID(), e1, e2, matchLabel: "", ruleId: "" });
-    }
-    if (pool.length === 1) {
-      newPairs.push({ id: crypto.randomUUID(), e1: pool[0], e2: null, matchLabel: "", ruleId: "" });
-    }
-
-    setPairs(newPairs);
+  function autoAssignGroup(groupId: string, entriesToAssign: Entry[]) {
+    const newPairs = pairsFromEntries(entriesToAssign);
+    setGroups((prev) => prev.map((g) => g.id !== groupId ? g : { ...g, pairs: [...g.pairs, ...newPairs] }));
   }
 
-  function addEmptyPair() {
+  function addGroup() {
+    const n = groups.length + 1;
+    setGroups((prev) => [...prev, { id: crypto.randomUUID(), name: `トーナメント${n}`, pairs: [], maxWeightDiff: mismatchSettings.maxWeightDiff, maxHeightDiff: mismatchSettings.maxHeightDiff }]);
+  }
+
+  function updateGroupMismatch(groupId: string, maxWeightDiff: number | null, maxHeightDiff: number | null) {
+    setGroups((prev) => prev.map((g) => g.id !== groupId ? g : { ...g, maxWeightDiff, maxHeightDiff }));
+  }
+
+  function removeGroup(groupId: string) {
+    setGroups((prev) => prev.filter((g) => g.id !== groupId));
+  }
+
+  function renameGroup(groupId: string, name: string) {
+    setGroups((prev) => prev.map((g) => g.id !== groupId ? g : { ...g, name }));
+  }
+
+  function addEmptyPair(groupId: string) {
     if (unassigned.length === 0) return;
-    setPairs((prev) => [...prev, { id: crypto.randomUUID(), e1: unassigned[0], e2: null, matchLabel: "", ruleId: "" }]);
+    setGroups((prev) => prev.map((g) => g.id !== groupId ? g : {
+      ...g,
+      pairs: [...g.pairs, { id: crypto.randomUUID(), e1: unassigned[0], e2: null, matchLabel: "", ruleId: "" }],
+    }));
   }
 
-  function removePair(pairId: string) {
-    setPairs((prev) => prev.filter((p) => p.id !== pairId));
+  function removePair(groupId: string, pairId: string) {
+    setGroups((prev) => prev.map((g) => g.id !== groupId ? g : { ...g, pairs: g.pairs.filter((p) => p.id !== pairId) }));
   }
 
-  function updateE1(pairId: string, entryId: string) {
+  function updateE1(groupId: string, pairId: string, entryId: string) {
     const e = entries.find((e) => e.id === entryId);
     if (!e) return;
-    setPairs((prev) => prev.map((p) => p.id !== pairId ? p : { ...p, e1: e }));
+    setGroups((prev) => prev.map((g) => g.id !== groupId ? g : {
+      ...g, pairs: g.pairs.map((p) => p.id !== pairId ? p : { ...p, e1: e }),
+    }));
   }
 
-  function updateE2(pairId: string, entryId: string | null) {
+  function updateE2(groupId: string, pairId: string, entryId: string | null) {
     const e = entryId ? entries.find((e) => e.id === entryId) ?? null : null;
-    setPairs((prev) => prev.map((p) => p.id !== pairId ? p : { ...p, e2: e }));
+    setGroups((prev) => prev.map((g) => g.id !== groupId ? g : {
+      ...g, pairs: g.pairs.map((p) => p.id !== pairId ? p : { ...p, e2: e }),
+    }));
   }
 
-  function updateField(pairId: string, field: "matchLabel" | "ruleId", value: string) {
-    setPairs((prev) => prev.map((p) => p.id !== pairId ? p : { ...p, [field]: value }));
+  function updateField(groupId: string, pairId: string, field: "matchLabel" | "ruleId", value: string) {
+    setGroups((prev) => prev.map((g) => g.id !== groupId ? g : {
+      ...g, pairs: g.pairs.map((p) => p.id !== pairId ? p : { ...p, [field]: value }),
+    }));
   }
 
   async function confirm() {
-    if (pairs.length === 0) return;
+    const activeGroups = groups.filter((g) => g.pairs.length > 0);
+    if (activeGroups.length === 0) return;
     setConfirming(true);
     const defaultRule = rules.find((r) => r.id === defaultRuleId);
-
-    await fetch("/api/admin/tournaments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        courtName: `コート${courtNum}`,
-        courtNum: String(courtNum),
-        pairs: pairs.map((p) => ({
-          e1: p.e1,
-          e2: p.e2,
-          matchLabel: p.matchLabel || null,
-          ruleName: (p.ruleId ? rules.find((r) => r.id === p.ruleId)?.name : null) ?? defaultRule?.name ?? null,
-        })),
-        eventId,
-        defaultRuleName: defaultRule?.name ?? null,
-      }),
-    });
+    await Promise.all(
+      activeGroups.map((g) =>
+        fetch("/api/admin/tournaments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            courtName: g.name || `コート${courtNum}`,
+            courtNum: String(courtNum),
+            pairs: g.pairs.map((p) => ({
+              e1: p.e1,
+              e2: p.e2,
+              matchLabel: p.matchLabel || null,
+              ruleName: (p.ruleId ? rules.find((r) => r.id === p.ruleId)?.name : null) ?? defaultRule?.name ?? null,
+            })),
+            eventId,
+            defaultRuleName: defaultRule?.name ?? null,
+            maxWeightDiff: g.maxWeightDiff,
+            maxHeightDiff: g.maxHeightDiff,
+          }),
+        })
+      )
+    );
     setConfirming(false);
+    setShowCreateForm(false);
+    setGroups([{ id: crypto.randomUUID(), name: "トーナメント1", pairs: [], maxWeightDiff: mismatchSettings.maxWeightDiff, maxHeightDiff: mismatchSettings.maxHeightDiff }]);
     onCreated();
   }
 
-  if (tournament) {
+  // 既存トーナメントがあり作成フォームを表示していない場合
+  if (tournaments.length > 0 && !showCreateForm) {
     return (
-      <ExistingTournamentSection
-        courtNum={courtNum}
-        tournament={tournament}
-        eventId={eventId}
-        rules={rules}
-        mismatchSettings={mismatchSettings}
-        onDeleted={onCreated}
-      />
+      <div className="space-y-4">
+        {tournaments.map((t) => (
+          <ExistingTournamentSection
+            key={t.id}
+            courtNum={courtNum}
+            tournament={t}
+            eventId={eventId}
+            rules={rules}
+            mismatchSettings={mismatchSettings}
+            onDeleted={onCreated}
+          />
+        ))}
+        <button
+          onClick={() => {
+            setGroups([{ id: crypto.randomUUID(), name: `トーナメント${tournaments.length + 1}`, pairs: [], maxWeightDiff: mismatchSettings.maxWeightDiff, maxHeightDiff: mismatchSettings.maxHeightDiff }]);
+            setShowCreateForm(true);
+          }}
+          className="w-full border border-dashed border-gray-600 hover:border-blue-500 rounded-xl py-3 text-sm text-gray-400 hover:text-blue-400 transition"
+        >
+          ＋ コート{courtNum} にトーナメントを追加する
+        </button>
+      </div>
     );
   }
 
-  // プレビュー用データ（previewMode の時だけ計算）
-  const preview = previewMode && pairs.length > 1 ? buildBracketPreview(pairs) : null;
+  const totalPairs = groups.reduce((sum, g) => sum + g.pairs.length, 0);
+  const activeGroupCount = groups.filter((g) => g.pairs.length > 0).length;
 
   return (
     <div className="bg-gray-800 rounded-xl p-4 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="font-semibold text-gray-200">コート{courtNum} の対戦表</h2>
-        <div className="flex items-center gap-2">
-          {pairs.length > 1 && (
-            <div className="flex rounded-lg overflow-hidden border border-gray-700 text-xs">
-              <button
-                onClick={() => setPreviewMode(false)}
-                className={`px-2 py-1 transition ${!previewMode ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}
-              >
-                編集
-              </button>
-              <button
-                onClick={() => setPreviewMode(true)}
-                className={`px-2 py-1 transition ${previewMode ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}
-              >
-                ブラケット確認
-              </button>
-            </div>
-          )}
-          <span className="text-xs text-gray-500">
-            {defaultRuleId && filteredEntries.length < entries.length
-              ? `対象${filteredEntries.length}名（ルール絞込）`
-              : `エントリー${entries.length}名`}
-            {" / "}割当{assignedIds.size}名 / 未割当{unassigned.length}名
-          </span>
-        </div>
+        <h2 className="font-semibold text-gray-200">
+          コート{courtNum} の対戦表作成
+          {tournaments.length > 0 && <span className="text-gray-400 text-sm font-normal ml-2">（追加）</span>}
+        </h2>
+        <span className="text-xs text-gray-500">
+          {defaultRuleId && filteredEntries.length < entries.length
+            ? `対象${filteredEntries.length}名（ルール絞込）`
+            : `エントリー${entries.length}名`}
+          {" / "}割当{assignedIds.size}名 / 未割当{unassigned.length}名
+        </span>
       </div>
 
-      {previewMode && preview ? (
-        // ── ブラケットプレビュー ──────────────────────────────────────────
-        <>
-          <BracketView matches={preview.matches} nameMap={preview.nameMap} />
-          <div className="flex gap-2 pt-2">
-            <button onClick={() => setPreviewMode(false)}
-              className="flex-1 bg-gray-700 hover:bg-gray-600 py-2 rounded-lg text-sm transition">
-              ← 編集に戻る
-            </button>
-            <button onClick={confirm} disabled={confirming}
-              className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition">
-              {confirming ? "保存中..." : `対戦表を確定（${pairs.length}対戦）`}
-            </button>
-          </div>
-        </>
-      ) : (
-        // ── 編集モード ────────────────────────────────────────────────────
-        <>
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-gray-400 shrink-0">コートルール:</label>
-            <select
-              value={defaultRuleId}
-              onChange={(e) => setDefaultRuleId(e.target.value)}
-              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
-            >
-              <option value="">なし</option>
-              {(eventRules.length > 0 ? eventRules : rules).map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </select>
-            <button
-              onClick={autoAssign}
-              disabled={filteredEntries.length < 2}
-              className="shrink-0 bg-purple-700 hover:bg-purple-600 disabled:opacity-40 px-3 py-2 rounded-lg text-xs font-medium transition"
-            >
-              自動振り分け
-            </button>
-          </div>
+      {/* ルール絞込 */}
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-gray-400 shrink-0">ルール絞込:</label>
+        <select
+          value={defaultRuleId}
+          onChange={(e) => setDefaultRuleId(e.target.value)}
+          className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
+        >
+          <option value="">すべて</option>
+          {(eventRules.length > 0 ? eventRules : rules).map((r) => (
+            <option key={r.id} value={r.id}>{r.name}</option>
+          ))}
+        </select>
+      </div>
 
-          {pairs.length > 0 ? (
+      {/* グループ一覧 */}
+      <div className="space-y-3">
+        {groups.map((group) => (
+          <GroupSection
+            key={group.id}
+            group={group}
+            entries={entries}
+            unassigned={unassigned}
+            rules={rules}
+            defaultRuleId={defaultRuleId}
+            mismatchSettings={mismatchSettings}
+            canRemove={groups.length > 1}
+            onRename={(name) => renameGroup(group.id, name)}
+            onRemove={() => removeGroup(group.id)}
+            onAutoAssign={(entriesToAssign) => autoAssignGroup(group.id, entriesToAssign)}
+            onUpdateMismatch={(w, h) => updateGroupMismatch(group.id, w, h)}
+            onAddPair={() => addEmptyPair(group.id)}
+            onRemovePair={(pairId) => removePair(group.id, pairId)}
+            onUpdateE1={(pairId, entryId) => updateE1(group.id, pairId, entryId)}
+            onUpdateE2={(pairId, entryId) => updateE2(group.id, pairId, entryId)}
+            onUpdateField={(pairId, field, value) => updateField(group.id, pairId, field, value)}
+          />
+        ))}
+      </div>
+
+      <button
+        onClick={addGroup}
+        className="w-full border border-dashed border-gray-600 hover:border-blue-500 rounded-lg py-2 text-xs text-gray-400 hover:text-blue-400 transition"
+      >
+        ＋ トーナメントを追加
+      </button>
+
+      <div className="flex gap-2 pt-1">
+        {tournaments.length > 0 && (
+          <button
+            onClick={() => setShowCreateForm(false)}
+            className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm transition"
+          >
+            キャンセル
+          </button>
+        )}
+        <button
+          onClick={confirm}
+          disabled={confirming || totalPairs === 0}
+          className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition"
+        >
+          {confirming
+            ? "保存中..."
+            : `確定する（${activeGroupCount}トーナメント・計${totalPairs}対戦）`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function GroupSection({ group, entries, unassigned, rules, defaultRuleId, mismatchSettings, canRemove, onRename, onRemove, onAutoAssign, onUpdateMismatch, onAddPair, onRemovePair, onUpdateE1, onUpdateE2, onUpdateField }: {
+  group: Group;
+  entries: Entry[];
+  unassigned: Entry[];
+  rules: Rule[];
+  defaultRuleId: string;
+  mismatchSettings: MismatchSettings;
+  canRemove: boolean;
+  onRename: (name: string) => void;
+  onRemove: () => void;
+  onAutoAssign: (entries: Entry[]) => void;
+  onUpdateMismatch: (maxWeightDiff: number | null, maxHeightDiff: number | null) => void;
+  onAddPair: () => void;
+  onRemovePair: (pairId: string) => void;
+  onUpdateE1: (pairId: string, entryId: string) => void;
+  onUpdateE2: (pairId: string, entryId: string | null) => void;
+  onUpdateField: (pairId: string, field: "matchLabel" | "ruleId", value: string) => void;
+}) {
+  const [previewMode, setPreviewMode] = useState(false);
+  const [minAge, setMinAge] = useState("");
+  const [maxAge, setMaxAge] = useState("");
+  const [gradeFilter, setGradeFilter] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
+
+  const filteredUnassigned = unassigned.filter((e) => {
+    if (minAge !== "" && (e.age == null || e.age < parseInt(minAge))) return false;
+    if (maxAge !== "" && (e.age == null || e.age > parseInt(maxAge))) return false;
+    if (gradeFilter && !e.grade?.includes(gradeFilter)) return false;
+    if (nameFilter && !entryFullName(e).toLowerCase().includes(nameFilter.toLowerCase())) return false;
+    return true;
+  });
+
+  const groupMismatch: MismatchSettings = {
+    maxWeightDiff: group.maxWeightDiff,
+    maxHeightDiff: group.maxHeightDiff,
+  };
+
+  const preview = previewMode && group.pairs.length > 1 ? buildBracketPreview(group.pairs) : null;
+  const inpSm = "bg-gray-700 border border-gray-600 rounded px-1.5 py-1 text-xs text-white outline-none focus:border-blue-500";
+
+  return (
+    <div className="border border-gray-600 rounded-xl p-3 space-y-3">
+      {/* ヘッダー */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <input
+          value={group.name}
+          onChange={(e) => onRename(e.target.value)}
+          placeholder="トーナメント名"
+          className="flex-1 min-w-[140px] bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm font-medium text-white outline-none focus:border-blue-500"
+        />
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="text-xs text-gray-500">体重差</span>
+          <input
+            type="number" min="0" step="0.5"
+            value={group.maxWeightDiff ?? ""}
+            onChange={(e) => onUpdateMismatch(e.target.value ? parseFloat(e.target.value) : null, group.maxHeightDiff)}
+            placeholder="無制限"
+            className={`w-20 ${inpSm}`}
+          />
+          <span className="text-xs text-gray-500">kg以内</span>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="text-xs text-gray-500">身長差</span>
+          <input
+            type="number" min="0" step="1"
+            value={group.maxHeightDiff ?? ""}
+            onChange={(e) => onUpdateMismatch(group.maxWeightDiff, e.target.value ? parseFloat(e.target.value) : null)}
+            placeholder="無制限"
+            className={`w-20 ${inpSm}`}
+          />
+          <span className="text-xs text-gray-500">cm以内</span>
+        </div>
+        <span className="text-xs text-gray-500 shrink-0">{group.pairs.length}対戦</span>
+        {group.pairs.length > 1 && (
+          <div className="flex rounded overflow-hidden border border-gray-700 text-xs shrink-0">
+            <button onClick={() => setPreviewMode(false)}
+              className={`px-2 py-1 transition ${!previewMode ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}>
+              編集
+            </button>
+            <button onClick={() => setPreviewMode(true)}
+              className={`px-2 py-1 transition ${previewMode ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}>
+              ブラケット
+            </button>
+          </div>
+        )}
+        {canRemove && (
+          <button onClick={onRemove} className="text-xs text-red-400 hover:text-red-300 shrink-0 transition">削除</button>
+        )}
+      </div>
+
+      {/* 選手を絞り込んで追加 */}
+      <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-2.5 space-y-2">
+        <p className="text-xs text-gray-400 font-medium">選手を絞り込んでこのトーナメントに追加</p>
+        <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-center">
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">年齢</span>
+            <input value={minAge} onChange={(e) => setMinAge(e.target.value)}
+              placeholder="下限" type="number" min="0" max="99" className={`w-14 ${inpSm}`} />
+            <span className="text-xs text-gray-500">〜</span>
+            <input value={maxAge} onChange={(e) => setMaxAge(e.target.value)}
+              placeholder="上限" type="number" min="0" max="99" className={`w-14 ${inpSm}`} />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">学年</span>
+            <input value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)}
+              placeholder="小4" className={`w-16 ${inpSm}`} />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">名前</span>
+            <input value={nameFilter} onChange={(e) => setNameFilter(e.target.value)}
+              placeholder="山田" className={`w-20 ${inpSm}`} />
+          </div>
+        </div>
+
+        {filteredUnassigned.length > 0 ? (
+          <>
+            <div className="flex flex-wrap gap-1">
+              {filteredUnassigned.map((e) => {
+                const tooltip = [
+                  e.memo ? `📝 ${e.memo}` : "",
+                  e.admin_memo ? `📋 ${e.admin_memo}` : "",
+                ].filter(Boolean).join("\n");
+                return (
+                  <span
+                    key={e.id}
+                    title={tooltip || undefined}
+                    className={`text-xs px-2 py-0.5 rounded-full cursor-default ${
+                      e.admin_memo ? "bg-yellow-900/50 text-yellow-200 ring-1 ring-yellow-700" : "bg-gray-700 text-gray-300"
+                    }`}
+                  >
+                    {entryFullName(e)}
+                    {e.age != null ? ` ${e.age}才` : ""}
+                    {e.grade ? `/${e.grade}` : ""}
+                    {e.weight ? ` ${e.weight}kg` : ""}
+                    {e.admin_memo && <span className="ml-1 opacity-70">📋</span>}
+                    {e.memo && !e.admin_memo && <span className="ml-1 opacity-50">📝</span>}
+                  </span>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => onAutoAssign(filteredUnassigned)}
+              className="w-full bg-blue-700 hover:bg-blue-600 py-1.5 rounded text-xs font-medium transition"
+            >
+              {filteredUnassigned.length}名を追加してペアリング
+            </button>
+          </>
+        ) : (
+          <p className="text-xs text-gray-500">
+            {unassigned.length === 0 ? "未割当の選手はいません" : "条件に合う選手がいません"}
+          </p>
+        )}
+      </div>
+
+      {/* ペアリスト */}
+      {previewMode && preview ? (
+        <BracketView matches={preview.matches} nameMap={preview.nameMap} />
+      ) : (
+        <>
+          {group.pairs.length > 0 && (
             <div className="space-y-2">
-              {pairs.map((pair, idx) => {
+              {group.pairs.map((pair, idx) => {
                 const compat: CompatibilityLevel = pair.e2
-                  ? checkCompatibility(pair.e1, pair.e2, mismatchSettings)
+                  ? checkCompatibility(pair.e1, pair.e2, groupMismatch)
                   : "unknown";
                 const defaultRule = rules.find((r) => r.id === defaultRuleId);
                 const effectiveRuleName = pair.ruleId
                   ? rules.find((r) => r.id === pair.ruleId)?.name
                   : defaultRule?.name;
-
                 const e1Options = [pair.e1, ...unassigned];
                 const e2Options = [...(pair.e2 ? [pair.e2] : []), ...unassigned.filter((e) => e.id !== pair.e1.id)];
                 const e2Sorted = [...e2Options].sort((a, b) => entryCompatScore(a, pair.e1) - entryCompatScore(b, pair.e1));
 
                 return (
-                  <div key={pair.id} className="border border-gray-700 rounded-lg p-3 space-y-2">
+                  <div key={pair.id} className="border border-gray-700 rounded-lg p-2.5 space-y-2">
                     <div className="flex items-start gap-2">
                       <span className="text-xs text-gray-500 w-5 shrink-0 text-center pt-2">{idx + 1}</span>
                       <div className="flex-1 flex flex-wrap gap-2 min-w-0">
-                        <select value={pair.e1.id} onChange={(ev) => updateE1(pair.id, ev.target.value)}
+                        <select value={pair.e1.id} onChange={(ev) => onUpdateE1(pair.id, ev.target.value)}
                           className="flex-1 min-w-[140px] bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500">
                           {e1Options.map((e) => (
                             <option key={e.id} value={e.id}>
@@ -844,11 +1089,11 @@ function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, to
                         </select>
                         <div className="flex items-center gap-2 flex-1 min-w-[140px]">
                           <span className="text-gray-600 text-xs shrink-0">vs</span>
-                          <select value={pair.e2?.id ?? ""} onChange={(ev) => updateE2(pair.id, ev.target.value || null)}
+                          <select value={pair.e2?.id ?? ""} onChange={(ev) => onUpdateE2(pair.id, ev.target.value || null)}
                             className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500">
                             <option value="">BYE（不戦勝）</option>
                             {e2Sorted.map((e) => {
-                              const c: CompatibilityLevel = checkCompatibility(pair.e1, e, mismatchSettings);
+                              const c: CompatibilityLevel = checkCompatibility(pair.e1, e, groupMismatch);
                               const label = c === "ok" ? "◎ " : c === "warn" ? "△ " : c === "ng" ? "✕ " : "";
                               return (
                                 <option key={e.id} value={e.id}>
@@ -864,15 +1109,15 @@ function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, to
                         <span className={`text-sm font-bold w-5 text-center ${COMPAT_COLORS[compat]}`}>
                           {COMPAT_LABEL[compat]}
                         </span>
-                        <button onClick={() => removePair(pair.id)} className="text-red-400 hover:text-red-300 text-sm">✕</button>
+                        <button onClick={() => onRemovePair(pair.id)} className="text-red-400 hover:text-red-300 text-sm">✕</button>
                       </div>
                     </div>
                     <div className="flex gap-2 pl-5">
-                      <input value={pair.matchLabel} onChange={(ev) => updateField(pair.id, "matchLabel", ev.target.value)}
+                      <input value={pair.matchLabel} onChange={(ev) => onUpdateField(pair.id, "matchLabel", ev.target.value)}
                         placeholder="試合名（例: 第1試合・ワンマッチ）"
                         className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
                       />
-                      <select value={pair.ruleId} onChange={(ev) => updateField(pair.id, "ruleId", ev.target.value)}
+                      <select value={pair.ruleId} onChange={(ev) => onUpdateField(pair.id, "ruleId", ev.target.value)}
                         className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500">
                         <option value="">デフォルト{effectiveRuleName ? `（${effectiveRuleName}）` : ""}</option>
                         {rules.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -884,26 +1129,43 @@ function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, to
                         {pair.e1.height && pair.e2.height ? ` 身長差 ${Math.abs(pair.e1.height - pair.e2.height).toFixed(0)}cm` : ""}
                       </p>
                     )}
+                    {/* メモ表示 */}
+                    {(pair.e1.admin_memo || pair.e2?.admin_memo || pair.e1.memo || pair.e2?.memo) && (
+                      <div className="pl-5 space-y-0.5">
+                        {pair.e1.admin_memo && (
+                          <p className="text-xs text-yellow-300 bg-yellow-900/30 rounded px-2 py-0.5">
+                            📋 {entryFullName(pair.e1)}: {pair.e1.admin_memo}
+                          </p>
+                        )}
+                        {pair.e2?.admin_memo && (
+                          <p className="text-xs text-yellow-300 bg-yellow-900/30 rounded px-2 py-0.5">
+                            📋 {entryFullName(pair.e2)}: {pair.e2.admin_memo}
+                          </p>
+                        )}
+                        {pair.e1.memo && (
+                          <p className="text-xs text-gray-400 italic px-2">
+                            📝 {entryFullName(pair.e1)}: {pair.e1.memo}
+                          </p>
+                        )}
+                        {pair.e2?.memo && (
+                          <p className="text-xs text-gray-400 italic px-2">
+                            📝 {entryFullName(pair.e2)}: {pair.e2.memo}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
-          ) : (
-            <p className="text-sm text-gray-500 text-center py-6">
-              「自動振り分け」で一括設定するか、「対戦を追加」で手動で組んでください
-            </p>
           )}
-
-          <div className="flex gap-2">
-            <button onClick={addEmptyPair} disabled={unassigned.length === 0}
-              className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-2 rounded-lg text-sm transition">
-              + 対戦を追加
-            </button>
-            <button onClick={confirm} disabled={confirming || pairs.length === 0}
-              className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition">
-              {confirming ? "保存中..." : `対戦表を確定（${pairs.length}対戦）`}
-            </button>
-          </div>
+          <button
+            onClick={onAddPair}
+            disabled={unassigned.length === 0}
+            className="w-full bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-1.5 rounded text-xs transition"
+          >
+            ＋ 手動で対戦を追加
+          </button>
         </>
       )}
     </div>
@@ -1076,6 +1338,9 @@ function ExistingTournamentSection({ courtNum, tournament, eventId, rules, misma
   const [open, setOpen] = useState(true);
   const [viewMode, setViewMode] = useState<"bracket" | "list">("bracket");
   const [deleting, setDeleting] = useState(false);
+  const [weightDiff, setWeightDiff] = useState(tournament.max_weight_diff != null ? String(tournament.max_weight_diff) : "");
+  const [heightDiff, setHeightDiff] = useState(tournament.max_height_diff != null ? String(tournament.max_height_diff) : "");
+  const [savingMismatch, setSavingMismatch] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -1108,6 +1373,19 @@ function ExistingTournamentSection({ courtNum, tournament, eventId, rules, misma
 
   useEffect(() => { load(); }, [load]);
 
+  async function saveMismatch() {
+    setSavingMismatch(true);
+    await fetch(`/api/admin/tournaments/${tournament.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        max_weight_diff: weightDiff ? parseFloat(weightDiff) : null,
+        max_height_diff: heightDiff ? parseFloat(heightDiff) : null,
+      }),
+    });
+    setSavingMismatch(false);
+  }
+
   async function handleDelete() {
     if (!confirm(`コート${courtNum} の対戦表を削除して組み直しますか？\n進行中・完了済みのデータもすべて失われます。`)) return;
     setDeleting(true);
@@ -1139,6 +1417,32 @@ function ExistingTournamentSection({ courtNum, tournament, eventId, rules, misma
           {tournament.default_rules && (
             <span className="text-xs text-gray-500">{tournament.default_rules}</span>
           )}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {/* ミスマッチ設定 */}
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">体重差</span>
+            <input
+              type="number" min="0" step="0.5" value={weightDiff}
+              onChange={(e) => setWeightDiff(e.target.value)}
+              onBlur={saveMismatch}
+              placeholder="無制限"
+              className="w-20 bg-gray-700 border border-gray-600 rounded px-1.5 py-1 text-xs text-white outline-none focus:border-blue-500"
+            />
+            <span className="text-xs text-gray-500">kg</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">身長差</span>
+            <input
+              type="number" min="0" step="1" value={heightDiff}
+              onChange={(e) => setHeightDiff(e.target.value)}
+              onBlur={saveMismatch}
+              placeholder="無制限"
+              className="w-20 bg-gray-700 border border-gray-600 rounded px-1.5 py-1 text-xs text-white outline-none focus:border-blue-500"
+            />
+            <span className="text-xs text-gray-500">cm</span>
+          </div>
+          {savingMismatch && <span className="text-xs text-gray-500">保存中...</span>}
         </div>
         <div className="flex items-center gap-2">
           {isBracket && open && (
