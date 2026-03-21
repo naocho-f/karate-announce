@@ -317,14 +317,26 @@ const DEMO_DOJOS = ["○○支部道場","△△道場","□□空手クラブ",
 const DEMO_SCHOOLS = ["極真会","新極真会","芦原会館","正道会館","士道館","大山空手","国際空手連盟","全日本空手道連盟","WKF","フルコンタクト空手"];
 const DEMO_EXPERIENCES = ["空手歴1年","空手歴2年","空手歴3年","空手歴5年","空手歴7年","空手歴10年","格闘技歴3年","初参加","大会経験あり","全国大会出場経験あり"];
 
-function generateDemoEntries(eventId: string, count: number) {
+function generateDemoEntries(eventId: string, count: number, ruleIds: string[]) {
   const r = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+
+  // ルールをできるだけ均等に配布（シャッフル済みプール）
+  const rulePool: string[][] = Array.from({ length: count }, () => []);
+  if (ruleIds.length > 0) {
+    const pool = Array.from({ length: count }, (_, i) => ruleIds[i % ruleIds.length]);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    pool.forEach((rid, i) => { rulePool[i] = [rid]; });
+  }
+
   return Array.from({ length: count }, (_, i) => {
     const fi = Math.floor(Math.random() * DEMO_FAMILY_NAMES.length);
     const gi = Math.floor(Math.random() * DEMO_GIVEN_NAMES.length);
     return {
       school_name: r(DEMO_SCHOOLS),
-      rule_ids: [],
+      rule_ids: rulePool[i],
       entry: {
         event_id: eventId,
         family_name: DEMO_FAMILY_NAMES[fi],
@@ -338,6 +350,7 @@ function generateDemoEntries(eventId: string, count: number) {
         age: 18 + Math.floor(Math.random() * 22),
         grade: null,
         experience: i < 4 ? "空手歴10年以上" : r(DEMO_EXPERIENCES),
+        admin_memo: "__test__",
       },
     };
   });
@@ -360,14 +373,29 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, onToggleSe
   async function addDemoEntries() {
     if (!confirm("テスト用に32名のダミーエントリーを追加しますか？")) return;
     setGenerating(true);
-    const entries = generateDemoEntries(eventId, 32);
+    const ruleIds = eventRules.map((r) => r.id);
+    const demoList = generateDemoEntries(eventId, 32, ruleIds);
     await Promise.all(
-      entries.map((e) =>
+      demoList.map((e) =>
         fetch("/api/admin/entries", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(e),
         }),
+      ),
+    );
+    setGenerating(false);
+    onAdded();
+  }
+
+  async function deleteTestEntries() {
+    const testEntries = entries.filter((e) => e.admin_memo === "__test__");
+    if (testEntries.length === 0) { alert("テストデータがありません"); return; }
+    if (!confirm(`テストデータ ${testEntries.length} 名を削除しますか？`)) return;
+    setGenerating(true);
+    await Promise.all(
+      testEntries.map((e) =>
+        fetch(`/api/admin/entries/${e.id}`, { method: "DELETE" }),
       ),
     );
     setGenerating(false);
@@ -382,12 +410,21 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, onToggleSe
           <span className="text-xs text-gray-500">{entries.length}名</span>
         </div>
         <div className="flex items-center gap-2">
+          {entries.some((e) => e.admin_memo === "__test__") && (
+            <button
+              onClick={deleteTestEntries}
+              disabled={generating}
+              className="text-xs text-red-500 hover:text-red-300 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-red-900 hover:border-red-700 transition"
+            >
+              テスト削除
+            </button>
+          )}
           <button
             onClick={addDemoEntries}
             disabled={generating}
             className="text-xs text-gray-500 hover:text-gray-300 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition"
           >
-            {generating ? "生成中..." : "テスト32名"}
+            {generating ? "処理中..." : "テスト32名"}
           </button>
           <button onClick={() => setShowForm((v) => !v)}
             className="text-xs bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition">
