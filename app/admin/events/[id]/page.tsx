@@ -924,38 +924,48 @@ function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, to
 }
 
 function BracketQualityBadge({ pairCount }: { pairCount: number }) {
+  const [open, setOpen] = useState(false);
+
   if (pairCount === 0) return <span className="text-xs text-gray-500 shrink-0">0対戦</span>;
 
   const q = bracketQuality(pairCount);
-  const entryCount = pairCount * 2; // BYE 含む全スロット換算ではなく "対戦数"
 
   if (q.isClean) {
-    return (
-      <span className="text-xs text-green-400 shrink-0 font-medium">
-        {pairCount}対戦 ✓
-      </span>
-    );
+    return <span className="text-xs text-green-400 shrink-0 font-medium">{pairCount}対戦 ✓</span>;
   }
 
-  // 不規則ブラケット — 警告レベルを距離で判断
-  const fillRatio = pairCount / q.nextCleanPairs; // 0.5〜1.0
-  const isNearNext = q.addNeeded <= q.removeNeeded; // 増やす方が近い
   const isYellow = q.addNeeded <= 2 || q.removeNeeded <= 2;
-
+  const isNearNext = q.addNeeded <= q.removeNeeded;
   const hint = isNearNext
     ? `あと${q.addNeeded}ペア（${q.addNeeded * 2}名）追加か BYE シードで ${q.nextCleanPairs} 対戦になります`
     : `あと${q.removeNeeded}ペア（${q.removeNeeded * 2}名）減らすと ${q.prevCleanPairs} 対戦になります`;
 
   return (
-    <span
-      title={`${pairCount}対戦は2の累乗でないため、ブラケットが不規則になります。\n推奨: ${q.prevCleanPairs}対戦（${q.prevCleanPairs * 2}名以下）または ${q.nextCleanPairs}対戦（${q.nextCleanPairs * 2}名以下）\n${hint}`}
-      className={`text-xs shrink-0 font-medium cursor-help rounded px-1.5 py-0.5 ${
-        isYellow
-          ? "bg-yellow-900/50 text-yellow-300 border border-yellow-700"
-          : "bg-red-900/50 text-red-300 border border-red-800"
-      }`}
-    >
-      {pairCount}対戦 ⚠
+    <span className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`text-xs font-medium rounded px-1.5 py-0.5 ${
+          isYellow
+            ? "bg-yellow-900/50 text-yellow-300 border border-yellow-700"
+            : "bg-red-900/50 text-red-300 border border-red-800"
+        }`}
+      >
+        {pairCount}対戦 ⚠
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-50 w-64 bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 space-y-1.5">
+          <p className="text-xs text-white font-medium">{pairCount}対戦 — ブラケットが不規則</p>
+          <p className="text-xs text-gray-400">2の累乗でないため、一部のラウンドで試合数が揃いません。</p>
+          <div className="border-t border-gray-700 pt-1.5 space-y-1">
+            <p className="text-xs text-gray-300">
+              推奨: <span className="text-white font-medium">{q.prevCleanPairs}対戦</span>（{q.prevCleanPairs * 2}名以下）または <span className="text-white font-medium">{q.nextCleanPairs}対戦</span>（{q.nextCleanPairs * 2}名以下）
+            </p>
+            <p className="text-xs text-yellow-300">{hint}</p>
+          </div>
+          <button onClick={() => setOpen(false)} className="text-xs text-gray-500 hover:text-gray-300 pt-0.5">閉じる</button>
+        </div>
+      )}
     </span>
   );
 }
