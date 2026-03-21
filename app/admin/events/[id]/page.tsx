@@ -139,7 +139,7 @@ export default function EventDetailPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
           <Link href="/admin" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
           <h1 className="text-2xl font-bold">{event.name}</h1>
