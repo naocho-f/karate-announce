@@ -53,43 +53,33 @@ export default function EntryPage({ params }: Props) {
     if (!familyName.trim()) return;
     setSubmitting(true);
     setError("");
-    // 流派をマスタに自動登録（完全一致がなければ追加）
     const trimmedSchool = schoolName.trim();
-    if (trimmedSchool) {
-      const { data: existing } = await supabase
-        .from("dojos")
-        .select("id")
-        .eq("name", trimmedSchool)
-        .maybeSingle();
-      if (!existing) {
-        await supabase.from("dojos").insert({ name: trimmedSchool });
-      }
-    }
+    const res = await fetch("/api/public/entry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        school_name: trimmedSchool || null,
+        rule_ids: [...selectedRules],
+        entry: {
+          event_id: eventId,
+          family_name: familyName.trim(),
+          given_name: givenName.trim() || null,
+          family_name_reading: familyReading.trim() || null,
+          given_name_reading: givenReading.trim() || null,
+          school_name: trimmedSchool || null,
+          dojo_name: dojoName.trim() || null,
+          weight: weight ? parseFloat(weight) : null,
+          height: height ? parseFloat(height) : null,
+          age_info: ageInfo.trim() || null,
+          experience: experience.trim() || null,
+        },
+      }),
+    });
 
-    const { data: entry, error: err } = await supabase.from("entries").insert({
-      event_id: eventId,
-      family_name: familyName.trim(),
-      given_name: givenName.trim() || null,
-      family_name_reading: familyReading.trim() || null,
-      given_name_reading: givenReading.trim() || null,
-      school_name: trimmedSchool || null,
-      dojo_name: dojoName.trim() || null,
-      weight: weight ? parseFloat(weight) : null,
-      height: height ? parseFloat(height) : null,
-      age_info: ageInfo.trim() || null,
-      experience: experience.trim() || null,
-    }).select("id").single();
-
-    if (err || !entry) {
+    if (!res.ok) {
       setError("送信に失敗しました。もう一度お試しください。");
       setSubmitting(false);
       return;
-    }
-
-    if (selectedRules.size > 0) {
-      await supabase.from("entry_rules").insert(
-        [...selectedRules].map((rid) => ({ entry_id: entry.id, rule_id: rid }))
-      );
     }
 
     setSubmitting(false);

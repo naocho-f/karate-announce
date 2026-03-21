@@ -6,8 +6,6 @@ import { use, useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Entry, Event, Fighter, Match, Tournament, Rule } from "@/lib/types";
 import { entryFullName } from "@/lib/types";
-import { createTournamentBracketFromPairs } from "@/lib/bracket";
-import { ensureFighterFromEntry } from "@/lib/entry-utils";
 import {
   checkCompatibility,
   COMPAT_COLORS, COMPAT_LABEL, type CompatibilityLevel, type MismatchSettings,
@@ -81,10 +79,11 @@ export default function EventDetailPage({ params }: Props) {
   }, [id]);
 
   async function saveMismatchToDb(settings: MismatchSettings) {
-    await supabase.from("events").update({
-      max_weight_diff: settings.maxWeightDiff,
-      max_height_diff: settings.maxHeightDiff,
-    }).eq("id", id);
+    await fetch(`/api/admin/events/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ max_weight_diff: settings.maxWeightDiff, max_height_diff: settings.maxHeightDiff }),
+    });
     setMismatchSettings(settings);
   }
 
@@ -92,17 +91,21 @@ export default function EventDetailPage({ params }: Props) {
     const entry = entries.find((e) => e.id === entryId);
     if (!entry) return;
     const newSeed = !entry.is_seed;
-    await supabase.from("entries").update({ is_seed: newSeed }).eq("id", entryId);
+    await fetch(`/api/admin/entries/${entryId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_seed: newSeed }),
+    });
     setEntries((prev) => prev.map((e) => e.id === entryId ? { ...e, is_seed: newSeed } : e));
   }
 
   async function toggleEntryRule(entryId: string, ruleId: string) {
     const has = entryRuleIds[entryId]?.has(ruleId);
-    if (has) {
-      await supabase.from("entry_rules").delete().eq("entry_id", entryId).eq("rule_id", ruleId);
-    } else {
-      await supabase.from("entry_rules").insert({ entry_id: entryId, rule_id: ruleId });
-    }
+    await fetch("/api/admin/entry-rules", {
+      method: has ? "DELETE" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entry_id: entryId, rule_id: ruleId }),
+    });
     setEntryRuleIds((prev) => {
       const next = { ...prev };
       next[entryId] = new Set(prev[entryId] ?? []);
@@ -113,7 +116,7 @@ export default function EventDetailPage({ params }: Props) {
 
   async function deleteEntry(entryId: string) {
     if (!confirm("エントリーを削除しますか？")) return;
-    await supabase.from("entries").delete().eq("id", entryId);
+    await fetch(`/api/admin/entries/${entryId}`, { method: "DELETE" });
     setEntries((prev) => prev.filter((e) => e.id !== entryId));
   }
 
@@ -426,31 +429,28 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
     if (!familyName.trim()) return;
     setSaving(true);
 
-    // 流派をマスタに自動登録
     const trimmedSchool = schoolName.trim();
-    if (trimmedSchool) {
-      const { data: existing } = await supabase.from("dojos").select("id").eq("name", trimmedSchool).maybeSingle();
-      if (!existing) await supabase.from("dojos").insert({ name: trimmedSchool });
-    }
-
-    const { data: entry } = await supabase.from("entries").insert({
-      event_id: eventId,
-      family_name: familyName.trim(),
-      given_name: givenName.trim() || null,
-      family_name_reading: familyReading.trim() || null,
-      given_name_reading: givenReading.trim() || null,
-      school_name: trimmedSchool || null,
-      dojo_name: dojoName.trim() || null,
-      weight: weight ? parseFloat(weight) : null,
-      height: height ? parseFloat(height) : null,
-      age_info: ageInfo.trim() || null,
-      experience: experience.trim() || null,
-    }).select("id").single();
-    if (entry && selectedRules.size > 0) {
-      await supabase.from("entry_rules").insert(
-        [...selectedRules].map((rid) => ({ entry_id: entry.id, rule_id: rid }))
-      );
-    }
+    await fetch("/api/admin/entries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        school_name: trimmedSchool || null,
+        rule_ids: [...selectedRules],
+        entry: {
+          event_id: eventId,
+          family_name: familyName.trim(),
+          given_name: givenName.trim() || null,
+          family_name_reading: familyReading.trim() || null,
+          given_name_reading: givenReading.trim() || null,
+          school_name: trimmedSchool || null,
+          dojo_name: dojoName.trim() || null,
+          weight: weight ? parseFloat(weight) : null,
+          height: height ? parseFloat(height) : null,
+          age_info: ageInfo.trim() || null,
+          experience: experience.trim() || null,
+        },
+      }),
+    });
     setSaving(false);
     onAdded();
   }
@@ -603,27 +603,22 @@ function CourtSection({ courtNum, eventId, entries, entryRuleIds, eventRules, to
     setConfirming(true);
     const defaultRule = rules.find((r) => r.id === defaultRuleId);
 
-    // 各エントリーを fighter に変換
-    const pairInputs = await Promise.all(
-      pairs.map(async (p) => {
-        const f1Id = await ensureFighterFromEntry(p.e1);
-        const f2Id = p.e2 ? await ensureFighterFromEntry(p.e2) : null;
-        return {
-          f1: f1Id,
-          f2: f2Id,
+    await fetch("/api/admin/tournaments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        courtName: `コート${courtNum}`,
+        courtNum: String(courtNum),
+        pairs: pairs.map((p) => ({
+          e1: p.e1,
+          e2: p.e2,
           matchLabel: p.matchLabel || null,
-          rules: (p.ruleId ? rules.find((r) => r.id === p.ruleId)?.name : null) ?? defaultRule?.name ?? null,
-        };
-      })
-    );
-
-    await createTournamentBracketFromPairs(
-      `コート${courtNum}`,
-      String(courtNum),
-      pairInputs,
-      eventId,
-      defaultRule?.name ?? null,
-    );
+          ruleName: (p.ruleId ? rules.find((r) => r.id === p.ruleId)?.name : null) ?? defaultRule?.name ?? null,
+        })),
+        eventId,
+        defaultRuleName: defaultRule?.name ?? null,
+      }),
+    });
     setConfirming(false);
     onCreated();
   }
@@ -898,13 +893,17 @@ function MatchEditRow({ match, fighterMap, allFighters, otherUsedIds, rules, mis
   }
 
   async function save() {
-    await supabase.from("matches").update({
-      fighter1_id: f1Id || null,
-      fighter2_id: f2Id || null,
-      match_label: label.trim() || null,
-      rules: ruleText.trim() || null,
-      status: (f1Id && f2Id) ? "ready" : "waiting",
-    }).eq("id", match.id);
+    await fetch(`/api/admin/matches/${match.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fighter1_id: f1Id || null,
+        fighter2_id: f2Id || null,
+        match_label: label.trim() || null,
+        rules: ruleText.trim() || null,
+        status: (f1Id && f2Id) ? "ready" : "waiting",
+      }),
+    });
     setEditing(false);
     onUpdated();
   }

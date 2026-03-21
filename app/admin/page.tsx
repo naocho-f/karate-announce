@@ -451,19 +451,27 @@ function DojoPanel() {
 
   async function add() {
     if (!name.trim()) return;
-    await supabase.from("dojos").insert({ name: name.trim(), name_reading: reading.trim() || null });
+    await fetch("/api/admin/dojos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim(), name_reading: reading.trim() || null }),
+    });
     setName(""); setReading("");
     load();
   }
 
   async function updateReading(id: string, value: string) {
-    await supabase.from("dojos").update({ name_reading: value.trim() || null }).eq("id", id);
+    await fetch(`/api/admin/dojos/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name_reading: value.trim() || null }),
+    });
     load();
   }
 
   async function remove(id: string) {
     if (!confirm("削除しますか？所属選手も削除されます。")) return;
-    await supabase.from("dojos").delete().eq("id", id);
+    await fetch(`/api/admin/dojos/${id}`, { method: "DELETE" });
     load();
   }
 
@@ -539,18 +547,22 @@ function FighterPanel() {
     const fullReading = (familyReading.trim() && givenReading.trim())
       ? `${familyReading.trim()} ${givenReading.trim()}`
       : familyReading.trim() || null;
-    await supabase.from("fighters").insert({
-      name: fullName,
-      name_reading: fullReading,
-      family_name: familyName.trim(),
-      given_name: givenName.trim() || null,
-      family_name_reading: familyReading.trim() || null,
-      given_name_reading: givenReading.trim() || null,
-      dojo_id: dojoId,
-      weight: weight ? parseFloat(weight) : null,
-      height: height ? parseFloat(height) : null,
-      age_info: ageInfo.trim() || null,
-      experience: experience.trim() || null,
+    await fetch("/api/admin/fighters", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: fullName,
+        name_reading: fullReading,
+        family_name: familyName.trim(),
+        given_name: givenName.trim() || null,
+        family_name_reading: familyReading.trim() || null,
+        given_name_reading: givenReading.trim() || null,
+        dojo_id: dojoId,
+        weight: weight ? parseFloat(weight) : null,
+        height: height ? parseFloat(height) : null,
+        age_info: ageInfo.trim() || null,
+        experience: experience.trim() || null,
+      }),
     });
     setFamilyName(""); setGivenName(""); setFamilyReading(""); setGivenReading("");
     setWeight(""); setHeight(""); setAgeInfo(""); setExperience("");
@@ -560,27 +572,35 @@ function FighterPanel() {
   async function updateName(id: string, fn: string, gn: string, fr: string, gr: string) {
     const fullName = gn ? `${fn} ${gn}` : fn;
     const fullReading = (fr && gr) ? `${fr} ${gr}` : fr || null;
-    await supabase.from("fighters").update({
-      name: fullName, name_reading: fullReading,
-      family_name: fn || null, given_name: gn || null,
-      family_name_reading: fr || null, given_name_reading: gr || null,
-    }).eq("id", id);
+    await fetch(`/api/admin/fighters/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: fullName, name_reading: fullReading,
+        family_name: fn || null, given_name: gn || null,
+        family_name_reading: fr || null, given_name_reading: gr || null,
+      }),
+    });
     load();
   }
 
   async function updateProfile(id: string, w: string, h: string, a: string, e: string) {
-    await supabase.from("fighters").update({
-      weight: w ? parseFloat(w) : null,
-      height: h ? parseFloat(h) : null,
-      age_info: a.trim() || null,
-      experience: e.trim() || null,
-    }).eq("id", id);
+    await fetch(`/api/admin/fighters/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        weight: w ? parseFloat(w) : null,
+        height: h ? parseFloat(h) : null,
+        age_info: a.trim() || null,
+        experience: e.trim() || null,
+      }),
+    });
     load();
   }
 
   async function remove(id: string) {
     if (!confirm("削除しますか？")) return;
-    await supabase.from("fighters").delete().eq("id", id);
+    await fetch(`/api/admin/fighters/${id}`, { method: "DELETE" });
     load();
   }
 
@@ -673,29 +693,28 @@ function EventPanel() {
   async function create() {
     if (!name.trim()) return;
     setCreating(true);
-    const { data: e } = await supabase.from("events")
-      .insert({ name: name.trim(), court_count: courtCount, status: "preparing" })
-      .select().single();
-    if (!e) { setCreating(false); return; }
-    if (selectedRuleIds.size > 0) {
-      await supabase.from("event_rules").insert(
-        [...selectedRuleIds].map((rid) => ({ event_id: e.id, rule_id: rid }))
-      );
-    }
-    router.push(`/admin/events/${e.id}`);
+    const res = await fetch("/api/admin/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim(), court_count: courtCount, rule_ids: [...selectedRuleIds] }),
+    });
+    if (!res.ok) { setCreating(false); return; }
+    const { id } = await res.json();
+    router.push(`/admin/events/${id}`);
   }
 
   async function remove(id: string) {
     if (!confirm("削除しますか？")) return;
-    await supabase.from("events").delete().eq("id", id);
+    await fetch(`/api/admin/events/${id}`, { method: "DELETE" });
     load();
   }
 
   async function setActive(id: string, active: boolean) {
-    if (active) {
-      await supabase.from("events").update({ is_active: false }).neq("id", "00000000-0000-0000-0000-000000000000");
-    }
-    await supabase.from("events").update({ is_active: active }).eq("id", id);
+    await fetch(`/api/admin/events/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_active: active }),
+    });
     load();
   }
 
@@ -791,14 +810,18 @@ function RulesPanel() {
 
   async function add() {
     if (!name.trim()) return;
-    await supabase.from("rules").insert({ name: name.trim() });
+    await fetch("/api/admin/rules", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim() }),
+    });
     setName("");
     load();
   }
 
   async function remove(id: string) {
     if (!confirm("削除しますか？")) return;
-    await supabase.from("rules").delete().eq("id", id);
+    await fetch(`/api/admin/rules/${id}`, { method: "DELETE" });
     load();
   }
 

@@ -135,8 +135,11 @@ export default function CourtPage({ params }: Props) {
     const f2 = match.fighter2_id ? fighters[match.fighter2_id] : null;
     if (!f1 || !f2) return;
 
-    await supabase.from("matches").update({ status: "ongoing" }).eq("id", match.id);
-    await supabase.from("tournaments").update({ status: "ongoing" }).eq("id", selectedTournamentId);
+    await fetch(`/api/court/matches/${match.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "start", tournamentId: selectedTournamentId }),
+    });
     setCurrentMatchId(match.id);
     loadMatches();
 
@@ -156,20 +159,18 @@ export default function CourtPage({ params }: Props) {
     const winner = fighters[winnerId];
     if (!winner) return;
 
-    await supabase.from("matches").update({ winner_id: winnerId, status: "done" }).eq("id", match.id);
-
-    if (match.round < rounds) {
-      const nextPosition = Math.floor(match.position / 2);
-      const isSlot1 = match.position % 2 === 0;
-      const field = isSlot1 ? "fighter1_id" : "fighter2_id";
-      await supabase.from("matches")
-        .update({ [field]: winnerId, status: "ready" })
-        .eq("tournament_id", selectedTournamentId)
-        .eq("round", match.round + 1)
-        .eq("position", nextPosition);
-    } else {
-      await supabase.from("tournaments").update({ status: "finished" }).eq("id", selectedTournamentId);
-    }
+    await fetch(`/api/court/matches/${match.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "set_winner",
+        winnerId,
+        tournamentId: selectedTournamentId,
+        round: match.round,
+        rounds,
+        position: match.position,
+      }),
+    });
 
     setCurrentMatchId(null);
     loadMatches();
@@ -282,14 +283,11 @@ function MatchCard({ match, fighters, mismatchSettings, onStart, onUpdated, onSw
   }
 
   async function replaceFighter(slot: "f1" | "f2", newFighterId: string) {
-    const field = slot === "f1" ? "fighter1_id" : "fighter2_id";
-    const bothPresent = slot === "f1"
-      ? (newFighterId && match.fighter2_id)
-      : (match.fighter1_id && newFighterId);
-    await supabase.from("matches").update({
-      [field]: newFighterId,
-      status: bothPresent ? "ready" : "waiting",
-    }).eq("id", match.id);
+    await fetch(`/api/court/matches/${match.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "replace", slot, newFighterId }),
+    });
     setReplacing(null);
     onUpdated();
   }
@@ -300,10 +298,11 @@ function MatchCard({ match, fighters, mismatchSettings, onStart, onUpdated, onSw
     "bg-gray-800";
 
   async function saveEdit() {
-    await supabase.from("matches").update({
-      match_label: label.trim() || null,
-      rules: rules.trim() || null,
-    }).eq("id", match.id);
+    await fetch(`/api/court/matches/${match.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "edit", matchLabel: label.trim() || null, rules: rules.trim() || null }),
+    });
     setEditing(false);
     onUpdated();
   }
