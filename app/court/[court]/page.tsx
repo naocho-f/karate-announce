@@ -331,7 +331,12 @@ export default function CourtPage({ params }: Props) {
           <h1 className="text-2xl font-bold">{courtDisplayName || `${court}コート`}</h1>
         </div>
 
-        {isEventActive === false ? (
+        {isEventActive === null ? (
+          <div className="flex flex-col items-center justify-center mt-32 gap-4 text-gray-500">
+            <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm">読み込み中...</p>
+          </div>
+        ) : isEventActive === false ? (
           <div className="text-center text-gray-500 mt-20">
             <p className="text-4xl mb-4">🔒</p>
             <p className="text-lg mb-2">試合はまだ開始されていません</p>
@@ -353,6 +358,25 @@ export default function CourtPage({ params }: Props) {
                 Object.entries(fighters).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""])
               );
 
+              // 次に開始すべき試合を特定（readyかつ両選手が揃っていて棄権していない試合のうち試合番号が最小）
+              const readyMatches = matches.filter(
+                (m) => m.status === "ready" && m.fighter1_id && m.fighter2_id &&
+                  !withdrawnFighterIds.has(m.fighter1_id) && !withdrawnFighterIds.has(m.fighter2_id)
+              );
+              const nextMatch = readyMatches.sort((a, b) => {
+                const nA = a.match_label ? parseInt(a.match_label) : Infinity;
+                const nB = b.match_label ? parseInt(b.match_label) : Infinity;
+                if (nA !== nB) return nA - nB;
+                if (a.round !== b.round) return a.round - b.round;
+                return a.position - b.position;
+              })[0] ?? null;
+
+              // 進行中の試合
+              const ongoingMatch = matches.find((m) => m.status === "ongoing") ?? null;
+
+              // 全試合終了判定
+              const allDone = matches.length > 0 && matches.every((m) => m.status === "done" || (m.round === 1 && m.fighter1_id && !m.fighter2_id));
+
               return (
                 <div key={tournament.id}>
                   <div className="flex items-center gap-3 mb-3">
@@ -363,6 +387,41 @@ export default function CourtPage({ params }: Props) {
                       {tournament.status === "ongoing" ? "進行中" : "準備中"}
                     </span>
                   </div>
+
+                  {/* ナビゲーションバナー */}
+                  {allDone ? (
+                    <div className="mb-3 bg-green-950 border border-green-700 rounded-xl px-4 py-3 flex items-center gap-3">
+                      <span className="text-green-400">✅</span>
+                      <p className="text-sm text-green-300 font-medium">全試合終了</p>
+                    </div>
+                  ) : ongoingMatch ? (
+                    <div className="mb-3 bg-yellow-950 border border-yellow-700 rounded-xl px-4 py-3 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse shrink-0" />
+                      <p className="text-sm text-yellow-300 font-medium">
+                        {ongoingMatch.match_label ? `${ongoingMatch.match_label} 試合中` : "試合中"}
+                        <span className="font-normal text-yellow-400 ml-2">
+                          {ongoingMatch.fighter1_id ? nameMap[ongoingMatch.fighter1_id] : ""}
+                          <span className="text-yellow-600 mx-1">vs</span>
+                          {ongoingMatch.fighter2_id ? nameMap[ongoingMatch.fighter2_id] : ""}
+                        </span>
+                      </p>
+                      <span className="ml-auto text-xs text-yellow-600">勝者をタップして確定</span>
+                    </div>
+                  ) : nextMatch ? (
+                    <div className="mb-3 bg-blue-950 border border-blue-700 rounded-xl px-4 py-3 flex items-center gap-2">
+                      <span className="shrink-0 text-blue-400">▶</span>
+                      <p className="text-sm text-blue-200 font-medium">
+                        次の試合{nextMatch.match_label ? `：${nextMatch.match_label}` : ""}
+                        <span className="font-normal text-blue-300 ml-2">
+                          {nextMatch.fighter1_id ? nameMap[nextMatch.fighter1_id] : ""}
+                          <span className="text-blue-600 mx-1">vs</span>
+                          {nextMatch.fighter2_id ? nameMap[nextMatch.fighter2_id] : ""}
+                        </span>
+                      </p>
+                      <span className="ml-auto text-xs text-blue-600">カードをタップして開始</span>
+                    </div>
+                  ) : null}
+
                   <div className="bg-gray-800 rounded-xl p-4">
                     {matches.length === 0 ? (
                       <p className="text-sm text-gray-500">試合データなし</p>
@@ -375,6 +434,7 @@ export default function CourtPage({ params }: Props) {
                         fighterEntryMap={fighterEntryMap}
                         processingMatchIds={processingMatchIds}
                         mutedMatchIds={mutedMatchIds}
+                        nextMatchId={nextMatch?.id ?? null}
                         onMatchClick={(matchId) => startMatch(tournament.id, matchId)}
                         onSetWinner={(matchId, fighterId) => setWinner(tournament.id, matchId, fighterId)}
                         onCorrectWinner={(matchId, fighterId) => correctWinner(tournament.id, matchId, fighterId)}

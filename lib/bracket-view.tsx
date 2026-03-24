@@ -48,6 +48,7 @@ export function BracketView({
   processingMatchIds,
   mutedMatchIds,
   assignedNumbers,
+  nextMatchId,
   onNumberClick,
   onMatchClick,
   onSetWinner,
@@ -68,6 +69,8 @@ export function BracketView({
   mutedMatchIds?: Set<string>;
   /** 番号付けモード: matchId → 割り当て番号 */
   assignedNumbers?: Record<string, number>;
+  /** 次に開始すべき試合のID（コート画面でハイライト用） */
+  nextMatchId?: string | null;
   onNumberClick?: (matchId: string) => void;
   onMatchClick?: (matchId: string) => void;
   onSetWinner?: (matchId: string, fighterId: string) => void;
@@ -250,6 +253,7 @@ export function BracketView({
           const isNumberingMode = !!onNumberClick;
           const isByeMatch = isBye(m);
           const assignedNum = assignedNumbers?.[m.id];
+          const isNextMatch = nextMatchId != null && m.id === nextMatchId;
 
           return (
             <div
@@ -262,6 +266,7 @@ export function BracketView({
                   : isCorrectingThis ? "border-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]" :
                   isDone    ? "border-green-800" :
                   isOngoing ? "border-yellow-600 shadow-[0_0_8px_rgba(202,138,4,0.4)]" :
+                  isNextMatch ? "border-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.6)] animate-pulse" :
                   isReady   ? "border-blue-600" :
                               "border-gray-700"
               }`}
@@ -308,10 +313,22 @@ export function BracketView({
               <div
                 className={`flex items-center px-1.5 gap-1 border-t border-gray-700 ${
                   isCorrectingThis ? "bg-orange-950/60" :
-                  isOngoing ? "bg-yellow-950/60" : "bg-gray-900/40"
+                  isOngoing ? "bg-yellow-950/60" :
+                  isNextMatch ? "bg-blue-950/60" : "bg-gray-900/40"
                 }`}
                 style={{ height: BRACKET_FOOTER_H }}
               >
+                {/* 試合番号バッジ */}
+                {m.match_label && !isCorrectingThis && (
+                  <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                    isNextMatch ? "bg-blue-600 text-white" :
+                    isOngoing ? "bg-yellow-700 text-yellow-100" :
+                    isDone ? "bg-gray-700 text-gray-400" :
+                    "bg-gray-700 text-gray-300"
+                  }`}>
+                    {m.match_label}
+                  </span>
+                )}
                 {isCorrectingThis ? (
                   <>
                     <span className="text-[9px] text-orange-400 font-medium">タップで勝者を訂正</span>
