@@ -140,7 +140,7 @@ export function BracketView({
         {Array.from({ length: maxRound }, (_, i) => i + 1).map((round) => (
           <div
             key={round}
-            className="text-xs text-gray-500 text-center shrink-0"
+            className="text-xs text-gray-400 text-center shrink-0"
             style={{ width: round === maxRound ? BRACKET_CARD_W : BRACKET_COL_W }}
           >
             {roundLabel(round, maxRound)}
@@ -162,7 +162,7 @@ export function BracketView({
               key={c.key}
               d={`M ${c.x1} ${c.y1} H ${c.xMid} V ${c.y2} H ${c.x2}`}
               fill="none"
-              stroke="#374151"
+              stroke="#4b5563"
               strokeWidth={1.5}
             />
           ))}
@@ -199,7 +199,7 @@ export function BracketView({
             const correctable = isCorrectingThis && !!onCorrectWinner && !!fighterId && !isWithdrawn;
             return (
               <div
-                className={`relative flex flex-col justify-center px-2 ${borderBottom ? "border-b border-gray-700" : ""} ${
+                className={`relative flex flex-col justify-center px-2 ${borderBottom ? "border-b border-gray-600/50" : ""} ${
                   isOngoing && isWithdrawn ? "bg-gray-900/60 opacity-50 cursor-not-allowed" :
                   correctable ? "bg-gray-800 hover:bg-orange-900/40 cursor-pointer transition-colors" :
                   clickable ? "bg-gray-800 hover:bg-green-900/40 cursor-pointer transition-colors" :
@@ -221,8 +221,8 @@ export function BracketView({
                   {isWinner && <span className="text-green-400 text-[9px] shrink-0">▶</span>}
                   <span className={`truncate text-xs ${
                     isWinner ? "text-green-300 font-bold" :
-                    isWithdrawn ? "text-gray-600 line-through" :
-                    fighterId ? "text-gray-200" : "text-gray-600 italic"
+                    isWithdrawn ? "text-gray-500 line-through" :
+                    fighterId ? "text-gray-100" : "text-gray-500 italic"
                   }`}>{name}</span>
                   {isWithdrawn && (
                     <span className="text-[8px] bg-red-900 text-red-400 px-1 rounded shrink-0">棄権</span>
@@ -268,13 +268,13 @@ export function BracketView({
                 isNumberingMode && !isByeMatch
                   ? assignedNum != null
                     ? "border-blue-500 cursor-pointer"
-                    : "border-gray-600 hover:border-blue-400 cursor-pointer"
+                    : "border-gray-500 hover:border-blue-400 cursor-pointer"
                   : isCorrectingThis ? "border-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]" :
-                  isDone    ? "border-green-900/60" :
+                  isDone    ? "border-green-800/70" :
                   isOngoing ? "border-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.6)]" :
                   isNextMatch ? "border-blue-300 shadow-[0_0_20px_rgba(147,197,253,0.8)] animate-pulse" :
-                  isDimmed  ? "border-gray-700 opacity-40" :
-                              "border-gray-700"
+                  isDimmed  ? "border-gray-600 opacity-40" :
+                              "border-gray-600"
               }`}
               onClick={isNumberingMode && !isByeMatch ? () => onNumberClick!(m.id) : undefined}
               style={{
@@ -333,10 +333,10 @@ export function BracketView({
 
               {/* フッター */}
               <div
-                className={`flex items-center px-1.5 gap-1 border-t border-gray-700 ${
+                className={`flex items-center px-1.5 gap-1 border-t border-gray-600/50 ${
                   isCorrectingThis ? "bg-orange-950/60" :
                   isOngoing ? "bg-yellow-950/60" :
-                  isNextMatch ? "bg-blue-950/60" : "bg-gray-900/40"
+                  isNextMatch ? "bg-blue-950/60" : "bg-gray-900/50"
                 }`}
                 style={{ height: BRACKET_FOOTER_H }}
               >

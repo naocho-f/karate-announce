@@ -455,25 +455,24 @@ function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
     {
       step: 5,
       icon: "🥊",
-      title: "対戦表を組んで確定する",
+      title: "対戦表を組んで試合番号を設定する",
       tab: null,
       color: "border-orange-500",
-      desc: "コートごとにトーナメントを作成します。1回戦の対戦ペアを組んで確定すると、勝ち上がり用の2回戦・準決勝・決勝の空枠が自動生成されます。勝者を確定するたびに次のラウンドへ自動進出します。",
+      desc: "試合詳細画面の3ステップで対戦表を作成します。ステップ②でコートごとにトーナメントを作成・確定し、ステップ③で試合番号を割り当てます。",
       details: [
-        "試合詳細画面の「体格ミスマッチ設定」で体重差・身長差の上限を設定（例: 体重差5kg）",
-        "空欄にすると体重・身長はチェックしない（－表示）",
-        "「自動振り分け」でざっくり割り当て（体重差を考慮）。セレクトで手動調整も可",
-        "◎＝体格差OK・△＝注意・✕＝警告で相性を確認しながら調整",
-        "奇数人の場合は「不戦勝」ペアを入れると1人自動勝ち上がり",
-        "試合名・個別ルールを設定して「対戦表を確定」で保存",
-        "確定後は2回戦以降の空枠も自動作成。勝者決定のたびに次ラウンドへ自動セット",
-        "確定後でも選手の差し替えや「不戦勝にする」操作が可能",
+        "ステップ②「対戦表作成」: コートごとにトーナメントを追加",
+        "体格ミスマッチ設定で体重差・身長差の上限を設定（例: 体重差5kg）",
+        "「自動振り分け」で割り当て → セレクトで手動調整。◎△✕で相性を確認",
+        "「確定する」で保存 → 2回戦以降の空枠が自動生成",
+        "ステップ③「試合番号設定」: 試合カードをタップした順に番号が振られる（自動割り当ても可）",
+        "試合番号は AI アナウンスの読み上げ順・ライブ速報の並び順に使用",
+        "確定後も「← 確定前に戻る」で組み直し、選手の差し替え・欠場対応が可能",
       ],
       screen: (
         <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-500">コート1の対戦表</span>
-            <div className="bg-purple-700 text-white rounded px-2 py-1">自動振り分け</div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-gray-500">ステップ②</span>
+            <span className="bg-purple-700 text-white rounded px-2 py-1">自動振り分け</span>
           </div>
           <div className="border border-gray-700 rounded p-2 space-y-1.5">
             <div className="flex items-center gap-1.5">
@@ -483,16 +482,17 @@ function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
               <div className="flex-1 bg-gray-700 rounded px-2 py-1 text-gray-200">鈴木 70kg</div>
               <span className="text-yellow-400 font-bold w-4 shrink-0 text-center">△</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-500 w-4 shrink-0">2</span>
-              <div className="flex-1 bg-gray-700 rounded px-2 py-1 text-gray-200">田中 55kg</div>
-              <span className="text-gray-600 shrink-0">vs</span>
-              <div className="flex-1 bg-gray-700 rounded px-2 py-1 text-gray-400">不戦勝</div>
-              <span className="text-gray-500 w-4 shrink-0 text-center">－</span>
-            </div>
           </div>
-          <div className="bg-blue-600 text-white rounded px-3 py-1.5 text-center font-medium">対戦表を確定（2対戦）</div>
-          <p className="text-gray-600 text-center">↓ 2回戦・準決勝・決勝の空枠が自動生成</p>
+          <div className="bg-blue-600 text-white rounded px-3 py-1.5 text-center font-medium">確定する</div>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-gray-500">ステップ③</span>
+            <span className="text-gray-400">→ タップ順で試合番号を割り当て</span>
+          </div>
+          <div className="flex gap-1.5">
+            <div className="w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">1</div>
+            <div className="w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">2</div>
+            <div className="w-7 h-7 rounded-full border-2 border-dashed border-gray-500 text-gray-500 text-xs flex items-center justify-center">+</div>
+          </div>
         </div>
       ),
     },
@@ -502,33 +502,39 @@ function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
       title: "試合をアクティブにして AI アナウンス開始",
       tab: "events",
       color: "border-green-400",
-      desc: "「試合」タブでアクティブに設定するとトップページに試合が表示されます。コート画面をモニターに映し、試合を選んでアナウンスボタンを押すと AI が読み上げます。",
+      desc: "「試合」タブでアクティブに設定するとコート画面・ライブ速報が使えるようになります。コート画面のブラケット上で全操作を完結できます。",
       details: [
-        "「試合」タブ → 「アクティブに設定」でトップページに表示",
-        "コート画面（/court/1 など）をモニターやタブレットで開く",
-        "試合カードの「アナウンス」ボタンで AI 読み上げ開始",
-        "「↕ 次と入替」ボタンで試合順をその場で変更可能",
-        "声質・速度は「設定」タブで調整できる",
+        "「試合」タブ → 「アクティブに設定」でコート画面・速報ページが有効に",
+        "コート画面（/court/1 など）をタブレットやPCで開く",
+        "ブラケットの「▶ 試合開始」をタップ → AI が自動でアナウンス開始",
+        "試合中に選手スロットをタップ → 勝者確定＋次ラウンド自動進出＋勝者アナウンス",
+        "ブラケットのフッターで「↕次」「📢」「🔊/🔇」「訂正」等を操作",
+        "声質・速度は「設定」タブ、アナウンステンプレートもカスタマイズ可能",
       ],
       screen: (
         <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
-          <p className="text-gray-500 mb-1">コート画面（/court/1）</p>
-          <div className="bg-yellow-900/40 border border-yellow-700 rounded p-2 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="bg-yellow-600 text-white rounded px-1.5 py-0.5">試合中</span>
-              <span className="text-white font-bold">第1試合</span>
+          <p className="text-gray-500 mb-1">コート画面のブラケット</p>
+          <div className="border border-yellow-600 rounded overflow-hidden">
+            <div className="bg-gray-800 px-2 py-1.5 border-b border-gray-600/50">
+              <div className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded-full bg-red-700/80 text-[6px] text-red-100 flex items-center justify-center font-bold">赤</span>
+                <span className="text-gray-100 text-[11px]">山田 太郎</span>
+              </div>
             </div>
-            <p className="text-gray-300">山田 太郎　vs　鈴木 一郎</p>
-            <div className="flex gap-2 flex-wrap">
-              <div className="bg-blue-600 text-white rounded px-2 py-1">🔊 アナウンス</div>
-              <div className="bg-green-700 text-white rounded px-2 py-1">山田 勝利</div>
-              <div className="bg-red-800 text-white rounded px-2 py-1">鈴木 勝利</div>
+            <div className="bg-gray-800 px-2 py-1.5">
+              <div className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded-full bg-gray-500/60 text-[6px] text-gray-100 flex items-center justify-center font-bold">白</span>
+                <span className="text-gray-100 text-[11px]">鈴木 一郎</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 px-1.5 py-1 bg-yellow-950/60 border-t border-gray-600/50">
+              <span className="bg-yellow-700 text-yellow-100 text-[7px] font-bold px-1 py-0.5 rounded">第1試合</span>
+              <span className="text-[8px] text-yellow-400 font-medium">試合中</span>
+              <span className="ml-auto text-[9px]">📢</span>
+              <span className="text-[9px]">🔊</span>
             </div>
           </div>
-          <div className="flex items-center justify-between bg-gray-800 rounded px-3 py-2">
-            <span className="text-gray-300">第2試合　田中 花子 vs 不戦勝</span>
-            <span className="text-gray-500">↕ 次と入替</span>
-          </div>
+          <p className="text-gray-500 text-center">↑ 選手をタップで勝者確定 → 自動アナウンス</p>
         </div>
       ),
     },
@@ -635,10 +641,10 @@ function GuidePanelContent({ steps, onNavigate }: { steps: StepItem[]; onNavigat
         </div>
         <div className="grid grid-cols-2 gap-1.5">
           {[
-            "全コートの対戦表をリアルタイム表示（5秒更新）",
-            "試合中の対戦をハイライト",
-            "勝者・結果も即時反映",
-            "ログイン不要・スマホ対応",
+            "全コートの対戦をリアルタイム表示（5秒更新）",
+            "複数コートはタブで切り替え",
+            "試合中の対戦を上部にハイライト表示",
+            "勝者・結果も即時反映・スマホ最適化",
           ].map((d) => (
             <div key={d} className="flex items-start gap-1.5 text-xs text-gray-400">
               <span className="text-blue-500 shrink-0 mt-0.5">✓</span><span>{d}</span>
