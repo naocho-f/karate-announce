@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Event, Fighter, Match, Tournament } from "@/lib/types";
 import { fighterFullName } from "@/lib/types";
@@ -23,22 +23,7 @@ export default function Home() {
   const [activeEvent, setActiveEvent] = useState<Event | null | undefined>(undefined);
   const [courts, setCourts] = useState<CourtData[]>([]);
 
-  useEffect(() => { load(); }, []);
-  useEffect(() => {
-    const timer = setInterval(load, 5000);
-
-    function handleVisibility() {
-      if (document.visibilityState === "visible") load();
-    }
-    document.addEventListener("visibilitychange", handleVisibility);
-
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, []);
-
-  async function load() {
+  const load = useCallback(async () => {
     const { data: ae } = await supabase
       .from("events")
       .select("*")
@@ -101,7 +86,22 @@ export default function Home() {
         })),
     }));
     setCourts(courtData);
-  }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const timer = setInterval(load, 5000);
+
+    function handleVisibility() {
+      if (document.visibilityState === "visible") load();
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [load]);
 
   if (activeEvent === undefined) {
     return <div className="min-h-screen bg-gray-900" />;
