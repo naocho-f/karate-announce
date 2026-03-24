@@ -388,20 +388,26 @@ export default function CourtPage({ params }: Props) {
                     </span>
                   </div>
 
-                  {/* ナビゲーションバナー */}
+                  {/* ナビゲーションバナー（sticky でスクロール追従、クリックで該当試合にスクロール） */}
                   {allDone ? (
-                    <div className="mb-3 bg-green-950 border border-green-700 rounded-xl px-4 py-3 flex items-center gap-3">
+                    <div className="sticky top-0 z-20 mb-3 bg-green-950 border border-green-700 rounded-xl px-4 py-3 flex items-center gap-3">
                       <span className="text-green-400 shrink-0">✅</span>
                       <p className="text-sm text-green-300 font-medium">全試合終了</p>
                     </div>
                   ) : ongoingMatch ? (
-                    <div className="mb-3 bg-yellow-950 border border-yellow-700 rounded-xl px-4 py-3">
+                    <div
+                      className="sticky top-0 z-20 mb-3 bg-yellow-950 border border-yellow-700 rounded-xl px-4 py-3 cursor-pointer active:opacity-80 transition-opacity"
+                      onClick={() => {
+                        const el = document.getElementById(`match-${ongoingMatch.id}`);
+                        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      }}
+                    >
                       <div className="flex items-center gap-2 mb-1">
                         <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse shrink-0" />
                         <span className="text-sm text-yellow-300 font-medium">
                           {ongoingMatch.match_label ? `${ongoingMatch.match_label} 試合中` : "試合中"}
                         </span>
-                        <span className="ml-auto text-xs text-yellow-600 shrink-0">勝者をタップして確定</span>
+                        <span className="ml-auto text-xs text-yellow-600 shrink-0">タップで試合にジャンプ</span>
                       </div>
                       <p className="text-xs text-yellow-400 pl-4 truncate">
                         {ongoingMatch.fighter1_id ? nameMap[ongoingMatch.fighter1_id] : ""}
@@ -410,13 +416,19 @@ export default function CourtPage({ params }: Props) {
                       </p>
                     </div>
                   ) : nextMatch ? (
-                    <div className="mb-3 bg-blue-950 border border-blue-700 rounded-xl px-4 py-3">
+                    <div
+                      className="sticky top-0 z-20 mb-3 bg-blue-950 border border-blue-700 rounded-xl px-4 py-3 cursor-pointer active:opacity-80 transition-opacity"
+                      onClick={() => {
+                        const el = document.getElementById(`match-${nextMatch.id}`);
+                        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      }}
+                    >
                       <div className="flex items-center gap-2 mb-1">
                         <span className="shrink-0 text-blue-400">▶</span>
                         <span className="text-sm text-blue-200 font-medium">
                           次の試合{nextMatch.match_label ? `：${nextMatch.match_label}` : ""}
                         </span>
-                        <span className="ml-auto text-xs text-blue-600 shrink-0">カードをタップして開始</span>
+                        <span className="ml-auto text-xs text-blue-600 shrink-0">タップで試合にジャンプ</span>
                       </div>
                       <p className="text-xs text-blue-300 pl-5 truncate">
                         {nextMatch.fighter1_id ? nameMap[nextMatch.fighter1_id] : ""}

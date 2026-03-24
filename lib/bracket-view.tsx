@@ -263,6 +263,7 @@ export function BracketView({
           return (
             <div
               key={m.id}
+              id={`match-${m.id}`}
               className={`absolute border rounded-lg overflow-hidden transition-opacity ${
                 isNumberingMode && !isByeMatch
                   ? assignedNum != null
