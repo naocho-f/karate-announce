@@ -49,6 +49,7 @@ export function BracketView({
   mutedMatchIds,
   assignedNumbers,
   nextMatchId,
+  hasOngoingMatch = false,
   onNumberClick,
   onMatchClick,
   onSetWinner,
@@ -71,6 +72,8 @@ export function BracketView({
   assignedNumbers?: Record<string, number>;
   /** 次に開始すべき試合のID（コート画面でハイライト用） */
   nextMatchId?: string | null;
+  /** 現在進行中の試合が存在する（true の場合、ready 試合の開始オーバーレイを非表示） */
+  hasOngoingMatch?: boolean;
   onNumberClick?: (matchId: string) => void;
   onMatchClick?: (matchId: string) => void;
   onSetWinner?: (matchId: string, fighterId: string) => void;
@@ -254,20 +257,22 @@ export function BracketView({
           const isByeMatch = isBye(m);
           const assignedNum = assignedNumbers?.[m.id];
           const isNextMatch = nextMatchId != null && m.id === nextMatchId;
+          // ready だが次の試合でも進行中でもない → トーンダウン
+          const isDimmed = isReady && !isNextMatch && !isOngoing && !isDone && !isNumberingMode;
 
           return (
             <div
               key={m.id}
-              className={`absolute border rounded-lg overflow-hidden ${
+              className={`absolute border rounded-lg overflow-hidden transition-opacity ${
                 isNumberingMode && !isByeMatch
                   ? assignedNum != null
                     ? "border-blue-500 cursor-pointer"
                     : "border-gray-600 hover:border-blue-400 cursor-pointer"
                   : isCorrectingThis ? "border-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]" :
-                  isDone    ? "border-green-800" :
-                  isOngoing ? "border-yellow-600 shadow-[0_0_8px_rgba(202,138,4,0.4)]" :
-                  isNextMatch ? "border-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.6)] animate-pulse" :
-                  isReady   ? "border-blue-600" :
+                  isDone    ? "border-green-900 opacity-40" :
+                  isOngoing ? "border-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.6)]" :
+                  isNextMatch ? "border-blue-300 shadow-[0_0_20px_rgba(147,197,253,0.8)] animate-pulse" :
+                  isDimmed  ? "border-gray-700 opacity-40" :
                               "border-gray-700"
               }`}
               onClick={isNumberingMode && !isByeMatch ? () => onNumberClick!(m.id) : undefined}
@@ -302,13 +307,19 @@ export function BracketView({
                 </div>
               )}
 
-              {/* 試合開始オーバーレイ（ready 状態） */}
-              {isReady && onMatchClick && !isProcessing && (
+              {/* 試合開始オーバーレイ（ready 状態・進行中試合がない場合のみ） */}
+              {isReady && onMatchClick && !isProcessing && !hasOngoingMatch && (
                 <div
-                  className="absolute inset-0 bg-blue-900/60 hover:bg-blue-800/70 active:bg-blue-900/80 flex items-center justify-center z-10 cursor-pointer transition-colors"
+                  className={`absolute inset-0 flex items-center justify-center z-10 cursor-pointer transition-colors ${
+                    isNextMatch
+                      ? "bg-blue-600/75 hover:bg-blue-500/85 active:bg-blue-700/90"
+                      : "bg-gray-800/70 hover:bg-blue-900/60"
+                  }`}
                   onClick={() => onMatchClick(m.id)}
                 >
-                  <span className="text-white text-xs font-bold tracking-wide">▶ 試合開始</span>
+                  <span className={`font-bold tracking-wide ${isNextMatch ? "text-white text-sm" : "text-gray-400 text-xs"}`}>
+                    {isNextMatch ? "▶ 試合開始" : "▶"}
+                  </span>
                 </div>
               )}
 

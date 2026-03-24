@@ -439,6 +439,7 @@ export default function CourtPage({ params }: Props) {
                         processingMatchIds={processingMatchIds}
                         mutedMatchIds={mutedMatchIds}
                         nextMatchId={nextMatch?.id ?? null}
+                        hasOngoingMatch={!!ongoingMatch}
                         onMatchClick={(matchId) => startMatch(tournament.id, matchId)}
                         onSetWinner={(matchId, fighterId) => setWinner(tournament.id, matchId, fighterId)}
                         onCorrectWinner={(matchId, fighterId) => correctWinner(tournament.id, matchId, fighterId)}
