@@ -347,7 +347,7 @@ export function BracketView({
                     {isReady && onMatchClick && (
                       <button
                         onClick={() => onMatchClick(m.id)}
-                        className="flex-1 min-w-0 bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white text-[9px] font-bold rounded h-4 transition"
+                        className="flex-1 min-w-0 whitespace-nowrap bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white text-[9px] font-bold rounded h-4 transition"
                       >
                         ▶ 試合開始
                       </button>
