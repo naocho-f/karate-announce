@@ -8,8 +8,8 @@ import type { Event, FighterInfo, Match, Tournament } from "@/lib/types";
 
 type CourtData = {
   courtNum: number;
-  tournament: Tournament | null;
-  matches: Match[];
+  courtName: string;
+  tournaments: { tournament: Tournament; matches: Match[] }[];
 };
 
 export default function LivePage() {
@@ -29,25 +29,27 @@ export default function LivePage() {
 
     const courtData: CourtData[] = [];
     for (let c = 1; c <= ae.court_count; c++) {
-      const { data: t } = await supabase
+      const courtName = ae.court_names?.[c - 1]?.trim() || `コート${c}`;
+      const { data: tourns } = await supabase
         .from("tournaments")
         .select("*")
         .eq("event_id", ae.id)
         .eq("court", String(c))
         .neq("status", "finished")
-        .maybeSingle();
+        .order("sort_order")
+        .order("created_at");
 
-      let matches: Match[] = [];
-      if (t) {
+      const tournData: CourtData["tournaments"] = [];
+      for (const t of tourns ?? []) {
         const { data: ms } = await supabase
           .from("matches")
           .select("*, fighter1:fighters!fighter1_id(id,name), fighter2:fighters!fighter2_id(id,name), winner:fighters!winner_id(id,name)")
           .eq("tournament_id", t.id)
           .order("round")
           .order("position");
-        matches = (ms ?? []) as Match[];
+        tournData.push({ tournament: t, matches: (ms ?? []) as Match[] });
       }
-      courtData.push({ courtNum: c, tournament: t ?? null, matches });
+      courtData.push({ courtNum: c, courtName, tournaments: tournData });
     }
     const serialized = JSON.stringify(courtData);
     if (serialized !== prevCourtsRef.current) {
@@ -109,13 +111,8 @@ export default function LivePage() {
             <p className="text-lg font-medium">現在開催中の試合はありません</p>
           </div>
         ) : (
-          courts.map(({ courtNum, tournament, matches }) => (
-            <CourtView
-              key={courtNum}
-              courtNum={courtNum}
-              tournament={tournament}
-              matches={matches}
-            />
+          courts.map((court) => (
+            <CourtView key={court.courtNum} court={court} />
           ))
         )}
       </div>
@@ -123,63 +120,73 @@ export default function LivePage() {
   );
 }
 
-function CourtView({ courtNum, tournament, matches }: {
-  courtNum: number;
-  tournament: Tournament | null;
-  matches: Match[];
-}) {
-  const ongoing = matches.find((m) => m.status === "ongoing");
-  const rounds = [...new Set(matches.map((m) => m.round))].sort((a, b) => a - b);
-  const maxRound = rounds.length > 0 ? Math.max(...rounds) : 1;
+function CourtView({ court }: { court: CourtData }) {
+  const { courtName, tournaments } = court;
+  // 全トーナメントの試合中を集約
+  const allOngoing = tournaments.flatMap(({ matches }) => matches.filter((m) => m.status === "ongoing"));
 
   return (
     <div className="bg-gray-900 rounded-2xl overflow-hidden">
       {/* コートヘッダー */}
       <div className="px-4 py-3 border-b border-gray-800 flex items-center gap-3">
-        <h2 className="font-bold text-lg">コート {courtNum}</h2>
-        {tournament ? (
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-            tournament.status === "ongoing" ? "bg-yellow-800 text-yellow-200" :
-            "bg-gray-700 text-gray-400"
-          }`}>
-            {tournament.status === "preparing" ? "準備中" : "進行中"}
-          </span>
+        <h2 className="font-bold text-lg">{courtName}</h2>
+        {tournaments.length > 0 ? (
+          tournaments.some((t) => t.tournament.status === "ongoing") ? (
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-yellow-800 text-yellow-200">進行中</span>
+          ) : (
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-700 text-gray-400">準備中</span>
+          )
         ) : (
           <span className="text-xs text-gray-600">対戦表未設定</span>
         )}
       </div>
 
-      {!tournament || matches.length === 0 ? (
+      {tournaments.length === 0 ? (
         <div className="px-4 py-8 text-center text-gray-600 text-sm">データなし</div>
       ) : (
-        <div className="p-4 space-y-4">
-          {/* 試合中ハイライト */}
-          {ongoing && <OngoingCard match={ongoing} />}
+        <div className="p-4 space-y-6">
+          {/* 試合中ハイライト（全トーナメント横断） */}
+          {allOngoing.map((m) => (
+            <OngoingCard key={m.id} match={m} />
+          ))}
 
-          {/* ラウンド別対戦表 */}
-          <div className="space-y-3">
-            {rounds.map((round) => {
-              const roundMatches = matches.filter((m) => m.round === round);
-              const roundLabel =
-                round === maxRound ? "決勝" :
-                round === maxRound - 1 && maxRound > 1 ? "準決勝" :
-                `${round}回戦`;
-              const allLabeled = roundMatches.every((m) => m.match_label);
+          {/* トーナメント別の対戦表 */}
+          {tournaments.map(({ tournament, matches }) => {
+            const rounds = [...new Set(matches.map((m) => m.round))].sort((a, b) => a - b);
+            const maxRound = rounds.length > 0 ? Math.max(...rounds) : 1;
+            const ongoing = matches.find((m) => m.status === "ongoing");
 
-              return (
-                <div key={round}>
-                  {!allLabeled && (
-                    <p className="text-xs text-gray-500 font-medium mb-1.5 uppercase tracking-wide">{roundLabel}</p>
-                  )}
-                  <div className="space-y-1.5">
-                    {roundMatches.map((m) => (
-                      <MatchRow key={m.id} match={m} isOngoing={m.id === ongoing?.id} />
-                    ))}
-                  </div>
+            return (
+              <div key={tournament.id}>
+                {tournaments.length > 1 && (
+                  <p className="text-xs text-gray-400 font-medium mb-2">{tournament.name}</p>
+                )}
+                <div className="space-y-3">
+                  {rounds.map((round) => {
+                    const roundMatches = matches.filter((m) => m.round === round);
+                    const roundLabel =
+                      round === maxRound ? "決勝" :
+                      round === maxRound - 1 && maxRound > 1 ? "準決勝" :
+                      `${round}回戦`;
+                    const allLabeled = roundMatches.every((m) => m.match_label);
+
+                    return (
+                      <div key={round}>
+                        {!allLabeled && (
+                          <p className="text-xs text-gray-500 font-medium mb-1.5 uppercase tracking-wide">{roundLabel}</p>
+                        )}
+                        <div className="space-y-1.5">
+                          {roundMatches.map((m) => (
+                            <MatchRow key={m.id} match={m} isOngoing={m.id === ongoing?.id} />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
