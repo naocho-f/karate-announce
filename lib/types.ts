@@ -50,12 +50,15 @@ export type Event = {
   is_active: boolean;
   max_weight_diff: number | null;
   max_height_diff: number | null;
+  court_names: string[] | null;
+  entry_closed: boolean;
   created_at: string;
 };
 
 export type Rule = {
   id: string;
   name: string;
+  name_reading: string | null;
   created_at: string;
 };
 
@@ -68,6 +71,11 @@ export type Tournament = {
   default_rules: string | null;
   max_weight_diff: number | null;
   max_height_diff: number | null;
+  sort_order: number;
+  filter_min_weight: number | null;
+  filter_max_weight: number | null;
+  filter_min_age: number | null;
+  filter_max_age: number | null;
   created_at: string;
 };
 
@@ -93,9 +101,10 @@ export type Entry = {
   age: number | null;
   grade: string | null;
   experience: string | null;
-  is_seed: boolean;
   memo: string | null;         // 申込者の備考・要望
   admin_memo: string | null;   // 管理者メモ（対戦組み用）
+  is_withdrawn: boolean;       // 欠場フラグ
+  is_test: boolean;            // テスト用ダミーフラグ
   fighter_id: string | null;
   created_at: string;
 };
@@ -129,3 +138,6 @@ export type Match = {
   fighter2?: Fighter | null;
   winner?: Fighter | null;
 };
+
+/** Supabase JOIN で取得する選手の最小情報 */
+export type FighterInfo = { id: string; name: string };

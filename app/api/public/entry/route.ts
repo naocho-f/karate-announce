@@ -4,6 +4,18 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 export async function POST(request: NextRequest) {
   const { entry, school_name, rule_ids } = await request.json();
 
+  // エントリー締め切りチェック
+  if (entry?.event_id) {
+    const { data: ev } = await supabaseAdmin
+      .from("events")
+      .select("entry_closed")
+      .eq("id", entry.event_id)
+      .single();
+    if (ev?.entry_closed) {
+      return NextResponse.json({ error: "エントリー受付は終了しました" }, { status: 403 });
+    }
+  }
+
   if (school_name) {
     const { data: existing } = await supabaseAdmin
       .from("dojos")

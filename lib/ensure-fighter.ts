@@ -1,17 +1,17 @@
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Entry } from "@/lib/types";
 
 /**
- * エントリー情報から fighter レコードを取得/作成して fighter_id を返す。
- * すでに fighter_id がセットされていればそれを返す。
+ * エントリーから Fighter レコードを作成（または既存を返す）する。
+ * entry.fighter_id が既にあればそのまま返す。
  */
 export async function ensureFighterFromEntry(entry: Entry): Promise<string | null> {
   if (entry.fighter_id) return entry.fighter_id;
 
-  // 流派（school_name）を道場マスタと紐付け
   const dojoName = entry.school_name?.trim() || entry.dojo_name?.trim() || "未所属";
   let dojoId: string;
-  const { data: existingDojo } = await supabase
+
+  const { data: existingDojo } = await supabaseAdmin
     .from("dojos")
     .select("id")
     .eq("name", dojoName)
@@ -20,16 +20,25 @@ export async function ensureFighterFromEntry(entry: Entry): Promise<string | nul
   if (existingDojo) {
     dojoId = existingDojo.id;
   } else {
-    const { data: createdDojo } = await supabase
+    // 並列実行時の競合に備え、INSERT 失敗時は既存レコードを再取得する
+    const { data: createdDojo } = await supabaseAdmin
       .from("dojos")
       .insert({ name: dojoName })
       .select("id")
       .single();
-    if (!createdDojo) return null;
-    dojoId = createdDojo.id;
+    if (createdDojo) {
+      dojoId = createdDojo.id;
+    } else {
+      const { data: refetched } = await supabaseAdmin
+        .from("dojos")
+        .select("id")
+        .eq("name", dojoName)
+        .single();
+      if (!refetched) return null;
+      dojoId = refetched.id;
+    }
   }
 
-  // 選手レコード作成
   const fullName = entry.given_name
     ? `${entry.family_name} ${entry.given_name}`
     : entry.family_name;
@@ -38,10 +47,7 @@ export async function ensureFighterFromEntry(entry: Entry): Promise<string | nul
       ? `${entry.family_name_reading} ${entry.given_name_reading}`
       : entry.family_name_reading ?? null;
 
-  const affiliation = [entry.school_name, entry.dojo_name].filter(Boolean).join("　") || null;
-  const affiliationReading = [entry.school_name_reading, entry.dojo_name_reading].filter(Boolean).join("　") || null;
-
-  const { data: fighter } = await supabase
+  const { data: fighter } = await supabaseAdmin
     .from("fighters")
     .insert({
       name: fullName,
@@ -51,8 +57,8 @@ export async function ensureFighterFromEntry(entry: Entry): Promise<string | nul
       family_name_reading: entry.family_name_reading ?? null,
       given_name_reading: entry.given_name_reading ?? null,
       dojo_id: dojoId,
-      affiliation,
-      affiliation_reading: affiliationReading,
+      affiliation: [entry.school_name, entry.dojo_name].filter(Boolean).join("　") || null,
+      affiliation_reading: [entry.school_name_reading, entry.dojo_name_reading].filter(Boolean).join("　") || null,
       weight: entry.weight,
       height: entry.height,
       age_info: [entry.age != null ? `${entry.age}歳` : null, entry.grade].filter(Boolean).join(" ") || null,
@@ -62,8 +68,6 @@ export async function ensureFighterFromEntry(entry: Entry): Promise<string | nul
     .single();
 
   if (!fighter) return null;
-
-  // エントリーに fighter_id を紐付け
-  await supabase.from("entries").update({ fighter_id: fighter.id }).eq("id", entry.id);
+  await supabaseAdmin.from("entries").update({ fighter_id: fighter.id }).eq("id", entry.id);
   return fighter.id;
 }

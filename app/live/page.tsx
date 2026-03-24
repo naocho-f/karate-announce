@@ -2,11 +2,9 @@
 
 export const dynamic = "force-dynamic";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Event, Match, Tournament } from "@/lib/types";
-
-type FighterInfo = { id: string; name: string };
+import type { Event, FighterInfo, Match, Tournament } from "@/lib/types";
 
 type CourtData = {
   courtNum: number;
@@ -18,6 +16,7 @@ export default function LivePage() {
   const [activeEvent, setActiveEvent] = useState<Event | null | undefined>(undefined);
   const [courts, setCourts] = useState<CourtData[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const prevCourtsRef = useRef<string>("");
 
   const load = useCallback(async () => {
     const { data: ae } = await supabase
@@ -50,8 +49,12 @@ export default function LivePage() {
       }
       courtData.push({ courtNum: c, tournament: t ?? null, matches });
     }
-    setCourts(courtData);
-    setLastUpdated(new Date());
+    const serialized = JSON.stringify(courtData);
+    if (serialized !== prevCourtsRef.current) {
+      prevCourtsRef.current = serialized;
+      setCourts(courtData);
+      setLastUpdated(new Date());
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -65,11 +68,22 @@ export default function LivePage() {
     return <div className="min-h-screen bg-gray-950" />;
   }
 
+  if (activeEvent === null) {
+    return (
+      <main className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <p className="text-4xl">🥋</p>
+          <p className="text-gray-400 text-sm">現在開催中の大会はありません</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       {/* ヘッダー */}
       <div className="bg-gray-900 border-b border-gray-800 px-4 py-3">
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             {activeEvent ? (
               <>
@@ -88,7 +102,7 @@ export default function LivePage() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         {!activeEvent ? (
           <div className="text-center py-24 text-gray-600">
             <p className="text-4xl mb-4">🥋</p>
@@ -234,7 +248,7 @@ function MatchRow({ match, isOngoing }: { match: Match; isOngoing: boolean }) {
             {winner?.id === f2?.id && <span className="ml-1 text-xs text-green-400">勝</span>}
           </>
         ) : (
-          match.round === 1 ? "BYE" : "未定"
+          match.round === 1 ? "不戦勝" : "未定"
         )}
       </span>
       {isOngoing && (

@@ -1,17 +1,18 @@
 -- ============================================================
--- karate-announce 現在のスキーマ（参照用・最新状態）
--- 実際の変更は supabase/migrations/ のファイルで管理する
--- 最終更新: 2026-03-22 (0004_rules_reading_and_famous_dojos まで適用済み)
+-- 0001_baseline.sql
+-- 初期スキーマ（現在の実装に合わせたベースライン）
 -- ============================================================
 
-create table dojos (
+-- 流派マスタ
+create table if not exists dojos (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
   name_reading text,
   created_at timestamptz default now()
 );
 
-create table fighters (
+-- 選手マスタ（対戦表作成時にエントリーから自動生成）
+create table if not exists fighters (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   name_reading text,
@@ -20,8 +21,8 @@ create table fighters (
   family_name_reading text,
   given_name_reading text,
   dojo_id uuid references dojos(id) on delete set null,
-  affiliation text,
-  affiliation_reading text,
+  affiliation text,           -- 「流派　道場」形式
+  affiliation_reading text,   -- TTS 用読み仮名
   weight numeric,
   height numeric,
   age_info text,
@@ -29,37 +30,39 @@ create table fighters (
   created_at timestamptz default now()
 );
 
-create table rules (
+-- ルール（部門・クラス）
+create table if not exists rules (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  name_reading text,
   created_at timestamptz default now()
 );
 
-create table events (
+-- 大会（イベント）
+create table if not exists events (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   event_date date,
   court_count int not null default 1,
-  status text not null default 'preparing',
+  status text not null default 'preparing', -- 'preparing' | 'ongoing' | 'finished'
   is_active boolean not null default false,
   max_weight_diff numeric,
   max_height_diff numeric,
-  court_names text[],
   created_at timestamptz default now()
 );
 
-create table event_rules (
+-- イベント・ルール紐付け
+create table if not exists event_rules (
   event_id uuid references events(id) on delete cascade,
   rule_id uuid references rules(id) on delete cascade,
   primary key (event_id, rule_id)
 );
 
-create table tournaments (
+-- トーナメント（コートごとの対戦表）
+create table if not exists tournaments (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   court text not null,
-  status text not null default 'preparing',
+  status text not null default 'preparing', -- 'preparing' | 'ongoing' | 'finished'
   event_id uuid references events(id) on delete cascade,
   default_rules text,
   max_weight_diff numeric,
@@ -67,7 +70,8 @@ create table tournaments (
   created_at timestamptz default now()
 );
 
-create table matches (
+-- 対戦（マッチ）
+create table if not exists matches (
   id uuid primary key default gen_random_uuid(),
   tournament_id uuid references tournaments(id) on delete cascade,
   round int not null,
@@ -75,14 +79,15 @@ create table matches (
   fighter1_id uuid references fighters(id) on delete set null,
   fighter2_id uuid references fighters(id) on delete set null,
   winner_id uuid references fighters(id) on delete set null,
-  status text not null default 'waiting',
+  status text not null default 'waiting', -- 'waiting' | 'ready' | 'ongoing' | 'done'
   match_label text,
   rules text,
   created_at timestamptz default now(),
   unique(tournament_id, round, position)
 );
 
-create table entries (
+-- エントリー（参加申し込み）
+create table if not exists entries (
   id uuid primary key default gen_random_uuid(),
   event_id uuid references events(id) on delete cascade,
   family_name text not null,
@@ -99,15 +104,15 @@ create table entries (
   age int,
   grade text,
   experience text,
+  is_seed boolean default false,  -- 廃止予定（0002で削除）
   memo text,
   admin_memo text,
-  is_withdrawn boolean not null default false,
-  is_test boolean not null default false,
   fighter_id uuid references fighters(id) on delete set null,
   created_at timestamptz default now()
 );
 
-create table entry_rules (
+-- エントリー・ルール紐付け
+create table if not exists entry_rules (
   entry_id uuid references entries(id) on delete cascade,
   rule_id uuid references rules(id) on delete cascade,
   primary key (entry_id, rule_id)

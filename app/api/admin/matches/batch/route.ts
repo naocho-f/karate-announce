@@ -4,8 +4,15 @@ import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 
 export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
-  const { name, name_reading } = await request.json();
-  const { error } = await supabaseAdmin.from("rules").insert({ name, name_reading: name_reading ?? null });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const { updates } = await request.json() as {
+    updates: { id: string; match_label: string | null }[];
+  };
+  if (!updates?.length) return NextResponse.json({ ok: true });
+
+  await Promise.all(
+    updates.map(({ id, match_label }) =>
+      supabaseAdmin.from("matches").update({ match_label }).eq("id", id)
+    )
+  );
   return NextResponse.json({ ok: true });
 }

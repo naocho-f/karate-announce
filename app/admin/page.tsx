@@ -9,25 +9,34 @@ import type { Dojo, Event, Fighter, Rule } from "@/lib/types";
 import { fighterFullName } from "@/lib/types";
 import {
   TTS_VOICES, getTtsSettings, saveTtsSettings, announceCustom, type TtsVoice,
-  getTemplates, saveTemplates, renderTemplate, DEFAULT_TEMPLATES,
+  renderTemplate, DEFAULT_TEMPLATES,
   MATCH_VARS, WINNER_VARS, SAMPLE_MATCH_VARS, SAMPLE_WINNER_VARS, type AnnounceTemplates,
 } from "@/lib/speech";
 import Link from "next/link";
 
 
-type Tab = "home" | "dojos" | "fighters" | "events" | "rules" | "settings";
+type Tab = "home" | "events" | "settings" | "guide";
 
 const TAB_LABELS: Record<Tab, string> = {
   home: "ホーム",
-  dojos: "流派",
-  fighters: "選手",
   events: "試合",
-  rules: "ルール",
   settings: "設定",
+  guide: "操作説明",
 };
 
 export default function AdminPage() {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("home");
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("tab") as Tab | null;
+    if (p && p in TAB_LABELS) setTab(p);
+  }, []);
+
+  function navigateTab(t: Tab) {
+    setTab(t);
+    router.replace(`/admin?tab=${t}`, { scroll: false });
+  }
 
   return (
     <main className="min-h-screen bg-gray-900 text-white p-6">
@@ -35,15 +44,16 @@ export default function AdminPage() {
         <div className="flex items-center gap-4 mb-6">
           <Link href="/" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
           <h1 className="text-2xl font-bold">管理画面</h1>
+          <Link href="/admin/spec" className="ml-auto text-xs text-gray-500 hover:text-gray-300 transition">仕様書</Link>
           <LogoutButton />
         </div>
 
         <div className="flex gap-2 mb-6 flex-wrap">
-          {(["home", "rules", "dojos", "fighters", "events", "settings"] as const).map((t) => (
+          {(["home", "events", "settings", "guide"] as const).map((t) => (
             <button
               key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              onClick={() => navigateTab(t)}
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition ${
                 tab === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
               }`}
             >
@@ -52,12 +62,10 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {tab === "home"     && <HomePanel onNavigate={setTab} />}
-        {tab === "dojos"    && <DojoPanel />}
-        {tab === "fighters" && <FighterPanel />}
+        {tab === "home"     && <HomeDashboardPanel onNavigate={navigateTab} />}
         {tab === "events"   && <EventPanel />}
-        {tab === "rules"    && <RulesPanel />}
         {tab === "settings" && <SettingsPanel />}
+        {tab === "guide"    && <GuidePanel onNavigate={navigateTab} />}
       </div>
     </main>
   );
@@ -84,9 +92,245 @@ function LogoutButton() {
   );
 }
 
-// ── ホーム ────────────────────────────────────────────────────────────────
+// ── ホームダッシュボード ─────────────────────────────────────────────────
 
-function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
+function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [entryCounts, setEntryCounts] = useState<Record<string, number>>({});
+  const [tournamentEventIds, setTournamentEventIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  function load() {
+    setLoading(true);
+    setError(false);
+
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), 10000)
+    );
+
+    Promise.race([
+      Promise.all([
+        supabase.from("events").select("*").order("event_date", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false }),
+        supabase.from("entries").select("event_id").eq("is_withdrawn", false).eq("is_test", false),
+        supabase.from("tournaments").select("event_id"),
+      ]),
+      timeout,
+    ])
+      .then(([{ data: evts }, { data: entries }, { data: tournaments }]) => {
+        setEvents(evts ?? []);
+        const counts: Record<string, number> = {};
+        for (const e of entries ?? []) counts[e.event_id] = (counts[e.event_id] ?? 0) + 1;
+        setEntryCounts(counts);
+        setTournamentEventIds(new Set((tournaments ?? []).map((t) => t.event_id).filter(Boolean) as string[]));
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+        setError(true);
+      });
+  }
+
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (loading) return <p className="text-sm text-gray-500">読み込み中...</p>;
+
+  if (error) return (
+    <div className="text-center py-12 space-y-3">
+      <p className="text-gray-400 text-sm">読み込みに失敗しました</p>
+      <button
+        onClick={load}
+        className="text-xs bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+      >
+        再試行
+      </button>
+    </div>
+  );
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  function daysUntil(dateStr: string) {
+    const d = new Date(dateStr);
+    d.setHours(0, 0, 0, 0);
+    return Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  const activeEvents = events.filter((e) => e.is_active);
+  const upcomingEvents = events.filter((e) => e.status !== "finished" && !e.is_active);
+  const nextEvent = upcomingEvents
+    .filter((e) => e.event_date)
+    .sort((a, b) => new Date(a.event_date!).getTime() - new Date(b.event_date!).getTime())[0];
+  const actionNeededEvents = upcomingEvents.filter((e) => (entryCounts[e.id] ?? 0) > 0 && !tournamentEventIds.has(e.id));
+  const entryEvents = events.filter((e) => e.status !== "finished" && (entryCounts[e.id] ?? 0) > 0);
+
+  const isEmpty = activeEvents.length === 0 && upcomingEvents.length === 0;
+
+  return (
+    <div className="space-y-6">
+      {/* D: 進行中の試合 */}
+      {activeEvents.length > 0 && (
+        <section>
+          <h2 className="text-xs font-semibold text-green-400 uppercase tracking-wider mb-2">進行中</h2>
+          <div className="space-y-2">
+            {activeEvents.map((e) => (
+              <div key={e.id} className="bg-gray-800 border border-green-600 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shrink-0" />
+                  <span className="font-semibold text-white truncate">{e.name}</span>
+                  {e.event_date && <span className="text-xs text-gray-400 shrink-0">{e.event_date.replace(/-/g, "/")}</span>}
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {Array.from({ length: e.court_count }, (_, i) => {
+                    const courtName = e.court_names?.[i] ?? `コート${i + 1}`;
+                    return (
+                      <a
+                        key={i}
+                        href={`/court/${i + 1}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs bg-green-700 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg transition font-medium"
+                      >
+                        🎤 {courtName}
+                      </a>
+                    );
+                  })}
+                  <Link
+                    href={`/admin/events/${e.id}`}
+                    className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded-lg transition"
+                  >
+                    管理 →
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* A: 次の試合 */}
+      {nextEvent && (
+        <section>
+          <h2 className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">次の試合</h2>
+          <div className="bg-gray-800 rounded-xl p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-semibold text-white truncate">{nextEvent.name}</p>
+                {nextEvent.event_date && (
+                  <p className="text-sm text-gray-400 mt-0.5">{nextEvent.event_date.replace(/-/g, "/")} 開催</p>
+                )}
+              </div>
+              {nextEvent.event_date && (() => {
+                const days = daysUntil(nextEvent.event_date);
+                return (
+                  <div className="shrink-0 text-center min-w-[3rem]">
+                    {days > 0 ? (
+                      <>
+                        <p className="text-2xl font-bold text-white leading-none">{days}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">日後</p>
+                      </>
+                    ) : days === 0 ? (
+                      <p className="text-sm font-bold text-yellow-400">本日開催</p>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-bold text-gray-500 leading-none">{Math.abs(days)}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">日前</p>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+            <div className="mt-3 flex items-center gap-3 flex-wrap">
+              <span className="text-xs text-gray-500">{entryCounts[nextEvent.id] ?? 0} エントリー</span>
+              <span className="text-xs text-gray-500">{nextEvent.court_count} コート</span>
+              <Link
+                href={`/admin/events/${nextEvent.id}`}
+                className="ml-auto text-xs bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition"
+              >
+                管理画面を開く →
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* B: 要対応 */}
+      {actionNeededEvents.length > 0 && (
+        <section>
+          <h2 className="text-xs font-semibold text-yellow-400 uppercase tracking-wider mb-2">要対応</h2>
+          <div className="space-y-2">
+            {actionNeededEvents.map((e) => (
+              <div key={e.id} className="bg-gray-800 border border-yellow-700/50 rounded-xl p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-white truncate">{e.name}</p>
+                    <p className="text-xs text-yellow-400 mt-1">
+                      ⚠ エントリー {entryCounts[e.id]} 件あり・対戦表が未作成
+                    </p>
+                  </div>
+                  <Link
+                    href={`/admin/events/${e.id}`}
+                    className="shrink-0 text-xs bg-yellow-700 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-lg transition"
+                  >
+                    対戦表を作成 →
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* C: エントリー状況 */}
+      {entryEvents.length > 0 && (
+        <section>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">エントリー状況</h2>
+          <div className="bg-gray-800 rounded-xl overflow-hidden">
+            {entryEvents.map((e, i) => (
+              <div
+                key={e.id}
+                className={`flex items-center gap-3 px-4 py-3 ${i !== 0 ? "border-t border-gray-700/50" : ""}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-white truncate">{e.name}</p>
+                  {e.event_date && <p className="text-xs text-gray-500">{e.event_date.replace(/-/g, "/")}</p>}
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-semibold text-white">{entryCounts[e.id]} 件</p>
+                  <p className={`text-xs ${e.entry_closed ? "text-gray-500" : "text-green-400"}`}>
+                    {e.entry_closed ? "締切済" : "受付中"}
+                  </p>
+                </div>
+                <Link href={`/admin/events/${e.id}`} className="text-gray-500 hover:text-gray-300 shrink-0 text-sm">
+                  →
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 試合がない場合 */}
+      {isEmpty && (
+        <div className="text-center py-12 text-gray-500">
+          <p className="text-4xl mb-3">🥋</p>
+          <p className="text-sm">試合がまだ登録されていません</p>
+          <button
+            onClick={() => onNavigate("events")}
+            className="mt-4 text-xs bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+          >
+            試合を作成する →
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 操作説明 ─────────────────────────────────────────────────────────────
+
+function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
   const steps: {
     step: number;
     icon: string;
@@ -102,7 +346,8 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
       step: 1,
       icon: "📋",
       title: "ルールを登録する",
-      tab: "rules",
+      tab: "settings",
+      tabLabel: "設定タブ（ルール）へ →",
       color: "border-yellow-500",
       desc: "「ビギナー」「エキスパート」など大会の部門・クラスをルールとして登録します。エントリー時に参加者が自分の出る部門を選択でき、対戦表作成時にコートごとに部門を絞り込んで組み分けできます。",
       details: [
@@ -129,30 +374,22 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
     {
       step: 2,
       icon: "🏯",
-      title: "流派・選手を登録する（任意）",
-      tab: "dojos",
-      tabLabel: "流派 / 選手タブへ",
+      title: "流派を登録する（任意）",
+      tab: "settings",
+      tabLabel: "設定タブ（流派）へ →",
       color: "border-gray-500",
-      desc: "流派マスタと選手マスタは任意です。エントリーフォームで流派名が入力されると流派は自動追加され、対戦表を確定すると選手レコードも自動作成されます。事前に用意しておきたい場合に使ってください。",
+      desc: "流派マスタは任意です。エントリーフォームで流派名が入力されると自動追加されます。事前に用意しておきたい場合に使ってください。",
       details: [
         "「流派」タブ: 極真会・正道会館など。エントリー時に自動追加されるので空でも OK",
-        "「選手」タブ: 選手マスタ。対戦表確定時にエントリー情報から自動生成されるので空でも OK",
       ],
       screen: (
         <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
-          <div className="flex gap-3">
-            <div className="flex-1 space-y-1.5">
-              <p className="text-gray-500">流派タブ</p>
-              <div className="bg-gray-800 rounded px-2 py-1.5 text-gray-300">極真会</div>
-              <div className="bg-gray-800 rounded px-2 py-1.5 text-gray-300">正道会館</div>
-            </div>
-            <div className="flex-1 space-y-1.5">
-              <p className="text-gray-500">選手タブ</p>
-              <div className="bg-gray-800 rounded px-2 py-1.5 text-gray-300">山田 太郎</div>
-              <div className="bg-gray-800 rounded px-2 py-1.5 text-gray-300">鈴木 一郎</div>
-            </div>
+          <div className="space-y-1.5">
+            <p className="text-gray-500">流派タブ</p>
+            <div className="bg-gray-800 rounded px-2 py-1.5 text-gray-300">極真会</div>
+            <div className="bg-gray-800 rounded px-2 py-1.5 text-gray-300">正道会館</div>
           </div>
-          <p className="text-gray-600 text-center">↑ エントリー・確定時に自動作成されます</p>
+          <p className="text-gray-600 text-center">↑ エントリー時に自動作成されます</p>
         </div>
       ),
     },
@@ -217,47 +454,20 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
     },
     {
       step: 5,
-      icon: "⚙️",
-      title: "出場ルールを設定する",
-      tab: null,
-      color: "border-purple-500",
-      desc: "複数ルールを登録している場合、各エントリーがどの種目に出るかを設定します。コートのルールを絞り込むと、そのルールにエントリーした選手だけが自動振り分けの対象になります。",
-      details: [
-        "各エントリーの「エントリー:」欄で出場する種目をチェック",
-        "対戦表作成時に「コートルール」を選ぶと、その種目の参加者だけに絞り込まれる",
-        "1種類しかルールがない場合はこの手順は不要",
-      ],
-      screen: (
-        <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
-          <p className="text-gray-500 mb-1">エントリー一覧</p>
-          <div className="border border-gray-700 rounded p-2 space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="bg-yellow-600 text-white rounded px-2 py-0.5">★シード</div>
-              <span className="text-white font-medium">山田 太郎</span>
-              <span className="text-gray-400">極真会　65kg</span>
-            </div>
-            <div className="flex items-center gap-2 pl-1 flex-wrap">
-              <span className="text-gray-500">エントリー:</span>
-              <div className="bg-blue-600 text-white rounded px-2 py-0.5">✓ 組手3分</div>
-              <div className="bg-gray-700 text-gray-400 rounded px-2 py-0.5">形</div>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      step: 6,
       icon: "🥊",
       title: "対戦表を組んで確定する",
       tab: null,
       color: "border-orange-500",
-      desc: "コートごとに対戦を組みます。自動振り分けで体重差が近い順にペアリングし、セレクトボックスで手動調整します。◎△✕で相性を確認しながら調整したら確定します。",
+      desc: "コートごとにトーナメントを作成します。1回戦の対戦ペアを組んで確定すると、勝ち上がり用の2回戦・準決勝・決勝の空枠が自動生成されます。勝者を確定するたびに次のラウンドへ自動進出します。",
       details: [
         "試合詳細画面の「体格ミスマッチ設定」で体重差・身長差の上限を設定（例: 体重差5kg）",
         "空欄にすると体重・身長はチェックしない（－表示）",
-        "「自動振り分け」でざっくり割り当て（体重差・シードを考慮）",
-        "各対戦の選手セレクトで手動調整。◎＝体格差OK・△＝注意・✕＝警告",
+        "「自動振り分け」でざっくり割り当て（体重差を考慮）。セレクトで手動調整も可",
+        "◎＝体格差OK・△＝注意・✕＝警告で相性を確認しながら調整",
+        "奇数人の場合は「不戦勝」ペアを入れると1人自動勝ち上がり",
         "試合名・個別ルールを設定して「対戦表を確定」で保存",
+        "確定後は2回戦以降の空枠も自動作成。勝者決定のたびに次ラウンドへ自動セット",
+        "確定後でも選手の差し替えや「不戦勝にする」操作が可能",
       ],
       screen: (
         <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
@@ -277,16 +487,17 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
               <span className="text-gray-500 w-4 shrink-0">2</span>
               <div className="flex-1 bg-gray-700 rounded px-2 py-1 text-gray-200">田中 55kg</div>
               <span className="text-gray-600 shrink-0">vs</span>
-              <div className="flex-1 bg-gray-700 rounded px-2 py-1 text-gray-400">BYE</div>
+              <div className="flex-1 bg-gray-700 rounded px-2 py-1 text-gray-400">不戦勝</div>
               <span className="text-gray-500 w-4 shrink-0 text-center">－</span>
             </div>
           </div>
           <div className="bg-blue-600 text-white rounded px-3 py-1.5 text-center font-medium">対戦表を確定（2対戦）</div>
+          <p className="text-gray-600 text-center">↓ 2回戦・準決勝・決勝の空枠が自動生成</p>
         </div>
       ),
     },
     {
-      step: 7,
+      step: 6,
       icon: "📡",
       title: "試合をアクティブにして AI アナウンス開始",
       tab: "events",
@@ -315,7 +526,7 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
             </div>
           </div>
           <div className="flex items-center justify-between bg-gray-800 rounded px-3 py-2">
-            <span className="text-gray-300">第2試合　田中 花子 vs BYE</span>
+            <span className="text-gray-300">第2試合　田中 花子 vs 不戦勝</span>
             <span className="text-gray-500">↕ 次と入替</span>
           </div>
         </div>
@@ -323,7 +534,7 @@ function HomePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
     },
   ];
 
-  return <HomePanelContent steps={steps} onNavigate={onNavigate} />;
+  return <GuidePanelContent steps={steps} onNavigate={onNavigate} />;
 }
 
 type StepItem = {
@@ -331,7 +542,7 @@ type StepItem = {
   color: string; desc: string; details: string[]; screen: React.ReactNode;
 };
 
-function HomePanelContent({ steps, onNavigate }: { steps: StepItem[]; onNavigate: (tab: Tab) => void }) {
+function GuidePanelContent({ steps, onNavigate }: { steps: StepItem[]; onNavigate: (tab: Tab) => void }) {
   const [openStep, setOpenStep] = useState<number | null>(null);
 
   return (
@@ -471,39 +682,50 @@ function CopyLiveUrlButton() {
 
 function DojoPanel() {
   const [dojos, setDojos] = useState<Dojo[]>([]);
+  const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [reading, setReading] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   async function load() {
     const { data } = await supabase.from("dojos").select("*").order("name");
     setDojos(data ?? []);
+    setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
 
   async function add() {
     if (!name.trim()) return;
-    await fetch("/api/admin/dojos", {
+    setAdding(true);
+    const res = await fetch("/api/admin/dojos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: name.trim(), name_reading: reading.trim() || null }),
     });
+    setAdding(false);
+    if (!res.ok) { alert("追加に失敗しました"); return; }
     setName(""); setReading("");
     load();
   }
 
   async function updateReading(id: string, value: string) {
-    await fetch(`/api/admin/dojos/${id}`, {
+    const res = await fetch(`/api/admin/dojos/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name_reading: value.trim() || null }),
     });
+    if (!res.ok) { alert("読み仮名の更新に失敗しました"); return; }
     load();
   }
 
   async function remove(id: string) {
     if (!confirm("削除しますか？所属選手も削除されます。")) return;
-    await fetch(`/api/admin/dojos/${id}`, { method: "DELETE" });
+    setRemovingId(id);
+    const res = await fetch(`/api/admin/dojos/${id}`, { method: "DELETE" });
+    setRemovingId(null);
+    if (!res.ok) { alert("削除に失敗しました"); return; }
     load();
   }
 
@@ -523,180 +745,37 @@ function DojoPanel() {
             placeholder="読み仮名（例: きょくしんかい）"
             className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
           />
-          <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0">
-            追加
+          <button type="submit" disabled={adding} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50 flex items-center gap-1.5">
+            {adding && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
+            {adding ? "追加中..." : "追加"}
           </button>
         </div>
       </form>
-      <ul className="space-y-2">
-        {dojos.map((d) => (
-          <li key={d.id} className="bg-gray-800 rounded-lg px-4 py-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="font-medium">{d.name}</span>
-              <button onClick={() => remove(d.id)} className="text-red-400 hover:text-red-300 text-sm">削除</button>
-            </div>
-            <ReadingInput
-              value={d.name_reading ?? ""}
-              placeholder="読み仮名（例: きょくしんかい）"
-              onSave={(v) => updateReading(d.id, v)}
-            />
-          </li>
-        ))}
-        {dojos.length === 0 && <li className="text-gray-500 text-sm">流派が登録されていません</li>}
-      </ul>
+      {loading ? (
+        <p className="text-sm text-gray-500">読み込み中...</p>
+      ) : (
+        <ul className="space-y-2">
+          {dojos.map((d) => (
+            <li key={d.id} className="bg-gray-800 rounded-lg px-4 py-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium">{d.name}</span>
+                <button onClick={() => remove(d.id)} disabled={removingId === d.id} className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50">
+                  {removingId === d.id ? "削除中..." : "削除"}
+                </button>
+              </div>
+              <ReadingInput
+                value={d.name_reading ?? ""}
+                placeholder="読み仮名（例: きょくしんかい）"
+                onSave={(v) => updateReading(d.id, v)}
+              />
+            </li>
+          ))}
+          {dojos.length === 0 && <li className="text-gray-500 text-sm">流派が登録されていません</li>}
+        </ul>
+      )}
     </div>
   );
 }
-
-// ── 選手 ──────────────────────────────────────────────────────────────────
-
-function FighterPanel() {
-  const [dojos, setDojos] = useState<Dojo[]>([]);
-  const [fighters, setFighters] = useState<Fighter[]>([]);
-  const [dojoId, setDojoId] = useState("");
-  const [familyName, setFamilyName] = useState("");
-  const [givenName, setGivenName] = useState("");
-  const [familyReading, setFamilyReading] = useState("");
-  const [givenReading, setGivenReading] = useState("");
-  const [weight, setWeight] = useState("");
-  const [height, setHeight] = useState("");
-  const [ageInfo, setAgeInfo] = useState("");
-  const [experience, setExperience] = useState("");
-
-  async function load() {
-    const { data: ds } = await supabase.from("dojos").select("*").order("name");
-    const { data: fs } = await supabase.from("fighters").select("*, dojo:dojos(*)").order("name");
-    setDojos(ds ?? []);
-    setFighters((fs ?? []) as Fighter[]);
-    if (ds && ds.length > 0 && !dojoId) setDojoId(ds[0].id);
-  }
-
-  useEffect(() => { load(); }, []);
-
-  async function add() {
-    if (!familyName.trim() || !dojoId) return;
-    const fullName = givenName.trim() ? `${familyName.trim()} ${givenName.trim()}` : familyName.trim();
-    const fullReading = (familyReading.trim() && givenReading.trim())
-      ? `${familyReading.trim()} ${givenReading.trim()}`
-      : familyReading.trim() || null;
-    await fetch("/api/admin/fighters", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: fullName,
-        name_reading: fullReading,
-        family_name: familyName.trim(),
-        given_name: givenName.trim() || null,
-        family_name_reading: familyReading.trim() || null,
-        given_name_reading: givenReading.trim() || null,
-        dojo_id: dojoId,
-        weight: weight ? parseFloat(weight) : null,
-        height: height ? parseFloat(height) : null,
-        age_info: ageInfo.trim() || null,
-        experience: experience.trim() || null,
-      }),
-    });
-    setFamilyName(""); setGivenName(""); setFamilyReading(""); setGivenReading("");
-    setWeight(""); setHeight(""); setAgeInfo(""); setExperience("");
-    load();
-  }
-
-  async function updateName(id: string, fn: string, gn: string, fr: string, gr: string) {
-    const fullName = gn ? `${fn} ${gn}` : fn;
-    const fullReading = (fr && gr) ? `${fr} ${gr}` : fr || null;
-    await fetch(`/api/admin/fighters/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: fullName, name_reading: fullReading,
-        family_name: fn || null, given_name: gn || null,
-        family_name_reading: fr || null, given_name_reading: gr || null,
-      }),
-    });
-    load();
-  }
-
-  async function updateProfile(id: string, w: string, h: string, a: string, e: string) {
-    await fetch(`/api/admin/fighters/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        weight: w ? parseFloat(w) : null,
-        height: h ? parseFloat(h) : null,
-        age_info: a.trim() || null,
-        experience: e.trim() || null,
-      }),
-    });
-    load();
-  }
-
-  async function remove(id: string) {
-    if (!confirm("削除しますか？")) return;
-    await fetch(`/api/admin/fighters/${id}`, { method: "DELETE" });
-    load();
-  }
-
-  const inp = "flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
-
-  return (
-    <div>
-      <form onSubmit={(e) => { e.preventDefault(); add(); }} className="space-y-2 mb-4">
-        <div className="flex gap-2">
-          <select value={dojoId} onChange={(e) => setDojoId(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500 shrink-0">
-            {dojos.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-          <input value={familyName} onChange={(e) => setFamilyName(e.target.value)} placeholder="姓" className={inp} />
-          <input value={givenName} onChange={(e) => setGivenName(e.target.value)} placeholder="名" className={inp} />
-          <input value={familyReading} onChange={(e) => setFamilyReading(e.target.value)} placeholder="姓読み（やまだ）" className={inp} />
-          <input value={givenReading} onChange={(e) => setGivenReading(e.target.value)} placeholder="名読み（たろう）" className={inp} />
-        </div>
-        <div className="flex gap-2">
-          <input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="体重 kg" type="number" step="0.1" className={inp} />
-          <input value={height} onChange={(e) => setHeight(e.target.value)} placeholder="身長 cm" type="number" step="0.1" className={inp} />
-          <input value={ageInfo} onChange={(e) => setAgeInfo(e.target.value)} placeholder="年齢・学年（例: 25歳 / 小3）" className={inp} />
-          <input value={experience} onChange={(e) => setExperience(e.target.value)} placeholder="格闘技経験（例: 空手初段）" className={inp} />
-          <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0">追加</button>
-        </div>
-      </form>
-      <ul className="space-y-2">
-        {fighters.map((f) => (
-          <li key={f.id} className="bg-gray-800 rounded-lg px-4 py-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="flex items-center gap-2 min-w-0">
-                <span className="text-gray-400 text-sm shrink-0">{(f.dojo as unknown as Dojo)?.name}</span>
-                <span className="font-medium">{fighterFullName(f)}</span>
-                {(f.weight || f.height || f.age_info || f.experience) && (
-                  <span className="text-xs text-gray-500">
-                    {[f.weight ? `${f.weight}kg` : null, f.height ? `${f.height}cm` : null, f.age_info, f.experience].filter(Boolean).join(" / ")}
-                  </span>
-                )}
-              </span>
-              <button onClick={() => remove(f.id)} className="text-red-400 hover:text-red-300 text-sm shrink-0">削除</button>
-            </div>
-            <NameInput
-              familyName={f.family_name ?? f.name ?? ""}
-              givenName={f.given_name ?? ""}
-              familyReading={f.family_name_reading ?? ""}
-              givenReading={f.given_name_reading ?? ""}
-              onSave={(fn, gn, fr, gr) => updateName(f.id, fn, gn, fr, gr)}
-            />
-            <ProfileInput
-              weight={f.weight?.toString() ?? ""}
-              height={f.height?.toString() ?? ""}
-              ageInfo={f.age_info ?? ""}
-              experience={f.experience ?? ""}
-              onSave={(w, h, a, e) => updateProfile(f.id, w, h, a, e)}
-            />
-          </li>
-        ))}
-        {fighters.length === 0 && <li className="text-gray-500 text-sm">選手が登録されていません</li>}
-      </ul>
-    </div>
-  );
-}
-
-// ── トーナメント ───────────────────────────────────────────────────────────
 
 // ── 試合（イベント） ───────────────────────────────────────────────────────
 
@@ -704,19 +783,25 @@ function EventPanel() {
   const router = useRouter();
   const [events, setEvents] = useState<Event[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
+  const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [courtCount, setCourtCount] = useState(1);
+  const [courtNames, setCourtNames] = useState<string[]>(["", "", "", ""]);
   const [selectedRuleIds, setSelectedRuleIds] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
 
   useEffect(() => { load(); }, []);
 
   async function load() {
-    const { data: es } = await supabase.from("events").select("*").order("created_at", { ascending: false });
+    const { data: es } = await supabase.from("events").select("*").order("event_date", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false });
     const { data: rs } = await supabase.from("rules").select("*").order("name");
     setEvents(es ?? []);
     setRules(rs ?? []);
+    setLoading(false);
   }
 
   function toggleRule(id: string) {
@@ -729,120 +814,168 @@ function EventPanel() {
     const res = await fetch("/api/admin/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), event_date: eventDate || null, court_count: courtCount, rule_ids: [...selectedRuleIds] }),
+      body: JSON.stringify({ name: name.trim(), event_date: eventDate || null, court_count: courtCount, court_names: courtNames.slice(0, courtCount), rule_ids: [...selectedRuleIds] }),
     });
-    if (!res.ok) { setCreating(false); return; }
+    if (!res.ok) { alert("試合の作成に失敗しました"); setCreating(false); return; }
     const { id } = await res.json();
     router.push(`/admin/events/${id}`);
   }
 
   async function remove(id: string) {
     if (!confirm("削除しますか？")) return;
-    await fetch(`/api/admin/events/${id}`, { method: "DELETE" });
+    setRemovingId(id);
+    const res = await fetch(`/api/admin/events/${id}`, { method: "DELETE" });
+    setRemovingId(null);
+    if (!res.ok) { alert("削除に失敗しました"); return; }
     load();
   }
 
   async function setActive(id: string, active: boolean) {
-    await fetch(`/api/admin/events/${id}`, {
+    setActivatingId(id);
+    const res = await fetch(`/api/admin/events/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_active: active }),
     });
+    setActivatingId(null);
+    if (!res.ok) { alert("状態の変更に失敗しました"); return; }
     load();
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-800 rounded-xl p-4 space-y-4">
-        <p className="text-xs font-bold text-gray-400">新規試合を作成</p>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="試合名（例: 第○回○○空手道大会）"
-          className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-        />
-        <div className="space-y-1">
-          <p className="text-xs text-gray-400">開催日（任意）</p>
-          <input
-            type="date"
-            value={eventDate}
-            onChange={(e) => setEventDate(e.target.value)}
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
-          />
-        </div>
-        <div className="space-y-2">
-          <p className="text-xs text-gray-400">コート数</p>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4].map((n) => (
-              <button key={n} onClick={() => setCourtCount(n)}
-                className={`w-12 h-12 rounded-xl text-lg font-bold transition ${courtCount === n ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
-              >{n}</button>
-            ))}
-          </div>
-        </div>
-        {rules.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs text-gray-400">開催ルール（複数選択可）</p>
-            <div className="flex flex-wrap gap-2">
-              {rules.map((r) => {
-                const checked = selectedRuleIds.has(r.id);
-                return (
-                  <button
-                    key={r.id}
-                    onClick={() => toggleRule(r.id)}
-                    className={`text-xs px-3 py-1.5 rounded-lg transition ${checked ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}
+    <div className="space-y-4">
+      {/* 試合一覧 */}
+      <p className="text-xs text-gray-600">開催日の降順</p>
+      {loading ? (
+        <p className="text-sm text-gray-500">読み込み中...</p>
+      ) : (
+        <ul className="space-y-2">
+          {events.map((e) => (
+            <li key={e.id} className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active ? "ring-2 ring-green-500" : ""}`}>
+              {/* 試合名 + コート数 */}
+              <div className="flex items-center gap-2 min-w-0">
+                {e.is_active && (
+                  <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold shrink-0">● 進行中</span>
+                )}
+                <span className="font-medium truncate">{e.name}</span>
+                {e.event_date && (
+                  <span className="text-xs text-gray-400 shrink-0">{e.event_date.replace(/-/g, "/")}</span>
+                )}
+                <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded shrink-0">{e.court_count}コート</span>
+              </div>
+              {/* アクション行 */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => setActive(e.id, !e.is_active)}
+                  disabled={activatingId === e.id}
+                  className={`text-xs px-3 py-1.5 rounded-lg font-medium transition disabled:opacity-50 ${
+                    e.is_active
+                      ? "bg-green-700 hover:bg-green-800 text-green-100"
+                      : "bg-amber-500 hover:bg-amber-400 text-white"
+                  }`}
+                >
+                  {activatingId === e.id ? "処理中..." : e.is_active ? "進行中（クリックで停止）" : "▶ アクティブに設定"}
+                </button>
+                <Link
+                  href={`/admin/events/${e.id}`}
+                  className="text-xs px-3 py-1.5 rounded-lg font-medium bg-blue-700 hover:bg-blue-600 text-white transition"
+                >
+                  管理画面を開く →
+                </Link>
+                {e.is_active && (
+                  <Link
+                    href="/"
+                    target="_blank"
+                    className="text-xs px-3 py-1.5 rounded-lg font-medium bg-green-700 hover:bg-green-600 text-white transition"
                   >
-                    {checked ? "✓ " : ""}{r.name}
-                  </button>
-                );
-              })}
+                    アナウンス画面 ↗
+                  </Link>
+                )}
+                <button onClick={() => remove(e.id)} disabled={removingId === e.id} className="text-xs text-red-500 hover:text-red-400 ml-auto transition disabled:opacity-50">
+                  {removingId === e.id ? "削除中..." : "削除"}
+                </button>
+              </div>
+            </li>
+          ))}
+          {events.length === 0 && <li className="text-gray-500 text-sm">試合が登録されていません</li>}
+        </ul>
+      )}
+
+      {/* 新規作成フォーム（トグル） */}
+      <div className="bg-gray-800 rounded-xl overflow-hidden">
+        <button
+          onClick={() => setShowForm((v) => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-300 hover:text-white transition"
+        >
+          <span>＋ 新規試合を作成</span>
+          <span className={`text-gray-500 transition-transform ${showForm ? "rotate-180" : ""}`}>▼</span>
+        </button>
+        {showForm && (
+          <div className="px-4 pb-4 space-y-4 border-t border-gray-700">
+            <div className="pt-3">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="試合名（例: 第○回○○空手道大会）"
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+              />
             </div>
+            <div className="space-y-1">
+              <p className="text-xs text-gray-400">開催日（任意）</p>
+              <input
+                type="date"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+              />
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs text-gray-400">コート数</p>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4].map((n) => (
+                  <button key={n} onClick={() => setCourtCount(n)}
+                    className={`w-12 h-12 rounded-xl text-lg font-bold transition ${courtCount === n ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                  >{n}</button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                {Array.from({ length: courtCount }, (_, i) => (
+                  <input
+                    key={i}
+                    value={courtNames[i] ?? ""}
+                    onChange={(e) => setCourtNames((prev) => { const next = [...prev]; next[i] = e.target.value; return next; })}
+                    placeholder={`コート${i + 1}の名前（任意）`}
+                    className="bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+                  />
+                ))}
+              </div>
+            </div>
+            {rules.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-gray-400">開催ルール（複数選択可）</p>
+                <div className="flex flex-wrap gap-2">
+                  {rules.map((r) => {
+                    const checked = selectedRuleIds.has(r.id);
+                    return (
+                      <button
+                        key={r.id}
+                        onClick={() => toggleRule(r.id)}
+                        className={`text-xs px-3 py-1.5 rounded-lg transition ${checked ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}
+                      >
+                        {checked ? "✓ " : ""}{r.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            <button onClick={create} disabled={creating || !name.trim()}
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition">
+              {creating ? "作成中..." : "試合を作成"}
+            </button>
           </div>
         )}
-        <button onClick={create} disabled={creating || !name.trim()}
-          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition">
-          {creating ? "作成中..." : "試合を作成"}
-        </button>
       </div>
-
-      <ul className="space-y-2">
-        {events.map((e) => (
-          <li key={e.id} className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active ? "ring-2 ring-green-500" : ""}`}>
-            {/* 試合名 + コート数 */}
-            <div className="flex items-center gap-2 min-w-0">
-              {e.is_active && (
-                <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold shrink-0">● 進行中</span>
-              )}
-              <span className="font-medium truncate">{e.name}</span>
-              {e.event_date && (
-                <span className="text-xs text-gray-400 shrink-0">{e.event_date.replace(/-/g, "/")}</span>
-              )}
-              <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded shrink-0">{e.court_count}コート</span>
-            </div>
-            {/* アクション行 */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                onClick={() => setActive(e.id, !e.is_active)}
-                className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
-                  e.is_active
-                    ? "bg-green-700 hover:bg-green-800 text-green-100"
-                    : "bg-amber-500 hover:bg-amber-400 text-white"
-                }`}
-              >
-                {e.is_active ? "進行中（クリックで停止）" : "▶ アクティブに設定"}
-              </button>
-              <Link
-                href={`/admin/events/${e.id}`}
-                className="text-xs px-3 py-1.5 rounded-lg font-medium bg-blue-700 hover:bg-blue-600 text-white transition"
-              >
-                管理画面を開く →
-              </Link>
-              <button onClick={() => remove(e.id)} className="text-xs text-red-500 hover:text-red-400 ml-auto transition">削除</button>
-            </div>
-          </li>
-        ))}
-        {events.length === 0 && <li className="text-gray-500 text-sm">試合が登録されていません</li>}
-      </ul>
     </div>
   );
 }
@@ -851,62 +984,141 @@ function EventPanel() {
 
 function RulesPanel() {
   const [rules, setRules] = useState<Rule[]>([]);
+  const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
+  const [reading, setReading] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   async function load() {
     const { data } = await supabase.from("rules").select("*").order("name");
     setRules(data ?? []);
+    setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
 
   async function add() {
     if (!name.trim()) return;
-    await fetch("/api/admin/rules", {
+    setAdding(true);
+    const res = await fetch("/api/admin/rules", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim() }),
+      body: JSON.stringify({ name: name.trim(), name_reading: reading.trim() || null }),
     });
-    setName("");
+    setAdding(false);
+    if (!res.ok) { alert("追加に失敗しました"); return; }
+    setName(""); setReading("");
+    load();
+  }
+
+  async function updateReading(id: string, value: string) {
+    const res = await fetch(`/api/admin/rules/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name_reading: value.trim() || null }),
+    });
+    if (!res.ok) { alert("読み仮名の更新に失敗しました"); return; }
     load();
   }
 
   async function remove(id: string) {
     if (!confirm("削除しますか？")) return;
-    await fetch(`/api/admin/rules/${id}`, { method: "DELETE" });
+    setRemovingId(id);
+    const res = await fetch(`/api/admin/rules/${id}`, { method: "DELETE" });
+    setRemovingId(null);
+    if (!res.ok) { alert("削除に失敗しました"); return; }
     load();
   }
 
   return (
     <div>
       <p className="text-xs text-gray-400 mb-3">対戦表で選択できるルールを登録します（例: 組手3分・形・ワンマッチ）</p>
-      <form onSubmit={(e) => { e.preventDefault(); add(); }} className="flex gap-2 mb-4">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="ルール名（例: 組手3分・延長1分）"
-          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-        />
-        <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0">
-          追加
-        </button>
+      <form onSubmit={(e) => { e.preventDefault(); add(); }} className="space-y-2 mb-4">
+        <div className="flex gap-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="ルール名（例: 組手3分・延長1分）"
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+          />
+          <input
+            value={reading}
+            onChange={(e) => setReading(e.target.value)}
+            placeholder="読み仮名（例: くみて3ぷんえんちょう1ぷん）"
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+          />
+          <button type="submit" disabled={adding} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50 flex items-center gap-1.5">
+            {adding && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
+            {adding ? "追加中..." : "追加"}
+          </button>
+        </div>
       </form>
-      <ul className="space-y-2">
-        {rules.map((r) => (
-          <li key={r.id} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3">
-            <span className="text-sm">{r.name}</span>
-            <button onClick={() => remove(r.id)} className="text-red-400 hover:text-red-300 text-sm">削除</button>
-          </li>
+      {loading ? (
+        <p className="text-sm text-gray-500">読み込み中...</p>
+      ) : (
+        <ul className="space-y-2">
+          {rules.map((r) => (
+            <li key={r.id} className="bg-gray-800 rounded-lg px-4 py-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium">{r.name}</span>
+                <button onClick={() => remove(r.id)} disabled={removingId === r.id} className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50">
+                  {removingId === r.id ? "削除中..." : "削除"}
+                </button>
+              </div>
+              <ReadingInput
+                value={r.name_reading ?? ""}
+                placeholder="読み仮名（例: くみて3ぷんえんちょう1ぷん）"
+                onSave={(v) => updateReading(r.id, v)}
+              />
+            </li>
+          ))}
+          {rules.length === 0 && <li className="text-gray-500 text-sm">ルールが登録されていません</li>}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ── 設定（サブタブ: アナウンス設定・ルール・流派） ──────────────────────────────
+
+type SettingsSubTab = "announce" | "rules" | "dojos";
+
+const SETTINGS_SUBTAB_LABELS: Record<SettingsSubTab, string> = {
+  announce: "アナウンス設定",
+  rules: "ルール",
+  dojos: "流派",
+};
+
+function SettingsPanel() {
+  const [subTab, setSubTab] = useState<SettingsSubTab>("announce");
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2 flex-wrap">
+        {(["announce", "rules", "dojos"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setSubTab(t)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${
+              subTab === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+            }`}
+          >
+            {SETTINGS_SUBTAB_LABELS[t]}
+          </button>
         ))}
-        {rules.length === 0 && <li className="text-gray-500 text-sm">ルールが登録されていません</li>}
-      </ul>
+      </div>
+
+      {subTab === "announce" && <AnnounceSettingsPanel />}
+      {subTab === "rules"    && <RulesPanel />}
+      {subTab === "dojos"    && <DojoPanel />}
     </div>
   );
 }
 
 // ── TTS設定 ───────────────────────────────────────────────────────────────
 
-function SettingsPanel() {
+function AnnounceSettingsPanel() {
   const [voice, setVoice] = useState<TtsVoice>("nova");
   const [speed, setSpeed] = useState(1.0);
   const [playing, setPlaying] = useState(false);
@@ -1010,11 +1222,17 @@ function TemplateEditor() {
   const [templates, setTemplates] = useState<AnnounceTemplates>(DEFAULT_TEMPLATES);
   const [activeTab, setActiveTab] = useState<"matchStart" | "winner">("matchStart");
   const [playing, setPlaying] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    setTemplates(getTemplates());
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.announce_templates) setTemplates({ ...DEFAULT_TEMPLATES, ...d.announce_templates });
+      })
+      .catch(() => {});
   }, []);
 
   const currentTemplate = templates[activeTab];
@@ -1044,16 +1262,26 @@ function TemplateEditor() {
     });
   }
 
-  function save() {
-    saveTemplates(templates);
+  async function save() {
+    setSaving(true);
+    await fetch("/api/admin/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "announce_templates", value: templates }),
+    });
+    setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
 
-  function resetToDefault() {
+  async function resetToDefault() {
     if (!confirm("デフォルトのテンプレートに戻しますか？")) return;
     setTemplates(DEFAULT_TEMPLATES);
-    saveTemplates(DEFAULT_TEMPLATES);
+    await fetch("/api/admin/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "announce_templates", value: DEFAULT_TEMPLATES }),
+    });
   }
 
   async function playPreview() {
@@ -1139,19 +1367,28 @@ function TemplateEditor() {
         </button>
         <button
           onClick={save}
-          className="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-medium transition"
+          disabled={saving}
+          className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
         >
-          {saved ? "保存しました ✓" : "保存"}
+          {saving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
+          {saving ? "保存中..." : saved ? "保存しました ✓" : "保存"}
         </button>
       </div>
 
-      {/* 変数一覧 */}
-      <div className="border-t border-gray-700 pt-3 space-y-1.5">
-        <p className="text-xs text-gray-500 font-medium">使用できる変数</p>
-        {vars.map(({ key, desc }) => (
-          <div key={key} className="flex items-start gap-2 text-xs">
+      {/* 変数一覧（説明＋サンプル値を統合） */}
+      <div className="border-t border-gray-700 pt-3 space-y-1">
+        <p className="text-xs text-gray-500 font-medium mb-2">使用できる変数</p>
+        {vars.map(({ key, desc, sample }) => (
+          <div key={key} className="flex items-baseline gap-2 text-xs py-0.5">
             <span className="text-blue-400 font-mono shrink-0">{`{{${key}}}`}</span>
+            <span className="text-gray-600 shrink-0">—</span>
             <span className="text-gray-500">{desc}</span>
+            {sample && (
+              <>
+                <span className="text-gray-700 shrink-0">例:</span>
+                <span className="text-gray-400 font-mono">{sample}</span>
+              </>
+            )}
           </div>
         ))}
       </div>
@@ -1161,122 +1398,6 @@ function TemplateEditor() {
   );
 }
 
-// ── 読み仮名インライン編集 ─────────────────────────────────────────────────
-
-function ProfileInput({ weight, height, ageInfo, experience, onSave }: {
-  weight: string;
-  height: string;
-  ageInfo: string;
-  experience: string;
-  onSave: (weight: string, height: string, ageInfo: string, experience: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [dw, setDw] = useState(weight);
-  const [dh, setDh] = useState(height);
-  const [da, setDa] = useState(ageInfo);
-  const [de, setDe] = useState(experience);
-
-  function commit() {
-    onSave(dw, dh, da, de);
-    setEditing(false);
-  }
-
-  const summary = [
-    weight ? `${weight}kg` : null,
-    height ? `${height}cm` : null,
-    ageInfo || null,
-    experience || null,
-  ].filter(Boolean).join(" / ");
-
-  if (!editing) {
-    return (
-      <button
-        onClick={() => { setDw(weight); setDh(height); setDa(ageInfo); setDe(experience); setEditing(true); }}
-        className="text-xs text-gray-500 hover:text-blue-400 transition mt-0.5 block"
-      >
-        体格・経験: {summary || "未設定（タップして編集）"}
-      </button>
-    );
-  }
-
-  return (
-    <form onSubmit={(e) => { e.preventDefault(); commit(); }} className="flex flex-wrap gap-1 mt-1">
-      <input
-        autoFocus
-        value={dw}
-        onChange={(e) => setDw(e.target.value)}
-        placeholder="体重kg"
-        type="number"
-        step="0.1"
-        className="w-20 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
-      />
-      <input
-        value={dh}
-        onChange={(e) => setDh(e.target.value)}
-        placeholder="身長cm"
-        type="number"
-        step="0.1"
-        className="w-20 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
-      />
-      <input
-        value={da}
-        onChange={(e) => setDa(e.target.value)}
-        placeholder="25歳 / 小3"
-        className="w-24 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
-      />
-      <input
-        value={de}
-        onChange={(e) => setDe(e.target.value)}
-        placeholder="格闘技経験（例: 空手初段）"
-        className="flex-1 min-w-32 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
-      />
-      <button type="submit" className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded">保存</button>
-      <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1">×</button>
-    </form>
-  );
-}
-
-function NameInput({ familyName, givenName, familyReading, givenReading, onSave }: {
-  familyName: string;
-  givenName: string;
-  familyReading: string;
-  givenReading: string;
-  onSave: (fn: string, gn: string, fr: string, gr: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [fn, setFn] = useState(familyName);
-  const [gn, setGn] = useState(givenName);
-  const [fr, setFr] = useState(familyReading);
-  const [gr, setGr] = useState(givenReading);
-
-  function commit() { onSave(fn, gn, fr, gr); setEditing(false); }
-
-  const inp = "bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none";
-
-  if (!editing) {
-    const summary = [
-      familyName || givenName ? `${familyName} ${givenName}`.trim() : "未設定",
-      familyReading || givenReading ? `（${familyReading} ${givenReading}`.trim() + "）" : "",
-    ].join("");
-    return (
-      <button onClick={() => { setFn(familyName); setGn(givenName); setFr(familyReading); setGr(givenReading); setEditing(true); }}
-        className="text-xs text-gray-500 hover:text-blue-400 transition mt-0.5 block">
-        氏名: {summary}
-      </button>
-    );
-  }
-
-  return (
-    <form onSubmit={(e) => { e.preventDefault(); commit(); }} className="flex flex-wrap gap-1 mt-1">
-      <input autoFocus value={fn} onChange={(e) => setFn(e.target.value)} placeholder="姓" className={`w-20 ${inp}`} />
-      <input value={gn} onChange={(e) => setGn(e.target.value)} placeholder="名" className={`w-20 ${inp}`} />
-      <input value={fr} onChange={(e) => setFr(e.target.value)} placeholder="姓読み" className={`w-24 ${inp}`} />
-      <input value={gr} onChange={(e) => setGr(e.target.value)} placeholder="名読み" className={`w-24 ${inp}`} />
-      <button type="submit" className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded">保存</button>
-      <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1">×</button>
-    </form>
-  );
-}
 
 function ReadingInput({ value, placeholder, onSave }: {
   value: string;

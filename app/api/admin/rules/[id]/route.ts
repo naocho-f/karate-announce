@@ -4,6 +4,15 @@ import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 
 type Params = { params: Promise<{ id: string }> };
 
+export async function PATCH(request: NextRequest, { params }: Params) {
+  if (!verifyAdminAuth(request)) return unauthorized();
+  const { id } = await params;
+  const { name_reading } = await request.json();
+  const { error } = await supabaseAdmin.from("rules").update({ name_reading: name_reading ?? null }).eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
 export async function DELETE(request: NextRequest, { params }: Params) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { id } = await params;

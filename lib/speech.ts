@@ -31,55 +31,60 @@ export type AnnounceTemplates = {
 };
 
 export const DEFAULT_TEMPLATES: AnnounceTemplates = {
-  matchStart: "{{試合ラベル}}。{{ルール}}{{選手1所属}}所属、{{選手1名前}}選手。対。{{選手2所属}}所属、{{選手2名前}}選手。これより試合を開始します。",
-  winner: "ただいまの試合は、{{勝者所属}}所属、{{勝者名前}}選手の勝ちです。",
+  matchStart: "{{試合ラベル}}。ルール、{{ルール}}。{{選手1流派＋道場}}、所属、{{選手1名前}}選手。対。{{選手2流派＋道場}}、所属、{{選手2名前}}選手。これより試合を開始します。",
+  winner: "ただいまの試合は、{{勝者流派＋道場}}、所属、{{勝者名前}}選手の勝ちです。",
 };
 
-/** 変数の説明（UI表示用） */
-export const MATCH_VARS: { key: string; desc: string }[] = [
-  { key: "試合ラベル", desc: "試合名またはラウンド名（例: 準決勝）" },
-  { key: "ルール",     desc: "ルール名（例: エキスパート → 「ルール、エキスパート。」）" },
-  { key: "選手1名前", desc: "選手1の名前（読み仮名優先）" },
-  { key: "選手1所属", desc: "選手1の流派・道場（読み仮名優先）" },
-  { key: "選手2名前", desc: "選手2の名前（読み仮名優先）" },
-  { key: "選手2所属", desc: "選手2の流派・道場（読み仮名優先）" },
+/** 変数の説明とサンプル値（UI表示用） */
+export const MATCH_VARS: { key: string; desc: string; sample: string }[] = [
+  { key: "試合ラベル",    desc: "試合名またはラウンド名",               sample: "準決勝" },
+  { key: "ルール",        desc: "ルール名のみ。未設定時は空",            sample: "エキスパート" },
+  { key: "選手1名前",     desc: "選手1の名前（読み仮名優先）",           sample: "じゅうくうたろう" },
+  { key: "選手1流派＋道場", desc: "流派と道場を読点でつないだもの",      sample: "じゅうくうかい、ほんぶどうじょう" },
+  { key: "選手1流派",     desc: "選手1の流派のみ",                      sample: "じゅうくうかい" },
+  { key: "選手1道場",     desc: "選手1の道場名のみ（ない場合は空）",     sample: "ほんぶどうじょう" },
+  { key: "選手2名前",     desc: "選手2の名前（読み仮名優先）",           sample: "すずきいちろう" },
+  { key: "選手2流派＋道場", desc: "流派と道場を読点でつないだもの",      sample: "せいどうかいかん" },
+  { key: "選手2流派",     desc: "選手2の流派のみ",                      sample: "せいどうかいかん" },
+  { key: "選手2道場",     desc: "選手2の道場名のみ（ない場合は空）",     sample: "" },
 ];
 
-export const WINNER_VARS: { key: string; desc: string }[] = [
-  { key: "勝者名前", desc: "勝者の名前（読み仮名優先）" },
-  { key: "勝者所属", desc: "勝者の流派・道場（読み仮名優先）" },
+export const WINNER_VARS: { key: string; desc: string; sample: string }[] = [
+  { key: "勝者名前",      desc: "勝者の名前（読み仮名優先）",           sample: "じゅうくうたろう" },
+  { key: "勝者流派＋道場", desc: "流派と道場を読点でつないだもの",      sample: "じゅうくうかい、ほんぶどうじょう" },
+  { key: "勝者流派",      desc: "勝者の流派のみ",                      sample: "じゅうくうかい" },
+  { key: "勝者道場",      desc: "勝者の道場名のみ（ない場合は空）",     sample: "ほんぶどうじょう" },
 ];
 
 /** サンプル値（設定画面のプレビュー用） */
-export const SAMPLE_MATCH_VARS: Record<string, string> = {
-  "試合ラベル": "準決勝",
-  "ルール":     "ルール、エキスパート。",
-  "選手1名前":  "やまだたろう",
-  "選手1所属":  "きょくしんかい ほんぶ",
-  "選手2名前":  "すずきいちろう",
-  "選手2所属":  "しょうどうかいかん",
-};
+export const SAMPLE_MATCH_VARS: Record<string, string> = Object.fromEntries(
+  MATCH_VARS.map(({ key, sample }) => [key, sample])
+);
 
-export const SAMPLE_WINNER_VARS: Record<string, string> = {
-  "勝者名前": "やまだたろう",
-  "勝者所属": "きょくしんかい ほんぶ",
-};
-
-export function getTemplates(): AnnounceTemplates {
-  if (typeof window === "undefined") return DEFAULT_TEMPLATES;
-  try {
-    const saved = localStorage.getItem("announce_templates");
-    if (saved) return { ...DEFAULT_TEMPLATES, ...JSON.parse(saved) };
-  } catch { /* ignore */ }
-  return DEFAULT_TEMPLATES;
-}
-
-export function saveTemplates(templates: AnnounceTemplates) {
-  localStorage.setItem("announce_templates", JSON.stringify(templates));
-}
+export const SAMPLE_WINNER_VARS: Record<string, string> = Object.fromEntries(
+  WINNER_VARS.map(({ key, sample }) => [key, sample])
+);
 
 export function renderTemplate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{([^}]+)\}\}/g, (_, key: string) => vars[key] ?? "");
+}
+
+/**
+ * 全角スペース区切りのアフィリエーション文字列を TTS 向けに変換する。
+ * 「柔空会　本部道場」→「柔空会、本部道場」（読点で自然な間を作る）
+ * 道場なしの場合「柔空会」→「柔空会」（変化なし）
+ */
+function buildAffiliationForTts(aff: string): string {
+  return aff.split("　").filter(Boolean).join("、");
+}
+
+/** アフィリエーション文字列を流派・道場に分解する */
+function splitAffiliationParts(aff: string): { school: string; dojo: string } {
+  const parts = aff.split("　").filter(Boolean);
+  return {
+    school: parts[0] ?? aff,
+    dojo: parts.slice(1).join("、"),
+  };
 }
 
 // ── TTS 発話 ───────────────────────────────────────────────────────────
@@ -115,31 +120,54 @@ export function announceMatchStart(
   fighter2AffiliationReading?: string | null,
   matchLabel?: string | null,
   rules?: string | null,
+  templates?: AnnounceTemplates,
 ) {
   const f1name = fighter1NameReading || fighter1Name;
-  const f1aff = fighter1AffiliationReading || fighter1Affiliation;
+  const f1affRaw = fighter1AffiliationReading || fighter1Affiliation;
   const f2name = fighter2NameReading || fighter2Name;
-  const f2aff = fighter2AffiliationReading || fighter2Affiliation;
-  const { matchStart } = getTemplates();
+  const f2affRaw = fighter2AffiliationReading || fighter2Affiliation;
+  const f1aff = buildAffiliationForTts(f1affRaw);
+  const f2aff = buildAffiliationForTts(f2affRaw);
+  const f1parts = splitAffiliationParts(f1affRaw);
+  const f2parts = splitAffiliationParts(f2affRaw);
+  const { matchStart } = templates ?? DEFAULT_TEMPLATES;
   const text = renderTemplate(matchStart, {
-    "試合ラベル": matchLabel || roundLabel,
-    "ルール":     rules ? `ルール、${rules}。` : "",
-    "選手1名前":  f1name,
-    "選手1所属":  f1aff,
-    "選手2名前":  f2name,
-    "選手2所属":  f2aff,
+    "試合ラベル":    matchLabel || roundLabel,
+    "ルール":        rules ?? "",
+    "選手1名前":     f1name,
+    "選手1流派＋道場": f1aff,
+    "選手1流派":     f1parts.school,
+    "選手1道場":     f1parts.dojo,
+    "選手2名前":     f2name,
+    "選手2流派＋道場": f2aff,
+    "選手2流派":     f2parts.school,
+    "選手2道場":     f2parts.dojo,
   });
   speak(text);
 }
 
-export function announceWinner(winnerName: string, winnerAffiliation: string, nameReading?: string | null, affiliationReading?: string | null) {
+export function announceWinner(winnerName: string, winnerAffiliation: string, nameReading?: string | null, affiliationReading?: string | null, templates?: AnnounceTemplates) {
   const name = nameReading || winnerName;
-  const aff = affiliationReading || winnerAffiliation;
-  const { winner } = getTemplates();
+  const affRaw = affiliationReading || winnerAffiliation;
+  const aff = buildAffiliationForTts(affRaw);
+  const parts = splitAffiliationParts(affRaw);
+  const { winner } = templates ?? DEFAULT_TEMPLATES;
   const text = renderTemplate(winner, {
-    "勝者名前": name,
-    "勝者所属": aff,
+    "勝者名前":      name,
+    "勝者流派＋道場": aff,
+    "勝者流派":      parts.school,
+    "勝者道場":      parts.dojo,
   });
+  speak(text);
+}
+
+export function announceWalkover(winnerName: string, winnerAffiliation: string, nameReading?: string | null, affiliationReading?: string | null) {
+  const name = nameReading || winnerName;
+  const affRaw = affiliationReading || winnerAffiliation;
+  const aff = buildAffiliationForTts(affRaw);
+  const text = aff
+    ? `${aff}、所属、${name}選手の不戦勝です。`
+    : `${name}選手の不戦勝です。`;
   speak(text);
 }
 

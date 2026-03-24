@@ -8,9 +8,10 @@ import type { Event, Rule } from "@/lib/types";
 
 type Props = { params: Promise<{ eventId: string }> };
 
-function ComboInput({ value, onChange, suggestions, placeholder, className, required }: {
+function ComboInput({ value, onChange, onSelect, suggestions, placeholder, className, required }: {
   value: string;
   onChange: (v: string) => void;
+  onSelect?: (v: string) => void;
   suggestions: string[];
   placeholder?: string;
   className?: string;
@@ -48,7 +49,7 @@ function ComboInput({ value, onChange, suggestions, placeholder, className, requ
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { onChange(s); setOpen(false); }}
+                onClick={() => { (onSelect ?? onChange)(s); setOpen(false); }}
                 className="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 transition"
               >
                 {s}
@@ -143,17 +144,28 @@ export default function EntryPage({ params }: Props) {
     [schoolName, dojosBySchool],
   );
 
-  function handleSchoolSelect(name: string) {
+  function handleSchoolChange(name: string) {
     setSchoolName(name);
     if (!schoolNameReading && schoolReadingMap[name]) setSchoolNameReading(schoolReadingMap[name]);
+  }
+
+  function handleSchoolSelect(name: string) {
+    setSchoolName(name);
+    if (schoolReadingMap[name]) setSchoolNameReading(schoolReadingMap[name]);
     setDojoName("");
     setDojoNameReading("");
+  }
+
+  function handleDojoChange(name: string) {
+    setDojoName(name);
+    const key = `${schoolName}::${name}`;
+    if (!dojoNameReading && dojoReadingMap[key]) setDojoNameReading(dojoReadingMap[key]);
   }
 
   function handleDojoSelect(name: string) {
     setDojoName(name);
     const key = `${schoolName}::${name}`;
-    if (!dojoNameReading && dojoReadingMap[key]) setDojoNameReading(dojoReadingMap[key]);
+    if (dojoReadingMap[key]) setDojoNameReading(dojoReadingMap[key]);
   }
 
   function toggleRule(id: string) {
@@ -233,6 +245,18 @@ export default function EntryPage({ params }: Props) {
     );
   }
 
+  if (event.entry_closed) {
+    return (
+      <main className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-6">
+        <div className="max-w-sm w-full text-center space-y-4">
+          <div className="text-5xl">🔒</div>
+          <h1 className="text-xl font-bold">{event.name}</h1>
+          <p className="text-gray-400">エントリー受付は終了しました。</p>
+        </div>
+      </main>
+    );
+  }
+
   if (submitted) {
     return (
       <main className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-6">
@@ -273,24 +297,24 @@ export default function EntryPage({ params }: Props) {
             <p className="text-xs text-gray-400 font-medium">お名前</p>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <label className="text-xs text-gray-500">姓 <span className="text-red-400">*</span></label>
+                <label className="text-xs text-gray-500">姓</label>
                 <input value={familyName} onChange={(e) => setFamilyName(e.target.value)}
                   placeholder="山田" className={inp} required />
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-gray-500">名</label>
                 <input value={givenName} onChange={(e) => setGivenName(e.target.value)}
-                  placeholder="太郎" className={inp} />
+                  placeholder="太郎" className={inp} required />
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-gray-500">姓（読み）</label>
                 <input value={familyReading} onChange={(e) => setFamilyReading(e.target.value)}
-                  placeholder="やまだ" className={inp} />
+                  placeholder="やまだ" className={inp} required />
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-gray-500">名（読み）</label>
                 <input value={givenReading} onChange={(e) => setGivenReading(e.target.value)}
-                  placeholder="たろう" className={inp} />
+                  placeholder="たろう" className={inp} required />
               </div>
             </div>
           </div>
@@ -300,10 +324,11 @@ export default function EntryPage({ params }: Props) {
             <p className="text-xs text-gray-400 font-medium">所属</p>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <label className="text-xs text-gray-500">流派 <span className="text-red-400">*</span></label>
+                <label className="text-xs text-gray-500">流派</label>
                 <ComboInput
                   value={schoolName}
-                  onChange={handleSchoolSelect}
+                  onChange={handleSchoolChange}
+                  onSelect={handleSchoolSelect}
                   suggestions={schoolSuggestions}
                   placeholder="極真会"
                   className={inp}
@@ -311,24 +336,26 @@ export default function EntryPage({ params }: Props) {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-gray-500">流派（読み）</label>
-                <input value={schoolNameReading} onChange={(e) => setSchoolNameReading(e.target.value)}
-                  placeholder="きょくしんかい" className={inp} />
-              </div>
-              <div className="space-y-1">
                 <label className="text-xs text-gray-500">道場・所属</label>
                 <ComboInput
                   value={dojoName}
-                  onChange={handleDojoSelect}
+                  onChange={handleDojoChange}
+                  onSelect={handleDojoSelect}
                   suggestions={dojoSuggestions}
                   placeholder="○○支部道場"
                   className={inp}
+                  required
                 />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-gray-500">流派（読み）</label>
+                <input value={schoolNameReading} onChange={(e) => setSchoolNameReading(e.target.value)}
+                  placeholder="きょくしんかい" className={inp} required />
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-gray-500">道場（読み）</label>
                 <input value={dojoNameReading} onChange={(e) => setDojoNameReading(e.target.value)}
-                  placeholder="○○しぶどうじょう" className={inp} />
+                  placeholder="○○しぶどうじょう" className={inp} required />
               </div>
             </div>
             <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2">
@@ -344,6 +371,7 @@ export default function EntryPage({ params }: Props) {
               value={birthDate}
               onChange={(e) => setBirthDate(e.target.value)}
               className={inp}
+              required
             />
           </div>
 
@@ -354,15 +382,20 @@ export default function EntryPage({ params }: Props) {
               <div className="space-y-1">
                 <label className="text-xs text-gray-500">体重（kg）</label>
                 <input value={weight} onChange={(e) => setWeight(e.target.value)}
-                  placeholder="65" type="number" step="0.1" className={inp} />
+                  placeholder="65" type="number" step="0.1" className={inp} required />
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-gray-500">身長（cm）</label>
                 <input value={height} onChange={(e) => setHeight(e.target.value)}
-                  placeholder="170" type="number" step="0.1" className={inp} />
+                  placeholder="170" type="number" step="0.1" className={inp} required />
+              </div>
+              <div className="col-span-2">
+                <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed">
+                  📢 道着など試合出場時の体重・身長を記入してください。当日も計量を行います。申告値と当日計量値が大幅に異なる場合、失格となる可能性があります。
+                </p>
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-gray-500">年齢（試合日時点） <span className="text-red-400">*</span></label>
+                <label className="text-xs text-gray-500">年齢（試合日時点）</label>
                 <input value={age} onChange={(e) => setAge(e.target.value)}
                   placeholder="25" type="number" min="1" max="99"
                   className={`${inp} ${ageConflict ? "border-red-500" : ""}`} required />
@@ -378,7 +411,7 @@ export default function EntryPage({ params }: Props) {
               <div className="space-y-1">
                 <label className="text-xs text-gray-500">格闘技経験</label>
                 <input value={experience} onChange={(e) => setExperience(e.target.value)}
-                  placeholder="空手歴5年" className={inp} />
+                  placeholder="空手歴5年" className={inp} required />
               </div>
             </div>
           </div>
@@ -419,6 +452,9 @@ export default function EntryPage({ params }: Props) {
               rows={3}
               className={`${inp} resize-none`}
             />
+            <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed">
+              📢 ご記入いただいた内容は主催・運営が確認し、可能な範囲で考慮いたします。ただし、対戦相手の組み合わせ等のご要望については確約できかねますのでご了承ください。
+            </p>
           </div>
 
           {error && (
@@ -427,9 +463,18 @@ export default function EntryPage({ params }: Props) {
 
           <button
             type="submit"
-            disabled={submitting || !familyName.trim() || !schoolName.trim() || !!ageConflict}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-3 rounded-xl text-sm font-bold transition"
+            disabled={
+              submitting || !!ageConflict ||
+              !familyName.trim() || !givenName.trim() ||
+              !familyReading.trim() || !givenReading.trim() ||
+              !schoolName.trim() || !dojoName.trim() ||
+              !schoolNameReading.trim() || !dojoNameReading.trim() ||
+              !birthDate || !weight || !height || !age ||
+              !experience.trim()
+            }
+            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-3 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2"
           >
+            {submitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
             {submitting ? "送信中..." : "エントリーする"}
           </button>
         </form>

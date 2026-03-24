@@ -2,27 +2,27 @@
 
 export const dynamic = "force-dynamic";
 
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import type { Fighter, Match, Tournament } from "@/lib/types";
+import type { Event, Fighter, Match, Tournament } from "@/lib/types";
 import { fighterFullName, fighterFullReading } from "@/lib/types";
-import { roundName, totalRounds } from "@/lib/tournament";
+import { roundName } from "@/lib/tournament";
 import { announceMatchStart, announceWinner, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
 import { BracketView } from "@/lib/bracket-view";
-import Link from "next/link";
 
-type Props = { params: Promise<{ court: string }> };
+// ── 単一コートのパネルコンポーネント ─────────────────────────────────────────
 
-export default function CourtPage({ params }: Props) {
-  const { court } = use(params);
-  const [isEventActive, setIsEventActive] = useState<boolean | null>(null);
-  const [courtDisplayName, setCourtDisplayName] = useState<string>("");
+function CourtPanel({ courtNum, courtDisplayName, announceTemplates }: {
+  courtNum: string;
+  courtDisplayName: string;
+  announceTemplates: AnnounceTemplates;
+}) {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matchesMap, setMatchesMap] = useState<Record<string, Match[]>>({});
   const [fighters, setFighters] = useState<Record<string, Fighter>>({});
   const [withdrawnFighterIds, setWithdrawnFighterIds] = useState<Set<string>>(new Set());
   const [fighterEntryMap, setFighterEntryMap] = useState<Record<string, string>>({});
-  const [announceTemplates, setAnnounceTemplates] = useState<AnnounceTemplates>(DEFAULT_TEMPLATES);
   const [processingMatchIds, setProcessingMatchIds] = useState<Set<string>>(new Set());
   const [mutedMatchIds, setMutedMatchIds] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
@@ -41,28 +41,10 @@ export default function CourtPage({ params }: Props) {
   }
 
   const load = useCallback(async () => {
-    // アクティブなイベントを独立して確認
-    const { data: activeEvent } = await supabase
-      .from("events")
-      .select("id, court_names, is_active")
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (!activeEvent) {
-      setIsEventActive(false);
-      setTournaments([]);
-      setMatchesMap({});
-      return;
-    }
-    setIsEventActive(true);
-    const courtIndex = parseInt(court, 10) - 1;
-    setCourtDisplayName(activeEvent.court_names?.[courtIndex]?.trim() || `コート${court}`);
-
     const { data: tourns } = await supabase
       .from("tournaments")
       .select("*")
-      .eq("event_id", activeEvent.id)
-      .eq("court", court)
+      .eq("court", courtNum)
       .neq("status", "finished")
       .order("sort_order")
       .order("created_at");
@@ -72,9 +54,9 @@ export default function CourtPage({ params }: Props) {
       setMatchesMap({});
       return;
     }
+
     setTournaments(tourns);
 
-    // 全トーナメントの試合を一括ロード
     const tournIds = tourns.map((t) => t.id);
     const { data: allMatches } = await supabase
       .from("matches")
@@ -83,14 +65,12 @@ export default function CourtPage({ params }: Props) {
       .order("round")
       .order("position");
 
-    // 全選手 ID を収集
     const allFighterIds = new Set<string>();
     (allMatches ?? []).forEach((m) => {
       if (m.fighter1_id) allFighterIds.add(m.fighter1_id);
       if (m.fighter2_id) allFighterIds.add(m.fighter2_id);
     });
 
-    // エントリー（棄権状態）を先にロード — 変化検知に含めるため
     const eventId = tourns[0]?.event_id;
     let allEntries: { id: string; fighter_id: string | null; is_withdrawn: boolean }[] = [];
     if (allFighterIds.size > 0 && eventId) {
@@ -102,7 +82,6 @@ export default function CourtPage({ params }: Props) {
       allEntries = e ?? [];
     }
 
-    // matches と entries を両方含めて変化検知（棄権トグル時にも検知できる）
     const serialized = JSON.stringify({ allMatches, allEntries });
     if (serialized === prevDataRef.current) return;
     prevDataRef.current = serialized;
@@ -112,7 +91,6 @@ export default function CourtPage({ params }: Props) {
     (allMatches ?? []).forEach((m) => { byTournament[m.tournament_id]?.push(m); });
     setMatchesMap(byTournament);
 
-    // 全選手を一括ロード
     if (allFighterIds.size > 0) {
       const { data: fs } = await supabase
         .from("fighters")
@@ -123,7 +101,6 @@ export default function CourtPage({ params }: Props) {
       setFighters(fighterMap);
     }
 
-    // 棄権状態を反映
     const withdrawn = new Set<string>();
     const entryMap: Record<string, string> = {};
     allEntries.forEach((e) => {
@@ -134,22 +111,13 @@ export default function CourtPage({ params }: Props) {
     });
     setWithdrawnFighterIds(withdrawn);
     setFighterEntryMap(entryMap);
-  }, [court]);
+  }, [courtNum]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
     const timer = setInterval(load, 3000);
     return () => clearInterval(timer);
   }, [load]);
-
-  useEffect(() => {
-    fetch("/api/admin/settings")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.announce_templates) setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...d.announce_templates });
-      })
-      .catch(() => {});
-  }, []);
 
   async function startMatch(tournamentId: string, matchId: string) {
     const matches = matchesMap[tournamentId] ?? [];
@@ -170,12 +138,11 @@ export default function CourtPage({ params }: Props) {
     endProcessing(matchId);
 
     if (!mutedMatchIds.has(matchId)) {
-      const label = roundName(match.round, rounds);
       const tournament = tournaments.find((t) => t.id === tournamentId);
       announceMatchStart(
         fighterFullName(f1), f1.affiliation ?? f1.dojo?.name ?? "",
         fighterFullName(f2), f2.affiliation ?? f2.dojo?.name ?? "",
-        label,
+        roundName(match.round, rounds),
         fighterFullReading(f1), f1.affiliation_reading ?? f1.dojo?.name_reading,
         fighterFullReading(f2), f2.affiliation_reading ?? f2.dojo?.name_reading,
         match.match_label,
@@ -197,14 +164,7 @@ export default function CourtPage({ params }: Props) {
     await fetch(`/api/court/matches/${matchId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "set_winner",
-        winnerId,
-        tournamentId,
-        round: match.round,
-        rounds,
-        position: match.position,
-      }),
+      body: JSON.stringify({ action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }),
     });
     await load();
     endProcessing(matchId);
@@ -249,14 +209,7 @@ export default function CourtPage({ params }: Props) {
     await fetch(`/api/court/matches/${matchId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "correct_winner",
-        winnerId,
-        tournamentId,
-        round: match.round,
-        rounds,
-        position: match.position,
-      }),
+      body: JSON.stringify({ action: "correct_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }),
     });
     await load();
     endProcessing(matchId);
@@ -299,14 +252,13 @@ export default function CourtPage({ params }: Props) {
     announceWinner(
       fighterFullName(winner), winner.affiliation ?? winner.dojo?.name ?? "",
       fighterFullReading(winner), winner.affiliation_reading ?? winner.dojo?.name_reading,
+      announceTemplates,
     );
   }
 
   async function swapWithNext(tournamentId: string, round: number, matchId: string) {
     const matches = matchesMap[tournamentId] ?? [];
-    const roundMatches = matches
-      .filter((m) => m.round === round)
-      .sort((a, b) => a.position - b.position);
+    const roundMatches = matches.filter((m) => m.round === round).sort((a, b) => a.position - b.position);
     const idx = roundMatches.findIndex((m) => m.id === matchId);
     if (idx < 0 || idx >= roundMatches.length - 1) return;
     const nextMatch = roundMatches[idx + 1];
@@ -322,75 +274,112 @@ export default function CourtPage({ params }: Props) {
     endProcessing(nextMatch.id);
   }
 
+  const nameMap = Object.fromEntries(Object.entries(fighters).map(([id, f]) => [id, fighterFullName(f)]));
+  const affiliationMap = Object.fromEntries(Object.entries(fighters).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""]));
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold text-gray-100 border-b border-gray-700 pb-2">{courtDisplayName}</h2>
+      {tournaments.length === 0 ? (
+        <p className="text-sm text-gray-500">このコートにトーナメントがありません</p>
+      ) : (
+        <div className="space-y-6">
+          {tournaments.map((tournament) => {
+            const matches = matchesMap[tournament.id] ?? [];
+            return (
+              <div key={tournament.id}>
+                <div className="flex items-center gap-3 mb-3">
+                  <h3 className="font-semibold text-base">{tournament.name}</h3>
+                  <span className={`text-xs px-2 py-0.5 rounded ${
+                    tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"
+                  }`}>
+                    {tournament.status === "ongoing" ? "進行中" : "準備中"}
+                  </span>
+                </div>
+                <div className="bg-gray-800 rounded-xl p-4">
+                  {matches.length === 0 ? (
+                    <p className="text-sm text-gray-500">試合データなし</p>
+                  ) : (
+                    <BracketView
+                      matches={matches}
+                      nameMap={nameMap}
+                      affiliationMap={affiliationMap}
+                      withdrawnIds={withdrawnFighterIds}
+                      fighterEntryMap={fighterEntryMap}
+                      processingMatchIds={processingMatchIds}
+                      mutedMatchIds={mutedMatchIds}
+                      onMatchClick={(matchId) => startMatch(tournament.id, matchId)}
+                      onSetWinner={(matchId, fighterId) => setWinner(tournament.id, matchId, fighterId)}
+                      onCorrectWinner={(matchId, fighterId) => correctWinner(tournament.id, matchId, fighterId)}
+                      onReannounceStart={(matchId) => reannounceStart(tournament.id, matchId)}
+                      onReannounceWinner={(matchId) => reannounceWinner(tournament.id, matchId)}
+                      onWithdrawnToggle={(matchId, fighterId, entryId, withdrawn) => toggleWithdrawal(matchId, entryId, withdrawn)}
+                      onSwapWithNext={(round, matchId) => swapWithNext(tournament.id, round, matchId)}
+                      onToggleMute={toggleMute}
+                    />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── メインページ ──────────────────────────────────────────────────────────────
+
+export default function CourtIndexPage() {
+  const [activeEvent, setActiveEvent] = useState<Event | null | undefined>(undefined);
+  const [announceTemplates, setAnnounceTemplates] = useState<AnnounceTemplates>(DEFAULT_TEMPLATES);
+
+  useEffect(() => {
+    supabase.from("events").select("*").eq("is_active", true).maybeSingle()
+      .then(({ data }) => setActiveEvent(data ?? null));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.announce_templates) setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...d.announce_templates });
+      })
+      .catch(() => {});
+  }, []);
+
+  if (activeEvent === undefined) return <div className="min-h-screen bg-gray-900" />;
+
+  if (!activeEvent) {
+    return (
+      <main className="min-h-screen bg-gray-900 text-white p-4 flex items-center justify-center">
+        <div className="text-center text-gray-500">
+          <p className="text-4xl mb-4">🔒</p>
+          <p className="text-lg mb-2">試合はまだ開始されていません</p>
+          <p className="text-sm text-gray-600">管理者が大会をアクティブに設定するとアクセスできます</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gray-900 text-white p-4">
       <div className="max-w-5xl mx-auto">
-        {/* ヘッダー */}
         <div className="flex items-center gap-3 mb-6">
           <Link href="/" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
-          <h1 className="text-2xl font-bold">{courtDisplayName || `${court}コート`}</h1>
+          <h1 className="text-2xl font-bold">{activeEvent.name}</h1>
+          <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold">● 進行中</span>
         </div>
-
-        {isEventActive === false ? (
-          <div className="text-center text-gray-500 mt-20">
-            <p className="text-4xl mb-4">🔒</p>
-            <p className="text-lg mb-2">試合はまだ開始されていません</p>
-            <p className="text-sm text-gray-600">管理者が大会をアクティブに設定するとアクセスできます</p>
-          </div>
-        ) : tournaments.length === 0 ? (
-          <div className="text-center text-gray-500 mt-20">
-            <p className="text-lg mb-2">このコートにトーナメントがありません</p>
-            <Link href="/admin" className="text-blue-400 hover:text-blue-300 text-sm underline">管理画面でトーナメントを作成</Link>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {tournaments.map((tournament) => {
-              const matches = matchesMap[tournament.id] ?? [];
-              const nameMap = Object.fromEntries(
-                Object.entries(fighters).map(([id, f]) => [id, fighterFullName(f)])
-              );
-              const affiliationMap = Object.fromEntries(
-                Object.entries(fighters).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""])
-              );
-
-              return (
-                <div key={tournament.id}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <h2 className="font-semibold text-lg">{tournament.name}</h2>
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"
-                    }`}>
-                      {tournament.status === "ongoing" ? "進行中" : "準備中"}
-                    </span>
-                  </div>
-                  <div className="bg-gray-800 rounded-xl p-4">
-                    {matches.length === 0 ? (
-                      <p className="text-sm text-gray-500">試合データなし</p>
-                    ) : (
-                      <BracketView
-                        matches={matches}
-                        nameMap={nameMap}
-                        affiliationMap={affiliationMap}
-                        withdrawnIds={withdrawnFighterIds}
-                        fighterEntryMap={fighterEntryMap}
-                        processingMatchIds={processingMatchIds}
-                        mutedMatchIds={mutedMatchIds}
-                        onMatchClick={(matchId) => startMatch(tournament.id, matchId)}
-                        onSetWinner={(matchId, fighterId) => setWinner(tournament.id, matchId, fighterId)}
-                        onCorrectWinner={(matchId, fighterId) => correctWinner(tournament.id, matchId, fighterId)}
-                        onReannounceStart={(matchId) => reannounceStart(tournament.id, matchId)}
-                        onReannounceWinner={(matchId) => reannounceWinner(tournament.id, matchId)}
-                        onWithdrawnToggle={(matchId, fighterId, entryId, withdrawn) => toggleWithdrawal(matchId, entryId, withdrawn)}
-                        onSwapWithNext={(round, matchId) => swapWithNext(tournament.id, round, matchId)}
-                        onToggleMute={toggleMute}
-                      />
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className="space-y-10">
+          {Array.from({ length: activeEvent.court_count }, (_, i) => i + 1).map((n) => (
+            <CourtPanel
+              key={n}
+              courtNum={String(n)}
+              courtDisplayName={activeEvent.court_names?.[n - 1]?.trim() || `コート${n}`}
+              announceTemplates={announceTemplates}
+            />
+          ))}
+        </div>
       </div>
     </main>
   );

@@ -1,0 +1,1 @@
+ALTER TABLE events ADD COLUMN entry_closed BOOLEAN NOT NULL DEFAULT false;

@@ -6,7 +6,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(request: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await request.json() as {
-    action: "start" | "set_winner" | "replace" | "edit";
+    action: "start" | "set_winner" | "replace" | "edit" | "swap_with" | "correct_winner";
     tournamentId?: string;
     winnerId?: string;
     round?: number;
@@ -16,6 +16,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     newFighterId?: string;
     matchLabel?: string | null;
     rules?: string | null;
+    otherMatchId?: string;
   };
 
   if (body.action === "start") {
@@ -70,6 +71,45 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       match_label: body.matchLabel ?? null,
       rules: body.rules ?? null,
     }).eq("id", id);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.action === "correct_winner") {
+    const { winnerId, tournamentId, round, rounds, position } = body;
+    await supabaseAdmin.from("matches").update({ winner_id: winnerId }).eq("id", id);
+
+    if (round! < rounds!) {
+      const nextPosition = Math.floor(position! / 2);
+      const field = position! % 2 === 0 ? "fighter1_id" : "fighter2_id";
+      const { data: nextMatch } = await supabaseAdmin
+        .from("matches")
+        .select("id, status")
+        .eq("tournament_id", tournamentId)
+        .eq("round", round! + 1)
+        .eq("position", nextPosition)
+        .single();
+      // 次のラウンドがまだ done/ongoing でなければ選手を差し替え
+      if (nextMatch && nextMatch.status !== "done" && nextMatch.status !== "ongoing") {
+        await supabaseAdmin
+          .from("matches")
+          .update({ [field]: winnerId, status: "ready" })
+          .eq("id", nextMatch.id);
+      }
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.action === "swap_with") {
+    const { otherMatchId } = body;
+    if (!otherMatchId) return NextResponse.json({ error: "otherMatchId required" }, { status: 400 });
+    const { data: m1 } = await supabaseAdmin.from("matches").select("position").eq("id", id).single();
+    const { data: m2 } = await supabaseAdmin.from("matches").select("position").eq("id", otherMatchId).single();
+    if (!m1 || !m2) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    // unique(tournament_id, round, position) 制約を回避するため3ステップで交換
+    const tmpPos = 99999;
+    await supabaseAdmin.from("matches").update({ position: tmpPos }).eq("id", id);
+    await supabaseAdmin.from("matches").update({ position: m1.position }).eq("id", otherMatchId);
+    await supabaseAdmin.from("matches").update({ position: m2.position }).eq("id", id);
     return NextResponse.json({ ok: true });
   }
 
