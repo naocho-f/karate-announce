@@ -48,12 +48,12 @@ export default function AdminPage() {
           <LogoutButton />
         </div>
 
-        <div className="flex gap-2 mb-6 flex-wrap">
+        <div className="grid grid-cols-4 gap-2 mb-6">
           {(["home", "events", "settings", "guide"] as const).map((t) => (
             <button
               key={t}
               onClick={() => navigateTab(t)}
-              className={`px-6 py-2 rounded-lg text-sm font-medium transition ${
+              className={`py-2 rounded-lg text-sm font-medium transition text-center ${
                 tab === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
               }`}
             >
