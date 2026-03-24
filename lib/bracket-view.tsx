@@ -269,7 +269,7 @@ export function BracketView({
                     ? "border-blue-500 cursor-pointer"
                     : "border-gray-600 hover:border-blue-400 cursor-pointer"
                   : isCorrectingThis ? "border-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]" :
-                  isDone    ? "border-green-900 opacity-40" :
+                  isDone    ? "border-green-900/60" :
                   isOngoing ? "border-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.6)]" :
                   isNextMatch ? "border-blue-300 shadow-[0_0_20px_rgba(147,197,253,0.8)] animate-pulse" :
                   isDimmed  ? "border-gray-700 opacity-40" :
