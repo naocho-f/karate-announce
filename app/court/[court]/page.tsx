@@ -348,22 +348,25 @@ export default function CourtPage({ params }: Props) {
             <Link href="/admin" className="text-blue-400 hover:text-blue-300 text-sm underline">管理画面でトーナメントを作成</Link>
           </div>
         ) : (
-          <div className="space-y-8">
-            {tournaments.map((tournament) => {
-              const matches = matchesMap[tournament.id] ?? [];
-              const nameMap = Object.fromEntries(
-                Object.entries(fighters).map(([id, f]) => [id, fighterFullName(f)])
-              );
-              const affiliationMap = Object.fromEntries(
-                Object.entries(fighters).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""])
-              );
+          (() => {
+            const nameMap = Object.fromEntries(
+              Object.entries(fighters).map(([id, f]) => [id, fighterFullName(f)])
+            );
+            const affiliationMap = Object.fromEntries(
+              Object.entries(fighters).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""])
+            );
 
-              // 次に開始すべき試合を特定（readyかつ両選手が揃っていて棄権していない試合のうち試合番号が最小）
-              const readyMatches = matches.filter(
+            // コート全体で進行中の試合（1つだけのはず）
+            const allMatches = tournaments.flatMap((t) => matchesMap[t.id] ?? []);
+            const courtOngoing = allMatches.find((m) => m.status === "ongoing") ?? null;
+
+            // コート全体で次に開始すべき試合（進行中がなければ試合番号が最小の ready）
+            const courtNextMatch = courtOngoing ? null : allMatches
+              .filter(
                 (m) => m.status === "ready" && m.fighter1_id && m.fighter2_id &&
-                  !withdrawnFighterIds.has(m.fighter1_id) && !withdrawnFighterIds.has(m.fighter2_id)
-              );
-              const nextMatch = readyMatches.sort((a, b) => {
+                  !withdrawnFighterIds.has(m.fighter1_id!) && !withdrawnFighterIds.has(m.fighter2_id!)
+              )
+              .sort((a, b) => {
                 const nA = a.match_label ? parseInt(a.match_label) : Infinity;
                 const nB = b.match_label ? parseInt(b.match_label) : Infinity;
                 if (nA !== nB) return nA - nB;
@@ -371,102 +374,109 @@ export default function CourtPage({ params }: Props) {
                 return a.position - b.position;
               })[0] ?? null;
 
-              // 進行中の試合
-              const ongoingMatch = matches.find((m) => m.status === "ongoing") ?? null;
+            // コート全体で全試合終了判定
+            const courtAllDone = allMatches.length > 0 && allMatches.every(
+              (m) => m.status === "done" || (m.round === 1 && m.fighter1_id && !m.fighter2_id)
+            );
 
-              // 全試合終了判定
-              const allDone = matches.length > 0 && matches.every((m) => m.status === "done" || (m.round === 1 && m.fighter1_id && !m.fighter2_id));
-
-              return (
-                <div key={tournament.id}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <h2 className="font-semibold text-lg">{tournament.name}</h2>
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"
-                    }`}>
-                      {tournament.status === "ongoing" ? "進行中" : "準備中"}
-                    </span>
+            return (
+              <div className="space-y-8">
+                {/* ナビゲーションバナー（コート単位で1つ、sticky） */}
+                {courtAllDone ? (
+                  <div className="sticky top-0 z-20 bg-green-950 border border-green-700 rounded-xl px-4 py-3 flex items-center gap-3">
+                    <span className="text-green-400 shrink-0">✅</span>
+                    <p className="text-sm text-green-300 font-medium">全試合終了</p>
                   </div>
-
-                  {/* ナビゲーションバナー（sticky でスクロール追従、クリックで該当試合にスクロール） */}
-                  {allDone ? (
-                    <div className="sticky top-0 z-20 mb-3 bg-green-950 border border-green-700 rounded-xl px-4 py-3 flex items-center gap-3">
-                      <span className="text-green-400 shrink-0">✅</span>
-                      <p className="text-sm text-green-300 font-medium">全試合終了</p>
+                ) : courtOngoing ? (
+                  <div
+                    className="sticky top-0 z-20 bg-yellow-950 border border-yellow-700 rounded-xl px-4 py-3 cursor-pointer active:opacity-80 transition-opacity"
+                    onClick={() => {
+                      const el = document.getElementById(`match-${courtOngoing.id}`);
+                      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse shrink-0" />
+                      <span className="text-sm text-yellow-300 font-medium">
+                        {courtOngoing.match_label ? `${courtOngoing.match_label} 試合中` : "試合中"}
+                      </span>
+                      <span className="ml-auto text-xs text-yellow-600 shrink-0">タップで試合にジャンプ</span>
                     </div>
-                  ) : ongoingMatch ? (
-                    <div
-                      className="sticky top-0 z-20 mb-3 bg-yellow-950 border border-yellow-700 rounded-xl px-4 py-3 cursor-pointer active:opacity-80 transition-opacity"
-                      onClick={() => {
-                        const el = document.getElementById(`match-${ongoingMatch.id}`);
-                        el?.scrollIntoView({ behavior: "smooth", block: "center" });
-                      }}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse shrink-0" />
-                        <span className="text-sm text-yellow-300 font-medium">
-                          {ongoingMatch.match_label ? `${ongoingMatch.match_label} 試合中` : "試合中"}
-                        </span>
-                        <span className="ml-auto text-xs text-yellow-600 shrink-0">タップで試合にジャンプ</span>
-                      </div>
-                      <p className="text-xs text-yellow-400 pl-4 truncate">
-                        {ongoingMatch.fighter1_id ? nameMap[ongoingMatch.fighter1_id] : ""}
-                        <span className="text-yellow-700 mx-1">vs</span>
-                        {ongoingMatch.fighter2_id ? nameMap[ongoingMatch.fighter2_id] : ""}
-                      </p>
-                    </div>
-                  ) : nextMatch ? (
-                    <div
-                      className="sticky top-0 z-20 mb-3 bg-blue-950 border border-blue-700 rounded-xl px-4 py-3 cursor-pointer active:opacity-80 transition-opacity"
-                      onClick={() => {
-                        const el = document.getElementById(`match-${nextMatch.id}`);
-                        el?.scrollIntoView({ behavior: "smooth", block: "center" });
-                      }}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="shrink-0 text-blue-400">▶</span>
-                        <span className="text-sm text-blue-200 font-medium">
-                          次の試合{nextMatch.match_label ? `：${nextMatch.match_label}` : ""}
-                        </span>
-                        <span className="ml-auto text-xs text-blue-600 shrink-0">タップで試合にジャンプ</span>
-                      </div>
-                      <p className="text-xs text-blue-300 pl-5 truncate">
-                        {nextMatch.fighter1_id ? nameMap[nextMatch.fighter1_id] : ""}
-                        <span className="text-blue-700 mx-1">vs</span>
-                        {nextMatch.fighter2_id ? nameMap[nextMatch.fighter2_id] : ""}
-                      </p>
-                    </div>
-                  ) : null}
-
-                  <div className="bg-gray-800 rounded-xl p-4">
-                    {matches.length === 0 ? (
-                      <p className="text-sm text-gray-500">試合データなし</p>
-                    ) : (
-                      <BracketView
-                        matches={matches}
-                        nameMap={nameMap}
-                        affiliationMap={affiliationMap}
-                        withdrawnIds={withdrawnFighterIds}
-                        fighterEntryMap={fighterEntryMap}
-                        processingMatchIds={processingMatchIds}
-                        mutedMatchIds={mutedMatchIds}
-                        nextMatchId={nextMatch?.id ?? null}
-                        hasOngoingMatch={!!ongoingMatch}
-                        onMatchClick={(matchId) => startMatch(tournament.id, matchId)}
-                        onSetWinner={(matchId, fighterId) => setWinner(tournament.id, matchId, fighterId)}
-                        onCorrectWinner={(matchId, fighterId) => correctWinner(tournament.id, matchId, fighterId)}
-                        onReannounceStart={(matchId) => reannounceStart(tournament.id, matchId)}
-                        onReannounceWinner={(matchId) => reannounceWinner(tournament.id, matchId)}
-                        onWithdrawnToggle={(matchId, fighterId, entryId, withdrawn) => toggleWithdrawal(matchId, entryId, withdrawn)}
-                        onSwapWithNext={(round, matchId) => swapWithNext(tournament.id, round, matchId)}
-                        onToggleMute={toggleMute}
-                      />
-                    )}
+                    <p className="text-xs text-yellow-400 pl-4 truncate">
+                      {courtOngoing.fighter1_id ? nameMap[courtOngoing.fighter1_id] : ""}
+                      <span className="text-yellow-700 mx-1">vs</span>
+                      {courtOngoing.fighter2_id ? nameMap[courtOngoing.fighter2_id] : ""}
+                    </p>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                ) : courtNextMatch ? (
+                  <div
+                    className="sticky top-0 z-20 bg-blue-950 border border-blue-700 rounded-xl px-4 py-3 cursor-pointer active:opacity-80 transition-opacity"
+                    onClick={() => {
+                      const el = document.getElementById(`match-${courtNextMatch.id}`);
+                      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="shrink-0 text-blue-400">▶</span>
+                      <span className="text-sm text-blue-200 font-medium">
+                        次の試合{courtNextMatch.match_label ? `：${courtNextMatch.match_label}` : ""}
+                      </span>
+                      <span className="ml-auto text-xs text-blue-600 shrink-0">タップで試合にジャンプ</span>
+                    </div>
+                    <p className="text-xs text-blue-300 pl-5 truncate">
+                      {courtNextMatch.fighter1_id ? nameMap[courtNextMatch.fighter1_id] : ""}
+                      <span className="text-blue-700 mx-1">vs</span>
+                      {courtNextMatch.fighter2_id ? nameMap[courtNextMatch.fighter2_id] : ""}
+                    </p>
+                  </div>
+                ) : null}
+
+                {/* トーナメント別ブラケット */}
+                {tournaments.map((tournament) => {
+                  const matches = matchesMap[tournament.id] ?? [];
+
+                  return (
+                    <div key={tournament.id}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <h2 className="font-semibold text-lg">{tournament.name}</h2>
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"
+                        }`}>
+                          {tournament.status === "ongoing" ? "進行中" : "準備中"}
+                        </span>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-xl p-4">
+                        {matches.length === 0 ? (
+                          <p className="text-sm text-gray-500">試合データなし</p>
+                        ) : (
+                          <BracketView
+                            matches={matches}
+                            nameMap={nameMap}
+                            affiliationMap={affiliationMap}
+                            withdrawnIds={withdrawnFighterIds}
+                            fighterEntryMap={fighterEntryMap}
+                            processingMatchIds={processingMatchIds}
+                            mutedMatchIds={mutedMatchIds}
+                            nextMatchId={courtNextMatch?.id ?? null}
+                            hasOngoingMatch={!!courtOngoing}
+                            onMatchClick={(matchId) => startMatch(tournament.id, matchId)}
+                            onSetWinner={(matchId, fighterId) => setWinner(tournament.id, matchId, fighterId)}
+                            onCorrectWinner={(matchId, fighterId) => correctWinner(tournament.id, matchId, fighterId)}
+                            onReannounceStart={(matchId) => reannounceStart(tournament.id, matchId)}
+                            onReannounceWinner={(matchId) => reannounceWinner(tournament.id, matchId)}
+                            onWithdrawnToggle={(matchId, fighterId, entryId, withdrawn) => toggleWithdrawal(matchId, entryId, withdrawn)}
+                            onSwapWithNext={(round, matchId) => swapWithNext(tournament.id, round, matchId)}
+                            onToggleMute={toggleMute}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()
         )}
       </div>
     </main>
