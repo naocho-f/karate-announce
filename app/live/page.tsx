@@ -12,6 +12,13 @@ type CourtData = {
   tournaments: { tournament: Tournament; matches: Match[] }[];
 };
 
+/** match_label から数値部分を抽出してソート用の数値を返す */
+function matchLabelNum(label: string | null): number {
+  if (!label) return Infinity;
+  const m = label.match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : Infinity;
+}
+
 export default function LivePage() {
   const [activeEvent, setActiveEvent] = useState<Event | null | undefined>(undefined);
   const [courts, setCourts] = useState<CourtData[]>([]);
@@ -92,7 +99,7 @@ export default function LivePage() {
     <main className="min-h-screen bg-gray-950 text-white">
       {/* ヘッダー */}
       <div className="sticky top-0 z-10 bg-gray-900/95 backdrop-blur border-b border-gray-800">
-        <div className="max-w-lg mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
+        <div className="max-w-lg mx-auto px-3 py-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <span className="shrink-0 text-[10px] bg-green-700 text-green-200 px-1.5 py-0.5 rounded-full font-medium">LIVE</span>
             <span className="font-bold text-sm truncate">{activeEvent.name}</span>
@@ -106,22 +113,23 @@ export default function LivePage() {
 
         {/* コートタブ（2コート以上の場合のみ表示） */}
         {courts.length > 1 && (
-          <div className="max-w-lg mx-auto px-3 flex gap-1 pb-2">
+          <div className="max-w-lg mx-auto grid px-3 pb-2" style={{ gridTemplateColumns: `repeat(${courts.length}, 1fr)` }}>
             {courts.map((court, idx) => {
               const hasOngoing = court.tournaments.some(({ matches }) => matches.some((m) => m.status === "ongoing"));
+              const isActive = idx === selectedCourt;
               return (
                 <button
                   key={court.courtNum}
                   onClick={() => setSelectedCourt(idx)}
-                  className={`relative px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    idx === selectedCourt
-                      ? "bg-white/10 text-white"
-                      : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                  className={`relative py-2.5 text-sm font-bold text-center transition-colors rounded-lg ${
+                    isActive
+                      ? "bg-white/15 text-white"
+                      : "text-gray-500 active:bg-white/5"
                   }`}
                 >
                   {court.courtName}
                   {hasOngoing && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                    <span className="absolute top-1 right-2 w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
                   )}
                 </button>
               );
@@ -130,7 +138,7 @@ export default function LivePage() {
         )}
       </div>
 
-      <div className="max-w-lg mx-auto px-3 py-4">
+      <div className="max-w-lg mx-auto px-3 py-3">
         {activeCourt && <CourtView court={activeCourt} />}
       </div>
     </main>
@@ -138,50 +146,34 @@ export default function LivePage() {
 }
 
 function CourtView({ court }: { court: CourtData }) {
-  const { courtName, tournaments } = court;
+  const { tournaments } = court;
 
   // 全トーナメントの試合をフラットにして試合番号順にソート
   const allMatches = tournaments.flatMap(({ matches }) => matches);
   const sortedMatches = [...allMatches].sort((a, b) => {
-    const nA = a.match_label ? parseInt(a.match_label) : Infinity;
-    const nB = b.match_label ? parseInt(b.match_label) : Infinity;
+    const nA = matchLabelNum(a.match_label);
+    const nB = matchLabelNum(b.match_label);
     if (nA !== nB) return nA - nB;
     if (a.round !== b.round) return a.round - b.round;
     return a.position - b.position;
   });
 
   const ongoingMatch = sortedMatches.find((m) => m.status === "ongoing") ?? null;
-  // 不戦勝（fighter2 なし）を除外
+  // 不戦勝（round 1 で fighter2 なし）を除外
   const visibleMatches = sortedMatches.filter((m) => m.fighter2_id || m.round > 1);
 
   return (
-    <div className="bg-gray-900 rounded-xl overflow-hidden">
-      {/* コートヘッダー */}
-      <div className="px-3 py-2.5 border-b border-gray-800 flex items-center gap-2">
-        <h2 className="font-bold text-base">{courtName}</h2>
-        {tournaments.length > 0 ? (
-          tournaments.some((t) => t.tournament.status === "ongoing") ? (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-yellow-800 text-yellow-200">進行中</span>
-          ) : (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-gray-700 text-gray-400">準備中</span>
-          )
-        ) : (
-          <span className="text-[10px] text-gray-600">対戦表未設定</span>
-        )}
-      </div>
+    <div className="space-y-1.5">
+      {/* 試合中ハイライト */}
+      {ongoingMatch && <OngoingCard match={ongoingMatch} />}
 
-      {tournaments.length === 0 ? (
-        <div className="px-3 py-6 text-center text-gray-600 text-sm">データなし</div>
-      ) : (
-        <div className="p-2 space-y-1.5">
-          {/* 試合中ハイライト */}
-          {ongoingMatch && <OngoingCard match={ongoingMatch} />}
+      {/* 試合番号順の対戦リスト */}
+      {visibleMatches.map((m) => (
+        <MatchRow key={m.id} match={m} isOngoing={m.id === ongoingMatch?.id} />
+      ))}
 
-          {/* 試合番号順の対戦リスト */}
-          {visibleMatches.map((m) => (
-            <MatchRow key={m.id} match={m} isOngoing={m.id === ongoingMatch?.id} />
-          ))}
-        </div>
+      {visibleMatches.length === 0 && (
+        <div className="py-8 text-center text-gray-600 text-sm">データなし</div>
       )}
     </div>
   );
@@ -192,7 +184,7 @@ function OngoingCard({ match }: { match: Match }) {
   const f2 = match.fighter2 as FighterInfo | null;
 
   return (
-    <div className="bg-blue-950 border border-blue-700 rounded-lg p-3 mb-1">
+    <div className="bg-blue-950 border border-blue-700 rounded-xl p-3 mb-1">
       <div className="flex items-center gap-1.5 mb-2">
         <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full font-medium animate-pulse">試合中</span>
         {match.match_label && (
@@ -224,9 +216,9 @@ function MatchRow({ match, isOngoing }: { match: Match; isOngoing: boolean }) {
 
   if (isBye) {
     return (
-      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-800/30 text-xs">
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/30 text-xs">
         {match.match_label && (
-          <span className="text-gray-600 shrink-0 w-6 text-right tabular-nums">{match.match_label}</span>
+          <span className="text-gray-600 shrink-0">{match.match_label}</span>
         )}
         <span className="text-gray-400 truncate">{f1?.name ?? "未定"}</span>
         <span className="text-gray-600 ml-auto shrink-0">不戦勝</span>
@@ -234,41 +226,52 @@ function MatchRow({ match, isOngoing }: { match: Match; isOngoing: boolean }) {
     );
   }
 
+  // 2行レイアウト: 1行目=試合番号+ステータス、2行目=選手名
   return (
-    <div className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm ${
+    <div className={`px-3 py-2 rounded-xl ${
       isOngoing ? "bg-blue-900/30 border border-blue-800/60" :
       isDone    ? "bg-gray-800/30" :
                   "bg-gray-800/60"
     }`}>
-      {match.match_label && (
-        <span className={`shrink-0 w-6 text-right tabular-nums text-xs ${
-          isOngoing ? "text-blue-400 font-medium" :
-          isDone ? "text-gray-600" : "text-gray-500"
-        }`}>{match.match_label}</span>
-      )}
-      <div className="flex-1 min-w-0 flex items-center gap-1">
-        <span className={`truncate ${
-          winner && winner.id === f1?.id ? "font-bold text-white" :
+      {/* 1行目: 試合番号 + ステータス */}
+      <div className="flex items-center gap-1.5 mb-1">
+        {match.match_label && (
+          <span className={`text-xs font-medium ${
+            isOngoing ? "text-blue-400" : isDone ? "text-gray-600" : "text-gray-500"
+          }`}>{match.match_label}</span>
+        )}
+        {isDone && winner && (
+          <span className="text-[10px] text-green-500">終了</span>
+        )}
+        {isOngoing && (
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            <span className="text-[10px] text-blue-400">試合中</span>
+          </span>
+        )}
+        {!isDone && !isOngoing && !f2 && (
+          <span className="text-[10px] text-gray-600">未定</span>
+        )}
+      </div>
+      {/* 2行目: 選手名 */}
+      <div className="flex items-center gap-2">
+        <span className={`flex-1 truncate text-sm ${
+          winner?.id === f1?.id ? "font-bold text-white" :
           isDone ? "text-gray-500" : "text-gray-200"
         }`}>
           {f1?.name ?? "未定"}
+          {winner?.id === f1?.id && <span className="ml-1 text-[10px] text-green-400">勝</span>}
         </span>
-        {winner?.id === f1?.id && <span className="text-[10px] text-green-400 shrink-0">勝</span>}
-      </div>
-      <span className={`text-[10px] shrink-0 ${isDone ? "text-gray-700" : "text-gray-600"}`}>vs</span>
-      <div className="flex-1 min-w-0 flex items-center justify-end gap-1">
-        {winner?.id === f2?.id && <span className="text-[10px] text-green-400 shrink-0">勝</span>}
-        <span className={`truncate text-right ${
-          winner && winner.id === f2?.id ? "font-bold text-white" :
+        <span className={`text-[10px] shrink-0 ${isDone ? "text-gray-700" : "text-gray-600"}`}>vs</span>
+        <span className={`flex-1 truncate text-sm text-right ${
+          winner?.id === f2?.id ? "font-bold text-white" :
           isDone ? "text-gray-500" :
           f2 ? "text-gray-200" : "text-gray-600"
         }`}>
-          {f2?.name ?? "未定"}
+          {f2 ? f2.name : "未定"}
+          {winner?.id === f2?.id && <span className="ml-1 text-[10px] text-green-400">勝</span>}
         </span>
       </div>
-      {isOngoing && (
-        <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-      )}
     </div>
   );
 }
