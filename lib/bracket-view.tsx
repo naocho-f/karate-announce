@@ -278,6 +278,17 @@ export function BracketView({
                 height: BRACKET_CARD_H,
               }}
             >
+              {/* 試合番号バッジ（カード左上オーバーレイ） */}
+              {m.match_label && !isNumberingMode && (
+                <div className={`absolute top-1 left-1 z-20 text-[8px] font-bold px-1 py-0.5 rounded leading-none pointer-events-none ${
+                  isNextMatch ? "bg-blue-600 text-white" :
+                  isOngoing   ? "bg-yellow-700 text-yellow-100" :
+                  isDone      ? "bg-gray-700/80 text-gray-400" :
+                               "bg-gray-700/80 text-gray-300"
+                }`}>
+                  {m.match_label}
+                </div>
+              )}
               <FighterSlot
                 name={name1} aff={aff1} fighterId={m.fighter1_id}
                 isWinner={m.winner_id === m.fighter1_id} isWithdrawn={isW1} entryId={eid1} borderBottom isRed={true}
@@ -318,23 +329,12 @@ export function BracketView({
                 }`}
                 style={{ height: BRACKET_FOOTER_H }}
               >
-                {/* 試合番号バッジ */}
-                {m.match_label && !isCorrectingThis && (
-                  <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                    isNextMatch ? "bg-blue-600 text-white" :
-                    isOngoing ? "bg-yellow-700 text-yellow-100" :
-                    isDone ? "bg-gray-700 text-gray-400" :
-                    "bg-gray-700 text-gray-300"
-                  }`}>
-                    {m.match_label}
-                  </span>
-                )}
                 {isCorrectingThis ? (
                   <>
-                    <span className="text-[9px] text-orange-400 font-medium">タップで勝者を訂正</span>
+                    <span className="text-[9px] text-orange-400 font-medium truncate">タップで勝者を訂正</span>
                     <button
                       onClick={() => setCorrectionMatchId(null)}
-                      className="ml-auto text-[9px] text-gray-500 hover:text-gray-300 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
+                      className="ml-auto shrink-0 text-[9px] text-gray-500 hover:text-gray-300 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                     >
                       キャンセル
                     </button>
@@ -342,12 +342,12 @@ export function BracketView({
                 ) : (
                   <>
                     {isOngoing && (
-                      <span className="text-[9px] text-yellow-400 font-medium">試合中 — タップで勝者確定</span>
+                      <span className="text-[9px] text-yellow-400 font-medium shrink-0">試合中</span>
                     )}
                     {isReady && onMatchClick && (
                       <button
                         onClick={() => onMatchClick(m.id)}
-                        className="flex-1 bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white text-[9px] font-bold rounded h-4 transition"
+                        className="flex-1 min-w-0 bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white text-[9px] font-bold rounded h-4 transition"
                       >
                         ▶ 試合開始
                       </button>
@@ -355,7 +355,7 @@ export function BracketView({
                     {canSwap && (
                       <button
                         onClick={(e) => { e.stopPropagation(); onSwapWithNext!(m.round, m.id); }}
-                        className="ml-auto text-[9px] text-gray-500 hover:text-blue-400 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
+                        className="shrink-0 ml-auto text-[9px] text-gray-500 hover:text-blue-400 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                       >
                         ↕次
                       </button>
@@ -364,35 +364,35 @@ export function BracketView({
                       <button
                         onClick={(e) => { e.stopPropagation(); onSwapFighters(m.id); }}
                         title="赤・白（上下）を入れ替え"
-                        className="text-[9px] text-gray-500 hover:text-yellow-400 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
+                        className="shrink-0 text-[9px] text-gray-500 hover:text-yellow-400 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                       >
                         ⇅赤白
                       </button>
                     )}
-                    {/* 再読み上げ（試合中: 開始アナウンス、終了後: 勝者アナウンス） */}
+                    {/* 再読み上げ */}
                     {isOngoing && onReannounceStart && (
                       <button
                         onClick={() => onReannounceStart(m.id)}
                         title="試合開始アナウンスを再読み上げ"
-                        className="ml-auto text-[9px] text-gray-500 hover:text-blue-300 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
+                        className="shrink-0 ml-auto text-[9px] text-gray-500 hover:text-blue-300 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                       >
-                        📢 再読
+                        📢
                       </button>
                     )}
                     {isDone && onReannounceWinner && (
                       <button
                         onClick={() => onReannounceWinner(m.id)}
                         title="勝者アナウンスを再読み上げ"
-                        className="text-[9px] text-gray-500 hover:text-blue-300 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
+                        className="shrink-0 text-[9px] text-gray-500 hover:text-blue-300 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                       >
-                        📢 再読
+                        📢
                       </button>
                     )}
                     {isDone && onCorrectWinner && (
                       <button
                         onClick={() => setCorrectionMatchId(m.id)}
                         title="勝者を訂正する"
-                        className="text-[9px] text-gray-500 hover:text-orange-400 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
+                        className="shrink-0 text-[9px] text-gray-500 hover:text-orange-400 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                       >
                         訂正
                       </button>
@@ -401,7 +401,7 @@ export function BracketView({
                       <button
                         onClick={(e) => { e.stopPropagation(); onToggleMute(m.id); }}
                         title={isMuted ? "アナウンス OFF（クリックで ON）" : "アナウンス ON（クリックで OFF）"}
-                        className={`ml-auto text-[11px] leading-none px-1 py-0.5 rounded transition ${
+                        className={`shrink-0 ml-auto text-[11px] leading-none px-1 py-0.5 rounded transition ${
                           isMuted
                             ? "text-gray-600 hover:text-gray-400"
                             : "text-gray-400 hover:text-gray-200"
