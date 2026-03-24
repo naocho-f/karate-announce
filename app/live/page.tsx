@@ -65,7 +65,17 @@ export default function LivePage() {
 
   useEffect(() => {
     const timer = setInterval(load, 5000);
-    return () => clearInterval(timer);
+
+    // バックグラウンドタブ復帰時に即座にリロード（Android等でsetIntervalが停止するため）
+    function handleVisibility() {
+      if (document.visibilityState === "visible") load();
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [load]);
 
   if (activeEvent === undefined) {

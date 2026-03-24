@@ -140,7 +140,16 @@ export default function CourtPage({ params }: Props) {
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
     const timer = setInterval(load, 3000);
-    return () => clearInterval(timer);
+
+    function handleVisibility() {
+      if (document.visibilityState === "visible") load();
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [load]);
 
   useEffect(() => {

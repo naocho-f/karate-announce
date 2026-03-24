@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-24（デザインコントラスト改善・操作説明最新化）
+> 最終更新: 2026-03-24（自動更新改善・Android CSS互換対応・デザインコントラスト改善・操作説明最新化）
 
 ---
 
@@ -548,7 +548,8 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 |------|------|
 | レスポンシブ | スマホ対応必須（エントリーフォーム・コート画面） |
 | 横幅統一 | 基本 `max-w-5xl`。エントリーフォーム本体のみ `max-w-md`（入力フォームのため例外）。ライブ速報 `/live` は `max-w-lg`（スマホ最適化のため例外） |
-| リアルタイム更新 | コート画面: 3秒ポーリング、ライブ速報: 5秒ポーリング |
+| リアルタイム更新 | コート画面: 3秒ポーリング、ライブ速報・ホーム: 5秒ポーリング。全画面で `visibilitychange` イベントによるタブ復帰時即時リロード対応（モバイルブラウザの `setInterval` 停止対策） |
+| ブラウザ互換性 | Tailwind CSS 4 の `@layer theme` 未対応ブラウザ（Chrome < 99 / Android 12 以下）向けに `globals.css` で CSS 変数フォールバックを定義。モダンブラウザでは同一値のため影響なし |
 | LocalStorage 利用 | TTS設定、アナウンステンプレート（試合順序は DB 管理に移行） |
 | デプロイ | Vercel（karate.naocho.net） |
 
@@ -643,6 +644,8 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - `lib/entry-utils.ts` 削除済み（`ensureFighterFromEntry` は `lib/ensure-fighter.ts` に移動）
 - `/live` アクセス制御: アクティブな大会がない場合はゲート画面表示（認証不要）
 - `matchLabelNum` ユーティリティを `lib/match-utils.ts` に共通化（コート画面・ライブ速報で共用）
+- 全画面に `visibilitychange` イベントリスナー追加（モバイルブラウザのバックグラウンドタブ復帰時に即時リロード）
+- Android タブレット（Chrome < 99）CSS 崩れ修正: `globals.css` に Tailwind CSS 4 の `@layer theme` 内変数のフォールバック定義追加
 
 ---
 

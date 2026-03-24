@@ -26,7 +26,16 @@ export default function Home() {
   useEffect(() => { load(); }, []);
   useEffect(() => {
     const timer = setInterval(load, 5000);
-    return () => clearInterval(timer);
+
+    function handleVisibility() {
+      if (document.visibilityState === "visible") load();
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
   async function load() {
