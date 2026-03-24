@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-24（アナウンステンプレートのDB化）
+> 最終更新: 2026-03-24（コード品質改善・SPEC整合性修正）
 
 ---
 
@@ -547,7 +547,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 | 項目 | 仕様 |
 |------|------|
 | レスポンシブ | スマホ対応必須（エントリーフォーム・コート画面） |
-| 横幅統一 | 基本 `max-w-5xl`。エントリーフォーム本体のみ `max-w-md`（入力フォームのため例外） |
+| 横幅統一 | 基本 `max-w-5xl`。エントリーフォーム本体のみ `max-w-md`（入力フォームのため例外）。ライブ速報 `/live` は `max-w-lg`（スマホ最適化のため例外） |
 | リアルタイム更新 | コート画面: 3秒ポーリング、ライブ速報: 5秒ポーリング |
 | LocalStorage 利用 | TTS設定、アナウンステンプレート（試合順序は DB 管理に移行） |
 | デプロイ | Vercel（karate.naocho.net） |
@@ -623,28 +623,30 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 
 ## 11. Claude Code 自動化フック（`~/.claude/settings.json`）
 
-### PostToolUse（Write / Edit のたびに実行）
-- `.ts` / `.tsx` / `.css` を編集 → `/tmp/karate-code-changed` と `/tmp/karate-spec-needed` をセット
-- `SPEC.md` を編集 → `/tmp/karate-spec-needed` をクリア
-- `supabase/migrations/*.sql` を編集 → `supabase db push` を自動実行
+### Stop hook（会話終了時に `~/.claude/predeploy.sh` → `~/.claude/karate-predeploy.sh` を実行）
 
-### Stop hook（会話終了時に `~/.claude/karate-predeploy.sh` を実行）
-`/tmp/karate-code-changed` が存在する場合のみ以下を順に実行し、失敗時はデプロイを中断する：
+会話終了時に自動でデプロイパイプラインを実行する。トリガーファイルに依存せず、常に呼び出される。
 
+**`karate-predeploy.sh` の処理フロー:**
 1. **SPEC.md チェック**: `/tmp/karate-spec-needed` が残っていたらエラーで停止（SPEC.md 未更新はデプロイ不可）
-2. **動作確認**: `npm run dev` を起動し `/admin` に curl → HTTP 200 でなければエラーで停止
-3. **ビルド**: `npm run build`
-4. **デプロイ**: `vercel --prod`
+2. **未コミット変更チェック**: `git diff` で変更が残っていたらエラーで停止（コミットを促す）
+3. **未プッシュ確認**: `git log origin/main..HEAD` で未プッシュコミットがなければデプロイ不要で終了
+4. **排他ロック**: コミットハッシュ単位のロックファイル（`/tmp/karate-deploy-{hash}`）で同一コミットの多重デプロイを防止
+5. **ビルド**: `npm run build`
+6. **プッシュ**: `git push origin main`（Vercel の GitHub 連携が自動デプロイ）
+
+**注意**: `vercel --prod` は使用しない。GitHub 連携と CLI の両方でデプロイすると二重デプロイになるため。
 
 ### 過去の変更
 
 - `entries.is_seed` カラム削除済み（`supabase/migrations/0002_drop_is_seed.sql`）
 - `lib/entry-utils.ts` 削除済み（`ensureFighterFromEntry` は `lib/ensure-fighter.ts` に移動）
 - `/live` アクセス制御: アクティブな大会がない場合はゲート画面表示（認証不要）
+- `matchLabelNum` ユーティリティを `lib/match-utils.ts` に共通化（コート画面・ライブ速報で共用）
 
 ---
 
-## 11. 環境変数
+## 12. 環境変数
 
 | 変数名 | 説明 | 利用側 |
 |--------|------|--------|

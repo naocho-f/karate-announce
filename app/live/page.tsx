@@ -5,19 +5,13 @@ export const dynamic = "force-dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Event, FighterInfo, Match, Tournament } from "@/lib/types";
+import { matchLabelNum } from "@/lib/match-utils";
 
 type CourtData = {
   courtNum: number;
   courtName: string;
   tournaments: { tournament: Tournament; matches: Match[] }[];
 };
-
-/** match_label から数値部分を抽出してソート用の数値を返す */
-function matchLabelNum(label: string | null): number {
-  if (!label) return Infinity;
-  const m = label.match(/(\d+)/);
-  return m ? parseInt(m[1], 10) : Infinity;
-}
 
 export default function LivePage() {
   const [activeEvent, setActiveEvent] = useState<Event | null | undefined>(undefined);
