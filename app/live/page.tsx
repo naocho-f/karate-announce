@@ -94,10 +94,13 @@ export default function LivePage() {
   }
 
   const activeCourt = courts[selectedCourt] ?? courts[0];
+  const activeOngoing = activeCourt
+    ? activeCourt.tournaments.flatMap(({ matches }) => matches).find((m) => m.status === "ongoing") ?? null
+    : null;
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
-      {/* ヘッダー */}
+      {/* ヘッダー（sticky: タイトル + タブ + 試合中カード） */}
       <div className="sticky top-0 z-10 bg-gray-900/95 backdrop-blur border-b border-gray-800">
         <div className="max-w-lg mx-auto px-3 py-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
@@ -136,6 +139,9 @@ export default function LivePage() {
             })}
           </div>
         )}
+
+        {/* 試合中バナー（sticky ヘッダー内に固定） */}
+        {activeOngoing && <OngoingBanner match={activeOngoing} />}
       </div>
 
       <div className="max-w-lg mx-auto px-3 py-3">
@@ -164,9 +170,6 @@ function CourtView({ court }: { court: CourtData }) {
 
   return (
     <div className="space-y-1.5">
-      {/* 試合中ハイライト */}
-      {ongoingMatch && <OngoingCard match={ongoingMatch} />}
-
       {/* 試合番号順の対戦リスト */}
       {visibleMatches.map((m) => (
         <MatchRow key={m.id} match={m} isOngoing={m.id === ongoingMatch?.id} />
@@ -179,29 +182,32 @@ function CourtView({ court }: { court: CourtData }) {
   );
 }
 
-function OngoingCard({ match }: { match: Match }) {
+function OngoingBanner({ match }: { match: Match }) {
   const f1 = match.fighter1 as FighterInfo | null;
   const f2 = match.fighter2 as FighterInfo | null;
 
   return (
-    <div className="bg-blue-950 border border-blue-700 rounded-xl p-3 mb-1">
-      <div className="flex items-center gap-1.5 mb-2">
-        <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full font-medium animate-pulse">試合中</span>
-        {match.match_label && (
-          <span className="text-xs text-blue-300 font-medium">{match.match_label}</span>
-        )}
-        {match.rules && (
-          <span className="text-[10px] text-blue-400/60 ml-auto shrink-0">{match.rules}</span>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="flex-1 text-center font-bold text-white truncate">
-          {f1?.name ?? "未定"}
-        </span>
-        <span className="text-gray-500 text-xs font-medium shrink-0">vs</span>
-        <span className="flex-1 text-center font-bold text-white truncate">
-          {f2?.name ?? "未定"}
-        </span>
+    <div className="bg-blue-950/80 border-t border-blue-800/40 px-3 py-2">
+      <div className="max-w-lg mx-auto">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
+          <span className="text-[10px] text-blue-400 font-medium">試合中</span>
+          {match.match_label && (
+            <span className="text-xs text-blue-300 font-medium">{match.match_label}</span>
+          )}
+          {match.rules && (
+            <span className="text-[10px] text-blue-400/50 ml-auto shrink-0">{match.rules}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="flex-1 text-center font-bold text-sm text-white truncate">
+            {f1?.name ?? "未定"}
+          </span>
+          <span className="text-gray-500 text-[10px] shrink-0">vs</span>
+          <span className="flex-1 text-center font-bold text-sm text-white truncate">
+            {f2?.name ?? "未定"}
+          </span>
+        </div>
       </div>
     </div>
   );
