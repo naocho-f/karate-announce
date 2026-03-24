@@ -11,6 +11,13 @@ import { announceMatchStart, announceWinner, DEFAULT_TEMPLATES, type AnnounceTem
 import { BracketView } from "@/lib/bracket-view";
 import Link from "next/link";
 
+/** match_label から数値部分を抽出してソート用の数値を返す */
+function matchLabelNum(label: string | null): number {
+  if (!label) return Infinity;
+  const m = label.match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : Infinity;
+}
+
 type Props = { params: Promise<{ court: string }> };
 
 export default function CourtPage({ params }: Props) {
@@ -367,8 +374,8 @@ export default function CourtPage({ params }: Props) {
                   !withdrawnFighterIds.has(m.fighter1_id!) && !withdrawnFighterIds.has(m.fighter2_id!)
               )
               .sort((a, b) => {
-                const nA = a.match_label ? parseInt(a.match_label) : Infinity;
-                const nB = b.match_label ? parseInt(b.match_label) : Infinity;
+                const nA = matchLabelNum(a.match_label);
+                const nB = matchLabelNum(b.match_label);
                 if (nA !== nB) return nA - nB;
                 if (a.round !== b.round) return a.round - b.round;
                 return a.position - b.position;
