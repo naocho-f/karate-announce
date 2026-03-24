@@ -278,17 +278,6 @@ export function BracketView({
                 height: BRACKET_CARD_H,
               }}
             >
-              {/* 試合番号バッジ（カード左上オーバーレイ） */}
-              {m.match_label && !isNumberingMode && (
-                <div className={`absolute top-1 left-1 z-20 text-[8px] font-bold px-1 py-0.5 rounded leading-none pointer-events-none ${
-                  isNextMatch ? "bg-blue-600 text-white" :
-                  isOngoing   ? "bg-yellow-700 text-yellow-100" :
-                  isDone      ? "bg-gray-700/80 text-gray-400" :
-                               "bg-gray-700/80 text-gray-300"
-                }`}>
-                  {m.match_label}
-                </div>
-              )}
               <FighterSlot
                 name={name1} aff={aff1} fighterId={m.fighter1_id}
                 isWinner={m.winner_id === m.fighter1_id} isWithdrawn={isW1} entryId={eid1} borderBottom isRed={true}
@@ -329,6 +318,17 @@ export function BracketView({
                 }`}
                 style={{ height: BRACKET_FOOTER_H }}
               >
+                {/* 試合番号バッジ */}
+                {m.match_label && !isCorrectingThis && !isNumberingMode && (
+                  <span className={`shrink-0 text-[8px] font-bold px-1 py-0.5 rounded leading-none ${
+                    isNextMatch ? "bg-blue-600 text-white" :
+                    isOngoing   ? "bg-yellow-700 text-yellow-100" :
+                    isDone      ? "bg-gray-700 text-gray-500" :
+                                  "bg-gray-700 text-gray-300"
+                  }`}>
+                    {m.match_label}
+                  </span>
+                )}
                 {isCorrectingThis ? (
                   <>
                     <span className="text-[9px] text-orange-400 font-medium truncate">タップで勝者を訂正</span>
