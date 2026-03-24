@@ -302,6 +302,16 @@ export function BracketView({
                 </div>
               )}
 
+              {/* 試合開始オーバーレイ（ready 状態） */}
+              {isReady && onMatchClick && !isProcessing && (
+                <div
+                  className="absolute inset-0 bg-blue-900/60 hover:bg-blue-800/70 active:bg-blue-900/80 flex items-center justify-center z-10 cursor-pointer transition-colors"
+                  onClick={() => onMatchClick(m.id)}
+                >
+                  <span className="text-white text-xs font-bold tracking-wide">▶ 試合開始</span>
+                </div>
+              )}
+
               {/* 処理中オーバーレイ */}
               {isProcessing && (
                 <div className="absolute inset-0 bg-gray-900/70 flex items-center justify-center z-10">
@@ -343,14 +353,6 @@ export function BracketView({
                   <>
                     {isOngoing && (
                       <span className="text-[9px] text-yellow-400 font-medium shrink-0">試合中</span>
-                    )}
-                    {isReady && onMatchClick && (
-                      <button
-                        onClick={() => onMatchClick(m.id)}
-                        className="flex-1 min-w-0 whitespace-nowrap bg-blue-700 hover:bg-blue-600 active:bg-blue-800 text-white text-[9px] font-bold rounded h-4 transition"
-                      >
-                        ▶ 試合開始
-                      </button>
                     )}
                     {canSwap && (
                       <button
