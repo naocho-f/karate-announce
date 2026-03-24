@@ -15,6 +15,7 @@ type CourtData = {
 export default function LivePage() {
   const [activeEvent, setActiveEvent] = useState<Event | null | undefined>(undefined);
   const [courts, setCourts] = useState<CourtData[]>([]);
+  const [selectedCourt, setSelectedCourt] = useState<number>(0);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const prevCourtsRef = useRef<string>("");
 
@@ -85,11 +86,13 @@ export default function LivePage() {
     );
   }
 
+  const activeCourt = courts[selectedCourt] ?? courts[0];
+
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       {/* ヘッダー */}
-      <div className="sticky top-0 z-10 bg-gray-900/95 backdrop-blur border-b border-gray-800 px-3 py-2.5">
-        <div className="max-w-lg mx-auto flex items-center justify-between gap-2">
+      <div className="sticky top-0 z-10 bg-gray-900/95 backdrop-blur border-b border-gray-800">
+        <div className="max-w-lg mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <span className="shrink-0 text-[10px] bg-green-700 text-green-200 px-1.5 py-0.5 rounded-full font-medium">LIVE</span>
             <span className="font-bold text-sm truncate">{activeEvent.name}</span>
@@ -100,12 +103,35 @@ export default function LivePage() {
             </span>
           )}
         </div>
+
+        {/* コートタブ（2コート以上の場合のみ表示） */}
+        {courts.length > 1 && (
+          <div className="max-w-lg mx-auto px-3 flex gap-1 pb-2">
+            {courts.map((court, idx) => {
+              const hasOngoing = court.tournaments.some(({ matches }) => matches.some((m) => m.status === "ongoing"));
+              return (
+                <button
+                  key={court.courtNum}
+                  onClick={() => setSelectedCourt(idx)}
+                  className={`relative px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    idx === selectedCourt
+                      ? "bg-white/10 text-white"
+                      : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                  }`}
+                >
+                  {court.courtName}
+                  {hasOngoing && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      <div className="max-w-lg mx-auto px-3 py-4 space-y-4">
-        {courts.map((court) => (
-          <CourtView key={court.courtNum} court={court} />
-        ))}
+      <div className="max-w-lg mx-auto px-3 py-4">
+        {activeCourt && <CourtView court={activeCourt} />}
       </div>
     </main>
   );
