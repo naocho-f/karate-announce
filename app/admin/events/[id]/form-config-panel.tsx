@@ -34,6 +34,7 @@ export function FormConfigPanel({ eventId }: Props) {
   const [pastEvents, setPastEvents] = useState<{ id: string; name: string }[]>([]);
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [busyNotices, setBusyNotices] = useState<Set<string>>(new Set());
+  const [rules, setRules] = useState<{ id: string; name: string }[]>([]);
 
   const addBusy = (id: string) => setBusyNotices((s) => new Set(s).add(id));
   const removeBusy = (id: string) => setBusyNotices((s) => { const n = new Set(s); n.delete(id); return n; });
@@ -54,6 +55,8 @@ export function FormConfigPanel({ eventId }: Props) {
   useEffect(() => {
     supabase.from("events").select("id, name").neq("id", eventId).order("created_at", { ascending: false })
       .then(({ data }) => setPastEvents((data ?? []).map((e) => ({ id: e.id, name: e.name }))));
+    supabase.from("rules").select("id, name").order("name")
+      .then(({ data }) => setRules((data ?? []).map((r) => ({ id: r.id, name: r.name }))));
   }, [eventId]);
 
   async function save() {
@@ -323,6 +326,7 @@ export function FormConfigPanel({ eventId }: Props) {
                 onUploadImage={uploadImage}
                 onDeleteImage={deleteImage}
                 busyNotices={busyNotices}
+                rules={rules}
               />
             );
           })}
@@ -360,7 +364,7 @@ const inp = "w-full bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 t
 
 function FieldPreviewCard({
   field, def, kanaField, ageField, index, total, notices, allFields,
-  onUpdate, onMove, onToggle, onAddNotice, onUpdateNotice, onDeleteNotice, onUploadImage, onDeleteImage, busyNotices,
+  onUpdate, onMove, onToggle, onAddNotice, onUpdateNotice, onDeleteNotice, onUploadImage, onDeleteImage, busyNotices, rules,
 }: {
   field: FormFieldConfig;
   def: FieldPoolItem;
@@ -379,11 +383,15 @@ function FieldPreviewCard({
   onUploadImage: (noticeId: string, file: File) => void;
   onDeleteImage: (imageId: string, noticeId: string) => void;
   busyNotices: Set<string>;
+  rules: { id: string; name: string }[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const key = def.key;
   const choices = field.custom_choices?.length ? field.custom_choices : (def.fixedChoices ?? def.defaultChoices ?? []);
-  const hasChoices = (def.type === "radio" || def.type === "checkbox" || (def.type === "select" && !def.fixedChoices)) && !def.fixedChoices;
+  // 選択肢をフォーム設定で編集可能な項目（organization/rule_preference はDB管理なので除外）
+  const dbManagedFields = ["organization", "rule_preference"];
+  const hasChoices = (def.type === "radio" || def.type === "checkbox" || (def.type === "select" && !def.fixedChoices))
+    && !def.fixedChoices && !dbManagedFields.includes(key);
   const isHidden = !field.visible;
 
   return (
@@ -429,6 +437,17 @@ function FieldPreviewCard({
                   </button>
                 </>
               )}
+              {dbManagedFields.includes(key) && def.defaultHasOther !== undefined && (
+                <>
+                  <span className="w-px h-3 bg-gray-600 mx-0.5" />
+                  <label className="flex items-center gap-1 text-[10px] text-gray-400 cursor-pointer">
+                    <input type="checkbox" checked={field.has_other_option}
+                      onChange={(e) => onUpdate(field.id, { has_other_option: e.target.checked })}
+                      className="rounded w-3 h-3" />
+                    その他
+                  </label>
+                </>
+              )}
             </>
           )}
           {isHidden && <span className="text-[10px] text-gray-600">非表示</span>}
@@ -468,7 +487,7 @@ function FieldPreviewCard({
             </div>
 
             {/* 入力プレビュー */}
-            {renderInputPreview(key, def, choices, field, kanaField, ageField)}
+            {renderInputPreview(key, def, choices, field, kanaField, ageField, rules)}
 
             {/* 選択肢編集ボタン（選択肢のある項目のみ） */}
             {hasChoices && !expanded && (
@@ -507,7 +526,39 @@ function renderInputPreview(
   field: FormFieldConfig,
   kanaField: FormFieldConfig | null,
   ageField: FormFieldConfig | null,
+  rules?: { id: string; name: string }[],
 ) {
+  // rule_preference: 登録済みルール表示 + 説明
+  if (key === "rule_preference") {
+    return (
+      <div className="space-y-1.5">
+        {rules && rules.length > 0 ? (
+          <div className="space-y-1 pl-1">
+            <p className="text-[10px] text-gray-500 mb-1">登録済みルール:</p>
+            {rules.map((r) => (
+              <label key={r.id} className="flex items-start gap-2 text-xs text-gray-500">
+                <div className="w-3.5 h-3.5 rounded border border-gray-600 shrink-0 mt-0.5" />
+                {r.name}
+              </label>
+            ))}
+            {field.has_other_option && (
+              <label className="flex items-center gap-2 text-xs text-gray-600">
+                <div className="w-3.5 h-3.5 rounded border border-gray-600" />
+                その他（自由入力）
+              </label>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-gray-500">ルールが登録されていません</p>
+        )}
+        <p className="text-[10px] text-gray-500 leading-relaxed">
+          選択肢は <a href="/admin?tab=settings" target="_blank" className="text-blue-400 hover:text-blue-300 underline">設定 &gt; ルール管理</a> で登録したルールが自動で表示されます。
+          対戦表作成時にルールごとにエントリーを振り分けます。
+        </p>
+      </div>
+    );
+  }
+
   // full_name: 姓名 + 読み仮名 4カラム
   if (key === "full_name") {
     return (
