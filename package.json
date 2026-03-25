@@ -16,6 +16,13 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1"
   },
+  "browserslist": [
+    "> 0.5%",
+    "last 4 versions",
+    "not dead",
+    "Chrome >= 80",
+    "Android >= 80"
+  ],
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
