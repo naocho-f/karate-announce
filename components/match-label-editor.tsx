@@ -8,6 +8,7 @@ import { BracketView, type BracketMatch } from "@/lib/bracket-view";
 type TournamentData = {
   id: string;
   name: string;
+  type: "tournament" | "one_match";
   sortOrder: number;
   court: string;
   matches: BracketMatch[];
@@ -17,6 +18,54 @@ type TournamentData = {
 function getCourtLabel(court: string, courtNames: string[] | null): string {
   const idx = parseInt(court) - 1;
   return courtNames?.[idx]?.trim() || `コート${court}`;
+}
+
+function OneMatchNumberCard({ match, nameMap, assignedNumber, onClick, onSwapFighters, isSwapping }: {
+  match: BracketMatch;
+  nameMap: Record<string, string>;
+  assignedNumber?: number;
+  onClick: () => void;
+  onSwapFighters: () => void;
+  isSwapping: boolean;
+}) {
+  const f1Name = match.fighter1_id ? nameMap[match.fighter1_id] ?? "未定" : "未定";
+  const f2Name = match.fighter2_id ? nameMap[match.fighter2_id] ?? "未定" : "未定";
+  const isDone = match.status === "done" || match.status === "ongoing";
+
+  return (
+    <div
+      onClick={onClick}
+      className={`border rounded-lg p-3 cursor-pointer transition select-none ${
+        assignedNumber
+          ? "border-blue-500 bg-blue-900/20"
+          : "border-gray-700 hover:border-gray-500"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
+          assignedNumber ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-500"
+        }`}>
+          {assignedNumber ?? "−"}
+        </div>
+        <span className={`text-sm font-medium ${match.winner_id === match.fighter1_id ? "text-green-400" : "text-white"}`}>
+          {f1Name}
+        </span>
+        <span className="text-xs text-gray-500">vs</span>
+        <span className={`text-sm font-medium ${match.winner_id === match.fighter2_id ? "text-green-400" : "text-white"}`}>
+          {f2Name}
+        </span>
+        {!isDone && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onSwapFighters(); }}
+            disabled={isSwapping}
+            className="ml-auto text-xs text-gray-500 hover:text-gray-300 disabled:opacity-40 px-2 py-1 rounded border border-gray-700 hover:border-gray-500 transition shrink-0"
+          >
+            {isSwapping ? "…" : "⇅赤白"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function MatchLabelEditor({ eventId, courtNames, courtCount, onChanged }: { eventId: string; courtNames: string[] | null; courtCount: number; onChanged?: () => void }) {
@@ -29,13 +78,13 @@ export function MatchLabelEditor({ eventId, courtNames, courtCount, onChanged }:
   const load = useCallback(async (preserveOrder = false) => {
     const { data: tourns } = await supabase
       .from("tournaments")
-      .select("id, name, sort_order, court")
+      .select("id, name, sort_order, court, type")
       .eq("event_id", eventId)
       .order("sort_order")
       .order("created_at");
     if (!tourns?.length) { setTournaments([]); return; }
 
-    type RawTourn = { id: string; name: string; sort_order: number; court: string };
+    type RawTourn = { id: string; name: string; sort_order: number; court: string; type: string };
     const tournsArr = tourns as RawTourn[];
     const tournIds = tournsArr.map((t) => t.id);
 
@@ -85,6 +134,7 @@ export function MatchLabelEditor({ eventId, courtNames, courtCount, onChanged }:
     const result: TournamentData[] = tournsArr.map((t) => ({
       id: t.id,
       name: t.name,
+      type: (t.type === "one_match" ? "one_match" : "tournament") as "tournament" | "one_match",
       sortOrder: t.sort_order,
       court: t.court,
       matches: byTournament[t.id] ?? [],
@@ -318,17 +368,33 @@ export function MatchLabelEditor({ eventId, courtNames, courtCount, onChanged }:
                   <div className="space-y-4">
                     {courtTournaments.map((t) => (
                       <div key={t.id}>
-                        <h3 className="text-sm font-medium text-gray-400 mb-2">{t.name}</h3>
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-sm font-medium text-gray-400">{t.name}</h3>
+                          {t.type === "one_match" && (
+                            <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">ワンマッチ</span>
+                          )}
+                        </div>
                         <div className="bg-gray-800 rounded-xl p-3">
-                          <BracketView
-                            matches={t.matches}
-                            nameMap={t.nameMap}
-                            assignedNumbers={assignedNumbers}
-                            onNumberClick={handleNumberClick}
-                            onSwapWithNext={handleSwapWithNext}
-                            onSwapFighters={handleSwapFighters}
-                            processingMatchIds={swappingIds}
-                          />
+                          {t.type === "one_match" && t.matches.length === 1 ? (
+                            <OneMatchNumberCard
+                              match={t.matches[0]}
+                              nameMap={t.nameMap}
+                              assignedNumber={assignedNumbers[t.matches[0].id]}
+                              onClick={() => handleNumberClick(t.matches[0].id)}
+                              onSwapFighters={() => handleSwapFighters(t.matches[0].id)}
+                              isSwapping={swappingIds.has(t.matches[0].id)}
+                            />
+                          ) : (
+                            <BracketView
+                              matches={t.matches}
+                              nameMap={t.nameMap}
+                              assignedNumbers={assignedNumbers}
+                              onNumberClick={handleNumberClick}
+                              onSwapWithNext={handleSwapWithNext}
+                              onSwapFighters={handleSwapFighters}
+                              processingMatchIds={swappingIds}
+                            />
+                          )}
                         </div>
                       </div>
                     ))}
