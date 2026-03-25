@@ -227,6 +227,19 @@ export const FIELD_POOL: FieldPoolItem[] = [
     // 選択肢は event_rules → rules テーブルから動的取得（DB管理フィールド）
   },
   {
+    key: "desired_match_count",
+    label: "希望試合数",
+    type: "radio",
+    category: "competition",
+    defaultRequired: true,
+    defaultChoices: [
+      { label: "1試合", value: "1" },
+      { label: "2試合", value: "2" },
+      { label: "3試合", value: "3" },
+      { label: "4試合", value: "4" },
+    ],
+  },
+  {
     key: "head_butt_preference",
     label: "頭突きあり/なし希望",
     type: "checkbox",
