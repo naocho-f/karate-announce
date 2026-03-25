@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import type { Event, Fighter, Match, Tournament } from "@/lib/types";
 import { fighterFullName } from "@/lib/types";
 import { BracketView } from "@/lib/bracket-view";
+import { spaceBetweenScripts } from "@/lib/match-utils";
 
 type TournamentData = {
   tournament: Tournament;
@@ -135,7 +136,7 @@ export default function Home() {
 
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
               {courts.map(({ courtNum, tournaments }) => {
-                const courtName = activeEvent.court_names?.[courtNum - 1]?.trim() || `コート${courtNum}`;
+                const courtName = spaceBetweenScripts(activeEvent.court_names?.[courtNum - 1]?.trim() || `コート${courtNum}`);
                 return (
                   <div key={courtNum} className="bg-gray-800/80 border border-gray-700/40 rounded-xl overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-600/40">

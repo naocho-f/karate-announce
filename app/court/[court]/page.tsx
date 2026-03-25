@@ -9,7 +9,7 @@ import { fighterFullName, fighterFullReading } from "@/lib/types";
 import { roundName, totalRounds } from "@/lib/tournament";
 import { announceMatchStart, announceWinner, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
 import { BracketView } from "@/lib/bracket-view";
-import { matchLabelNum } from "@/lib/match-utils";
+import { matchLabelNum, spaceBetweenScripts } from "@/lib/match-utils";
 import Link from "next/link";
 
 type Props = { params: Promise<{ court: string }> };
@@ -57,7 +57,7 @@ export default function CourtPage({ params }: Props) {
     }
     setIsEventActive(true);
     const courtIndex = parseInt(court, 10) - 1;
-    setCourtDisplayName(activeEvent.court_names?.[courtIndex]?.trim() || `コート${court}`);
+    setCourtDisplayName(spaceBetweenScripts(activeEvent.court_names?.[courtIndex]?.trim() || `コート${court}`));
 
     const { data: tourns } = await supabase
       .from("tournaments")

@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Event, FighterInfo, Match, Tournament } from "@/lib/types";
-import { matchLabelNum } from "@/lib/match-utils";
+import { matchLabelNum, spaceBetweenScripts } from "@/lib/match-utils";
 
 type CourtData = {
   courtNum: number;
@@ -31,7 +31,7 @@ export default function LivePage() {
 
     const courtData: CourtData[] = [];
     for (let c = 1; c <= ae.court_count; c++) {
-      const courtName = ae.court_names?.[c - 1]?.trim() || `コート${c}`;
+      const courtName = spaceBetweenScripts(ae.court_names?.[c - 1]?.trim() || `コート${c}`);
       const { data: tourns } = await supabase
         .from("tournaments")
         .select("*")

@@ -10,6 +10,7 @@ import { fighterFullName, fighterFullReading } from "@/lib/types";
 import { roundName } from "@/lib/tournament";
 import { announceMatchStart, announceWinner, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
 import { BracketView } from "@/lib/bracket-view";
+import { spaceBetweenScripts } from "@/lib/match-utils";
 
 // ── 単一コートのパネルコンポーネント ─────────────────────────────────────────
 
@@ -375,7 +376,7 @@ export default function CourtIndexPage() {
             <CourtPanel
               key={n}
               courtNum={String(n)}
-              courtDisplayName={activeEvent.court_names?.[n - 1]?.trim() || `コート${n}`}
+              courtDisplayName={spaceBetweenScripts(activeEvent.court_names?.[n - 1]?.trim() || `コート${n}`)}
               announceTemplates={announceTemplates}
             />
           ))}
