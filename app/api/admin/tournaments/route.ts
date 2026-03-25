@@ -20,7 +20,7 @@ function roundsFromPairCount(n: number): number {
 export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
 
-  const { courtName, courtNum, pairs, eventId, sortOrder, defaultRuleName, maxWeightDiff, maxHeightDiff, filterMinWeight, filterMaxWeight, filterMinAge, filterMaxAge, filterSex } = await request.json() as {
+  const { courtName, courtNum, pairs, eventId, sortOrder, defaultRuleName, maxWeightDiff, maxHeightDiff, filterMinWeight, filterMaxWeight, filterMinAge, filterMaxAge, filterSex, type } = await request.json() as {
     courtName: string;
     courtNum: string;
     pairs: PairInput[];
@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
     filterMinAge?: number | null;
     filterMaxAge?: number | null;
     filterSex?: string | null;
+    type?: "tournament" | "one_match";
   };
 
   if (!pairs || pairs.length === 0) {
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
     .insert({
       name: courtName,
       court: courtNum,
+      type: type ?? "tournament",
       status: "preparing",
       default_rules: defaultRuleName ?? null,
       max_weight_diff: maxWeightDiff ?? null,
@@ -85,9 +87,10 @@ export async function POST(request: NextRequest) {
     }))
   );
 
-  const totalR = roundsFromPairCount(pairs.length);
+  const isOneMatch = type === "one_match";
+  const totalR = isOneMatch ? 1 : roundsFromPairCount(pairs.length);
 
-  // 2回戦以降の空枠を一括 insert
+  // 2回戦以降の空枠を一括 insert（ワンマッチの場合はスキップ）
   const allRoundMatches = [];
   for (let r = 2; r <= totalR; r++) {
     let matchCount = pairs.length;

@@ -67,6 +67,7 @@ export type Tournament = {
   id: string;
   name: string;
   court: string;
+  type: "tournament" | "one_match";
   status: "preparing" | "ongoing" | "finished";
   event_id: string | null;
   default_rules: string | null;
