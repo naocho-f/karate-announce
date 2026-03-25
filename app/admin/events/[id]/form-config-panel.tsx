@@ -388,27 +388,15 @@ function FieldPreviewCard({
 
   return (
     <div className="group">
-      {/* ── カードヘッダー（操作バー） ── */}
-      <div className={`flex items-center justify-between gap-2 rounded-t-xl px-3 py-1.5 border border-b-0 ${
+      {/* ── カードヘッダー（操作バーのみ・ラベルなし） ── */}
+      <div className={`flex items-center justify-between gap-2 rounded-t-xl px-3 py-1 border border-b-0 ${
         isHidden ? "border-gray-700/30 bg-gray-800/40" : "border-gray-700/50 bg-gray-700/30"
       }`}>
-        {/* 左: ラベル + 属性タグ */}
-        <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
-          <span className={`text-xs font-medium ${isHidden ? "text-gray-600" : "text-gray-300"}`}>{def.label}</span>
-          {!isHidden && field.required && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-900/50 text-red-400">必須</span>
-          )}
-          {!isHidden && !field.required && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700 text-gray-500">任意</span>
-          )}
-          {kanaField && !isHidden && <span className="text-[10px] text-gray-500">+ 読み</span>}
-          {ageField && !isHidden && <span className="text-[10px] text-gray-500">+ 年齢</span>}
-        </div>
-
-        {/* 右: 操作ボタン群 + トグル */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        {/* 左: 操作コントロール */}
+        <div className="flex items-center gap-1.5">
           {!isHidden && (
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
+            <>
+              <span className="text-[10px] text-gray-500 tabular-nums min-w-[2ch] text-right">{index + 1}</span>
               <button onClick={() => onMove(key, -1)} disabled={index === 0}
                 className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition">▲</button>
               <button onClick={() => onMove(key, 1)} disabled={index === total - 1}
@@ -432,41 +420,57 @@ function FieldPreviewCard({
                   <option value="optional">読み:任意</option>
                 </select>
               )}
-              <span className="w-px h-3 bg-gray-600 mx-0.5" />
-              <button onClick={() => setExpanded(!expanded)}
-                className={`px-1 py-0.5 text-[10px] transition ${expanded ? "text-blue-400" : "text-gray-400 hover:text-white"}`}>
-                詳細
-              </button>
-            </div>
+              {hasChoices && (
+                <>
+                  <span className="w-px h-3 bg-gray-600 mx-0.5" />
+                  <button onClick={() => setExpanded(!expanded)}
+                    className={`px-1 py-0.5 text-[10px] transition ${expanded ? "text-blue-400" : "text-gray-400 hover:text-white"}`}>
+                    選択肢設定
+                  </button>
+                </>
+              )}
+            </>
           )}
-          <button
-            onClick={() => onToggle(key)}
-            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${
-              field.visible ? "bg-blue-600" : "bg-gray-600"
-            }`}
-            title={field.visible ? "非表示にする" : "表示する"}
-          >
-            <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-              field.visible ? "translate-x-[18px]" : "translate-x-[3px]"
-            }`} />
-          </button>
+          {isHidden && <span className="text-[10px] text-gray-600">非表示</span>}
         </div>
+
+        {/* 右: トグル */}
+        <button
+          onClick={() => onToggle(key)}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${
+            field.visible ? "bg-blue-600" : "bg-gray-600"
+          }`}
+          title={field.visible ? "非表示にする" : "表示する"}
+        >
+          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+            field.visible ? "translate-x-[18px]" : "translate-x-[3px]"
+          }`} />
+        </button>
       </div>
 
-      {/* ── プレビューエリア（実際のフォーム表示に近い見た目） ── */}
+      {/* ── ボディ（実際のフォーム表示そのまま） ── */}
       <div className={`border rounded-b-xl transition relative ${
         isHidden ? "border-gray-700/30 bg-gray-900/40 px-3 py-2" : "border-gray-700/50 px-3 py-3 space-y-2"
       }`}>
         {isHidden ? (
           <div className="flex items-center justify-center py-1">
-            <span className="text-xs text-gray-600">このフィールドはフォームに表示されません</span>
+            <span className="text-xs text-gray-600">{def.label}</span>
           </div>
         ) : (
           <>
+            {/* ラベル（実際のフォームと同じ位置） */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-400 font-medium">{def.label}</span>
+              {field.required && <span className="text-red-400 text-xs">*</span>}
+              {def.unit && <span className="text-xs text-gray-600">（{def.unit}）</span>}
+              {kanaField && <span className="text-xs text-gray-600">+ 読み仮名</span>}
+              {ageField && <span className="text-xs text-gray-600">+ 年齢自動計算</span>}
+            </div>
+
             {/* 入力プレビュー */}
             {renderInputPreview(key, def, choices, field, kanaField, ageField)}
 
-            {/* 選択肢編集ボタン */}
+            {/* 選択肢編集ボタン（選択肢のある項目のみ） */}
             {hasChoices && !expanded && (
               <button onClick={() => setExpanded(true)} className="text-xs text-blue-400/70 hover:text-blue-400 transition">
                 選択肢を編集...
