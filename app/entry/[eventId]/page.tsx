@@ -279,9 +279,17 @@ export default function EntryPage({ params }: Props) {
 
   // ── フィールドごとの選択肢 ──
   function getChoices(config: FormFieldConfig, def: FieldPoolItem) {
-    if (config.custom_choices && config.custom_choices.length > 0) return config.custom_choices;
+    if (config.custom_choices && config.custom_choices.length > 0) {
+      // __single_select__ マーカーは選択肢ではないのでフィルタ
+      return config.custom_choices.filter((c) => c.value !== "__single_select__");
+    }
     if (def.fixedChoices) return def.fixedChoices;
     return def.defaultChoices ?? [];
+  }
+
+  /** rule_preference が単一選択モードかどうか */
+  function isSingleSelect(config: FormFieldConfig) {
+    return config.custom_choices?.some((c) => c.value === "__single_select__") ?? false;
   }
 
   // ── 必須チェック ──
@@ -299,6 +307,8 @@ export default function EntryPage({ params }: Props) {
     }
 
     if (def.type === "checkbox") {
+      const config = visibleFields.find((f) => f.def.key === key)?.config;
+      if (config && isSingleSelect(config)) return !!values[key]?.trim();
       return (multiValues[key]?.size ?? 0) > 0;
     }
     if (def.type === "radio" || def.type === "select") {
@@ -369,7 +379,10 @@ export default function EntryPage({ params }: Props) {
       if (key === "organization_kana") continue; // organization で処理済み
 
       let value: unknown;
-      if (def.type === "checkbox") {
+      if (def.type === "checkbox" && isSingleSelect(config)) {
+        // 単一選択モード: values[key] に単一値
+        value = values[key]?.trim() || null;
+      } else if (def.type === "checkbox") {
         const selected = [...(multiValues[key] ?? [])];
         // その他テキスト付与
         if (config.has_other_option && otherValues[key]) {
@@ -757,7 +770,24 @@ export default function EntryPage({ params }: Props) {
           </div>
         )}
 
-        {def.type === "checkbox" && (
+        {def.type === "checkbox" && isSingleSelect(config) ? (
+          /* 単一選択モード（radio として表示） */
+          <div className="space-y-1">
+            {choices.map((c) => (
+              <label key={c.value} className="flex items-center gap-2 cursor-pointer py-1">
+                <input
+                  type="radio"
+                  name={key}
+                  value={c.value}
+                  checked={values[key] === c.value}
+                  onChange={() => setValue(key, c.value)}
+                  className="accent-blue-500"
+                />
+                <span className="text-sm text-gray-200">{c.label}</span>
+              </label>
+            ))}
+          </div>
+        ) : def.type === "checkbox" ? (
           <div className="space-y-1">
             {choices.map((c) => {
               const checked = multiValues[key]?.has(c.value) ?? false;
@@ -791,7 +821,7 @@ export default function EntryPage({ params }: Props) {
               </div>
             )}
           </div>
-        )}
+        ) : null}
 
         {/* 年齢矛盾メッセージ */}
         {key === "age" && ageConflict && (

@@ -341,9 +341,9 @@ export function FormConfigPanel({ eventId }: Props) {
             + 送信ボタン前に注意書きを追加
           </button>
 
-          {/* 送信ボタン（プレビュー） */}
+          {/* 送信ボタン */}
           <div className="bg-blue-600/30 border border-blue-700/50 py-3 rounded-xl text-center text-sm text-blue-300 font-bold cursor-default">
-            エントリーする（プレビュー）
+            エントリーする
           </div>
         </div>
       </div>
@@ -437,7 +437,7 @@ function FieldPreviewCard({
                   </button>
                 </>
               )}
-              {dbManagedFields.includes(key) && def.defaultHasOther !== undefined && (
+              {dbManagedFields.includes(key) && (
                 <>
                   <span className="w-px h-3 bg-gray-600 mx-0.5" />
                   <label className="flex items-center gap-1 text-[10px] text-gray-400 cursor-pointer">
@@ -446,6 +446,25 @@ function FieldPreviewCard({
                       className="rounded w-3 h-3" />
                     その他
                   </label>
+                </>
+              )}
+              {key === "rule_preference" && (
+                <>
+                  <span className="w-px h-3 bg-gray-600 mx-0.5" />
+                  <select
+                    value={field.custom_choices?.some((c) => c.value === "__single_select__") ? "single" : "multi"}
+                    onChange={(e) => {
+                      if (e.target.value === "single") {
+                        onUpdate(field.id, { custom_choices: [{ label: "__meta__", value: "__single_select__" }] });
+                      } else {
+                        onUpdate(field.id, { custom_choices: null });
+                      }
+                    }}
+                    className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
+                  >
+                    <option value="multi">複数選択</option>
+                    <option value="single">単一選択</option>
+                  </select>
                 </>
               )}
             </>
