@@ -445,97 +445,123 @@ function FieldPreviewCard({
 
   return (
     <div className="group">
-      {/* ── カードヘッダー（操作バーのみ・ラベルなし） ── */}
-      <div className={`flex items-center justify-between gap-2 rounded-t-xl px-3 py-1 border border-b-0 ${
+      {/* ── カードヘッダー（2段構成） ── */}
+      <div className={`rounded-t-xl border border-b-0 ${
         isHidden ? "border-gray-700/30 bg-gray-800/40" : "border-gray-700/50 bg-gray-700/30"
       }`}>
-        {/* 左: 操作コントロール */}
-        <div className="flex items-center gap-1.5">
-          {!isHidden && (
-            <>
-              <span className="text-[10px] text-gray-500 tabular-nums min-w-[2ch] text-right">{index + 1}</span>
-              <button onClick={() => onMove(key, -1)} disabled={index === 0}
-                className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition">▲</button>
-              <button onClick={() => onMove(key, 1)} disabled={index === total - 1}
-                className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition">▼</button>
-              <span className="w-px h-3 bg-gray-600 mx-0.5" />
-              <select
-                value={field.required ? "required" : "optional"}
-                onChange={(e) => onUpdate(field.id, { required: e.target.value === "required" })}
-                className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
-              >
-                <option value="required">必須</option>
-                <option value="optional">任意</option>
-              </select>
-              {kanaField && (
+        {/* 1段目: 表示順・必須/任意・トグル */}
+        <div className="flex items-center justify-between gap-2 px-3 py-1.5">
+          <div className="flex items-center gap-1.5">
+            {!isHidden && (
+              <>
+                <span className="text-[10px] text-gray-500 tabular-nums min-w-[2ch] text-right">{index + 1}</span>
+                <div className="flex items-center gap-0.5">
+                  <button onClick={() => onMove(key, -1)} disabled={index === 0}
+                    className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition">▲</button>
+                  <button onClick={() => onMove(key, 1)} disabled={index === total - 1}
+                    className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition">▼</button>
+                  <span className="text-[10px] text-gray-500 ml-0.5">順序</span>
+                </div>
+                <span className="w-px h-3 bg-gray-600 mx-1" />
                 <select
-                  value={kanaField.required ? "required" : "optional"}
-                  onChange={(e) => onUpdate(kanaField.id, { required: e.target.value === "required" })}
+                  value={field.required ? "required" : "optional"}
+                  onChange={(e) => onUpdate(field.id, { required: e.target.value === "required" })}
                   className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
                 >
-                  <option value="required">読み:必須</option>
-                  <option value="optional">読み:任意</option>
+                  <option value="required">必須</option>
+                  <option value="optional">任意</option>
                 </select>
-              )}
-              {hasChoices && (
-                <>
-                  <span className="w-px h-3 bg-gray-600 mx-0.5" />
-                  <button onClick={() => setExpanded(!expanded)}
-                    className={`px-1 py-0.5 text-[10px] transition ${expanded ? "text-blue-400" : "text-gray-400 hover:text-white"}`}>
-                    選択肢設定
-                  </button>
-                </>
-              )}
-              {dbManagedFields.includes(key) && (
-                <>
-                  <span className="w-px h-3 bg-gray-600 mx-0.5" />
-                  <label className="flex items-center gap-1 text-[10px] text-gray-400 cursor-pointer">
-                    <input type="checkbox" checked={field.has_other_option}
-                      onChange={(e) => onUpdate(field.id, { has_other_option: e.target.checked })}
-                      className="rounded w-3 h-3" />
-                    その他
-                  </label>
-                </>
-              )}
-              {key === "rule_preference" && (
-                <>
-                  <span className="w-px h-3 bg-gray-600 mx-0.5" />
+                {kanaField && (
                   <select
-                    value={field.custom_choices?.some((c) => c.value === "__single_select__") ? "single" : "multi"}
-                    onChange={(e) => {
-                      if (e.target.value === "single") {
-                        onUpdate(field.id, { custom_choices: [{ label: "__meta__", value: "__single_select__" }] });
-                      } else {
-                        onUpdate(field.id, { custom_choices: null });
-                      }
-                    }}
+                    value={kanaField.required ? "required" : "optional"}
+                    onChange={(e) => onUpdate(kanaField.id, { required: e.target.value === "required" })}
                     className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
                   >
-                    <option value="multi">複数選択</option>
-                    <option value="single">単一選択</option>
+                    <option value="required">読み:必須</option>
+                    <option value="optional">読み:任意</option>
                   </select>
-                </>
-              )}
-            </>
-          )}
-          {isHidden && <span className="text-[10px] text-gray-600">非表示</span>}
+                )}
+              </>
+            )}
+            {isHidden && <span className="text-[10px] text-gray-600">非表示</span>}
+          </div>
+
+          {/* 右: トグル */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-gray-500">{field.visible ? "表示" : "非表示"}</span>
+            <button
+              onClick={() => onToggle(key)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${
+                field.visible ? "bg-blue-600" : "bg-gray-600"
+              }`}
+              title={field.visible ? "非表示にする" : "表示する"}
+            >
+              <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                field.visible ? "translate-x-[18px]" : "translate-x-[3px]"
+              }`} />
+            </button>
+          </div>
         </div>
 
-        {/* 右: トグル */}
-        <button
-          onClick={() => onToggle(key)}
-          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${
-            field.visible ? "bg-blue-600" : "bg-gray-600"
-          }`}
-          title={field.visible ? "非表示にする" : "表示する"}
-        >
-          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-            field.visible ? "translate-x-[18px]" : "translate-x-[3px]"
-          }`} />
-        </button>
+        {/* 2段目: ラベル編集・選択肢設定・注意書き追加（表示中のみ） */}
+        {!isHidden && (
+          <div className="flex items-center gap-2 px-3 py-1.5 border-t border-gray-700/30 flex-wrap">
+            {/* ラベル編集 */}
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-gray-500 shrink-0">ラベル:</span>
+              <InlineLabelEditor
+                value={field.custom_label ?? ""}
+                placeholder={def.label}
+                onChange={(v) => onUpdate(field.id, { custom_label: v || null })}
+              />
+            </div>
+
+            <span className="w-px h-3 bg-gray-600" />
+
+            {/* 選択肢設定（選択肢のある項目のみ） */}
+            {hasChoices && (
+              <button onClick={() => setExpanded(!expanded)}
+                className={`px-2 py-0.5 text-[10px] rounded transition ${expanded ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-300 hover:bg-gray-500"}`}>
+                選択肢設定
+              </button>
+            )}
+
+            {/* DB管理フィールドのオプション */}
+            {dbManagedFields.includes(key) && (
+              <label className="flex items-center gap-1 text-[10px] text-gray-400 cursor-pointer">
+                <input type="checkbox" checked={field.has_other_option}
+                  onChange={(e) => onUpdate(field.id, { has_other_option: e.target.checked })}
+                  className="rounded w-3 h-3" />
+                その他
+              </label>
+            )}
+            {key === "rule_preference" && (
+              <select
+                value={field.custom_choices?.some((c) => c.value === "__single_select__") ? "single" : "multi"}
+                onChange={(e) => {
+                  if (e.target.value === "single") {
+                    onUpdate(field.id, { custom_choices: [{ label: "__meta__", value: "__single_select__" }] });
+                  } else {
+                    onUpdate(field.id, { custom_choices: null });
+                  }
+                }}
+                className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
+              >
+                <option value="multi">複数選択</option>
+                <option value="single">単一選択</option>
+              </select>
+            )}
+
+            {/* 注意書き追加 */}
+            <button onClick={onAddNotice}
+              className="px-2 py-0.5 text-[10px] rounded bg-gray-600 text-gray-300 hover:bg-gray-500 transition">
+              + 注意書き
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* ── ボディ（実際のフォーム表示そのまま） ── */}
+      {/* ── ボディ（プレビュー専用） ── */}
       <div className={`border rounded-b-xl transition relative ${
         isHidden ? "border-gray-700/30 bg-gray-900/40 px-3 py-2" : "border-gray-700/50 px-3 py-3 space-y-2"
       }`}>
@@ -545,13 +571,9 @@ function FieldPreviewCard({
           </div>
         ) : (
           <>
-            {/* ラベル（クリックで編集可能） */}
+            {/* ラベル表示 */}
             <div className="flex items-center gap-1.5">
-              <InlineLabelEditor
-                value={field.custom_label ?? ""}
-                placeholder={def.label}
-                onChange={(v) => onUpdate(field.id, { custom_label: v || null })}
-              />
+              <span className="text-xs text-gray-400 font-medium">{field.custom_label || def.label}</span>
               {field.required && <span className="text-red-400 text-xs">*</span>}
               {def.unit && <span className="text-xs text-gray-600">（{def.unit}）</span>}
               {kanaField && <span className="text-xs text-gray-600">+ 読み仮名</span>}
@@ -561,14 +583,7 @@ function FieldPreviewCard({
             {/* 入力プレビュー */}
             {renderInputPreview(key, def, choices, field, kanaField, ageField, rules)}
 
-            {/* 選択肢編集ボタン（選択肢のある項目のみ） */}
-            {hasChoices && !expanded && (
-              <button onClick={() => setExpanded(true)} className="text-xs text-blue-400/70 hover:text-blue-400 transition">
-                選択肢を編集...
-              </button>
-            )}
-
-            {/* 詳細設定 */}
+            {/* 詳細設定（ヘッダーの選択肢設定ボタンで展開） */}
             {expanded && (
               <FieldDetailEditor field={field} def={def} allFields={allFields} onUpdate={onUpdate} onClose={() => setExpanded(false)} />
             )}
@@ -579,9 +594,6 @@ function FieldPreviewCard({
                 onUpdate={onUpdateNotice} onDelete={onDeleteNotice}
                 onUploadImage={onUploadImage} onDeleteImage={onDeleteImage} />
             ))}
-            <button onClick={onAddNotice} className="text-xs text-blue-400/60 hover:text-blue-400 transition">
-              + 注意書き
-            </button>
           </>
         )}
       </div>
@@ -887,7 +899,11 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
           <button onClick={() => onDelete(notice.id)} className="px-2 py-0.5 text-[10px] bg-red-900 text-red-300 hover:bg-red-800 rounded shadow">削除</button>
         </div>
 
-        {!hasContent && <p className="text-xs text-gray-600 italic">空の注意書き（クリックで編集）</p>}
+        {!hasContent && (
+          <button onClick={() => setEditing(true)} className="text-xs text-gray-500 italic hover:text-blue-400 transition w-full text-left">
+            空の注意書き — クリックして編集
+          </button>
+        )}
 
         {notice.text_content && (
           <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">{notice.text_content}</p>
