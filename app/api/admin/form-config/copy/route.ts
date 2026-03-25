@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       sort_order: f.sort_order,
       has_other_option: f.has_other_option,
       custom_choices: f.custom_choices,
+      custom_label: f.custom_label,
     }));
     await supabaseAdmin.from("form_field_configs").insert(newFields);
   }

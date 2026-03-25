@@ -226,6 +226,7 @@ export async function GET(request: NextRequest) {
         sort_order: def?.sort ?? 99,
         has_other_option: f.defaultHasOther ?? false,
         custom_choices: f.defaultChoices ?? null,
+        custom_label: f.label,
       };
     });
     await supabaseAdmin.from("form_field_configs").insert(fieldConfigs);
