@@ -387,58 +387,37 @@ function FieldPreviewCard({
   const isHidden = !field.visible;
 
   return (
-    <div className="relative group">
-      {/* カード本体 */}
-      <div className={`border rounded-xl p-3 space-y-1.5 transition relative ${
-        isHidden
-          ? "border-gray-700/30 bg-gray-900/40"
-          : "border-gray-700/50 hover:border-gray-600"
+    <div className="group">
+      {/* ── カードヘッダー（操作バー） ── */}
+      <div className={`flex items-center justify-between gap-2 rounded-t-xl px-3 py-1.5 border border-b-0 ${
+        isHidden ? "border-gray-700/30 bg-gray-800/40" : "border-gray-700/50 bg-gray-700/30"
       }`}>
-        {/* 非表示オーバーレイ */}
-        {isHidden && (
-          <div className="absolute inset-0 bg-gray-900/60 rounded-xl z-[5] flex items-center justify-center pointer-events-none">
-            <span className="text-xs text-gray-500 bg-gray-800 px-3 py-1 rounded-full border border-gray-700">非表示</span>
-          </div>
-        )}
+        {/* 左: ラベル + 属性タグ */}
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
+          <span className={`text-xs font-medium ${isHidden ? "text-gray-600" : "text-gray-300"}`}>{def.label}</span>
+          {!isHidden && field.required && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-900/50 text-red-400">必須</span>
+          )}
+          {!isHidden && !field.required && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700 text-gray-500">任意</span>
+          )}
+          {kanaField && !isHidden && <span className="text-[10px] text-gray-500">+ 読み</span>}
+          {ageField && !isHidden && <span className="text-[10px] text-gray-500">+ 年齢</span>}
+        </div>
 
-        {/* ── ヘッダー: ラベル行 + ツールバー行 ── */}
-        <div className="space-y-1 relative z-10">
-          {/* ラベル + トグル */}
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-              <span className={`text-xs font-medium ${isHidden ? "text-gray-600" : "text-gray-400"}`}>{def.label}</span>
-              {field.required && !isHidden && <span className="text-red-400 text-xs">*</span>}
-              {def.unit && !isHidden && <span className="text-xs text-gray-600">（{def.unit}）</span>}
-              {kanaField && !isHidden && <span className="text-xs text-gray-600">+ 読み仮名</span>}
-              {ageField && !isHidden && <span className="text-xs text-gray-600">+ 年齢自動計算</span>}
-            </div>
-
-            {/* トグルスイッチ */}
-            <button
-              onClick={() => onToggle(key)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${
-                field.visible ? "bg-blue-600" : "bg-gray-600"
-              }`}
-              title={field.visible ? "非表示にする" : "表示する"}
-            >
-              <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-                field.visible ? "translate-x-[18px]" : "translate-x-[3px]"
-              }`} />
-            </button>
-          </div>
-
-          {/* ツールバー（表示中＋ホバー時のみ） */}
+        {/* 右: 操作ボタン群 + トグル */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {!isHidden && (
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
               <button onClick={() => onMove(key, -1)} disabled={index === 0}
-                className="px-1.5 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition" title="上へ">▲</button>
+                className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition">▲</button>
               <button onClick={() => onMove(key, 1)} disabled={index === total - 1}
-                className="px-1.5 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition" title="下へ">▼</button>
-              <span className="w-px h-3.5 bg-gray-600" />
+                className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition">▼</button>
+              <span className="w-px h-3 bg-gray-600 mx-0.5" />
               <select
                 value={field.required ? "required" : "optional"}
                 onChange={(e) => onUpdate(field.id, { required: e.target.value === "required" })}
-                className="text-xs bg-transparent text-gray-400 border-none outline-none cursor-pointer"
+                className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
               >
                 <option value="required">必須</option>
                 <option value="optional">任意</option>
@@ -447,46 +426,68 @@ function FieldPreviewCard({
                 <select
                   value={kanaField.required ? "required" : "optional"}
                   onChange={(e) => onUpdate(kanaField.id, { required: e.target.value === "required" })}
-                  className="text-xs bg-transparent text-gray-400 border-none outline-none cursor-pointer"
+                  className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
                 >
                   <option value="required">読み:必須</option>
                   <option value="optional">読み:任意</option>
                 </select>
               )}
-              <span className="w-px h-3.5 bg-gray-600" />
+              <span className="w-px h-3 bg-gray-600 mx-0.5" />
               <button onClick={() => setExpanded(!expanded)}
-                className={`px-1.5 py-0.5 text-xs transition ${expanded ? "text-blue-400" : "text-gray-400 hover:text-white"}`}>
+                className={`px-1 py-0.5 text-[10px] transition ${expanded ? "text-blue-400" : "text-gray-400 hover:text-white"}`}>
                 詳細
               </button>
             </div>
           )}
+          <button
+            onClick={() => onToggle(key)}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${
+              field.visible ? "bg-blue-600" : "bg-gray-600"
+            }`}
+            title={field.visible ? "非表示にする" : "表示する"}
+          >
+            <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+              field.visible ? "translate-x-[18px]" : "translate-x-[3px]"
+            }`} />
+          </button>
         </div>
+      </div>
 
-        {/* 入力プレビュー（表示中のみ） */}
-        {!isHidden && renderInputPreview(key, def, choices, field, kanaField, ageField)}
+      {/* ── プレビューエリア（実際のフォーム表示に近い見た目） ── */}
+      <div className={`border rounded-b-xl transition relative ${
+        isHidden ? "border-gray-700/30 bg-gray-900/40 px-3 py-2" : "border-gray-700/50 px-3 py-3 space-y-2"
+      }`}>
+        {isHidden ? (
+          <div className="flex items-center justify-center py-1">
+            <span className="text-xs text-gray-600">このフィールドはフォームに表示されません</span>
+          </div>
+        ) : (
+          <>
+            {/* 入力プレビュー */}
+            {renderInputPreview(key, def, choices, field, kanaField, ageField)}
 
-        {/* 選択肢編集ボタン（カード直下・詳細の外） */}
-        {!isHidden && hasChoices && !expanded && (
-          <button onClick={() => setExpanded(true)} className="text-xs text-blue-400/70 hover:text-blue-400 transition pl-1">
-            選択肢を編集...
-          </button>
-        )}
+            {/* 選択肢編集ボタン */}
+            {hasChoices && !expanded && (
+              <button onClick={() => setExpanded(true)} className="text-xs text-blue-400/70 hover:text-blue-400 transition">
+                選択肢を編集...
+              </button>
+            )}
 
-        {/* 展開: 詳細設定 */}
-        {!isHidden && expanded && (
-          <FieldDetailEditor field={field} def={def} allFields={allFields} onUpdate={onUpdate} onClose={() => setExpanded(false)} />
-        )}
+            {/* 詳細設定 */}
+            {expanded && (
+              <FieldDetailEditor field={field} def={def} allFields={allFields} onUpdate={onUpdate} onClose={() => setExpanded(false)} />
+            )}
 
-        {/* この項目の注意書き（インライン） */}
-        {!isHidden && notices.sort((a, b) => a.sort_order - b.sort_order).map((n) => (
-          <InlineNoticeEditor key={n.id} notice={n} busy={busyNotices.has(n.id)}
-            onUpdate={onUpdateNotice} onDelete={onDeleteNotice}
-            onUploadImage={onUploadImage} onDeleteImage={onDeleteImage} />
-        ))}
-        {!isHidden && (
-          <button onClick={onAddNotice} className="text-xs text-blue-400/60 hover:text-blue-400 transition">
-            + 注意書き
-          </button>
+            {/* この項目の注意書き */}
+            {notices.sort((a, b) => a.sort_order - b.sort_order).map((n) => (
+              <InlineNoticeEditor key={n.id} notice={n} busy={busyNotices.has(n.id)}
+                onUpdate={onUpdateNotice} onDelete={onDeleteNotice}
+                onUploadImage={onUploadImage} onDeleteImage={onDeleteImage} />
+            ))}
+            <button onClick={onAddNotice} className="text-xs text-blue-400/60 hover:text-blue-400 transition">
+              + 注意書き
+            </button>
+          </>
         )}
       </div>
     </div>
