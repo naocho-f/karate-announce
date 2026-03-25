@@ -491,6 +491,7 @@ export default function EntryPage({ params }: Props) {
     const key = def.key;
     const choices = getChoices(config, def);
     const isReq = config.required;
+    const label = config.custom_label || def.label;
 
     // full_name: 姓名 + 読み仮名をグループ表示
     if (key === "full_name") {
@@ -500,7 +501,7 @@ export default function EntryPage({ params }: Props) {
       return (
         <div key={key} className="space-y-2">
           <p className="text-xs text-gray-400 font-medium">
-            {def.label}
+            {label}
             {isReq && <span className="text-red-400 ml-1">*</span>}
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -553,7 +554,7 @@ export default function EntryPage({ params }: Props) {
       return (
         <div key={key} className="space-y-2">
           <p className="text-xs text-gray-400 font-medium">
-            {def.label}
+            {label}
             {isReq && <span className="text-red-400 ml-1">*</span>}
           </p>
           <ComboInput
@@ -568,7 +569,7 @@ export default function EntryPage({ params }: Props) {
           {showKana && !(isMasterSelected && def.hideKanaOnMasterSelect) && (
             <div className="space-y-1">
               <label className="text-xs text-gray-500">
-                {getFieldDef("organization_kana")?.label ?? "よみがな"}
+                {kanaConfig?.config.custom_label || (getFieldDef("organization_kana")?.label ?? "よみがな")}
                 {kanaRequired && <span className="text-red-400 ml-1">*</span>}
               </label>
               <input
@@ -596,7 +597,7 @@ export default function EntryPage({ params }: Props) {
       return (
         <div key={key} className="space-y-2">
           <p className="text-xs text-gray-400 font-medium">
-            {def.label}
+            {label}
             {isReq && <span className="text-red-400 ml-1">*</span>}
           </p>
           <input
@@ -609,7 +610,7 @@ export default function EntryPage({ params }: Props) {
           {showKana && (
             <div className="space-y-1">
               <label className="text-xs text-gray-500">
-                {getFieldDef("branch_kana")?.label ?? "よみがな"}
+                {kanaConfig?.config.custom_label || (getFieldDef("branch_kana")?.label ?? "よみがな")}
                 {kanaRequired && <span className="text-red-400 ml-1">*</span>}
               </label>
               <input
@@ -638,7 +639,7 @@ export default function EntryPage({ params }: Props) {
     return (
       <div key={key} className="space-y-2">
         <p className="text-xs text-gray-400 font-medium">
-          {def.label}
+          {label}
           {isReq && <span className="text-red-400 ml-1">*</span>}
           {def.unit && <span className="text-gray-500 ml-1">（{def.unit}）</span>}
         </p>

@@ -20,6 +20,54 @@ function Spinner({ className = "" }: { className?: string }) {
   );
 }
 
+// ── インラインラベル編集 ──
+function InlineLabelEditor({ value, placeholder, onChange }: {
+  value: string;
+  placeholder: string;
+  onChange: (v: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setDraft(value); }, [value]);
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => setEditing(true)}
+        className="text-xs text-gray-400 font-medium hover:text-blue-400 transition cursor-text"
+        title="クリックしてラベルを編集"
+      >
+        {value || placeholder}
+        {value && <span className="text-blue-400/50 ml-1 text-[10px]">✎</span>}
+      </button>
+    );
+  }
+
+  const commit = () => {
+    setEditing(false);
+    const trimmed = draft.trim();
+    if (trimmed !== value) onChange(trimmed);
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") commit();
+        if (e.key === "Escape") { setDraft(value); setEditing(false); }
+      }}
+      placeholder={placeholder}
+      className="text-xs font-medium bg-gray-700 border border-blue-500 rounded px-1.5 py-0.5 text-white outline-none w-40"
+    />
+  );
+}
+
 // ══════════════════════════════════════════════════════════════
 // メインパネル
 // ══════════════════════════════════════════════════════════════
@@ -493,13 +541,17 @@ function FieldPreviewCard({
       }`}>
         {isHidden ? (
           <div className="flex items-center justify-center py-1">
-            <span className="text-xs text-gray-600">{def.label}</span>
+            <span className="text-xs text-gray-600">{field.custom_label || def.label}</span>
           </div>
         ) : (
           <>
-            {/* ラベル（実際のフォームと同じ位置） */}
+            {/* ラベル（クリックで編集可能） */}
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-gray-400 font-medium">{def.label}</span>
+              <InlineLabelEditor
+                value={field.custom_label ?? ""}
+                placeholder={def.label}
+                onChange={(v) => onUpdate(field.id, { custom_label: v || null })}
+              />
               {field.required && <span className="text-red-400 text-xs">*</span>}
               {def.unit && <span className="text-xs text-gray-600">（{def.unit}）</span>}
               {kanaField && <span className="text-xs text-gray-600">+ 読み仮名</span>}

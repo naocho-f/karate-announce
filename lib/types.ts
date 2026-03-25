@@ -170,6 +170,7 @@ export type FormFieldConfig = {
   sort_order: number;
   has_other_option: boolean;
   custom_choices: { label: string; value: string }[] | null;
+  custom_label: string | null;
 };
 
 export type FormNotice = {
