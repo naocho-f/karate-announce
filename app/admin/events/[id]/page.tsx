@@ -251,7 +251,7 @@ export default function EventDetailPage({ params }: Props) {
   useEffect(() => { load(); }, [load]);
 
   if (!event) {
-    return <div className="min-h-screen bg-gray-800 text-white flex items-center justify-center text-gray-400">読み込み中...</div>;
+    return <div className="min-h-screen bg-main-bg text-white flex items-center justify-center text-gray-400">読み込み中...</div>;
   }
 
   const eventRules = rules.filter((r) => eventRuleIds.has(r.id));
@@ -261,7 +261,7 @@ export default function EventDetailPage({ params }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-gray-800 text-white p-6">
+    <main className="min-h-screen bg-main-bg text-white p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-3 mb-4 flex-wrap">
           <Link href="/admin?tab=events" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
@@ -274,7 +274,7 @@ export default function EventDetailPage({ params }: Props) {
         </div>
 
         {/* メタ情報（開催日・コート名）インライン編集 */}
-        <div className="mb-6 bg-gray-700 rounded-xl px-4 py-3">
+        <div className="mb-6 bg-gray-800 rounded-xl px-4 py-3">
           {!editingMeta ? (
             <div className="flex items-center gap-4 flex-wrap">
               <span className="text-sm text-gray-400">開催日: <span className="text-gray-200">{event.event_date ?? "未設定"}</span></span>
@@ -296,7 +296,7 @@ export default function EventDetailPage({ params }: Props) {
               <div className="flex items-center gap-3 flex-wrap">
                 <label className="text-xs text-gray-400 shrink-0">開催日</label>
                 <input type="date" value={metaDate} onChange={e => setMetaDate(e.target.value)}
-                  className="bg-gray-600 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-blue-500" />
+                  className="bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-blue-500" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-gray-400">コート名</label>
@@ -308,7 +308,7 @@ export default function EventDetailPage({ params }: Props) {
                         value={name}
                         onChange={e => setMetaCourtNames(prev => { const next = [...prev]; next[i] = e.target.value; return next; })}
                         placeholder={`コート${i + 1}`}
-                        className="flex-1 bg-gray-600 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500"
+                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500"
                       />
                     </div>
                   ))}
@@ -319,7 +319,7 @@ export default function EventDetailPage({ params }: Props) {
                   {savingMeta && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
                   {savingMeta ? "保存中..." : "保存"}
                 </button>
-                <button onClick={() => setEditingMeta(false)} disabled={savingMeta} className="px-4 py-1.5 text-sm rounded-lg bg-gray-600 hover:bg-gray-500 text-gray-300 disabled:opacity-50">キャンセル</button>
+                <button onClick={() => setEditingMeta(false)} disabled={savingMeta} className="px-4 py-1.5 text-sm rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-50">キャンセル</button>
               </div>
             </div>
           )}
@@ -332,7 +332,7 @@ export default function EventDetailPage({ params }: Props) {
         {step === 1 && (
           <div className="space-y-4">
             {/* サブタブ: エントリー管理 / フォーム設定 */}
-            <div className="flex gap-1 bg-gray-700 rounded-lg p-1">
+            <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
               {([["entries", "エントリー管理"], ["form", "フォーム設定"]] as const).map(([key, label]) => (
                 <button
                   key={key}
@@ -351,7 +351,7 @@ export default function EventDetailPage({ params }: Props) {
 
             {/* エントリー管理タブ */}
             {entrySubTab === "entries" && (<>
-            <div className="bg-gray-700 rounded-xl p-4 space-y-3">
+            <div className="bg-gray-800 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <h2 className="font-semibold text-gray-200">エントリー受付</h2>
                 <button
@@ -359,7 +359,7 @@ export default function EventDetailPage({ params }: Props) {
                   disabled={togglingClosed}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition border disabled:opacity-50 ${
                     event.entry_closed
-                      ? "bg-gray-600 hover:bg-gray-500 text-gray-300 border-gray-600"
+                      ? "bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600"
                       : "bg-green-700 hover:bg-green-600 text-white border-transparent"
                   }`}
                 >
@@ -478,15 +478,15 @@ function StepNav({ step, tournaments, onStepChange }: { step: 1 | 2 | 3; tournam
     { n: 3, label: "③ 試合番号設定", disabled: tournaments.length === 0 },
   ];
   return (
-    <div className="flex mb-6 rounded-xl overflow-hidden border border-gray-600">
+    <div className="flex mb-6 rounded-xl overflow-hidden border border-gray-700">
       {steps.map((s, i) => (
         <button
           key={s.n}
           onClick={() => !s.disabled && onStepChange(s.n)}
           disabled={s.disabled}
           className={`flex-1 py-3 text-sm font-medium transition ${
-            i > 0 ? "border-l border-gray-600" : ""
-          } ${step === s.n ? "bg-blue-700 text-white" : s.disabled ? "bg-gray-700 text-gray-600 cursor-not-allowed" : "bg-gray-700 hover:bg-gray-750 text-gray-400 hover:text-gray-200"}`}
+            i > 0 ? "border-l border-gray-700" : ""
+          } ${step === s.n ? "bg-blue-700 text-white" : s.disabled ? "bg-gray-800 text-gray-600 cursor-not-allowed" : "bg-gray-800 hover:bg-gray-750 text-gray-400 hover:text-gray-200"}`}
         >
           {s.label}
         </button>
@@ -596,7 +596,7 @@ function DashboardPanel({ entries, tournaments, eventRules, entryRuleIds, tourna
   const oneMatchTypeCount = tournaments.filter((t) => t.type === "one_match").length;
 
   const matchCountInfo = matchCountSummary.totalDesired > matchCountSummary.totalAssigned ? (
-    <div className="bg-gray-700 rounded-xl p-3 flex items-center gap-3 flex-wrap">
+    <div className="bg-gray-800 rounded-xl p-3 flex items-center gap-3 flex-wrap">
       <span className="text-xs text-gray-400">希望試合数:</span>
       <span className="text-sm text-white">合計 {matchCountSummary.totalDesired}試合 / 設定済 {matchCountSummary.totalAssigned}試合</span>
       {matchCountSummary.unsatisfied > 0 && (
@@ -662,7 +662,7 @@ function DashboardCard({ label, total, unassigned, tournamentCount, oneMatchCoun
   if (total === 0) return null;
 
   return (
-    <div className="bg-gray-700 rounded-xl p-4 space-y-3">
+    <div className="bg-gray-800 rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3 flex-wrap">
           <span className="font-semibold text-gray-200">{label}</span>
@@ -692,14 +692,14 @@ function DashboardCard({ label, total, unassigned, tournamentCount, oneMatchCoun
       </div>
 
       {expanded && suggestions.length > 0 && (
-        <div className="border-t border-gray-600 pt-3 space-y-2">
+        <div className="border-t border-gray-700 pt-3 space-y-2">
           <p className="text-xs text-gray-400">分割した場合の人数バランス（参考）</p>
           <div className="flex flex-wrap gap-2">
             {suggestions.map((s, i) => (
               <div key={i} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border ${
                 s.balance === "◎" ? "bg-green-900/40 border-green-700 text-green-200" :
                 s.balance === "△" ? "bg-yellow-900/40 border-yellow-700 text-yellow-200" :
-                "bg-gray-600 border-gray-600 text-gray-400"
+                "bg-gray-700 border-gray-600 text-gray-400"
               }`}>
                 <span className="font-bold">{s.balance}</span>
                 <span>{s.belowLabel} {s.belowCount}名</span>
@@ -738,13 +738,13 @@ function EntryFormUrl({ eventId }: { eventId: string }) {
           className="text-xs text-blue-400 hover:text-blue-300">フォームを開く →</a>
       </div>
       <div className="flex items-center gap-2">
-        <span className="flex-1 text-xs text-gray-300 bg-gray-600 rounded px-3 py-2 truncate font-mono select-all">
+        <span className="flex-1 text-xs text-gray-300 bg-gray-700 rounded px-3 py-2 truncate font-mono select-all">
           {url}
         </span>
         <button
           onClick={copy}
           className={`shrink-0 text-xs px-3 py-2 rounded-lg transition font-medium ${
-            copied ? "bg-green-700 text-green-200" : "bg-gray-600 hover:bg-gray-500 text-gray-300"
+            copied ? "bg-green-700 text-green-200" : "bg-gray-700 hover:bg-gray-600 text-gray-300"
           }`}
         >
           {copied ? "コピー済 ✓" : "コピー"}
@@ -853,7 +853,7 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
   }
 
   return (
-    <div className="bg-gray-700 rounded-xl p-4 space-y-3">
+    <div className="bg-gray-800 rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-gray-300">エントリー一覧</h2>
@@ -870,11 +870,11 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
             </button>
           )}
           <button onClick={addDemoEntries} disabled={generating}
-            className="text-xs text-gray-500 hover:text-gray-300 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-gray-600 hover:border-gray-600 transition">
+            className="text-xs text-gray-500 hover:text-gray-300 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition">
             {generating ? "処理中..." : "テスト32名"}
           </button>
           <button onClick={refresh} disabled={refreshing}
-            className="text-xs text-gray-400 hover:text-gray-200 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-gray-600 hover:border-gray-600 transition">
+            className="text-xs text-gray-400 hover:text-gray-200 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition">
             {refreshing ? "更新中..." : "↻ 最新に更新"}
           </button>
           <button onClick={() => setShowForm((v) => !v)}
@@ -906,7 +906,7 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
           {entries.length > 0 && (() => {
             const colSpan = 5 + (eventRules.length > 0 ? 1 : 0);
             return (
-              <div className="border border-gray-600 rounded-lg overflow-hidden">
+              <div className="border border-gray-700 rounded-lg overflow-hidden">
                 <table className="w-full">
                   <tbody>
                     {entries.map((e, i) => {
@@ -915,7 +915,7 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
                       const memoOpen = openMemoId === e.id;
                       return (
                         <>
-                          <tr key={e.id} className={`border-b border-gray-600 ${e.is_withdrawn ? "opacity-50 bg-gray-800/40" : memoOpen ? "bg-gray-750" : "hover:bg-gray-750"}`}>
+                          <tr key={e.id} className={`border-b border-gray-700 ${e.is_withdrawn ? "opacity-50 bg-gray-900/40" : memoOpen ? "bg-gray-750" : "hover:bg-gray-750"}`}>
                             <td className="px-2 py-1.5 text-xs text-gray-600 text-right w-7">{i + 1}</td>
                             <td className="px-2 py-1.5 whitespace-nowrap">
                               <span className={`text-sm font-medium ${e.is_withdrawn ? "line-through text-gray-500" : "text-white"}`}>{entryFullName(e)}</span>
@@ -924,7 +924,7 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
                                 <span className="ml-1.5 text-xs bg-purple-900 text-purple-300 px-1.5 py-0.5 rounded" title={`フォームv${e.form_version}で入力（現在v${currentFormVersion}）`}>旧ver</span>
                               )}
                               {currentFormVersion != null && e.form_version == null && (
-                                <span className="ml-1.5 text-xs bg-gray-600 text-gray-400 px-1.5 py-0.5 rounded" title="フォーム設定導入前のエントリー">旧ver</span>
+                                <span className="ml-1.5 text-xs bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded" title="フォーム設定導入前のエントリー">旧ver</span>
                               )}
                             </td>
                             <td className="px-2 py-1.5 text-xs text-gray-400">
@@ -947,7 +947,7 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
                                     return (
                                       <button key={r.id} onClick={() => onToggleRule(e.id, r.id)} disabled={busy}
                                         className={`text-xs px-1.5 py-0.5 rounded transition disabled:opacity-50 ${
-                                          checked ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-500 hover:bg-gray-600"
+                                          checked ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-500 hover:bg-gray-600"
                                         }`}>
                                         {busy ? "…" : r.name}
                                       </button>
@@ -963,8 +963,8 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
                                   hasAdminMemo
                                     ? "bg-yellow-900/60 text-yellow-200 border-yellow-700 hover:bg-yellow-800/60"
                                     : hasAppMemo
-                                    ? "bg-gray-600 text-gray-300 border-gray-600 hover:bg-gray-600"
-                                    : "bg-gray-700 text-gray-600 border-gray-600 hover:bg-gray-600 hover:text-gray-400"
+                                    ? "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
+                                    : "bg-gray-800 text-gray-600 border-gray-700 hover:bg-gray-700 hover:text-gray-400"
                                 }`}
                               >
                                 {hasAdminMemo ? "📋 メモあり" : hasAppMemo ? "📝 備考あり" : "メモ"}
@@ -987,7 +987,7 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
                             </td>
                           </tr>
                           {memoOpen && (
-                            <tr key={`${e.id}-memo`} className="bg-gray-800/60 border-b border-gray-600">
+                            <tr key={`${e.id}-memo`} className="bg-gray-900/60 border-b border-gray-700">
                               <td colSpan={colSpan} className="px-4 py-3">
                                 {hasAppMemo && (
                                   <p className="text-xs text-gray-400 italic mb-2">
@@ -1034,7 +1034,7 @@ function InlineMemoEditor({ entryId, initialValue, onSaved }: {
   return (
     <textarea value={memo} onChange={(e) => setMemo(e.target.value)} onBlur={save} autoFocus
       placeholder="管理者メモ（例: 初試合・怪我注意・誰と当てたい等）" rows={2}
-      className="w-full bg-gray-600 border border-yellow-700/60 rounded px-3 py-2 text-xs text-yellow-100 placeholder:text-gray-600 outline-none focus:border-yellow-500 resize-none"
+      className="w-full bg-gray-700 border border-yellow-700/60 rounded px-3 py-2 text-xs text-yellow-100 placeholder:text-gray-600 outline-none focus:border-yellow-500 resize-none"
     />
   );
 }
@@ -1102,7 +1102,7 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
     onAdded();
   }
 
-  const inp = "flex-1 min-w-0 bg-gray-600 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
+  const inp = "flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
 
   return (
     <form onSubmit={submit} className="border border-blue-700 rounded-lg p-3 space-y-2">
@@ -1130,7 +1130,7 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
           {eventRules.map((r) => (
             <button key={r.id} type="button" onClick={() => toggleRule(r.id)}
               className={`text-xs px-2 py-0.5 rounded transition ${
-                selectedRules.has(r.id) ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-400 hover:bg-gray-600"
+                selectedRules.has(r.id) ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"
               }`}>
               {selectedRules.has(r.id) ? "✓ " : ""}{r.name}
             </button>
@@ -1474,7 +1474,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
     : `${courtLabel} の対戦表作成${tournaments.length > 0 ? "" : ""}`;
 
   const editForm = (
-    <div className="bg-gray-700 rounded-xl p-4 space-y-4">
+    <div className="bg-gray-800 rounded-xl p-4 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="font-semibold text-gray-200">
           {editFormTitle}
@@ -1491,7 +1491,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
       <div className="flex items-center gap-2">
         <label className="text-xs text-gray-400 shrink-0">ルール絞込:</label>
         <select value={defaultRuleId} onChange={(e) => setDefaultRuleId(e.target.value)}
-          className="bg-gray-600 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500">
+          className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500">
           <option value="">すべて</option>
           {(eventRules.length > 0 ? eventRules : rules).map((r) => (
             <option key={r.id} value={r.id}>{r.name}</option>
@@ -1545,7 +1545,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
 
       <div className="flex gap-2 pt-1">
         <button onClick={() => { setShowCreateForm(false); setEditingTournamentId(null); }}
-          className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-lg text-sm transition">
+          className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm transition">
           キャンセル
         </button>
         <button onClick={confirm} disabled={confirming || totalPairs === 0}
@@ -1688,10 +1688,10 @@ function BracketQualityBadge({ pairCount }: { pairCount: number }) {
         <span className="text-[10px] opacity-70">{open ? "▲" : "▼"}</span>
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 w-64 bg-gray-800 border border-gray-600 rounded-lg shadow-xl p-3 space-y-1.5">
+        <div className="absolute left-0 top-full mt-1 z-50 w-64 bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 space-y-1.5">
           <p className="text-xs text-white font-medium">{pairCount}対戦 — ブラケットが不規則</p>
           <p className="text-xs text-gray-400">2の累乗でないため、一部のラウンドで試合数が揃いません。</p>
-          <div className="border-t border-gray-600 pt-1.5 space-y-1">
+          <div className="border-t border-gray-700 pt-1.5 space-y-1">
             <p className="text-xs text-gray-300">
               推奨: <span className="text-white font-medium">{q.prevCleanPairs}対戦</span>（{q.prevCleanPairs * 2}名以下）または <span className="text-white font-medium">{q.nextCleanPairs}対戦</span>（{q.nextCleanPairs * 2}名以下）
             </p>
@@ -1759,13 +1759,13 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
 
   const isOneMatch = group.type === "one_match";
   const preview = !isOneMatch && previewMode && group.pairs.length > 1 ? buildBracketPreview(group.pairs) : null;
-  const inpSm = "bg-gray-600 border border-gray-600 rounded px-1.5 py-1 text-xs text-white outline-none focus:border-blue-500";
+  const inpSm = "bg-gray-700 border border-gray-600 rounded px-1.5 py-1 text-xs text-white outline-none focus:border-blue-500";
 
   return (
     <div className="border border-gray-600 rounded-xl p-3 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <input value={group.name} onChange={(e) => onRename(e.target.value)} placeholder="トーナメント名"
-          className="flex-1 min-w-[140px] bg-gray-600 border border-gray-600 rounded px-2 py-1.5 text-sm font-medium text-white outline-none focus:border-blue-500" />
+          className="flex-1 min-w-[140px] bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm font-medium text-white outline-none focus:border-blue-500" />
         <div className="flex items-center gap-1 shrink-0">
           <span className="text-xs text-gray-500">体重差</span>
           <input type="number" min="0" step="0.5" value={group.maxWeightDiff ?? ""}
@@ -1786,13 +1786,13 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
           <BracketQualityBadge pairCount={group.pairs.length} />
         )}
         {!isOneMatch && group.pairs.length > 1 && (
-          <div className="flex rounded overflow-hidden border border-gray-600 text-xs shrink-0">
+          <div className="flex rounded overflow-hidden border border-gray-700 text-xs shrink-0">
             <button onClick={() => setPreviewMode(false)}
-              className={`px-2 py-1 transition ${!previewMode ? "bg-blue-700 text-white" : "bg-gray-600 text-gray-400 hover:bg-gray-600"}`}>
+              className={`px-2 py-1 transition ${!previewMode ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}>
               編集
             </button>
             <button onClick={() => setPreviewMode(true)}
-              className={`px-2 py-1 transition ${previewMode ? "bg-blue-700 text-white" : "bg-gray-600 text-gray-400 hover:bg-gray-600"}`}>
+              className={`px-2 py-1 transition ${previewMode ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}>
               ブラケット
             </button>
           </div>
@@ -1802,7 +1802,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
         )}
       </div>
 
-      <div className="bg-gray-800/50 border border-gray-600 rounded-lg p-2.5 space-y-2">
+      <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-2.5 space-y-2">
         <p className="text-xs text-gray-400 font-medium">{isOneMatch ? "選手を選択" : "選手を絞り込んでこのトーナメントに追加"}</p>
         {!isOneMatch && (<>
         <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-center">
@@ -1853,7 +1853,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
                 return (
                   <span key={e.id} title={tooltip || undefined}
                     className={`text-xs px-2 py-0.5 rounded-full cursor-default ${
-                      e.admin_memo ? "bg-yellow-900/50 text-yellow-200 ring-1 ring-yellow-700" : "bg-gray-600 text-gray-300"
+                      e.admin_memo ? "bg-yellow-900/50 text-yellow-200 ring-1 ring-yellow-700" : "bg-gray-700 text-gray-300"
                     }`}>
                     {entryFullName(e)}{matchCountLabel}
                     {e.age != null ? ` ${e.age}才` : ""}
@@ -1932,13 +1932,13 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
                 ].filter((m): m is NonNullable<typeof m> => m !== null);
 
                 return (
-                  <div key={pair.id} className="border border-gray-600 rounded-lg overflow-hidden">
+                  <div key={pair.id} className="border border-gray-700 rounded-lg overflow-hidden">
                     <div className="flex gap-0">
                       <div className="flex-1 p-2.5 space-y-1.5 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs text-gray-500 w-5 shrink-0 text-center">{idx + 1}</span>
                           <select value={pair.e1.id} onChange={(ev) => onUpdateE1(pair.id, ev.target.value)}
-                            className="flex-1 min-w-0 bg-gray-600 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500">
+                            className="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500">
                             {e1Options.map((e) => (
                               <option key={e.id} value={e.id}>{entryOptionLabel(e)}</option>
                             ))}
@@ -1955,7 +1955,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
                         <div className="flex items-center gap-1.5 pl-6">
                           <span className="text-gray-600 text-xs shrink-0">vs</span>
                           <select value={pair.e2?.id ?? ""} onChange={(ev) => onUpdateE2(pair.id, ev.target.value || null)}
-                            className="flex-1 min-w-0 bg-gray-600 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500">
+                            className="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500">
                             <option value="">不戦勝</option>
                             {e2Sorted.map((e) => {
                               const c: CompatibilityLevel = checkCompatibility(pair.e1, e, groupMismatch);
@@ -1973,7 +1973,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
                         )}
                       </div>
                       {memos.length > 0 && (
-                        <div className="w-44 shrink-0 border-l border-gray-600 bg-gray-800/40 p-2 space-y-1.5">
+                        <div className="w-44 shrink-0 border-l border-gray-700 bg-gray-900/40 p-2 space-y-1.5">
                           {memos.map((m, mi) => (
                             <div key={mi}>
                               <p className="text-[10px] text-gray-500">{m.kind === "admin" ? "📋" : "📝"} {m.name}</p>
@@ -1989,7 +1989,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
             </div>
           )}
           <button onClick={onAddPair} disabled={unassigned.length === 0 || (isOneMatch && group.pairs.length >= 1)}
-            className="w-full bg-gray-600 hover:bg-gray-500 disabled:opacity-40 py-1.5 rounded text-xs transition">
+            className="w-full bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-1.5 rounded text-xs transition">
             ＋ 手動で対戦を追加
           </button>
         </>
@@ -2083,7 +2083,7 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
   }
 
   return (
-    <div className="bg-gray-700 rounded-xl p-4 space-y-3">
+    <div className="bg-gray-800 rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <h2 className="font-semibold text-gray-200">{courtLabel}</h2>
@@ -2096,7 +2096,7 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
           <span className={`text-xs px-2 py-0.5 rounded ${
             tournament.status === "finished" ? "bg-green-900 text-green-300" :
             tournament.status === "ongoing"  ? "bg-yellow-900 text-yellow-300" :
-            "bg-gray-600 text-gray-400"
+            "bg-gray-700 text-gray-400"
           }`}>
             {tournament.status === "preparing" ? "準備中" : tournament.status === "ongoing" ? "進行中" : "終了"}
           </span>
@@ -2195,7 +2195,7 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
                 const f1 = m.fighter1_id ? fighterMap[m.fighter1_id] : null;
                 const f2 = m.fighter2_id ? fighterMap[m.fighter2_id] : null;
                 return (
-                  <div key={m.id} className="border border-gray-600 rounded-lg p-3 flex items-center gap-3">
+                  <div key={m.id} className="border border-gray-700 rounded-lg p-3 flex items-center gap-3">
                     <span className={`text-sm font-medium ${m.winner_id === m.fighter1_id ? "text-green-400" : "text-white"}`}>
                       {f1?.name ?? "未定"}
                       {m.winner_id === m.fighter1_id && <span className="ml-1 text-xs text-green-400">勝</span>}
@@ -2208,7 +2208,7 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
                     <span className={`ml-auto text-xs px-2 py-0.5 rounded ${
                       m.status === "done" ? "bg-green-900 text-green-300" :
                       m.status === "ongoing" ? "bg-yellow-900 text-yellow-300" :
-                      "bg-gray-600 text-gray-400"
+                      "bg-gray-700 text-gray-400"
                     }`}>
                       {m.status === "done" ? "終了" : m.status === "ongoing" ? "試合中" : m.status === "ready" ? "準備完了" : "待機中"}
                     </span>

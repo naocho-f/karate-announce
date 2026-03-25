@@ -333,7 +333,7 @@ export default function CourtPage({ params }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-gray-800 text-white p-4">
+    <main className="min-h-screen bg-main-bg text-white p-4">
       <div className="max-w-5xl mx-auto">
         {/* ヘッダー */}
         <div className="flex items-center gap-3 mb-6">
@@ -488,12 +488,12 @@ function CourtContent({
             <div className="flex items-center gap-3 mb-3">
               <h2 className="font-semibold text-lg">{tournament.name}</h2>
               <span className={`text-xs px-2 py-0.5 rounded ${
-                tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-600 text-gray-400"
+                tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"
               }`}>
                 {tournament.status === "ongoing" ? "進行中" : "準備中"}
               </span>
             </div>
-            <div className="bg-gray-700/80 rounded-xl p-4 border border-gray-600/40">
+            <div className="bg-gray-800/80 rounded-xl p-4 border border-gray-700/40">
               {matches.length === 0 ? (
                 <p className="text-sm text-gray-500">試合データなし</p>
               ) : (

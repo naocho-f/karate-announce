@@ -245,7 +245,7 @@ export function FormConfigPanel({ eventId }: Props) {
   return (
     <div className="space-y-4">
       {/* ヘッダー */}
-      <div className="bg-gray-700 rounded-xl p-4">
+      <div className="bg-gray-800 rounded-xl p-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <h2 className="font-semibold text-gray-200">フォーム設定</h2>
@@ -255,11 +255,11 @@ export function FormConfigPanel({ eventId }: Props) {
             <span className="text-xs text-gray-500">v{config.version}</span>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setShowCopyModal(true)} className="px-3 py-1.5 text-xs bg-gray-600 hover:bg-gray-500 rounded-lg transition">
+            <button onClick={() => setShowCopyModal(true)} className="px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 rounded-lg transition">
               過去の大会から読み込む
             </button>
             <button onClick={save} disabled={!dirty || saving}
-              className="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:text-gray-500 rounded-lg transition font-medium">
+              className="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg transition font-medium">
               {saving ? <><Spinner className="inline-block mr-1" />保存中...</> : dirty ? "保存する" : "保存済み"}
             </button>
             <button onClick={toggleReady}
@@ -271,8 +271,8 @@ export function FormConfigPanel({ eventId }: Props) {
       </div>
 
       {/* ── フォームプレビュー ── */}
-      <div className="bg-gray-700 rounded-xl overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-gray-600 bg-gray-750">
+      <div className="bg-gray-800 rounded-xl overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-gray-700 bg-gray-750">
           <p className="text-xs text-gray-400">実際のフォームに近い見た目で表示しています。トグルで表示/非表示を切り替えできます。</p>
         </div>
 
@@ -360,7 +360,7 @@ export function FormConfigPanel({ eventId }: Props) {
 // フィールドプレビューカード
 // ══════════════════════════════════════════════════════════════
 
-const inp = "w-full bg-gray-800/60 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-500 pointer-events-none select-none min-h-[38px]";
+const inp = "w-full bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-500 pointer-events-none select-none min-h-[38px]";
 
 function FieldPreviewCard({
   field, def, kanaField, ageField, index, total, notices, allFields,
@@ -399,7 +399,7 @@ function FieldPreviewCard({
     <div className="group">
       {/* ── カードヘッダー（操作バーのみ・ラベルなし） ── */}
       <div className={`flex items-center justify-between gap-2 rounded-t-xl px-3 py-1 border border-b-0 ${
-        isHidden ? "border-gray-600/30 bg-gray-700/40" : "border-gray-600/50 bg-gray-600/30"
+        isHidden ? "border-gray-700/30 bg-gray-800/40" : "border-gray-700/50 bg-gray-700/30"
       }`}>
         {/* 左: 操作コントロール */}
         <div className="flex items-center gap-1.5">
@@ -489,7 +489,7 @@ function FieldPreviewCard({
 
       {/* ── ボディ（実際のフォーム表示そのまま） ── */}
       <div className={`border rounded-b-xl transition relative ${
-        isHidden ? "border-gray-600/30 bg-gray-800/40 px-3 py-2" : "border-gray-600/50 px-3 py-3 space-y-2"
+        isHidden ? "border-gray-700/30 bg-gray-900/40 px-3 py-2" : "border-gray-700/50 px-3 py-3 space-y-2"
       }`}>
         {isHidden ? (
           <div className="flex items-center justify-center py-1">
@@ -617,7 +617,7 @@ function renderInputPreview(
         </div>
         <div className="space-y-0.5">
           <span className="text-[10px] text-gray-600">大会日時点の年齢</span>
-          <div className="w-full bg-gray-800/40 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-gray-500 pointer-events-none select-none min-h-[38px]">
+          <div className="w-full bg-gray-900/40 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-500 pointer-events-none select-none min-h-[38px]">
             26歳（自動計算）
           </div>
         </div>
@@ -757,7 +757,7 @@ function FieldDetailEditor({ field, def, allFields, onUpdate, onClose }: {
   }
 
   return (
-    <div className="bg-gray-800/40 rounded-lg p-2.5 mt-1 space-y-2 border border-gray-600/50">
+    <div className="bg-gray-900/40 rounded-lg p-2.5 mt-1 space-y-2 border border-gray-700/50">
       <div className="flex items-center justify-between">
         <p className="text-xs text-gray-500 font-medium">詳細設定</p>
         <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-300">閉じる</button>
@@ -778,7 +778,7 @@ function FieldDetailEditor({ field, def, allFields, onUpdate, onClose }: {
           <p className="text-xs text-gray-500">選択肢（1行1つ）</p>
           <textarea value={choicesText} onChange={(e) => setChoicesText(e.target.value)}
             rows={Math.min(choices_line_count(choicesText), 10)}
-            className="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none" />
+            className="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none" />
           <button onClick={saveChoices} className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded transition">適用</button>
         </div>
       )}
@@ -824,14 +824,14 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
   if (!editing) {
     const hasContent = notice.text_content || notice.scrollable_text || notice.link_url || (notice.images?.length ?? 0) > 0;
     return (
-      <div className="bg-gray-700/60 border border-dashed border-gray-600 rounded-lg p-2.5 group/notice relative">
+      <div className="bg-gray-800/60 border border-dashed border-gray-600 rounded-lg p-2.5 group/notice relative">
         {busy && (
-          <div className="absolute inset-0 bg-gray-800/50 rounded-lg flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-gray-900/50 rounded-lg flex items-center justify-center z-10">
             <Spinner className="text-blue-400" />
           </div>
         )}
         <div className="absolute -top-1.5 right-1 flex gap-1 opacity-0 group-hover/notice:opacity-100 transition">
-          <button onClick={() => setEditing(true)} className="px-2 py-0.5 text-[10px] bg-gray-600 text-gray-300 hover:bg-gray-600 rounded shadow">編集</button>
+          <button onClick={() => setEditing(true)} className="px-2 py-0.5 text-[10px] bg-gray-700 text-gray-300 hover:bg-gray-600 rounded shadow">編集</button>
           <button onClick={() => onDelete(notice.id)} className="px-2 py-0.5 text-[10px] bg-red-900 text-red-300 hover:bg-red-800 rounded shadow">削除</button>
         </div>
 
@@ -841,7 +841,7 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
           <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">{notice.text_content}</p>
         )}
         {notice.scrollable_text && (
-          <div className="max-h-24 overflow-y-auto border border-gray-600 rounded-lg p-2 text-xs text-gray-400 leading-relaxed whitespace-pre-wrap bg-gray-800 mt-1">
+          <div className="max-h-24 overflow-y-auto border border-gray-600 rounded-lg p-2 text-xs text-gray-400 leading-relaxed whitespace-pre-wrap bg-gray-900 mt-1">
             {notice.scrollable_text.slice(0, 200)}{notice.scrollable_text.length > 200 && "..."}
           </div>
         )}
@@ -869,9 +869,9 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
 
   // 編集モード
   return (
-    <div className="bg-gray-800/60 border border-blue-700/50 rounded-lg p-3 space-y-2.5 relative">
+    <div className="bg-gray-900/60 border border-blue-700/50 rounded-lg p-3 space-y-2.5 relative">
       {busy && (
-        <div className="absolute inset-0 bg-gray-800/50 rounded-lg flex items-center justify-center z-10">
+        <div className="absolute inset-0 bg-gray-900/50 rounded-lg flex items-center justify-center z-10">
           <Spinner className="text-blue-400" />
         </div>
       )}
@@ -879,14 +879,14 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
         <span className="text-xs text-blue-400 font-medium">注意書き編集</span>
         <div className="flex gap-2">
           <button onClick={saveAll} className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded">保存</button>
-          <button onClick={() => setEditing(false)} className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded">閉じる</button>
+          <button onClick={() => setEditing(false)} className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded">閉じる</button>
         </div>
       </div>
 
       <div>
         <label className="text-xs text-gray-500 block mb-0.5">テキスト</label>
         <textarea value={localText} onChange={(e) => setLocalText(e.target.value)}
-          rows={3} className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-xs text-gray-200" placeholder="注意書きテキスト..." />
+          rows={3} className="w-full bg-gray-800 border border-gray-600 rounded p-2 text-xs text-gray-200" placeholder="注意書きテキスト..." />
       </div>
 
       <div>
@@ -912,19 +912,19 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
         <div>
           <label className="text-xs text-gray-500 block mb-0.5">リンクURL</label>
           <input value={localUrl} onChange={(e) => setLocalUrl(e.target.value)}
-            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-200" placeholder="https://..." />
+            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-200" placeholder="https://..." />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-0.5">リンク表示名</label>
           <input value={localUrlLabel} onChange={(e) => setLocalUrlLabel(e.target.value)}
-            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-200" placeholder="解説動画を見る" />
+            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-200" placeholder="解説動画を見る" />
         </div>
       </div>
 
       <details className="text-xs">
         <summary className="text-gray-500 cursor-pointer hover:text-gray-400">規約テキスト（スクロール表示）</summary>
         <textarea value={localScrollable} onChange={(e) => setLocalScrollable(e.target.value)}
-          rows={4} className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-xs text-gray-200 mt-1" placeholder="規約全文をここに入力..." />
+          rows={4} className="w-full bg-gray-800 border border-gray-600 rounded p-2 text-xs text-gray-200 mt-1" placeholder="規約全文をここに入力..." />
       </details>
 
       <div className="flex items-center gap-2">
@@ -935,7 +935,7 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
         </label>
         {notice.require_consent && (
           <input value={localConsentLabel} onChange={(e) => setLocalConsentLabel(e.target.value)}
-            className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-200" placeholder="上記に同意します" />
+            className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-200" placeholder="上記に同意します" />
         )}
       </div>
     </div>
@@ -953,7 +953,7 @@ function CopyModal({ events, onCopy, onClose }: {
 }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-gray-700 rounded-xl p-6 max-w-md w-full mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
         <h3 className="font-semibold text-lg">過去の大会から読み込む</h3>
         <p className="text-sm text-gray-400">フォーム設定をコピーします。現在の設定は上書きされます。</p>
         {events.length === 0 ? (
@@ -963,11 +963,11 @@ function CopyModal({ events, onCopy, onClose }: {
             {events.map((e) => (
               <button key={e.id}
                 onClick={() => { if (confirm(`「${e.name}」のフォーム設定をコピーしますか？\n現在の設定は上書きされます。`)) onCopy(e.id); }}
-                className="w-full text-left px-4 py-2.5 bg-gray-600/50 hover:bg-gray-600 rounded-lg text-sm transition">{e.name}</button>
+                className="w-full text-left px-4 py-2.5 bg-gray-700/50 hover:bg-gray-700 rounded-lg text-sm transition">{e.name}</button>
             ))}
           </div>
         )}
-        <button onClick={onClose} className="w-full py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-sm transition">閉じる</button>
+        <button onClick={onClose} className="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition">閉じる</button>
       </div>
     </div>
   );

@@ -57,7 +57,7 @@ export const COMPAT_BG: Record<CompatibilityLevel, string> = {
   ok:      "bg-green-900 border-green-700",
   warn:    "bg-yellow-900 border-yellow-700",
   ng:      "bg-red-900 border-red-700",
-  unknown: "bg-gray-700 border-gray-600",
+  unknown: "bg-gray-800 border-gray-700",
 };
 
 export const COMPAT_LABEL: Record<CompatibilityLevel, string> = {

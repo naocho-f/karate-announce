@@ -200,11 +200,11 @@ export function BracketView({
             return (
               <div
                 className={`relative flex flex-col justify-center px-2 ${borderBottom ? "border-b border-gray-600/50" : ""} ${
-                  isOngoing && isWithdrawn ? "bg-gray-800/60 opacity-50 cursor-not-allowed" :
-                  correctable ? "bg-gray-700 hover:bg-orange-900/40 cursor-pointer transition-colors" :
-                  clickable ? "bg-gray-700 hover:bg-green-900/40 cursor-pointer transition-colors" :
+                  isOngoing && isWithdrawn ? "bg-gray-900/60 opacity-50 cursor-not-allowed" :
+                  correctable ? "bg-gray-800 hover:bg-orange-900/40 cursor-pointer transition-colors" :
+                  clickable ? "bg-gray-800 hover:bg-green-900/40 cursor-pointer transition-colors" :
                   isWinner ? "bg-green-900/50" :
-                  "bg-gray-700"
+                  "bg-gray-800"
                 }`}
                 style={{ height: BRACKET_FIGHTER_H }}
                 onClick={correctable ? () => { onCorrectWinner!(m.id, fighterId!); setCorrectionMatchId(null); } :
@@ -268,7 +268,7 @@ export function BracketView({
                 isNumberingMode && !isByeMatch
                   ? assignedNum != null
                     ? "border-blue-500 cursor-pointer"
-                    : "border-gray-600 hover:border-blue-400 cursor-pointer"
+                    : "border-gray-500 hover:border-blue-400 cursor-pointer"
                   : isCorrectingThis ? "border-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]" :
                   isDone    ? "border-green-800/70" :
                   isOngoing ? "border-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.6)]" :
@@ -301,7 +301,7 @@ export function BracketView({
                       {assignedNum}
                     </span>
                   ) : (
-                    <span className="w-8 h-8 rounded-full border-2 border-dashed border-gray-600 text-gray-500 text-lg flex items-center justify-center">
+                    <span className="w-8 h-8 rounded-full border-2 border-dashed border-gray-500 text-gray-500 text-lg flex items-center justify-center">
                       +
                     </span>
                   )}
@@ -314,7 +314,7 @@ export function BracketView({
                   className={`absolute inset-0 flex items-center justify-center z-10 cursor-pointer transition-colors ${
                     isNextMatch
                       ? "bg-blue-600/75 hover:bg-blue-500/85 active:bg-blue-700/90"
-                      : "bg-gray-700/70 hover:bg-blue-900/60"
+                      : "bg-gray-800/70 hover:bg-blue-900/60"
                   }`}
                   onClick={() => onMatchClick(m.id)}
                 >
@@ -326,7 +326,7 @@ export function BracketView({
 
               {/* 処理中オーバーレイ */}
               {isProcessing && (
-                <div className="absolute inset-0 bg-gray-800/70 flex items-center justify-center z-10">
+                <div className="absolute inset-0 bg-gray-900/70 flex items-center justify-center z-10">
                   <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
                 </div>
               )}
@@ -336,7 +336,7 @@ export function BracketView({
                 className={`flex items-center px-1.5 gap-1 border-t border-gray-600/50 ${
                   isCorrectingThis ? "bg-orange-950/60" :
                   isOngoing ? "bg-yellow-950/60" :
-                  isNextMatch ? "bg-blue-950/60" : "bg-gray-800/50"
+                  isNextMatch ? "bg-blue-950/60" : "bg-gray-900/50"
                 }`}
                 style={{ height: BRACKET_FOOTER_H }}
               >
@@ -345,8 +345,8 @@ export function BracketView({
                   <span className={`shrink-0 text-[8px] font-bold px-1 py-0.5 rounded leading-none ${
                     isNextMatch ? "bg-blue-600 text-white" :
                     isOngoing   ? "bg-yellow-700 text-yellow-100" :
-                    isDone      ? "bg-gray-600 text-gray-500" :
-                                  "bg-gray-600 text-gray-300"
+                    isDone      ? "bg-gray-700 text-gray-500" :
+                                  "bg-gray-700 text-gray-300"
                   }`}>
                     {m.match_label}
                   </span>
@@ -356,7 +356,7 @@ export function BracketView({
                     <span className="text-[9px] text-orange-400 font-medium truncate">タップで勝者を訂正</span>
                     <button
                       onClick={() => setCorrectionMatchId(null)}
-                      className="ml-auto shrink-0 text-[9px] text-gray-500 hover:text-gray-300 bg-gray-600 hover:bg-gray-500 px-1.5 py-0.5 rounded transition"
+                      className="ml-auto shrink-0 text-[9px] text-gray-500 hover:text-gray-300 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                     >
                       キャンセル
                     </button>
@@ -369,7 +369,7 @@ export function BracketView({
                     {canSwap && (
                       <button
                         onClick={(e) => { e.stopPropagation(); onSwapWithNext!(m.round, m.id); }}
-                        className="shrink-0 ml-auto text-[9px] text-gray-500 hover:text-blue-400 bg-gray-600 hover:bg-gray-500 px-1.5 py-0.5 rounded transition"
+                        className="shrink-0 ml-auto text-[9px] text-gray-500 hover:text-blue-400 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                       >
                         ↕次
                       </button>
@@ -378,7 +378,7 @@ export function BracketView({
                       <button
                         onClick={(e) => { e.stopPropagation(); onSwapFighters(m.id); }}
                         title="赤・白（上下）を入れ替え"
-                        className="shrink-0 text-[9px] text-gray-500 hover:text-yellow-400 bg-gray-600 hover:bg-gray-500 px-1.5 py-0.5 rounded transition"
+                        className="shrink-0 text-[9px] text-gray-500 hover:text-yellow-400 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                       >
                         ⇅赤白
                       </button>
@@ -388,7 +388,7 @@ export function BracketView({
                       <button
                         onClick={() => onReannounceStart(m.id)}
                         title="試合開始アナウンスを再読み上げ"
-                        className="shrink-0 ml-auto text-[9px] text-gray-500 hover:text-blue-300 bg-gray-600 hover:bg-gray-500 px-1.5 py-0.5 rounded transition"
+                        className="shrink-0 ml-auto text-[9px] text-gray-500 hover:text-blue-300 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                       >
                         📢
                       </button>
@@ -397,7 +397,7 @@ export function BracketView({
                       <button
                         onClick={() => onReannounceWinner(m.id)}
                         title="勝者アナウンスを再読み上げ"
-                        className="shrink-0 text-[9px] text-gray-500 hover:text-blue-300 bg-gray-600 hover:bg-gray-500 px-1.5 py-0.5 rounded transition"
+                        className="shrink-0 text-[9px] text-gray-500 hover:text-blue-300 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                       >
                         📢
                       </button>
@@ -406,7 +406,7 @@ export function BracketView({
                       <button
                         onClick={() => setCorrectionMatchId(m.id)}
                         title="勝者を訂正する"
-                        className="shrink-0 text-[9px] text-gray-500 hover:text-orange-400 bg-gray-600 hover:bg-gray-500 px-1.5 py-0.5 rounded transition"
+                        className="shrink-0 text-[9px] text-gray-500 hover:text-orange-400 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                       >
                         訂正
                       </button>

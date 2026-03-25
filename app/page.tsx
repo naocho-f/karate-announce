@@ -104,11 +104,11 @@ export default function Home() {
   }, [load]);
 
   if (activeEvent === undefined) {
-    return <div className="min-h-screen bg-gray-800" />;
+    return <div className="min-h-screen bg-main-bg" />;
   }
 
   return (
-    <main className="min-h-screen bg-gray-800 text-white p-6">
+    <main className="min-h-screen bg-main-bg text-white p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">柔空会 - 試合管理 ＆ AI アナウンス</h1>
@@ -127,7 +127,7 @@ export default function Home() {
           </div>
         ) : (
           <>
-            <div className="bg-gray-700/80 border border-gray-600/40 rounded-xl p-4 mb-6 flex items-center gap-3">
+            <div className="bg-gray-800/80 border border-gray-700/40 rounded-xl p-4 mb-6 flex items-center gap-3">
               <span className="text-xs bg-green-700 text-green-100 px-2 py-1 rounded font-medium shrink-0">進行中</span>
               <span className="text-xl font-bold">{activeEvent.name}</span>
               <span className="text-sm text-gray-300">{activeEvent.court_count}コート</span>
@@ -137,8 +137,8 @@ export default function Home() {
               {courts.map(({ courtNum, tournaments }) => {
                 const courtName = activeEvent.court_names?.[courtNum - 1]?.trim() || `コート${courtNum}`;
                 return (
-                  <div key={courtNum} className="bg-gray-700/80 border border-gray-600/40 rounded-xl overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-500/40">
+                  <div key={courtNum} className="bg-gray-800/80 border border-gray-700/40 rounded-xl overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-600/40">
                       <h2 className="font-semibold">{courtName}</h2>
                       <Link
                         href={`/court/${courtNum}`}
@@ -157,7 +157,7 @@ export default function Home() {
                             <div className="flex items-center gap-2 mb-2">
                               <span className="text-sm font-medium text-gray-200">{tournament.name}</span>
                               <span className={`text-xs px-2 py-0.5 rounded ${
-                                tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-600 text-gray-400"
+                                tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"
                               }`}>
                                 {tournament.status === "ongoing" ? "進行中" : "準備中"}
                               </span>
