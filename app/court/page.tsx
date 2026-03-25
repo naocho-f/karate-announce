@@ -279,7 +279,7 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates }: {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold text-gray-100 border-b border-gray-700 pb-2">{courtDisplayName}</h2>
+      <h2 className="text-lg font-bold text-gray-100 border-b border-gray-600 pb-2">{courtDisplayName}</h2>
       {tournaments.length === 0 ? (
         <p className="text-sm text-gray-500">このコートにトーナメントがありません</p>
       ) : (

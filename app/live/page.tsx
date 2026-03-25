@@ -114,7 +114,7 @@ export default function LivePage() {
   return (
     <main className="min-h-screen bg-gray-900 text-white">
       {/* ヘッダー（sticky: タイトル + タブ + 試合中カード） */}
-      <div className="sticky top-0 z-10 bg-gray-800 backdrop-blur border-b border-gray-700/60">
+      <div className="sticky top-0 z-10 bg-gray-800 backdrop-blur border-b border-gray-600/60">
         <div className="max-w-lg mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <span className="shrink-0 text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded-full font-medium">LIVE</span>
@@ -140,7 +140,7 @@ export default function LivePage() {
                   className={`relative py-2.5 text-sm font-bold text-center transition-colors rounded-lg ${
                     isActive
                       ? "bg-blue-600/30 text-blue-200 border border-blue-500/40"
-                      : "text-gray-400 bg-gray-700/60 border border-gray-700/40 active:bg-gray-600/60"
+                      : "text-gray-400 bg-gray-700/60 border border-gray-600/40 active:bg-gray-600/60"
                   }`}
                 >
                   {court.courtName}
@@ -237,7 +237,7 @@ function MatchRow({ match, isOngoing, isNext }: { match: Match; isOngoing: boole
 
   if (isBye) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-700/50 border border-gray-700/30 text-xs">
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-700/50 border border-gray-600/30 text-xs">
         {match.match_label && (
           <span className="text-gray-500 shrink-0">{match.match_label}</span>
         )}
@@ -252,8 +252,8 @@ function MatchRow({ match, isOngoing, isNext }: { match: Match; isOngoing: boole
     <div className={`px-3 py-2.5 rounded-xl ${
       isOngoing ? "bg-blue-900/50 border-2 border-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.3)]" :
       isNext    ? "bg-amber-900/30 border-2 border-amber-400/60 shadow-[0_0_8px_rgba(251,191,36,0.2)]" :
-      isDone    ? "bg-gray-700/40 border border-gray-700/30" :
-                  "bg-gray-700/70 border border-gray-700/40"
+      isDone    ? "bg-gray-700/40 border border-gray-600/30" :
+                  "bg-gray-700/70 border border-gray-600/40"
     }`}>
       {/* 1行目: 試合番号 + ステータス */}
       <div className="flex items-center gap-1.5 mb-1">

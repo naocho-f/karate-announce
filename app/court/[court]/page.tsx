@@ -493,7 +493,7 @@ function CourtContent({
                 {tournament.status === "ongoing" ? "進行中" : "準備中"}
               </span>
             </div>
-            <div className="bg-gray-700/80 rounded-xl p-4 border border-gray-700/40">
+            <div className="bg-gray-700/80 rounded-xl p-4 border border-gray-600/40">
               {matches.length === 0 ? (
                 <p className="text-sm text-gray-500">試合データなし</p>
               ) : (

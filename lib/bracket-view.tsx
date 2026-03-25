@@ -199,7 +199,7 @@ export function BracketView({
             const correctable = isCorrectingThis && !!onCorrectWinner && !!fighterId && !isWithdrawn;
             return (
               <div
-                className={`relative flex flex-col justify-center px-2 ${borderBottom ? "border-b border-gray-700/50" : ""} ${
+                className={`relative flex flex-col justify-center px-2 ${borderBottom ? "border-b border-gray-600/50" : ""} ${
                   isOngoing && isWithdrawn ? "bg-gray-800/60 opacity-50 cursor-not-allowed" :
                   correctable ? "bg-gray-700 hover:bg-orange-900/40 cursor-pointer transition-colors" :
                   clickable ? "bg-gray-700 hover:bg-green-900/40 cursor-pointer transition-colors" :
@@ -237,7 +237,7 @@ export function BracketView({
                     className={`absolute right-1 top-1/2 -translate-y-1/2 text-[8px] px-1 py-0.5 rounded border transition ${
                       isWithdrawn
                         ? "border-red-600 bg-red-900/60 text-red-400 hover:bg-red-900"
-                        : "border-gray-700 text-gray-600 hover:border-red-500 hover:text-red-400"
+                        : "border-gray-600 text-gray-600 hover:border-red-500 hover:text-red-400"
                     }`}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -268,13 +268,13 @@ export function BracketView({
                 isNumberingMode && !isByeMatch
                   ? assignedNum != null
                     ? "border-blue-500 cursor-pointer"
-                    : "border-gray-700 hover:border-blue-400 cursor-pointer"
+                    : "border-gray-600 hover:border-blue-400 cursor-pointer"
                   : isCorrectingThis ? "border-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]" :
                   isDone    ? "border-green-800/70" :
                   isOngoing ? "border-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.6)]" :
                   isNextMatch ? "border-blue-300 shadow-[0_0_20px_rgba(147,197,253,0.8)] animate-pulse" :
-                  isDimmed  ? "border-gray-700 opacity-40" :
-                              "border-gray-700"
+                  isDimmed  ? "border-gray-600 opacity-40" :
+                              "border-gray-600"
               }`}
               onClick={isNumberingMode && !isByeMatch ? () => onNumberClick!(m.id) : undefined}
               style={{
@@ -301,7 +301,7 @@ export function BracketView({
                       {assignedNum}
                     </span>
                   ) : (
-                    <span className="w-8 h-8 rounded-full border-2 border-dashed border-gray-700 text-gray-500 text-lg flex items-center justify-center">
+                    <span className="w-8 h-8 rounded-full border-2 border-dashed border-gray-600 text-gray-500 text-lg flex items-center justify-center">
                       +
                     </span>
                   )}
@@ -333,7 +333,7 @@ export function BracketView({
 
               {/* フッター */}
               <div
-                className={`flex items-center px-1.5 gap-1 border-t border-gray-700/50 ${
+                className={`flex items-center px-1.5 gap-1 border-t border-gray-600/50 ${
                   isCorrectingThis ? "bg-orange-950/60" :
                   isOngoing ? "bg-yellow-950/60" :
                   isNextMatch ? "bg-blue-950/60" : "bg-gray-800/50"

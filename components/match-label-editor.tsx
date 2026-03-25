@@ -38,7 +38,7 @@ function OneMatchNumberCard({ match, nameMap, assignedNumber, onClick, onSwapFig
       className={`border rounded-lg p-3 cursor-pointer transition select-none ${
         assignedNumber
           ? "border-blue-500 bg-blue-900/20"
-          : "border-gray-700 hover:border-gray-700"
+          : "border-gray-600 hover:border-gray-600"
       }`}
     >
       <div className="flex items-center gap-3">
@@ -58,7 +58,7 @@ function OneMatchNumberCard({ match, nameMap, assignedNumber, onClick, onSwapFig
           <button
             onClick={(e) => { e.stopPropagation(); onSwapFighters(); }}
             disabled={isSwapping}
-            className="ml-auto text-xs text-gray-500 hover:text-gray-300 disabled:opacity-40 px-2 py-1 rounded border border-gray-700 hover:border-gray-700 transition shrink-0"
+            className="ml-auto text-xs text-gray-500 hover:text-gray-300 disabled:opacity-40 px-2 py-1 rounded border border-gray-600 hover:border-gray-600 transition shrink-0"
           >
             {isSwapping ? "…" : "⇅赤白"}
           </button>
@@ -304,8 +304,8 @@ export function MatchLabelEditor({ eventId, courtNames, courtCount, onChanged }:
   }, [tournaments, totalCount]);
 
   return (
-    <div className="border border-gray-700 rounded-xl overflow-hidden">
-      <div className="px-4 py-3 bg-gray-700 border-b border-gray-700">
+    <div className="border border-gray-600 rounded-xl overflow-hidden">
+      <div className="px-4 py-3 bg-gray-700 border-b border-gray-600">
         <span className="font-semibold text-sm">📋 試合番号設定</span>
       </div>
 
