@@ -1,0 +1,395 @@
+/**
+ * エントリーフォーム 項目プール定義
+ *
+ * 開発者がここに項目を追加し、操作者が管理画面で表示/非表示・必須/任意を設定する。
+ * 後から項目を追加しても、既存データに影響しない設計。
+ */
+
+export type FieldType = "text" | "textarea" | "number" | "tel" | "email" | "date" | "radio" | "checkbox" | "select";
+
+export type FieldChoice = {
+  label: string;
+  value: string;
+};
+
+export type FieldCategory = "basic" | "affiliation" | "competition" | "equipment";
+
+export type FieldPoolItem = {
+  key: string;
+  label: string;
+  type: FieldType;
+  category: FieldCategory;
+  /** DB の entries テーブルにカラムとして存在する場合の列名（なければ extra_fields に格納） */
+  dbColumn?: string;
+  defaultRequired: boolean;
+  defaultChoices?: FieldChoice[];
+  defaultHasOther?: boolean;
+  /** 読み仮名フィールドの場合、親フィールドの key */
+  kanaParent?: string;
+  /** 所属団体のように dojos マスタからセレクトする場合 */
+  useMaster?: "dojos";
+  /** マスタ選択時に読み仮名を非表示にする（マスタ側に読みがあるため） */
+  hideKanaOnMasterSelect?: boolean;
+  /** メールアドレスの確認入力を自動付随 */
+  hasConfirmInput?: boolean;
+  /** number type の step */
+  step?: number;
+  /** number type の単位 */
+  unit?: string;
+  /** placeholder */
+  placeholder?: string;
+  /** 入力文字数の最大値 */
+  maxLength?: number;
+  /** セレクトのプリセット選択肢（都道府県等、操作者は編集不可） */
+  fixedChoices?: FieldChoice[];
+};
+
+// ──────────────────────────────────────────────
+// 都道府県
+// ──────────────────────────────────────────────
+
+const PREFECTURES = [
+  "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
+  "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
+  "新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県", "岐阜県",
+  "静岡県", "愛知県", "三重県", "滋賀県", "京都府", "大阪府", "兵庫県",
+  "奈良県", "和歌山県", "鳥取県", "島根県", "岡山県", "広島県", "山口県",
+  "徳島県", "香川県", "愛媛県", "高知県", "福岡県", "佐賀県", "長崎県",
+  "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県",
+];
+
+// ──────────────────────────────────────────────
+// 項目プール（カテゴリ順 → デフォルト表示順）
+// ──────────────────────────────────────────────
+
+export const FIELD_POOL: FieldPoolItem[] = [
+  // ═══ A. 基本情報 ═══
+  {
+    key: "full_name",
+    label: "参加者フルネーム",
+    type: "text",
+    category: "basic",
+    dbColumn: "family_name", // family_name + given_name に分割保存
+    defaultRequired: true,
+    placeholder: "姓 名",
+  },
+  {
+    key: "kana",
+    label: "よみがな",
+    type: "text",
+    category: "basic",
+    dbColumn: "family_name_reading", // family_name_reading + given_name_reading に分割保存
+    defaultRequired: true,
+    kanaParent: "full_name",
+    placeholder: "せい めい",
+  },
+  {
+    key: "age",
+    label: "年齢",
+    type: "number",
+    category: "basic",
+    dbColumn: "age",
+    defaultRequired: true,
+    placeholder: "試合日時点の年齢",
+  },
+  {
+    key: "sex",
+    label: "性別",
+    type: "radio",
+    category: "basic",
+    defaultRequired: true,
+    defaultChoices: [
+      { label: "男性", value: "male" },
+      { label: "女性", value: "female" },
+    ],
+  },
+  {
+    key: "birthday",
+    label: "生年月日",
+    type: "date",
+    category: "basic",
+    dbColumn: "birth_date",
+    defaultRequired: true,
+  },
+  {
+    key: "prefecture",
+    label: "お住まいの都道府県",
+    type: "select",
+    category: "basic",
+    defaultRequired: true,
+    fixedChoices: PREFECTURES.map((p) => ({ label: p, value: p })),
+  },
+  {
+    key: "phone",
+    label: "携帯電話番号",
+    type: "tel",
+    category: "basic",
+    defaultRequired: true,
+    placeholder: "090-1234-5678",
+  },
+  {
+    key: "email",
+    label: "メールアドレス",
+    type: "email",
+    category: "basic",
+    defaultRequired: true,
+    hasConfirmInput: true,
+  },
+  {
+    key: "guardian_name",
+    label: "保護者名",
+    type: "text",
+    category: "basic",
+    defaultRequired: false,
+  },
+
+  // ═══ B. 所属・経験 ═══
+  {
+    key: "organization",
+    label: "所属団体（流派）",
+    type: "select",
+    category: "affiliation",
+    defaultRequired: true,
+    useMaster: "dojos",
+    hideKanaOnMasterSelect: true,
+    placeholder: "選択 または 自由入力",
+  },
+  {
+    key: "organization_kana",
+    label: "所属団体よみがな",
+    type: "text",
+    category: "affiliation",
+    defaultRequired: true,
+    kanaParent: "organization",
+    placeholder: "じゅうくうかい",
+  },
+  {
+    key: "branch",
+    label: "道場・支部名",
+    type: "text",
+    category: "affiliation",
+    dbColumn: "dojo_name",
+    defaultRequired: true,
+    placeholder: "本部道場、○○支部 等",
+  },
+  {
+    key: "branch_kana",
+    label: "道場・支部よみがな",
+    type: "text",
+    category: "affiliation",
+    dbColumn: "dojo_name_reading",
+    defaultRequired: true,
+    kanaParent: "branch",
+  },
+  {
+    key: "martial_arts_experience",
+    label: "現在級と過去の武道・格闘技経験",
+    type: "textarea",
+    category: "affiliation",
+    dbColumn: "experience",
+    defaultRequired: true,
+    maxLength: 150,
+    placeholder: "例: 4級、柔道初段、○○空手3級、キックボクシング2年",
+  },
+  {
+    key: "match_experience",
+    label: "武道・格闘技の試合経験",
+    type: "select",
+    category: "affiliation",
+    defaultRequired: true,
+    defaultHasOther: true,
+    defaultChoices: [
+      { label: "なし", value: "none" },
+      { label: "1〜3回", value: "1-3" },
+      { label: "4〜10回", value: "4-10" },
+      { label: "11回以上", value: "11+" },
+    ],
+  },
+  {
+    key: "memo",
+    label: "主催者への要望・備考",
+    type: "textarea",
+    category: "affiliation",
+    dbColumn: "memo",
+    defaultRequired: false,
+    placeholder: "要望やアピールポイント等あればご記入ください",
+  },
+
+  // ═══ C. 競技 ═══
+  {
+    key: "rule_preference",
+    label: "出場希望ルール",
+    type: "checkbox",
+    category: "competition",
+    defaultRequired: true,
+    defaultChoices: [
+      { label: "Aルール：顔面パンチ有り、投げ有り、絞め関節有り", value: "rule_a" },
+      { label: "Bルール：顔面パンチ有り、投げ有り、絞め関節無し（抑え込み有り）", value: "rule_b" },
+      { label: "ダブルエントリー：Aルール＆Bルール", value: "double" },
+      { label: "※わからないので相談したい（携帯電話番号宛に運営側より連絡します）", value: "consult" },
+    ],
+    defaultHasOther: false,
+  },
+  {
+    key: "head_butt_preference",
+    label: "頭突きあり/なし希望",
+    type: "checkbox",
+    category: "competition",
+    defaultRequired: true,
+    defaultChoices: [
+      { label: "頭突き有りを希望←投げ技決めたい人おすすめ", value: "with_headbutt" },
+      { label: "頭突き無しを希望←掴み技が苦手な人はこちらが無難", value: "without_headbutt" },
+      { label: "どちらでもよい", value: "either" },
+    ],
+  },
+  {
+    key: "height",
+    label: "身長",
+    type: "number",
+    category: "competition",
+    dbColumn: "height",
+    defaultRequired: true,
+    step: 0.1,
+    unit: "cm",
+    placeholder: "例: 170.5",
+  },
+  {
+    key: "weight",
+    label: "体重",
+    type: "number",
+    category: "competition",
+    dbColumn: "weight",
+    defaultRequired: true,
+    step: 0.1,
+    unit: "kg",
+    placeholder: "例: 65.0",
+  },
+
+  // ═══ D. 防具 ═══
+  {
+    key: "equipment_owned",
+    label: "持っている防具",
+    type: "checkbox",
+    category: "equipment",
+    defaultRequired: true,
+    defaultChoices: [
+      { label: "道着（空手着・柔道着・柔術着）※全く袖の無いものは不可【レンタル有】", value: "gi" },
+      { label: "シールド面（前面に直径1cm以上の開口部のないもの）【レンタル有】", value: "shield_mask" },
+      { label: "フィストガード（布製に限る）【レンタル有】", value: "fist_guard" },
+      { label: "レッグガード（布・皮問わず）【レンタル有】", value: "leg_guard" },
+      { label: "ファールカップ（樹脂・金属問わず）【レンタル有】", value: "groin_guard" },
+      { label: "帯（流派問わず布製）【レンタル有】", value: "belt" },
+    ],
+  },
+  {
+    key: "shield_mask",
+    label: "シールド面（直径1cm以上の開口部のないもの）の有無",
+    type: "radio",
+    category: "equipment",
+    defaultRequired: true,
+    defaultHasOther: true,
+    defaultChoices: [
+      { label: "持っているので持参する", value: "own" },
+      { label: "レンタル希望 ¥500", value: "rental" },
+      { label: "市販品を事前購入予定", value: "buy" },
+    ],
+  },
+  {
+    key: "fist_guard",
+    label: "フィストガード（布製限定）の有無",
+    type: "radio",
+    category: "equipment",
+    defaultRequired: true,
+    defaultHasOther: true,
+    defaultChoices: [
+      { label: "持っているので持参する", value: "own" },
+      { label: "レンタル希望 ¥100", value: "rental" },
+      { label: "市販品を事前購入予定", value: "buy" },
+    ],
+  },
+  {
+    key: "leg_guard",
+    label: "レッグガード（布・皮問わず）の有無",
+    type: "radio",
+    category: "equipment",
+    defaultRequired: true,
+    defaultHasOther: true,
+    defaultChoices: [
+      { label: "持っているので持参する", value: "own" },
+      { label: "レンタル希望 ¥100", value: "rental" },
+      { label: "市販品を事前購入予定", value: "buy" },
+    ],
+  },
+  {
+    key: "groin_guard",
+    label: "ファールカップ（樹脂・金属問わず）の有無",
+    type: "radio",
+    category: "equipment",
+    defaultRequired: true,
+    defaultHasOther: true,
+    defaultChoices: [
+      { label: "持っているので持参する", value: "own" },
+      { label: "レンタル希望 ¥100", value: "rental" },
+      { label: "市販品を事前購入予定", value: "buy" },
+    ],
+  },
+  {
+    key: "gi",
+    label: "道着（空手着・柔道着・柔術着）の有無",
+    type: "radio",
+    category: "equipment",
+    defaultRequired: true,
+    defaultHasOther: true,
+    defaultChoices: [
+      { label: "持っているので持参する", value: "own" },
+      { label: "レンタル希望 ¥500", value: "rental" },
+      { label: "市販品を事前購入予定", value: "buy" },
+    ],
+  },
+  {
+    key: "belt",
+    label: "帯の有無",
+    type: "radio",
+    category: "equipment",
+    defaultRequired: true,
+    defaultHasOther: true,
+    defaultChoices: [
+      { label: "持っているので持参する", value: "own" },
+      { label: "レンタル希望 ¥100", value: "rental" },
+      { label: "市販品を事前購入予定", value: "buy" },
+    ],
+  },
+];
+
+// ──────────────────────────────────────────────
+// ユーティリティ
+// ──────────────────────────────────────────────
+
+/** key で項目を取得 */
+export function getFieldDef(key: string): FieldPoolItem | undefined {
+  return FIELD_POOL.find((f) => f.key === key);
+}
+
+/** 読み仮名フィールドかどうか */
+export function isKanaField(key: string): boolean {
+  return !!FIELD_POOL.find((f) => f.key === key)?.kanaParent;
+}
+
+/** 親フィールドの key から読み仮名フィールドの key を取得 */
+export function getKanaFieldKey(parentKey: string): string | undefined {
+  return FIELD_POOL.find((f) => f.kanaParent === parentKey)?.key;
+}
+
+/** カテゴリ表示名 */
+export const CATEGORY_LABELS: Record<FieldCategory, string> = {
+  basic: "基本情報",
+  affiliation: "所属・経験",
+  competition: "競技",
+  equipment: "防具",
+};
+
+/** entries テーブルの既存カラムに直接保存する項目の key 一覧 */
+export const DB_COLUMN_FIELDS = FIELD_POOL.filter((f) => f.dbColumn).map((f) => f.key);
+
+/** extra_fields に保存する項目の key 一覧 */
+export const EXTRA_FIELDS = FIELD_POOL.filter((f) => !f.dbColumn).map((f) => f.key);

@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-24（自動更新改善・Android CSS互換対応・デザインコントラスト改善・操作説明最新化）
+> 最終更新: 2026-03-25（エントリーフォームカスタマイズ機能追加）
 
 ---
 
@@ -42,43 +42,43 @@
 
 ### 3.2 エントリーフォーム (`/entry/[eventId]`)
 
-参加申し込みフォーム。
+参加申し込みフォーム。**フォーム設定に基づいて動的にレンダリング**される。
 
-**入力項目**
+**動的フォーム**
+- 管理者がステップ①のフォーム設定タブで項目の表示/非表示・必須/任意を設定
+- フォーム設定が `is_ready=false`（準備中）の場合、準備中画面を表示
+- 項目は `form_field_configs.sort_order` の順に表示
 
-| 項目 | 必須 | 備考 |
-|------|------|------|
-| 姓 | ○ | |
-| 名 | ○ | |
-| 姓（読み） | ○ | TTS 用 |
-| 名（読み） | ○ | TTS 用 |
-| 流派 | ○ | サジェスト付きコンボボックス。選択時に読み仮名を自動入力 |
-| 道場・所属 | ○ | サジェスト付きコンボボックス。選択時に読み仮名を自動入力 |
-| 流派（読み） | ○ | TTS 用 |
-| 道場（読み） | ○ | TTS 用 |
-| 生年月日 | ○ | 年齢との整合性チェックあり |
-| 体重（kg） | ○ | 道着着用時の申告体重 |
-| 身長（cm） | ○ | |
-| 年齢（試合日時点） | ○ | 生年月日と矛盾する場合エラー表示 |
-| 学年 | 任意 | |
-| 格闘技経験 | ○ | |
-| エントリーするルール | | イベントにルールが設定されている場合のみ表示。複数選択可 |
-| 主催者への備考 | 任意 | |
+**項目プール（`lib/form-fields.ts`）**
 
-**注意書き（黄色スタイル）**
-- 流派セクション: アナウンス読み上げ形式の説明
-- 体重・身長の下: 道着着用時の体重・当日計量・失格リスクの説明
-- 備考の下: 運営が確認するが確約はできない旨
+開発者が定義する全項目プール。操作者が大会ごとに表示/非表示を切り替える。
 
-**コンボボックスの挙動**
-- サジェストリストは既存エントリーの `school_name` / `dojo_name` から収集
-- **ドロップダウンから選択した場合**: 読み仮名を常に上書き
-- **手入力の場合**: 読み仮名が空の場合のみ補完
+| カテゴリ | 項目例 |
+|---------|--------|
+| 基本情報 | フルネーム、よみがな、年齢、性別、生年月日、都道府県、電話番号、メールアドレス、保護者名 |
+| 所属・経験 | 所属団体（流派）、道場・支部名、各よみがな、格闘技経験、試合経験、備考 |
+| 競技 | 出場希望ルール、頭突きあり/なし希望、身長、体重 |
+| 防具 | 持っている防具、シールド面、フィストガード、レッグガード、ファールカップ、道着、帯 |
 
-**レイアウト**
-- 流派 ｜ 道場（横並び、姓名と同じ構造）
-- 流派（読み） ｜ 道場（読み）（横並び）
-- 赤い必須マーカー（`*`）は使わない。任意項目のみ「（任意）」ラベル
+**特殊フィールド**
+- `full_name`: 姓名を2列グリッドで表示。読み仮名（`kana`）が有効なら4列表示
+- `organization`: 道場マスタからセレクト + 自由入力。マスタ選択時は読み仮名を自動入力
+- `branch`: 道場・支部名 + 読み仮名
+- メールアドレス: 確認入力欄を自動付随
+- 年齢・生年月日: 整合性チェック（矛盾時にエラー表示）
+
+**注意書き**
+- 管理者が任意で登録。フォーム先頭・項目間・フォーム末尾に配置可能
+- テキスト、スクロール可能テキスト（規約等）、画像、リンク、同意チェックボックスをサポート
+- 同意チェックが必須の注意書きは、チェックされるまでエントリーボタンが無効
+
+**送信データ**
+- DB の既存カラムに対応する項目はそのまま保存（`family_name`, `weight` 等）
+- 既存カラムにない項目は `entries.extra_fields`（JSONB）に保存
+- `form_version` を記録（管理画面で旧バージョンエントリーを識別可能）
+
+**フォールバック**
+- `rule_preference` フィールドがフォーム設定に含まれない場合、既存のルール選択UI（event_rules ベース）を表示
 
 ### 3.3 ライブ速報ページ (`/live`)
 
@@ -184,6 +184,21 @@
 
 #### ステップ① エントリー管理
 
+サブタブ構成: 「エントリー管理」「フォーム設定」
+
+**フォーム設定タブ（`FormConfigPanel`）**
+- 項目プール（`lib/form-fields.ts`）に定義された全項目をカテゴリ別に表示
+- 各項目ごとに表示/非表示チェックボックス、必須/任意切り替え
+- 読み仮名フィールドは親フィールドに従属（親が非表示なら読み仮名も非表示）
+- 上下ボタンで表示順を変更
+- 展開セクションで選択肢のラベル編集・「その他」オプション追加
+- **注意書き**: フォーム先頭・項目間・フォーム末尾に配置可能
+  - テキスト、スクロール可能テキスト（規約等）、画像アップロード、リンク、同意チェックボックス
+- **過去の大会からコピー**: 過去の大会のフォーム設定をコピーして微修正可能
+- **公開**: 「公開する」ボタンでバージョンをインクリメントして `is_ready=true` に設定
+- エントリーが既にある状態でも設定変更可能
+
+**エントリー管理タブ**
 - **エントリーフォーム URL** 表示（公開フォームへのリンク）
 - **エントリー受付切り替えボタン**: 「受付中」「受付終了」をワンクリックでトグル
   - `events.entry_closed = false`: 受付中（緑ボタン「受付終了にする」表示）
@@ -193,6 +208,7 @@
   - 受付終了中は `/api/public/entry` が 403 を返し送信を拒否
 - **エントリー一覧**（`EntriesSection`）
   - 番号・氏名・所属・体格情報・ルール設定・メモ
+  - **旧バージョンマーク**: フォーム設定更新後に古いバージョンで入力されたエントリーに「旧ver」バッジ（紫）を表示。フォーム設定導入前のエントリーにも灰色の「旧ver」バッジを表示
   - シードマーク（★/☆）は**廃止**（2026-03-22 削除）
   - メモ欄: 申込者備考と管理者メモを表示。インライン編集可
   - ルールチップ: イベントにルールがある場合のみ表示
@@ -292,6 +308,7 @@ fighters (
   height NUMERIC,
   age_info TEXT,
   experience TEXT,
+  extra_fields JSONB DEFAULT '{}',  -- エントリーからコピー
   created_at TIMESTAMPTZ
 )
 
@@ -374,6 +391,9 @@ entries (
   memo TEXT,                  -- 申込者の備考
   admin_memo TEXT,            -- 管理者メモ
   fighter_id UUID → fighters, -- 対戦表作成時に紐付け
+  extra_fields JSONB DEFAULT '{}',  -- 項目プール拡張フィールド
+  form_version INT,           -- 入力時のフォーム設定バージョン
+  is_test BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ
 )
 
@@ -388,7 +408,57 @@ entry_rules (
   entry_id UUID → entries,
   rule_id UUID → rules
 )
+
+-- フォーム設定（大会ごと）
+form_configs (
+  id UUID PK,
+  event_id UUID → events UNIQUE,
+  version INT DEFAULT 1,       -- 公開バージョン
+  is_ready BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+)
+
+-- フォームフィールド設定
+form_field_configs (
+  id UUID PK,
+  form_config_id UUID → form_configs ON DELETE CASCADE,
+  field_key TEXT NOT NULL,     -- FIELD_POOL の key
+  visible BOOLEAN DEFAULT true,
+  required BOOLEAN DEFAULT false,
+  sort_order INT DEFAULT 0,
+  has_other_option BOOLEAN DEFAULT false,
+  custom_choices JSONB,        -- [{label, value}]
+  UNIQUE(form_config_id, field_key)
+)
+
+-- 注意書き
+form_notices (
+  id UUID PK,
+  form_config_id UUID → form_configs ON DELETE CASCADE,
+  anchor_type TEXT NOT NULL,   -- 'form_start' | 'field' | 'form_end'
+  anchor_field_key TEXT,       -- field の場合の対象項目 key
+  sort_order INT DEFAULT 0,
+  text_content TEXT,
+  scrollable_text TEXT,
+  link_url TEXT,
+  link_label TEXT,
+  require_consent BOOLEAN DEFAULT false,
+  consent_label TEXT,
+  created_at TIMESTAMPTZ
+)
+
+-- 注意書き画像
+form_notice_images (
+  id UUID PK,
+  notice_id UUID → form_notices ON DELETE CASCADE,
+  storage_path TEXT NOT NULL,  -- Supabase Storage パス
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ
+)
 ```
+
+**Supabase Storage バケット**: `form-notice-images`（公開読み取り）
 
 ### 4.2 体格相性レベル
 
@@ -451,9 +521,24 @@ entry_rules (
 
 | メソッド | パス | 概要 |
 |---------|------|------|
-| POST | `/api/public/entry` | エントリーフォーム送信 |
+| POST | `/api/public/entry` | エントリーフォーム送信（extra_fields, form_version 含む） |
+| GET | `/api/public/form-config?event_id=xxx` | フォーム設定取得（準備中なら `{ready:false}`） |
 
-### 5.4 TTS API
+### 5.4 フォーム設定管理 API（認証必須）
+
+| メソッド | パス | 概要 |
+|---------|------|------|
+| GET | `/api/admin/form-config?event_id=xxx` | フォーム設定取得（なければデフォルトで自動作成） |
+| PUT | `/api/admin/form-config` | フィールド設定一括更新 |
+| PATCH | `/api/admin/form-config` | バージョンインクリメント＆公開 |
+| POST | `/api/admin/form-config/copy` | 過去の大会からフォーム設定コピー |
+| POST | `/api/admin/form-config/notices` | 注意書き作成 |
+| PATCH | `/api/admin/form-config/notices/[id]` | 注意書き更新 |
+| DELETE | `/api/admin/form-config/notices/[id]` | 注意書き削除（画像カスケード削除） |
+| POST | `/api/admin/form-config/image-upload` | 注意書き画像アップロード（5MB制限、JPEG/PNG/WebP） |
+| DELETE | `/api/admin/form-config/image-upload` | 注意書き画像削除 |
+
+### 5.5 TTS API
 
 | メソッド | パス | 概要 |
 |---------|------|------|

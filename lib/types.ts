@@ -22,6 +22,7 @@ export type Fighter = {
   height: number | null;
   age_info: string | null;
   experience: string | null;
+  extra_fields: Record<string, unknown>;
   created_at: string;
 };
 
@@ -106,6 +107,8 @@ export type Entry = {
   is_withdrawn: boolean;       // 欠場フラグ
   is_test: boolean;            // テスト用ダミーフラグ
   fighter_id: string | null;
+  extra_fields: Record<string, unknown>;
+  form_version: number | null;
   created_at: string;
 };
 
@@ -141,3 +144,51 @@ export type Match = {
 
 /** Supabase JOIN で取得する選手の最小情報 */
 export type FighterInfo = { id: string; name: string };
+
+// ──────────────────────────────────────────────
+// フォーム設定
+// ──────────────────────────────────────────────
+
+export type FormConfig = {
+  id: string;
+  event_id: string;
+  version: number;
+  is_ready: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FormFieldConfig = {
+  id: string;
+  form_config_id: string;
+  field_key: string;
+  visible: boolean;
+  required: boolean;
+  sort_order: number;
+  has_other_option: boolean;
+  custom_choices: { label: string; value: string }[] | null;
+};
+
+export type FormNotice = {
+  id: string;
+  form_config_id: string;
+  anchor_type: "form_start" | "field" | "form_end";
+  anchor_field_key: string | null;
+  sort_order: number;
+  text_content: string | null;
+  scrollable_text: string | null;
+  link_url: string | null;
+  link_label: string | null;
+  require_consent: boolean;
+  consent_label: string | null;
+  created_at: string;
+  images?: FormNoticeImage[];
+};
+
+export type FormNoticeImage = {
+  id: string;
+  notice_id: string;
+  storage_path: string;
+  sort_order: number;
+  created_at: string;
+};

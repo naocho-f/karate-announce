@@ -14,6 +14,7 @@ import {
 import { BracketView, roundLabel } from "@/lib/bracket-view";
 import { MatchLabelEditor } from "@/components/match-label-editor";
 import Link from "next/link";
+import { FormConfigPanel } from "./form-config-panel";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -72,6 +73,7 @@ export default function EventDetailPage({ params }: Props) {
   const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: null, maxHeightDiff: null });
   const [tournamentMatchFighterIds, setTournamentMatchFighterIds] = useState<Record<string, Set<string>>>({});
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [entrySubTab, setEntrySubTab] = useState<"entries" | "form">("entries");
   const initialStepSetRef = useRef(false);
 
   function navigateStep(s: 1 | 2 | 3) {
@@ -86,14 +88,17 @@ export default function EventDetailPage({ params }: Props) {
   const [togglingClosed, setTogglingClosed] = useState(false);
   const [processingEntryIds, setProcessingEntryIds] = useState<Set<string>>(new Set());
   const [processingRuleKeys, setProcessingRuleKeys] = useState<Set<string>>(new Set());
+  const [currentFormVersion, setCurrentFormVersion] = useState<number | null>(null);
 
   const load = useCallback(async () => {
-    const [{ data: e }, { data: er }, { data: ents }, { data: ts }] = await Promise.all([
+    const [{ data: e }, { data: er }, { data: ents }, { data: ts }, { data: fc }] = await Promise.all([
       supabase.from("events").select("*").eq("id", id).single(),
       supabase.from("event_rules").select("rule_id").eq("event_id", id),
       supabase.from("entries").select("*").eq("event_id", id).order("created_at"),
       supabase.from("tournaments").select("*").eq("event_id", id).order("sort_order").order("created_at"),
+      supabase.from("form_configs").select("version").eq("event_id", id).maybeSingle(),
     ]);
+    setCurrentFormVersion(fc?.version ?? null);
 
     setEvent(e ?? null);
     const ruleIds = (er ?? []).map((r) => r.rule_id);
@@ -324,6 +329,26 @@ export default function EventDetailPage({ params }: Props) {
         {/* ① エントリー管理 */}
         {step === 1 && (
           <div className="space-y-4">
+            {/* サブタブ: エントリー管理 / フォーム設定 */}
+            <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
+              {([["entries", "エントリー管理"], ["form", "フォーム設定"]] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setEntrySubTab(key)}
+                  className={`flex-1 py-2 text-sm font-medium rounded-md transition ${
+                    entrySubTab === key ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* フォーム設定タブ */}
+            {entrySubTab === "form" && <FormConfigPanel eventId={id} />}
+
+            {/* エントリー管理タブ */}
+            {entrySubTab === "entries" && (<>
             <div className="bg-gray-800 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <h2 className="font-semibold text-gray-200">エントリー受付</h2>
@@ -349,11 +374,13 @@ export default function EventDetailPage({ params }: Props) {
               eventRules={eventRules}
               processingEntryIds={processingEntryIds}
               processingRuleKeys={processingRuleKeys}
+              currentFormVersion={currentFormVersion}
               onToggleRule={toggleEntryRule}
               onToggleWithdrawn={toggleWithdrawn}
               onDelete={deleteEntry}
               onAdded={load}
             />
+          </>)}
           </div>
         )}
 
@@ -721,13 +748,14 @@ function generateDemoEntries(eventId: string, count: number, ruleIds: string[]) 
   });
 }
 
-function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processingEntryIds, processingRuleKeys, onToggleRule, onToggleWithdrawn, onDelete, onAdded }: {
+function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processingEntryIds, processingRuleKeys, currentFormVersion, onToggleRule, onToggleWithdrawn, onDelete, onAdded }: {
   eventId: string;
   entries: Entry[];
   entryRuleIds: Record<string, Set<string>>;
   eventRules: Rule[];
   processingEntryIds: Set<string>;
   processingRuleKeys: Set<string>;
+  currentFormVersion: number | null;
   onToggleRule: (entryId: string, ruleId: string) => void;
   onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void;
   onDelete: (id: string) => void;
@@ -841,6 +869,12 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
                             <td className="px-2 py-1.5 whitespace-nowrap">
                               <span className={`text-sm font-medium ${e.is_withdrawn ? "line-through text-gray-500" : "text-white"}`}>{entryFullName(e)}</span>
                               {e.is_withdrawn && <span className="ml-1.5 text-xs bg-orange-900 text-orange-300 px-1.5 py-0.5 rounded">欠場</span>}
+                              {currentFormVersion != null && e.form_version != null && e.form_version < currentFormVersion && (
+                                <span className="ml-1.5 text-xs bg-purple-900 text-purple-300 px-1.5 py-0.5 rounded" title={`フォームv${e.form_version}で入力（現在v${currentFormVersion}）`}>旧ver</span>
+                              )}
+                              {currentFormVersion != null && e.form_version == null && (
+                                <span className="ml-1.5 text-xs bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded" title="フォーム設定導入前のエントリー">旧ver</span>
+                              )}
                             </td>
                             <td className="px-2 py-1.5 text-xs text-gray-400">
                               {[e.school_name, e.dojo_name].filter(Boolean).join(" ")}
