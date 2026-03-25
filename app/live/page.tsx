@@ -239,7 +239,7 @@ function MatchRow({ match, isOngoing }: { match: Match; isOngoing: boolean }) {
   // 2行レイアウト: 1行目=試合番号+ステータス、2行目=選手名
   return (
     <div className={`px-3 py-2.5 rounded-xl ${
-      isOngoing ? "bg-blue-900/40 border border-blue-600/50" :
+      isOngoing ? "bg-blue-900/50 border-2 border-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.3)]" :
       isDone    ? "bg-gray-800/40 border border-gray-700/30" :
                   "bg-gray-800/70 border border-gray-700/40"
     }`}>
@@ -265,21 +265,21 @@ function MatchRow({ match, isOngoing }: { match: Match; isOngoing: boolean }) {
       </div>
       {/* 2行目: 選手名 */}
       <div className="flex items-center gap-2">
-        <span className={`flex-1 truncate text-sm ${
+        <span className={`flex-1 min-w-0 flex items-center gap-1 text-sm ${
           winner?.id === f1?.id ? "font-bold text-white" :
           isDone ? "text-gray-400" : "text-gray-100"
         }`}>
-          {f1?.name ?? "未定"}
-          {winner?.id === f1?.id && <span className="ml-1 text-[10px] text-green-400">勝</span>}
+          <span className="truncate">{f1?.name ?? "未定"}</span>
+          {winner?.id === f1?.id && <span className="shrink-0 text-[10px] text-green-400">勝</span>}
         </span>
         <span className={`text-[10px] shrink-0 ${isDone ? "text-gray-600" : "text-gray-500"}`}>vs</span>
-        <span className={`flex-1 truncate text-sm text-right ${
+        <span className={`flex-1 min-w-0 flex items-center justify-end gap-1 text-sm ${
           winner?.id === f2?.id ? "font-bold text-white" :
           isDone ? "text-gray-400" :
           f2 ? "text-gray-100" : "text-gray-500"
         }`}>
-          {f2 ? f2.name : "未定"}
-          {winner?.id === f2?.id && <span className="ml-1 text-[10px] text-green-400">勝</span>}
+          <span className="truncate text-right">{f2 ? f2.name : "未定"}</span>
+          {winner?.id === f2?.id && <span className="shrink-0 text-[10px] text-green-400">勝</span>}
         </span>
       </div>
     </div>
