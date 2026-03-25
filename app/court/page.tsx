@@ -279,7 +279,7 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates }: {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold text-gray-100 border-b border-gray-700 pb-2">{courtDisplayName}</h2>
+      <h2 className="text-lg font-bold text-gray-100 border-b border-gray-600 pb-2">{courtDisplayName}</h2>
       {tournaments.length === 0 ? (
         <p className="text-sm text-gray-500">このコートにトーナメントがありません</p>
       ) : (
@@ -291,12 +291,12 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates }: {
                 <div className="flex items-center gap-3 mb-3">
                   <h3 className="font-semibold text-base">{tournament.name}</h3>
                   <span className={`text-xs px-2 py-0.5 rounded ${
-                    tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"
+                    tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-600 text-gray-400"
                   }`}>
                     {tournament.status === "ongoing" ? "進行中" : "準備中"}
                   </span>
                 </div>
-                <div className="bg-gray-800 rounded-xl p-4">
+                <div className="bg-gray-700 rounded-xl p-4">
                   {matches.length === 0 ? (
                     <p className="text-sm text-gray-500">試合データなし</p>
                   ) : (
@@ -348,11 +348,11 @@ export default function CourtIndexPage() {
       .catch(() => {});
   }, []);
 
-  if (activeEvent === undefined) return <div className="min-h-screen bg-gray-900" />;
+  if (activeEvent === undefined) return <div className="min-h-screen bg-gray-800" />;
 
   if (!activeEvent) {
     return (
-      <main className="min-h-screen bg-gray-900 text-white p-4 flex items-center justify-center">
+      <main className="min-h-screen bg-gray-800 text-white p-4 flex items-center justify-center">
         <div className="text-center text-gray-500">
           <p className="text-4xl mb-4">🔒</p>
           <p className="text-lg mb-2">試合はまだ開始されていません</p>
@@ -363,7 +363,7 @@ export default function CourtIndexPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-900 text-white p-4">
+    <main className="min-h-screen bg-gray-800 text-white p-4">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>

@@ -39,7 +39,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-900 text-white p-6">
+    <main className="min-h-screen bg-gray-800 text-white p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
           <Link href="/" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
@@ -54,7 +54,7 @@ export default function AdminPage() {
               key={t}
               onClick={() => navigateTab(t)}
               className={`py-2 rounded-lg text-sm font-medium transition text-center ${
-                tab === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                tab === t ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"
               }`}
             >
               {TAB_LABELS[t]}
@@ -174,7 +174,7 @@ function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
           <h2 className="text-xs font-semibold text-green-400 uppercase tracking-wider mb-2">進行中</h2>
           <div className="space-y-2">
             {activeEvents.map((e) => (
-              <div key={e.id} className="bg-gray-800 border border-green-600 rounded-xl p-4">
+              <div key={e.id} className="bg-gray-700 border border-green-600 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shrink-0" />
                   <span className="font-semibold text-white truncate">{e.name}</span>
@@ -197,7 +197,7 @@ function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
                   })}
                   <Link
                     href={`/admin/events/${e.id}`}
-                    className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded-lg transition"
+                    className="text-xs bg-gray-600 hover:bg-gray-500 text-gray-300 px-3 py-1.5 rounded-lg transition"
                   >
                     管理 →
                   </Link>
@@ -212,7 +212,7 @@ function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
       {nextEvent && (
         <section>
           <h2 className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">次の試合</h2>
-          <div className="bg-gray-800 rounded-xl p-4">
+          <div className="bg-gray-700 rounded-xl p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-semibold text-white truncate">{nextEvent.name}</p>
@@ -261,7 +261,7 @@ function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
           <h2 className="text-xs font-semibold text-yellow-400 uppercase tracking-wider mb-2">要対応</h2>
           <div className="space-y-2">
             {actionNeededEvents.map((e) => (
-              <div key={e.id} className="bg-gray-800 border border-yellow-700/50 rounded-xl p-4">
+              <div key={e.id} className="bg-gray-700 border border-yellow-700/50 rounded-xl p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-medium text-white truncate">{e.name}</p>
@@ -286,11 +286,11 @@ function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
       {entryEvents.length > 0 && (
         <section>
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">エントリー状況</h2>
-          <div className="bg-gray-800 rounded-xl overflow-hidden">
+          <div className="bg-gray-700 rounded-xl overflow-hidden">
             {entryEvents.map((e, i) => (
               <div
                 key={e.id}
-                className={`flex items-center gap-3 px-4 py-3 ${i !== 0 ? "border-t border-gray-700/50" : ""}`}
+                className={`flex items-center gap-3 px-4 py-3 ${i !== 0 ? "border-t border-gray-600/50" : ""}`}
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white truncate">{e.name}</p>
@@ -356,16 +356,16 @@ function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
         "対戦表作成時に「コートルール: ビギナー」に設定するとビギナー参加者だけが振り分け対象になる",
       ],
       screen: (
-        <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-1.5">
+        <div className="bg-gray-800 rounded-lg p-3 text-xs space-y-1.5">
           <p className="text-gray-500 mb-2">ルールタブ</p>
-          <div className="flex items-center justify-between bg-gray-800 rounded px-3 py-2">
+          <div className="flex items-center justify-between bg-gray-700 rounded px-3 py-2">
             <span className="text-white">組手3分・延長1分</span><span className="text-red-400">削除</span>
           </div>
-          <div className="flex items-center justify-between bg-gray-800 rounded px-3 py-2">
+          <div className="flex items-center justify-between bg-gray-700 rounded px-3 py-2">
             <span className="text-white">形（演武）</span><span className="text-red-400">削除</span>
           </div>
           <div className="flex gap-2 mt-1">
-            <div className="flex-1 bg-gray-700 rounded px-2 py-1.5 text-gray-500">ルール名を入力...</div>
+            <div className="flex-1 bg-gray-600 rounded px-2 py-1.5 text-gray-500">ルール名を入力...</div>
             <div className="bg-blue-600 rounded px-3 py-1.5 text-white">追加</div>
           </div>
         </div>
@@ -383,11 +383,11 @@ function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
         "「流派」タブ: 極真会・正道会館など。エントリー時に自動追加されるので空でも OK",
       ],
       screen: (
-        <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
+        <div className="bg-gray-800 rounded-lg p-3 text-xs space-y-2">
           <div className="space-y-1.5">
             <p className="text-gray-500">流派タブ</p>
-            <div className="bg-gray-800 rounded px-2 py-1.5 text-gray-300">極真会</div>
-            <div className="bg-gray-800 rounded px-2 py-1.5 text-gray-300">正道会館</div>
+            <div className="bg-gray-700 rounded px-2 py-1.5 text-gray-300">極真会</div>
+            <div className="bg-gray-700 rounded px-2 py-1.5 text-gray-300">正道会館</div>
           </div>
           <p className="text-gray-600 text-center">↑ エントリー時に自動作成されます</p>
         </div>
@@ -406,17 +406,17 @@ function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
         "作成後は試合詳細画面に自動遷移",
       ],
       screen: (
-        <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
+        <div className="bg-gray-800 rounded-lg p-3 text-xs space-y-2">
           <p className="text-gray-500 mb-1">試合タブ → 新規作成</p>
-          <div className="bg-gray-800 rounded px-3 py-2 text-gray-300">第1回○○空手道大会</div>
+          <div className="bg-gray-700 rounded px-3 py-2 text-gray-300">第1回○○空手道大会</div>
           <div className="flex gap-2">
             {["1","2","3","4"].map((n) => (
-              <div key={n} className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold ${n==="2" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400"}`}>{n}</div>
+              <div key={n} className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold ${n==="2" ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-400"}`}>{n}</div>
             ))}
           </div>
           <div className="flex gap-2 flex-wrap">
             <div className="bg-blue-600 text-white rounded px-2 py-1">✓ 組手3分</div>
-            <div className="bg-gray-700 text-gray-400 rounded px-2 py-1">形</div>
+            <div className="bg-gray-600 text-gray-400 rounded px-2 py-1">形</div>
           </div>
           <div className="bg-blue-600 text-white rounded px-3 py-1.5 text-center font-medium">試合を作成</div>
         </div>
@@ -435,16 +435,16 @@ function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
         "管理者は「+ 追加」から直接入力も可能",
       ],
       screen: (
-        <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
+        <div className="bg-gray-800 rounded-lg p-3 text-xs space-y-2">
           <p className="text-gray-500 mb-1">試合詳細 → エントリーフォーム URL</p>
           <div className="flex items-center gap-2">
-            <div className="flex-1 bg-gray-700 rounded px-2 py-1.5 text-gray-400 font-mono truncate">https://…/entry/xxxx</div>
+            <div className="flex-1 bg-gray-600 rounded px-2 py-1.5 text-gray-400 font-mono truncate">https://…/entry/xxxx</div>
             <div className="bg-gray-600 text-white rounded px-2 py-1.5 shrink-0">コピー</div>
           </div>
-          <div className="border border-gray-700 rounded p-2 space-y-1">
+          <div className="border border-gray-600 rounded p-2 space-y-1">
             <p className="text-gray-500">エントリー一覧 3名</p>
             {["山田 太郎　極真会　65kg", "鈴木 一郎　正道会館　70kg", "田中 花子　新極真　55kg"].map((n) => (
-              <div key={n} className="flex justify-between bg-gray-800 rounded px-2 py-1">
+              <div key={n} className="flex justify-between bg-gray-700 rounded px-2 py-1">
                 <span className="text-gray-200">{n}</span>
               </div>
             ))}
@@ -469,17 +469,17 @@ function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
         "確定後も「← 確定前に戻る」で組み直し、選手の差し替え・欠場対応が可能",
       ],
       screen: (
-        <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
+        <div className="bg-gray-800 rounded-lg p-3 text-xs space-y-2">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-gray-500">ステップ②</span>
             <span className="bg-purple-700 text-white rounded px-2 py-1">自動振り分け</span>
           </div>
-          <div className="border border-gray-700 rounded p-2 space-y-1.5">
+          <div className="border border-gray-600 rounded p-2 space-y-1.5">
             <div className="flex items-center gap-1.5">
               <span className="text-gray-500 w-4 shrink-0">1</span>
-              <div className="flex-1 bg-gray-700 rounded px-2 py-1 text-gray-200">山田 65kg</div>
+              <div className="flex-1 bg-gray-600 rounded px-2 py-1 text-gray-200">山田 65kg</div>
               <span className="text-gray-600 shrink-0">vs</span>
-              <div className="flex-1 bg-gray-700 rounded px-2 py-1 text-gray-200">鈴木 70kg</div>
+              <div className="flex-1 bg-gray-600 rounded px-2 py-1 text-gray-200">鈴木 70kg</div>
               <span className="text-yellow-400 font-bold w-4 shrink-0 text-center">△</span>
             </div>
           </div>
@@ -512,22 +512,22 @@ function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
         "声質・速度は「設定」タブ、アナウンステンプレートもカスタマイズ可能",
       ],
       screen: (
-        <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
+        <div className="bg-gray-800 rounded-lg p-3 text-xs space-y-2">
           <p className="text-gray-500 mb-1">コート画面のブラケット</p>
           <div className="border border-yellow-600 rounded overflow-hidden">
-            <div className="bg-gray-800 px-2 py-1.5 border-b border-gray-600/50">
+            <div className="bg-gray-700 px-2 py-1.5 border-b border-gray-500/50">
               <div className="flex items-center gap-1">
                 <span className="w-3 h-3 rounded-full bg-red-700/80 text-[6px] text-red-100 flex items-center justify-center font-bold">赤</span>
                 <span className="text-gray-100 text-[11px]">山田 太郎</span>
               </div>
             </div>
-            <div className="bg-gray-800 px-2 py-1.5">
+            <div className="bg-gray-700 px-2 py-1.5">
               <div className="flex items-center gap-1">
                 <span className="w-3 h-3 rounded-full bg-gray-500/60 text-[6px] text-gray-100 flex items-center justify-center font-bold">白</span>
                 <span className="text-gray-100 text-[11px]">鈴木 一郎</span>
               </div>
             </div>
-            <div className="flex items-center gap-1 px-1.5 py-1 bg-yellow-950/60 border-t border-gray-600/50">
+            <div className="flex items-center gap-1 px-1.5 py-1 bg-yellow-950/60 border-t border-gray-500/50">
               <span className="bg-yellow-700 text-yellow-100 text-[7px] font-bold px-1 py-0.5 rounded">第1試合</span>
               <span className="text-[8px] text-yellow-400 font-medium">試合中</span>
               <span className="ml-auto text-[9px]">📢</span>
@@ -560,13 +560,13 @@ function GuidePanelContent({ steps, onNavigate }: { steps: StepItem[]; onNavigat
         {steps.map(({ step, icon, title, tab, tabLabel, color, desc, details, screen }) => {
           const isOpen = openStep === step;
           return (
-            <div key={step} className={`border-l-4 ${color} bg-gray-800 rounded-r-xl overflow-hidden`}>
+            <div key={step} className={`border-l-4 ${color} bg-gray-700 rounded-r-xl overflow-hidden`}>
               {/* ヘッダー行（常に表示） */}
               <button
                 onClick={() => setOpenStep(isOpen ? null : step)}
                 className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-750 transition"
               >
-                <span className="bg-gray-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">{step}</span>
+                <span className="bg-gray-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">{step}</span>
                 <span className="text-base shrink-0">{icon}</span>
                 <span className="font-semibold text-sm text-white flex-1">{title}</span>
                 <span className={`text-xs text-gray-500 shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`}>▶</span>
@@ -574,7 +574,7 @@ function GuidePanelContent({ steps, onNavigate }: { steps: StepItem[]; onNavigat
 
               {/* 展開コンテンツ */}
               {isOpen && (
-                <div className="px-4 pb-4 space-y-3 border-t border-gray-700/50">
+                <div className="px-4 pb-4 space-y-3 border-t border-gray-600/50">
                   <p className="text-xs text-gray-400 leading-relaxed pt-3">{desc}</p>
                   <ul className="space-y-1">
                     {details.map((d, i) => (
@@ -601,7 +601,7 @@ function GuidePanelContent({ steps, onNavigate }: { steps: StepItem[]; onNavigat
       </div>
 
       {/* 相性マーク凡例 */}
-      <div className="bg-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-gray-700 rounded-xl overflow-hidden">
         <button
           onClick={() => setOpenStep(openStep === 99 ? null : 99)}
           className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-gray-750 transition"
@@ -610,7 +610,7 @@ function GuidePanelContent({ steps, onNavigate }: { steps: StepItem[]; onNavigat
           <span className={`text-xs text-gray-500 transition-transform ${openStep === 99 ? "rotate-90" : ""}`}>▶</span>
         </button>
         {openStep === 99 && (
-          <div className="px-4 pb-4 border-t border-gray-700/50 pt-3 space-y-3">
+          <div className="px-4 pb-4 border-t border-gray-600/50 pt-3 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               {[
                 { mark: "◎", color: "text-green-400", label: "良好", desc: "体重・身長差が許容範囲内" },
@@ -633,7 +633,7 @@ function GuidePanelContent({ steps, onNavigate }: { steps: StepItem[]; onNavigat
       </div>
 
       {/* 試合速報ページ案内 */}
-      <div className="bg-gray-800 border border-blue-800 rounded-xl p-4 space-y-3">
+      <div className="bg-gray-700 border border-blue-800 rounded-xl p-4 space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-base">📺</span>
           <p className="text-sm font-semibold text-white flex-1">観客向け「試合速報」ページ</p>
@@ -676,7 +676,7 @@ function CopyLiveUrlButton() {
     <button
       onClick={copy}
       className={`text-xs px-3 py-1.5 rounded-lg transition font-medium ${
-        copied ? "bg-green-700 text-green-200" : "bg-gray-700 hover:bg-gray-600 text-gray-300"
+        copied ? "bg-green-700 text-green-200" : "bg-gray-600 hover:bg-gray-500 text-gray-300"
       }`}
     >
       {copied ? "コピー済 ✓" : "URL をコピー"}
@@ -743,13 +743,13 @@ function DojoPanel() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="流派名（例: 極真会）"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
           />
           <input
             value={reading}
             onChange={(e) => setReading(e.target.value)}
             placeholder="読み仮名（例: きょくしんかい）"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
           />
           <button type="submit" disabled={adding} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50 flex items-center gap-1.5">
             {adding && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
@@ -762,7 +762,7 @@ function DojoPanel() {
       ) : (
         <ul className="space-y-2">
           {dojos.map((d) => (
-            <li key={d.id} className="bg-gray-800 rounded-lg px-4 py-3">
+            <li key={d.id} className="bg-gray-700 rounded-lg px-4 py-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="font-medium">{d.name}</span>
                 <button onClick={() => remove(d.id)} disabled={removingId === d.id} className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50">
@@ -857,7 +857,7 @@ function EventPanel() {
       ) : (
         <ul className="space-y-2">
           {events.map((e) => (
-            <li key={e.id} className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active ? "ring-2 ring-green-500" : ""}`}>
+            <li key={e.id} className={`bg-gray-700 rounded-xl px-4 py-3 space-y-2 ${e.is_active ? "ring-2 ring-green-500" : ""}`}>
               {/* 試合名 + コート数 */}
               <div className="flex items-center gap-2 min-w-0">
                 {e.is_active && (
@@ -867,7 +867,7 @@ function EventPanel() {
                 {e.event_date && (
                   <span className="text-xs text-gray-400 shrink-0">{e.event_date.replace(/-/g, "/")}</span>
                 )}
-                <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded shrink-0">{e.court_count}コート</span>
+                <span className="text-xs bg-gray-600 text-gray-400 px-2 py-0.5 rounded shrink-0">{e.court_count}コート</span>
               </div>
               {/* アクション行 */}
               <div className="flex items-center gap-2 flex-wrap">
@@ -908,7 +908,7 @@ function EventPanel() {
       )}
 
       {/* 新規作成フォーム（トグル） */}
-      <div className="bg-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-gray-700 rounded-xl overflow-hidden">
         <button
           onClick={() => setShowForm((v) => !v)}
           className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-300 hover:text-white transition"
@@ -917,13 +917,13 @@ function EventPanel() {
           <span className={`text-gray-500 transition-transform ${showForm ? "rotate-180" : ""}`}>▼</span>
         </button>
         {showForm && (
-          <div className="px-4 pb-4 space-y-4 border-t border-gray-700">
+          <div className="px-4 pb-4 space-y-4 border-t border-gray-600">
             <div className="pt-3">
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="試合名（例: 第○回○○空手道大会）"
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+                className="w-full bg-gray-600 border border-gray-500 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
               />
             </div>
             <div className="space-y-1">
@@ -932,7 +932,7 @@ function EventPanel() {
                 type="date"
                 value={eventDate}
                 onChange={(e) => setEventDate(e.target.value)}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+                className="w-full bg-gray-600 border border-gray-500 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
               />
             </div>
             <div className="space-y-2">
@@ -940,7 +940,7 @@ function EventPanel() {
               <div className="flex gap-2">
                 {[1, 2, 3, 4].map((n) => (
                   <button key={n} onClick={() => setCourtCount(n)}
-                    className={`w-12 h-12 rounded-xl text-lg font-bold transition ${courtCount === n ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                    className={`w-12 h-12 rounded-xl text-lg font-bold transition ${courtCount === n ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-300 hover:bg-gray-600"}`}
                   >{n}</button>
                 ))}
               </div>
@@ -951,7 +951,7 @@ function EventPanel() {
                     value={courtNames[i] ?? ""}
                     onChange={(e) => setCourtNames((prev) => { const next = [...prev]; next[i] = e.target.value; return next; })}
                     placeholder={`コート${i + 1}の名前（任意）`}
-                    className="bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+                    className="bg-gray-600 border border-gray-500 rounded px-2 py-1.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
                   />
                 ))}
               </div>
@@ -966,7 +966,7 @@ function EventPanel() {
                       <button
                         key={r.id}
                         onClick={() => toggleRule(r.id)}
-                        className={`text-xs px-3 py-1.5 rounded-lg transition ${checked ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}
+                        className={`text-xs px-3 py-1.5 rounded-lg transition ${checked ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-400 hover:bg-gray-600"}`}
                       >
                         {checked ? "✓ " : ""}{r.name}
                       </button>
@@ -1046,13 +1046,13 @@ function RulesPanel() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="ルール名（例: 組手3分・延長1分）"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
           />
           <input
             value={reading}
             onChange={(e) => setReading(e.target.value)}
             placeholder="読み仮名（例: くみて3ぷんえんちょう1ぷん）"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
+            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
           />
           <button type="submit" disabled={adding} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50 flex items-center gap-1.5">
             {adding && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
@@ -1065,7 +1065,7 @@ function RulesPanel() {
       ) : (
         <ul className="space-y-2">
           {rules.map((r) => (
-            <li key={r.id} className="bg-gray-800 rounded-lg px-4 py-3">
+            <li key={r.id} className="bg-gray-700 rounded-lg px-4 py-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="font-medium">{r.name}</span>
                 <button onClick={() => remove(r.id)} disabled={removingId === r.id} className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50">
@@ -1107,7 +1107,7 @@ function SettingsPanel() {
             key={t}
             onClick={() => setSubTab(t)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${
-              subTab === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+              subTab === t ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"
             }`}
           >
             {SETTINGS_SUBTAB_LABELS[t]}
@@ -1153,7 +1153,7 @@ function AnnounceSettingsPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800 rounded-xl p-5 space-y-5">
+      <div className="bg-gray-700 rounded-xl p-5 space-y-5">
         <h2 className="font-semibold text-sm text-gray-300">音声設定</h2>
 
         {/* 声質 */}
@@ -1167,7 +1167,7 @@ function AnnounceSettingsPanel() {
                 className={`px-3 py-2.5 rounded-lg text-sm text-left transition ${
                   voice === v.value
                     ? "bg-blue-600 text-white"
-                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    : "bg-gray-600 text-gray-300 hover:bg-gray-600"
                 }`}
               >
                 {v.label}
@@ -1203,7 +1203,7 @@ function AnnounceSettingsPanel() {
           <button
             onClick={preview}
             disabled={playing}
-            className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-2.5 rounded-lg text-sm font-medium transition"
+            className="flex-1 bg-gray-600 hover:bg-gray-500 disabled:opacity-40 py-2.5 rounded-lg text-sm font-medium transition"
           >
             {playing ? "再生中..." : "試し聞き"}
           </button>
@@ -1300,7 +1300,7 @@ function TemplateEditor() {
   }
 
   return (
-    <div className="bg-gray-800 rounded-xl p-5 space-y-4">
+    <div className="bg-gray-700 rounded-xl p-5 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-sm text-gray-300">アナウンス文カスタマイズ</h2>
         <button
@@ -1320,7 +1320,7 @@ function TemplateEditor() {
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
               activeTab === tab
                 ? "bg-blue-600 text-white"
-                : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                : "bg-gray-600 text-gray-400 hover:bg-gray-600"
             }`}
           >
             {tab === "matchStart" ? "試合開始" : "勝者発表"}
@@ -1337,7 +1337,7 @@ function TemplateEditor() {
               key={key}
               onClick={() => insertVar(key)}
               title={desc}
-              className="px-2 py-1 bg-gray-700 hover:bg-blue-700 text-xs text-blue-300 hover:text-white rounded transition font-mono"
+              className="px-2 py-1 bg-gray-600 hover:bg-blue-700 text-xs text-blue-300 hover:text-white rounded transition font-mono"
             >
               {`{{${key}}}`}
             </button>
@@ -1351,13 +1351,13 @@ function TemplateEditor() {
         value={currentTemplate}
         onChange={(e) => updateTemplate(e.target.value)}
         rows={4}
-        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500 resize-none font-mono leading-relaxed"
+        className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500 resize-none font-mono leading-relaxed"
       />
 
       {/* プレビュー */}
       <div className="space-y-1.5">
         <p className="text-xs text-gray-500">プレビュー（サンプル値で展開）</p>
-        <div className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 leading-relaxed min-h-[3rem]">
+        <div className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2.5 text-sm text-gray-200 leading-relaxed min-h-[3rem]">
           {preview || <span className="text-gray-600">（空）</span>}
         </div>
       </div>
@@ -1367,7 +1367,7 @@ function TemplateEditor() {
         <button
           onClick={playPreview}
           disabled={playing}
-          className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-2.5 rounded-lg text-sm font-medium transition"
+          className="flex-1 bg-gray-600 hover:bg-gray-500 disabled:opacity-40 py-2.5 rounded-lg text-sm font-medium transition"
         >
           {playing ? "再生中..." : "試し聞き"}
         </button>
@@ -1382,7 +1382,7 @@ function TemplateEditor() {
       </div>
 
       {/* 変数一覧（説明＋サンプル値を統合） */}
-      <div className="border-t border-gray-700 pt-3 space-y-1">
+      <div className="border-t border-gray-600 pt-3 space-y-1">
         <p className="text-xs text-gray-500 font-medium mb-2">使用できる変数</p>
         {vars.map(({ key, desc, sample }) => (
           <div key={key} className="flex items-baseline gap-2 text-xs py-0.5">
@@ -1436,7 +1436,7 @@ function ReadingInput({ value, placeholder, onSave }: {
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
+        className="flex-1 bg-gray-600 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
       />
       <button type="submit" className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded">保存</button>
       <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1">×</button>

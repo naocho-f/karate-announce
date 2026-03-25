@@ -29,7 +29,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-6">
+    <main className="min-h-screen bg-gray-800 text-white flex items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-1">
           <div className="text-4xl mb-3">🥋</div>
@@ -37,7 +37,7 @@ export default function AdminLoginPage() {
           <p className="text-sm text-gray-500">柔空会 - 試合管理 ＆ AI アナウンス</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-gray-800 rounded-2xl p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-gray-700 rounded-2xl p-6 space-y-4">
           <div className="space-y-1.5">
             <label className="text-sm text-gray-400">ID</label>
             <input
@@ -47,7 +47,7 @@ export default function AdminLoginPage() {
               autoFocus
               autoComplete="username"
               placeholder="ID"
-              className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition"
+              className="w-full bg-gray-600 border border-gray-500 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition"
             />
           </div>
           <div className="space-y-1.5">
@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               placeholder="••••••••"
-              className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition"
+              className="w-full bg-gray-600 border border-gray-500 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition"
             />
           </div>
 

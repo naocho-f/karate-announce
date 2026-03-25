@@ -38,12 +38,12 @@ function OneMatchNumberCard({ match, nameMap, assignedNumber, onClick, onSwapFig
       className={`border rounded-lg p-3 cursor-pointer transition select-none ${
         assignedNumber
           ? "border-blue-500 bg-blue-900/20"
-          : "border-gray-700 hover:border-gray-500"
+          : "border-gray-600 hover:border-gray-500"
       }`}
     >
       <div className="flex items-center gap-3">
         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-          assignedNumber ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-500"
+          assignedNumber ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-500"
         }`}>
           {assignedNumber ?? "−"}
         </div>
@@ -58,7 +58,7 @@ function OneMatchNumberCard({ match, nameMap, assignedNumber, onClick, onSwapFig
           <button
             onClick={(e) => { e.stopPropagation(); onSwapFighters(); }}
             disabled={isSwapping}
-            className="ml-auto text-xs text-gray-500 hover:text-gray-300 disabled:opacity-40 px-2 py-1 rounded border border-gray-700 hover:border-gray-500 transition shrink-0"
+            className="ml-auto text-xs text-gray-500 hover:text-gray-300 disabled:opacity-40 px-2 py-1 rounded border border-gray-600 hover:border-gray-500 transition shrink-0"
           >
             {isSwapping ? "…" : "⇅赤白"}
           </button>
@@ -304,12 +304,12 @@ export function MatchLabelEditor({ eventId, courtNames, courtCount, onChanged }:
   }, [tournaments, totalCount]);
 
   return (
-    <div className="border border-gray-700 rounded-xl overflow-hidden">
-      <div className="px-4 py-3 bg-gray-800 border-b border-gray-700">
+    <div className="border border-gray-600 rounded-xl overflow-hidden">
+      <div className="px-4 py-3 bg-gray-700 border-b border-gray-600">
         <span className="font-semibold text-sm">📋 試合番号設定</span>
       </div>
 
-      <div className="bg-gray-900 p-4">
+      <div className="bg-gray-800 p-4">
         <p className="text-xs text-gray-400 mb-3">
           試合カードを<strong className="text-white">タップした順番</strong>にコートごとの番号が振られます（例: Aコート第1試合）。
           番号をつけたカードをもう一度タップすると解除します。
@@ -325,7 +325,7 @@ export function MatchLabelEditor({ eventId, courtNames, courtCount, onChanged }:
           </button>
           <button
             onClick={clearAll}
-            className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded transition"
+            className="text-xs bg-gray-600 hover:bg-gray-500 text-gray-300 px-3 py-1.5 rounded transition"
           >
             全解除
           </button>
@@ -374,7 +374,7 @@ export function MatchLabelEditor({ eventId, courtNames, courtCount, onChanged }:
                             <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">ワンマッチ</span>
                           )}
                         </div>
-                        <div className="bg-gray-800 rounded-xl p-3">
+                        <div className="bg-gray-700 rounded-xl p-3">
                           {t.type === "one_match" && t.matches.length === 1 ? (
                             <OneMatchNumberCard
                               match={t.matches[0]}
