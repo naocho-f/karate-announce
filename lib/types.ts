@@ -79,6 +79,10 @@ export type Tournament = {
   filter_min_age: number | null;
   filter_max_age: number | null;
   filter_sex: string | null;
+  filter_experience: string | null;
+  filter_grade: string | null;
+  filter_min_height: number | null;
+  filter_max_height: number | null;
   created_at: string;
 };
 

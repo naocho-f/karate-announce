@@ -33,6 +33,9 @@ type GroupFilters = {
   maxAge: string;
   sexFilter: string;
   gradeFilter: string;
+  experienceFilter: string;
+  minHeight: string;
+  maxHeight: string;
   nameFilter: string;
 };
 
@@ -47,8 +50,8 @@ type Group = {
 };
 
 type SplitSuggestion = {
-  axis: "age" | "weight";
-  threshold: number;
+  axis: "age" | "weight" | "sex" | "experience" | "height";
+  threshold: number | string;
   belowLabel: string;
   aboveLabel: string;
   belowCount: number;
@@ -497,33 +500,74 @@ function StepNav({ step, tournaments, onStepChange }: { step: 1 | 2 | 3; tournam
 
 // ── ダッシュボードパネル ──────────────────────────────────────────────────
 
+function computeBalance(below: number, above: number): "◎" | "△" | "✕" {
+  const diff = Math.abs(below - above);
+  const total = below + above;
+  return diff <= 1 ? "◎" : diff <= Math.max(2, Math.floor(total * 0.25)) ? "△" : "✕";
+}
+
 function computeSuggestions(ents: Entry[]): SplitSuggestion[] {
   const active = ents.filter(e => !e.is_withdrawn);
   const results: SplitSuggestion[] = [];
 
-  const ageEntries = active.filter(e => e.age != null);
-  if (ageEntries.length >= 2) {
-    for (const t of [15, 18, 20, 25, 30, 31, 35, 40, 45]) {
-      const below = ageEntries.filter(e => e.age! < t).length;
-      const above = ageEntries.filter(e => e.age! >= t).length;
-      if (below === 0 || above === 0) continue;
-      const diff = Math.abs(below - above);
-      const total = below + above;
-      const balance: "◎" | "△" | "✕" = diff <= 1 ? "◎" : diff <= Math.max(2, Math.floor(total * 0.25)) ? "△" : "✕";
-      results.push({ axis: "age", threshold: t, belowLabel: `${t}歳未満`, aboveLabel: `${t}歳以上`, belowCount: below, aboveCount: above, balance });
-    }
-  }
-
+  // 体重（メイン分割軸）
   const weightEntries = active.filter(e => e.weight != null);
   if (weightEntries.length >= 2) {
     for (const t of [45, 50, 55, 60, 65, 70, 75, 80]) {
       const below = weightEntries.filter(e => e.weight! < t).length;
       const above = weightEntries.filter(e => e.weight! >= t).length;
       if (below === 0 || above === 0) continue;
-      const diff = Math.abs(below - above);
-      const total = below + above;
-      const balance: "◎" | "△" | "✕" = diff <= 1 ? "◎" : diff <= Math.max(2, Math.floor(total * 0.25)) ? "△" : "✕";
-      results.push({ axis: "weight", threshold: t, belowLabel: `${t}kg未満`, aboveLabel: `${t}kg以上`, belowCount: below, aboveCount: above, balance });
+      results.push({ axis: "weight", threshold: t, belowLabel: `${t}kg未満`, aboveLabel: `${t}kg以上`, belowCount: below, aboveCount: above, balance: computeBalance(below, above) });
+    }
+  }
+
+  // 年齢
+  const ageEntries = active.filter(e => e.age != null);
+  if (ageEntries.length >= 2) {
+    for (const t of [15, 18, 20, 25, 30, 31, 35, 40, 45]) {
+      const below = ageEntries.filter(e => e.age! < t).length;
+      const above = ageEntries.filter(e => e.age! >= t).length;
+      if (below === 0 || above === 0) continue;
+      results.push({ axis: "age", threshold: t, belowLabel: `${t}歳未満`, aboveLabel: `${t}歳以上`, belowCount: below, aboveCount: above, balance: computeBalance(below, above) });
+    }
+  }
+
+  // 性別
+  const sexEntries = active.filter(e => e.sex === "male" || e.sex === "female");
+  if (sexEntries.length >= 2) {
+    const males = sexEntries.filter(e => e.sex === "male").length;
+    const females = sexEntries.filter(e => e.sex === "female").length;
+    if (males > 0 && females > 0) {
+      results.push({ axis: "sex", threshold: "sex", belowLabel: "男子", aboveLabel: "女子", belowCount: males, aboveCount: females, balance: computeBalance(males, females) });
+    }
+  }
+
+  // 身長
+  const heightEntries = active.filter(e => e.height != null);
+  if (heightEntries.length >= 2) {
+    for (const t of [155, 160, 165, 170, 175, 180]) {
+      const below = heightEntries.filter(e => e.height! < t).length;
+      const above = heightEntries.filter(e => e.height! >= t).length;
+      if (below === 0 || above === 0) continue;
+      results.push({ axis: "height", threshold: t, belowLabel: `${t}cm未満`, aboveLabel: `${t}cm以上`, belowCount: below, aboveCount: above, balance: computeBalance(below, above) });
+    }
+  }
+
+  // 経験（年数パターンを抽出して分割）
+  const expEntries = active.filter(e => e.experience != null);
+  if (expEntries.length >= 2) {
+    const parseExpYears = (exp: string): number | null => {
+      const m = exp.match(/(\d+)\s*年/);
+      return m ? parseInt(m[1], 10) : null;
+    };
+    const withYears = expEntries.map(e => ({ entry: e, years: parseExpYears(e.experience!) })).filter(x => x.years != null) as { entry: Entry; years: number }[];
+    if (withYears.length >= 2) {
+      for (const t of [3, 5, 7, 10]) {
+        const below = withYears.filter(x => x.years < t).length;
+        const above = withYears.filter(x => x.years >= t).length;
+        if (below === 0 || above === 0) continue;
+        results.push({ axis: "experience", threshold: t, belowLabel: `${t}年未満`, aboveLabel: `${t}年以上`, belowCount: below, aboveCount: above, balance: computeBalance(below, above) });
+      }
     }
   }
 
@@ -534,7 +578,7 @@ function computeSuggestions(ents: Entry[]): SplitSuggestion[] {
       if (order[a.balance] !== order[b.balance]) return order[a.balance] - order[b.balance];
       return Math.abs(a.belowCount - a.aboveCount) - Math.abs(b.belowCount - b.aboveCount);
     })
-    .slice(0, 5);
+    .slice(0, 8);
 }
 
 function DashboardPanel({ entries, tournaments, eventRules, entryRuleIds, tournamentMatchFighterIds }: {
@@ -686,14 +730,14 @@ function DashboardCard({ label, total, unassigned, tournamentCount, oneMatchCoun
         {suggestions.length > 0 && (
           <button onClick={() => setExpanded(v => !v)}
             className="text-xs text-blue-400 hover:text-blue-300 transition">
-            💡 絞り込みおすすめ {expanded ? "▲" : "▼"}
+            💡 階級分けおすすめ {expanded ? "▲" : "▼"}
           </button>
         )}
       </div>
 
       {expanded && suggestions.length > 0 && (
         <div className="border-t border-gray-700 pt-3 space-y-2">
-          <p className="text-xs text-gray-400">分割した場合の人数バランス（参考）</p>
+          <p className="text-xs text-gray-400">体重をメインに、年齢・性別・経歴・体格で分割した場合の人数バランス（参考）</p>
           <div className="flex flex-wrap gap-2">
             {suggestions.map((s, i) => (
               <div key={i} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border ${
@@ -708,7 +752,7 @@ function DashboardCard({ label, total, unassigned, tournamentCount, oneMatchCoun
               </div>
             ))}
           </div>
-          <p className="text-xs text-gray-600">※ 子供クラスは体重差 5kg以内、大人クラスは 10kg以内が目安</p>
+          <p className="text-xs text-gray-600">※ 体重をメインとし、年齢・性別・経歴・体格・段級で階級分けします</p>
         </div>
       )}
     </div>
@@ -1443,6 +1487,10 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
             filterMinAge: f?.minAge ? parseInt(f.minAge) : null,
             filterMaxAge: f?.maxAge ? parseInt(f.maxAge) : null,
             filterSex: f?.sexFilter || null,
+            filterExperience: f?.experienceFilter || null,
+            filterGrade: f?.gradeFilter || null,
+            filterMinHeight: f?.minHeight ? parseFloat(f.minHeight) : null,
+            filterMaxHeight: f?.maxHeight ? parseFloat(f.maxHeight) : null,
           }),
         });
       })
@@ -1728,26 +1776,63 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
   onUpdateFilters: (filters: GroupFilters) => void;
 }) {
   const [previewMode, setPreviewMode] = useState(false);
+  const [manualName, setManualName] = useState(false);
   const [minWeight, setMinWeight] = useState(group.filters?.minWeight ?? "");
   const [maxWeight, setMaxWeight] = useState(group.filters?.maxWeight ?? "");
   const [minAge, setMinAge] = useState(group.filters?.minAge ?? "");
   const [maxAge, setMaxAge] = useState(group.filters?.maxAge ?? "");
   const [sexFilter, setSexFilter] = useState(group.filters?.sexFilter ?? "");
   const [gradeFilter, setGradeFilter] = useState(group.filters?.gradeFilter ?? "");
+  const [experienceFilter, setExperienceFilter] = useState(group.filters?.experienceFilter ?? "");
+  const [minHeight, setMinHeight] = useState(group.filters?.minHeight ?? "");
+  const [maxHeight, setMaxHeight] = useState(group.filters?.maxHeight ?? "");
   const [nameFilter, setNameFilter] = useState(group.filters?.nameFilter ?? "");
 
+  // フィルター条件からトーナメント名を自動生成
   useEffect(() => {
-    onUpdateFilters({ minWeight, maxWeight, minAge, maxAge, sexFilter, gradeFilter, nameFilter });
+    if (manualName) return;
+    const parts: string[] = [];
+    if (sexFilter === "male") parts.push("男子");
+    else if (sexFilter === "female") parts.push("女子");
+    if (minAge || maxAge) {
+      if (minAge && maxAge) parts.push(`${minAge}〜${maxAge}歳`);
+      else if (minAge) parts.push(`${minAge}歳以上`);
+      else parts.push(`${maxAge}歳以下`);
+    }
+    if (minWeight || maxWeight) {
+      if (minWeight && maxWeight) parts.push(`${minWeight}〜${maxWeight}kg`);
+      else if (minWeight) parts.push(`${minWeight}kg以上`);
+      else parts.push(`${maxWeight}kg以下`);
+    }
+    if (minHeight || maxHeight) {
+      if (minHeight && maxHeight) parts.push(`${minHeight}〜${maxHeight}cm`);
+      else if (minHeight) parts.push(`${minHeight}cm以上`);
+      else parts.push(`${maxHeight}cm以下`);
+    }
+    if (gradeFilter) parts.push(gradeFilter);
+    if (experienceFilter) parts.push(experienceFilter);
+    if (parts.length > 0) {
+      const autoName = parts.join(" ");
+      onRename(autoName);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [minWeight, maxWeight, minAge, maxAge, sexFilter, gradeFilter, nameFilter]);
+  }, [sexFilter, minAge, maxAge, minWeight, maxWeight, minHeight, maxHeight, gradeFilter, experienceFilter, manualName]);
+
+  useEffect(() => {
+    onUpdateFilters({ minWeight, maxWeight, minAge, maxAge, sexFilter, gradeFilter, experienceFilter, minHeight, maxHeight, nameFilter });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minWeight, maxWeight, minAge, maxAge, sexFilter, gradeFilter, experienceFilter, minHeight, maxHeight, nameFilter]);
 
   const filteredUnassigned = unassigned.filter((e) => {
     if (minWeight !== "" && (e.weight == null || e.weight < parseFloat(minWeight))) return false;
     if (maxWeight !== "" && (e.weight == null || e.weight > parseFloat(maxWeight))) return false;
     if (minAge !== "" && (e.age == null || e.age < parseInt(minAge))) return false;
     if (maxAge !== "" && (e.age == null || e.age > parseInt(maxAge))) return false;
+    if (minHeight !== "" && (e.height == null || e.height < parseFloat(minHeight))) return false;
+    if (maxHeight !== "" && (e.height == null || e.height > parseFloat(maxHeight))) return false;
     if (sexFilter && e.sex !== sexFilter) return false;
     if (gradeFilter && !e.grade?.includes(gradeFilter)) return false;
+    if (experienceFilter && !e.experience?.includes(experienceFilter)) return false;
     if (nameFilter && !entryFullName(e).toLowerCase().includes(nameFilter.toLowerCase())) return false;
     return true;
   });
@@ -1764,7 +1849,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
   return (
     <div className="border border-gray-600 rounded-xl p-3 space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <input value={group.name} onChange={(e) => onRename(e.target.value)} placeholder="トーナメント名"
+        <input value={group.name} onChange={(e) => { setManualName(true); onRename(e.target.value); }} placeholder="トーナメント名（絞り込みから自動入力）"
           className="flex-1 min-w-[140px] bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm font-medium text-white outline-none focus:border-blue-500" />
         <div className="flex items-center gap-1 shrink-0">
           <span className="text-xs text-gray-500">体重差</span>
@@ -1828,8 +1913,19 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
             </select>
           </div>
           <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">身長</span>
+            <input value={minHeight} onChange={(e) => setMinHeight(e.target.value)} placeholder="下限" type="number" min="0" step="1" className={`w-14 ${inpSm}`} />
+            <span className="text-xs text-gray-500">〜</span>
+            <input value={maxHeight} onChange={(e) => setMaxHeight(e.target.value)} placeholder="上限" type="number" min="0" step="1" className={`w-14 ${inpSm}`} />
+            <span className="text-xs text-gray-500">cm</span>
+          </div>
+          <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">学年</span>
             <input value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)} placeholder="小4" className={`w-16 ${inpSm}`} />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">経験</span>
+            <input value={experienceFilter} onChange={(e) => setExperienceFilter(e.target.value)} placeholder="10年" className={`w-20 ${inpSm}`} />
           </div>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">名前</span>
@@ -2136,7 +2232,10 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
                 minAge: tournament.filter_min_age != null ? String(tournament.filter_min_age) : "",
                 maxAge: tournament.filter_max_age != null ? String(tournament.filter_max_age) : "",
                 sexFilter: tournament.filter_sex ?? "",
-                gradeFilter: "",
+                gradeFilter: tournament.filter_grade ?? "",
+                experienceFilter: tournament.filter_experience ?? "",
+                minHeight: tournament.filter_min_height != null ? String(tournament.filter_min_height) : "",
+                maxHeight: tournament.filter_max_height != null ? String(tournament.filter_max_height) : "",
                 nameFilter: "",
               };
               onEdit(tournament.id, [{
