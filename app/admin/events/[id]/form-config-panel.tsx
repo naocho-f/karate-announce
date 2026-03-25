@@ -140,11 +140,15 @@ export function FormConfigPanel({ eventId }: Props) {
 
   async function copyFromEvent(sourceEventId: string) {
     if (!config) return;
-    await fetch("/api/admin/form-config/copy", {
+    const res = await fetch("/api/admin/form-config/copy", {
       method: "POST", credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ source_event_id: sourceEventId, target_config_id: config.id }),
     });
+    if (!res.ok) {
+      alert("フォーム設定のコピーに失敗しました");
+      return;
+    }
     setShowCopyModal(false);
     await load();
   }

@@ -49,33 +49,57 @@ export async function POST(request: NextRequest) {
     .single();
   if (evErr || !newEvent) return NextResponse.json({ error: evErr?.message ?? "Failed" }, { status: 500 });
 
-  // 2. ルール紐づけをコピー
-  const { data: sourceRules } = await supabaseAdmin
-    .from("event_rules")
-    .select("rule_id")
-    .eq("event_id", source.id);
-  if (sourceRules?.length) {
-    await supabaseAdmin.from("event_rules").insert(
-      sourceRules.map((r) => ({ event_id: newEvent.id, rule_id: r.rule_id }))
-    );
+  // 失敗時に作成済みイベントと関連データを削除するクリーンアップ関数
+  async function cleanupNewEvent() {
+    // 関連テーブルを子→親の順で削除
+    const { data: configs } = await supabaseAdmin.from("form_configs").select("id").eq("event_id", newEvent.id);
+    if (configs?.length) {
+      const configIds = configs.map((c) => c.id);
+      const { data: notices } = await supabaseAdmin.from("form_notices").select("id").in("form_config_id", configIds);
+      if (notices?.length) {
+        await supabaseAdmin.from("form_notice_images").delete().in("notice_id", notices.map((n) => n.id));
+        await supabaseAdmin.from("form_notices").delete().in("form_config_id", configIds);
+      }
+      await supabaseAdmin.from("form_field_configs").delete().in("form_config_id", configIds);
+      await supabaseAdmin.from("form_configs").delete().eq("event_id", newEvent.id);
+    }
+    const { data: entries } = await supabaseAdmin.from("entries").select("id").eq("event_id", newEvent.id);
+    if (entries?.length) {
+      await supabaseAdmin.from("entry_rules").delete().in("entry_id", entries.map((e) => e.id));
+      await supabaseAdmin.from("entries").delete().eq("event_id", newEvent.id);
+    }
+    await supabaseAdmin.from("event_rules").delete().eq("event_id", newEvent.id);
+    await supabaseAdmin.from("events").delete().eq("id", newEvent.id);
   }
 
-  // 3. フォーム設定をコピー
-  const { data: sourceConfig } = await supabaseAdmin
-    .from("form_configs")
-    .select("id")
-    .eq("event_id", source.id)
-    .maybeSingle();
+  try {
+    // 2. ルール紐づけをコピー
+    const { data: sourceRules } = await supabaseAdmin
+      .from("event_rules")
+      .select("rule_id")
+      .eq("event_id", source.id);
+    if (sourceRules?.length) {
+      const { error } = await supabaseAdmin.from("event_rules").insert(
+        sourceRules.map((r) => ({ event_id: newEvent.id, rule_id: r.rule_id }))
+      );
+      if (error) throw new Error(`ルール紐づけのコピーに失敗: ${error.message}`);
+    }
 
-  if (sourceConfig) {
-    // 新イベント用の form_config を作成
-    const { data: newConfig } = await supabaseAdmin
+    // 3. フォーム設定をコピー
+    const { data: sourceConfig } = await supabaseAdmin
       .from("form_configs")
-      .insert({ event_id: newEvent.id })
-      .select()
-      .single();
+      .select("id")
+      .eq("event_id", source.id)
+      .maybeSingle();
 
-    if (newConfig) {
+    if (sourceConfig) {
+      const { data: newConfig, error: cfgErr } = await supabaseAdmin
+        .from("form_configs")
+        .insert({ event_id: newEvent.id })
+        .select()
+        .single();
+      if (cfgErr || !newConfig) throw new Error(`フォーム設定の作成に失敗: ${cfgErr?.message}`);
+
       // フィールド設定をコピー
       const { data: sourceFields } = await supabaseAdmin
         .from("form_field_configs")
@@ -84,7 +108,7 @@ export async function POST(request: NextRequest) {
         .order("sort_order");
 
       if (sourceFields?.length) {
-        await supabaseAdmin.from("form_field_configs").insert(
+        const { error } = await supabaseAdmin.from("form_field_configs").insert(
           sourceFields.map((f) => ({
             form_config_id: newConfig.id,
             field_key: f.field_key,
@@ -96,9 +120,10 @@ export async function POST(request: NextRequest) {
             custom_label: f.custom_label,
           }))
         );
+        if (error) throw new Error(`フィールド設定のコピーに失敗: ${error.message}`);
       } else {
         // ソースにフィールド設定がない場合はデフォルトで初期化
-        await supabaseAdmin.from("form_field_configs").insert(
+        const { error } = await supabaseAdmin.from("form_field_configs").insert(
           FIELD_POOL.map((f, i) => ({
             form_config_id: newConfig.id,
             field_key: f.key,
@@ -110,6 +135,7 @@ export async function POST(request: NextRequest) {
             custom_label: f.label,
           }))
         );
+        if (error) throw new Error(`デフォルトフィールド設定の作成に失敗: ${error.message}`);
       }
 
       // 注意書きをコピー（画像参照も含む）
@@ -121,7 +147,7 @@ export async function POST(request: NextRequest) {
 
       if (sourceNotices?.length) {
         for (const notice of sourceNotices) {
-          const { data: newNotice } = await supabaseAdmin
+          const { data: newNotice, error: noticeErr } = await supabaseAdmin
             .from("form_notices")
             .insert({
               form_config_id: newConfig.id,
@@ -137,74 +163,82 @@ export async function POST(request: NextRequest) {
             })
             .select()
             .single();
+          if (noticeErr) throw new Error(`注意書きのコピーに失敗: ${noticeErr.message}`);
 
           if (newNotice && notice.images?.length) {
-            await supabaseAdmin.from("form_notice_images").insert(
+            const { error } = await supabaseAdmin.from("form_notice_images").insert(
               notice.images.map((img: { storage_path: string; sort_order: number }) => ({
                 notice_id: newNotice.id,
                 storage_path: img.storage_path,
                 sort_order: img.sort_order,
               }))
             );
+            if (error) throw new Error(`注意書き画像のコピーに失敗: ${error.message}`);
           }
         }
       }
     }
-  }
 
-  // 4. エントリーをコピー（オプション）
-  if (copy_entries) {
-    const { data: sourceEntries } = await supabaseAdmin
-      .from("entries")
-      .select("*")
-      .eq("event_id", source.id);
+    // 4. エントリーをコピー（オプション）
+    if (copy_entries) {
+      const { data: sourceEntries } = await supabaseAdmin
+        .from("entries")
+        .select("*")
+        .eq("event_id", source.id);
 
-    if (sourceEntries?.length) {
-      for (const entry of sourceEntries) {
-        const { data: newEntry } = await supabaseAdmin
-          .from("entries")
-          .insert({
-            event_id: newEvent.id,
-            family_name: entry.family_name,
-            given_name: entry.given_name,
-            family_name_reading: entry.family_name_reading,
-            given_name_reading: entry.given_name_reading,
-            school_name: entry.school_name,
-            school_name_reading: entry.school_name_reading,
-            dojo_name: entry.dojo_name,
-            dojo_name_reading: entry.dojo_name_reading,
-            sex: entry.sex,
-            weight: entry.weight,
-            height: entry.height,
-            birth_date: entry.birth_date,
-            age: entry.age,
-            grade: entry.grade,
-            experience: entry.experience,
-            memo: entry.memo,
-            admin_memo: null,
-            is_withdrawn: false,
-            is_test: entry.is_test,
-            fighter_id: null,
-            extra_fields: entry.extra_fields,
-            form_version: null,
-          })
-          .select("id")
-          .single();
+      if (sourceEntries?.length) {
+        for (const entry of sourceEntries) {
+          const { data: newEntry, error: entryErr } = await supabaseAdmin
+            .from("entries")
+            .insert({
+              event_id: newEvent.id,
+              family_name: entry.family_name,
+              given_name: entry.given_name,
+              family_name_reading: entry.family_name_reading,
+              given_name_reading: entry.given_name_reading,
+              school_name: entry.school_name,
+              school_name_reading: entry.school_name_reading,
+              dojo_name: entry.dojo_name,
+              dojo_name_reading: entry.dojo_name_reading,
+              sex: entry.sex,
+              weight: entry.weight,
+              height: entry.height,
+              birth_date: entry.birth_date,
+              age: entry.age,
+              grade: entry.grade,
+              experience: entry.experience,
+              memo: entry.memo,
+              admin_memo: null,
+              is_withdrawn: false,
+              is_test: entry.is_test,
+              fighter_id: null,
+              extra_fields: entry.extra_fields,
+              form_version: null,
+            })
+            .select("id")
+            .single();
+          if (entryErr) throw new Error(`エントリーのコピーに失敗: ${entryErr.message}`);
 
-        // entry_rules もコピー
-        if (newEntry) {
-          const { data: entryRules } = await supabaseAdmin
-            .from("entry_rules")
-            .select("rule_id")
-            .eq("entry_id", entry.id);
-          if (entryRules?.length) {
-            await supabaseAdmin.from("entry_rules").insert(
-              entryRules.map((r) => ({ entry_id: newEntry.id, rule_id: r.rule_id }))
-            );
+          // entry_rules もコピー
+          if (newEntry) {
+            const { data: entryRules } = await supabaseAdmin
+              .from("entry_rules")
+              .select("rule_id")
+              .eq("entry_id", entry.id);
+            if (entryRules?.length) {
+              const { error } = await supabaseAdmin.from("entry_rules").insert(
+                entryRules.map((r) => ({ entry_id: newEntry.id, rule_id: r.rule_id }))
+              );
+              if (error) throw new Error(`エントリールールのコピーに失敗: ${error.message}`);
+            }
           }
         }
       }
     }
+  } catch (err) {
+    await cleanupNewEvent();
+    const message = err instanceof Error ? err.message : "複製中に予期しないエラーが発生しました";
+    return NextResponse.json({ error: `複製に失敗しました: ${message}` }, { status: 500 });
   }
 
   return NextResponse.json({ id: newEvent.id });

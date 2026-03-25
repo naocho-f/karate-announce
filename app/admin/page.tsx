@@ -880,8 +880,14 @@ function EventPanel() {
         copy_entries: copyEntries,
       }),
     });
-    if (!res.ok) { alert("複製に失敗しました"); setCopying(false); return; }
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error ?? "複製に失敗しました");
+      setCopying(false);
+      return;
+    }
     const { id } = await res.json();
+    setCopying(false);
     router.push(`/admin/events/${id}`);
   }
 
