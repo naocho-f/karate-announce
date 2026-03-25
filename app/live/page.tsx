@@ -169,6 +169,8 @@ function CourtView({ court }: { court: CourtData }) {
   });
 
   const ongoingMatch = sortedMatches.find((m) => m.status === "ongoing") ?? null;
+  // ongoing がなければ、最初の ready 試合を「次の試合」とする
+  const nextMatch = ongoingMatch ? null : sortedMatches.find((m) => m.status === "ready" && m.fighter1_id && m.fighter2_id) ?? null;
   // 不戦勝（round 1 で fighter2 なし）を除外
   const visibleMatches = sortedMatches.filter((m) => m.fighter2_id || m.round > 1);
 
@@ -176,7 +178,7 @@ function CourtView({ court }: { court: CourtData }) {
     <div className="space-y-1.5">
       {/* 試合番号順の対戦リスト */}
       {visibleMatches.map((m) => (
-        <MatchRow key={m.id} match={m} isOngoing={m.id === ongoingMatch?.id} />
+        <MatchRow key={m.id} match={m} isOngoing={m.id === ongoingMatch?.id} isNext={m.id === nextMatch?.id} />
       ))}
 
       {visibleMatches.length === 0 && (
@@ -217,7 +219,7 @@ function OngoingBanner({ match }: { match: Match }) {
   );
 }
 
-function MatchRow({ match, isOngoing }: { match: Match; isOngoing: boolean }) {
+function MatchRow({ match, isOngoing, isNext }: { match: Match; isOngoing: boolean; isNext: boolean }) {
   const f1 = match.fighter1 as FighterInfo | null;
   const f2 = match.fighter2 as FighterInfo | null;
   const winner = match.winner as FighterInfo | null;
@@ -240,6 +242,7 @@ function MatchRow({ match, isOngoing }: { match: Match; isOngoing: boolean }) {
   return (
     <div className={`px-3 py-2.5 rounded-xl ${
       isOngoing ? "bg-blue-900/50 border-2 border-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.3)]" :
+      isNext    ? "bg-amber-900/30 border-2 border-amber-400/60 shadow-[0_0_8px_rgba(251,191,36,0.2)]" :
       isDone    ? "bg-gray-800/40 border border-gray-700/30" :
                   "bg-gray-800/70 border border-gray-700/40"
     }`}>
@@ -259,7 +262,13 @@ function MatchRow({ match, isOngoing }: { match: Match; isOngoing: boolean }) {
             <span className="text-[10px] text-blue-300 font-medium">試合中</span>
           </span>
         )}
-        {!isDone && !isOngoing && !f2 && (
+        {isNext && !isOngoing && (
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <span className="text-[10px] text-amber-300 font-medium">次の試合</span>
+          </span>
+        )}
+        {!isDone && !isOngoing && !isNext && !f2 && (
           <span className="text-[10px] text-gray-500">未定</span>
         )}
       </div>
