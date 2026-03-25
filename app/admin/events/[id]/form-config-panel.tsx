@@ -558,7 +558,11 @@ function renderInputPreview(
   if (key === "organization") {
     return (
       <div className="space-y-1.5">
-        <div className={inp}>選択 または 自由入力</div>
+        <div className={inp}>登録済み団体から選択 ▼</div>
+        <p className="text-[10px] text-gray-500 leading-relaxed">
+          選択肢は <a href="/admin?tab=settings" target="_blank" className="text-blue-400 hover:text-blue-300 underline">設定 &gt; 道場/団体マスター</a> で登録できます。
+          未登録の団体は「その他」を選択すると自由入力欄が表示されます。
+        </p>
         {kanaField?.visible && (
           <div className="space-y-0.5">
             <span className="text-[10px] text-gray-600">よみがな</span>
