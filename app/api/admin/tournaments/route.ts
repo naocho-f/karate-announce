@@ -20,7 +20,7 @@ function roundsFromPairCount(n: number): number {
 export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
 
-  const { courtName, courtNum, pairs, eventId, sortOrder, defaultRuleName, maxWeightDiff, maxHeightDiff, filterMinWeight, filterMaxWeight, filterMinAge, filterMaxAge } = await request.json() as {
+  const { courtName, courtNum, pairs, eventId, sortOrder, defaultRuleName, maxWeightDiff, maxHeightDiff, filterMinWeight, filterMaxWeight, filterMinAge, filterMaxAge, filterSex } = await request.json() as {
     courtName: string;
     courtNum: string;
     pairs: PairInput[];
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
     filterMaxWeight?: number | null;
     filterMinAge?: number | null;
     filterMaxAge?: number | null;
+    filterSex?: string | null;
   };
 
   if (!pairs || pairs.length === 0) {
@@ -52,6 +53,7 @@ export async function POST(request: NextRequest) {
       filter_max_weight: filterMaxWeight ?? null,
       filter_min_age: filterMinAge ?? null,
       filter_max_age: filterMaxAge ?? null,
+      filter_sex: filterSex ?? null,
       ...(eventId ? { event_id: eventId } : {}),
       ...(sortOrder != null ? { sort_order: sortOrder } : {}),
     })

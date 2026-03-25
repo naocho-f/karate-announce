@@ -31,6 +31,7 @@ type GroupFilters = {
   maxWeight: string;
   minAge: string;
   maxAge: string;
+  sexFilter: string;
   gradeFilter: string;
   nameFilter: string;
 };
@@ -1353,6 +1354,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
             filterMaxWeight: f?.maxWeight ? parseFloat(f.maxWeight) : null,
             filterMinAge: f?.minAge ? parseInt(f.minAge) : null,
             filterMaxAge: f?.maxAge ? parseInt(f.maxAge) : null,
+            filterSex: f?.sexFilter || null,
           }),
         });
       })
@@ -1609,19 +1611,21 @@ function GroupSection({ group, entries, unassigned, rules, defaultRuleId, mismat
   const [maxWeight, setMaxWeight] = useState(group.filters?.maxWeight ?? "");
   const [minAge, setMinAge] = useState(group.filters?.minAge ?? "");
   const [maxAge, setMaxAge] = useState(group.filters?.maxAge ?? "");
+  const [sexFilter, setSexFilter] = useState(group.filters?.sexFilter ?? "");
   const [gradeFilter, setGradeFilter] = useState(group.filters?.gradeFilter ?? "");
   const [nameFilter, setNameFilter] = useState(group.filters?.nameFilter ?? "");
 
   useEffect(() => {
-    onUpdateFilters({ minWeight, maxWeight, minAge, maxAge, gradeFilter, nameFilter });
+    onUpdateFilters({ minWeight, maxWeight, minAge, maxAge, sexFilter, gradeFilter, nameFilter });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [minWeight, maxWeight, minAge, maxAge, gradeFilter, nameFilter]);
+  }, [minWeight, maxWeight, minAge, maxAge, sexFilter, gradeFilter, nameFilter]);
 
   const filteredUnassigned = unassigned.filter((e) => {
     if (minWeight !== "" && (e.weight == null || e.weight < parseFloat(minWeight))) return false;
     if (maxWeight !== "" && (e.weight == null || e.weight > parseFloat(maxWeight))) return false;
     if (minAge !== "" && (e.age == null || e.age < parseInt(minAge))) return false;
     if (maxAge !== "" && (e.age == null || e.age > parseInt(maxAge))) return false;
+    if (sexFilter && e.sex !== sexFilter) return false;
     if (gradeFilter && !e.grade?.includes(gradeFilter)) return false;
     if (nameFilter && !entryFullName(e).toLowerCase().includes(nameFilter.toLowerCase())) return false;
     return true;
@@ -1687,6 +1691,14 @@ function GroupSection({ group, entries, unassigned, rules, defaultRuleId, mismat
             <input value={minAge} onChange={(e) => setMinAge(e.target.value)} placeholder="下限" type="number" min="0" max="99" className={`w-14 ${inpSm}`} />
             <span className="text-xs text-gray-500">〜</span>
             <input value={maxAge} onChange={(e) => setMaxAge(e.target.value)} placeholder="上限" type="number" min="0" max="99" className={`w-14 ${inpSm}`} />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">性別</span>
+            <select value={sexFilter} onChange={(e) => setSexFilter(e.target.value)} className={`${inpSm} w-16`}>
+              <option value="">全て</option>
+              <option value="male">男性</option>
+              <option value="female">女性</option>
+            </select>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">学年</span>
@@ -1986,6 +1998,7 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
                 maxWeight: tournament.filter_max_weight != null ? String(tournament.filter_max_weight) : "",
                 minAge: tournament.filter_min_age != null ? String(tournament.filter_min_age) : "",
                 maxAge: tournament.filter_max_age != null ? String(tournament.filter_max_age) : "",
+                sexFilter: tournament.filter_sex ?? "",
                 gradeFilter: "",
                 nameFilter: "",
               };

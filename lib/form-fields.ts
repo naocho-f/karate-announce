@@ -97,6 +97,7 @@ export const FIELD_POOL: FieldPoolItem[] = [
     label: "性別",
     type: "radio",
     category: "basic",
+    dbColumn: "sex",
     defaultRequired: true,
     defaultChoices: [
       { label: "男性", value: "male" },
@@ -222,13 +223,8 @@ export const FIELD_POOL: FieldPoolItem[] = [
     type: "checkbox",
     category: "competition",
     defaultRequired: true,
-    defaultChoices: [
-      { label: "Aルール：顔面パンチ有り、投げ有り、絞め関節有り", value: "rule_a" },
-      { label: "Bルール：顔面パンチ有り、投げ有り、絞め関節無し（抑え込み有り）", value: "rule_b" },
-      { label: "ダブルエントリー：Aルール＆Bルール", value: "double" },
-      { label: "※わからないので相談したい（携帯電話番号宛に運営側より連絡します）", value: "consult" },
-    ],
     defaultHasOther: false,
+    // 選択肢は event_rules → rules テーブルから動的取得（DB管理フィールド）
   },
   {
     key: "head_butt_preference",

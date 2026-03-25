@@ -279,6 +279,10 @@ export default function EntryPage({ params }: Props) {
 
   // ── フィールドごとの選択肢 ──
   function getChoices(config: FormFieldConfig, def: FieldPoolItem) {
+    // rule_preference は event_rules → rules テーブルから動的に取得
+    if (def.key === "rule_preference") {
+      return eventRules.map((r) => ({ label: r.name, value: r.id }));
+    }
     if (config.custom_choices && config.custom_choices.length > 0) {
       // __single_select__ マーカーは選択肢ではないのでフィルタ
       return config.custom_choices.filter((c) => c.value !== "__single_select__");
@@ -378,6 +382,9 @@ export default function EntryPage({ params }: Props) {
       }
       if (key === "organization_kana") continue; // organization で処理済み
 
+      // rule_preference は entry_rules で管理するため extra_fields に入れない
+      if (key === "rule_preference") continue;
+
       let value: unknown;
       if (def.type === "checkbox" && isSingleSelect(config)) {
         // 単一選択モード: values[key] に単一値
@@ -423,13 +430,29 @@ export default function EntryPage({ params }: Props) {
     const entry = buildPayload();
     const schoolName = entry["school_name"] as string | null;
 
+    // rule_ids: rule_preference フィールドから取得、なければフォールバックUI の selectedRules
+    let ruleIds: string[] = [];
+    if (hasRuleField) {
+      const rpConfig = visibleFields.find((f) => f.def.key === "rule_preference")?.config;
+      if (rpConfig && isSingleSelect(rpConfig)) {
+        // 単一選択: values["rule_preference"] に rule UUID
+        const v = values["rule_preference"]?.trim();
+        if (v) ruleIds = [v];
+      } else {
+        // 複数選択: multiValues["rule_preference"] に rule UUID の Set
+        ruleIds = [...(multiValues["rule_preference"] ?? [])];
+      }
+    } else {
+      ruleIds = [...selectedRules];
+    }
+
     const res = await fetch("/api/public/entry", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         entry,
         school_name: schoolName,
-        rule_ids: [...selectedRules],
+        rule_ids: ruleIds,
       }),
     });
 

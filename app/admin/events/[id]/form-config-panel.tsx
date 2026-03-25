@@ -387,7 +387,8 @@ function FieldPreviewCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const key = def.key;
-  const choices = field.custom_choices?.length ? field.custom_choices : (def.fixedChoices ?? def.defaultChoices ?? []);
+  const choices = (field.custom_choices?.length ? field.custom_choices : (def.fixedChoices ?? def.defaultChoices ?? []))
+    .filter((c) => c.value !== "__single_select__");
   // 選択肢をフォーム設定で編集可能な項目（organization/rule_preference はDB管理なので除外）
   const dbManagedFields = ["organization", "rule_preference"];
   const hasChoices = (def.type === "radio" || def.type === "checkbox" || (def.type === "select" && !def.fixedChoices))

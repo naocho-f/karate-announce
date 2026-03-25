@@ -77,6 +77,7 @@ export type Tournament = {
   filter_max_weight: number | null;
   filter_min_age: number | null;
   filter_max_age: number | null;
+  filter_sex: string | null;
   created_at: string;
 };
 
@@ -96,6 +97,7 @@ export type Entry = {
   dojo_name_reading: string | null;
   school_name: string | null;
   school_name_reading: string | null;
+  sex: string | null;          // "male" | "female"
   weight: number | null;
   height: number | null;
   birth_date: string | null;
