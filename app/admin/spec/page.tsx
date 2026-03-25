@@ -15,21 +15,21 @@ export default function SpecPage() {
         </div>
         <div className="prose prose-invert prose-sm max-w-none
           prose-headings:font-bold prose-headings:text-white
-          prose-h1:text-2xl prose-h1:mb-4 prose-h1:pb-3 prose-h1:border-b prose-h1:border-gray-600
+          prose-h1:text-2xl prose-h1:mb-4 prose-h1:pb-3 prose-h1:border-b prose-h1:border-gray-700
           prose-h2:text-lg prose-h2:mt-8 prose-h2:mb-3 prose-h2:text-gray-100
           prose-h3:text-base prose-h3:mt-6 prose-h3:mb-2 prose-h3:text-gray-200
           prose-p:text-gray-300 prose-p:leading-relaxed
           prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline
           prose-strong:text-white
           prose-code:text-blue-300 prose-code:bg-gray-700 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
-          prose-pre:bg-gray-700 prose-pre:border prose-pre:border-gray-600 prose-pre:rounded-lg
+          prose-pre:bg-gray-700 prose-pre:border prose-pre:border-gray-700 prose-pre:rounded-lg
           prose-blockquote:border-l-gray-600 prose-blockquote:text-gray-400
           prose-li:text-gray-300
           prose-table:text-sm
           prose-thead:text-gray-300
-          prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:border prose-th:border-gray-600 prose-th:bg-gray-700
-          prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-gray-600
-          prose-hr:border-gray-600
+          prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:border prose-th:border-gray-700 prose-th:bg-gray-700
+          prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-gray-700
+          prose-hr:border-gray-700
         ">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {content}

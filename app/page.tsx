@@ -127,7 +127,7 @@ export default function Home() {
           </div>
         ) : (
           <>
-            <div className="bg-gray-700/80 border border-gray-600/40 rounded-xl p-4 mb-6 flex items-center gap-3">
+            <div className="bg-gray-700/80 border border-gray-700/40 rounded-xl p-4 mb-6 flex items-center gap-3">
               <span className="text-xs bg-green-700 text-green-100 px-2 py-1 rounded font-medium shrink-0">進行中</span>
               <span className="text-xl font-bold">{activeEvent.name}</span>
               <span className="text-sm text-gray-300">{activeEvent.court_count}コート</span>
@@ -137,7 +137,7 @@ export default function Home() {
               {courts.map(({ courtNum, tournaments }) => {
                 const courtName = activeEvent.court_names?.[courtNum - 1]?.trim() || `コート${courtNum}`;
                 return (
-                  <div key={courtNum} className="bg-gray-700/80 border border-gray-600/40 rounded-xl overflow-hidden">
+                  <div key={courtNum} className="bg-gray-700/80 border border-gray-700/40 rounded-xl overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-500/40">
                       <h2 className="font-semibold">{courtName}</h2>
                       <Link

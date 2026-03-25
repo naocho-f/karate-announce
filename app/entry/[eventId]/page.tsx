@@ -59,7 +59,7 @@ function ComboInput({ value, onChange, onSelect, suggestions, placeholder, class
         autoComplete="off"
       />
       {open && filtered.length > 0 && (
-        <ul className="absolute z-20 left-0 right-0 top-full mt-1 bg-gray-700 border border-gray-500 rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+        <ul className="absolute z-20 left-0 right-0 top-full mt-1 bg-gray-700 border border-gray-700 rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
           {filtered.map((s) => (
             <li key={s}>
               <button
@@ -88,7 +88,7 @@ function NoticeRenderer({ notice, consents, onConsent }: {
   onConsent: (noticeId: string, checked: boolean) => void;
 }) {
   return (
-    <div className="bg-gray-700/50 border border-gray-600 rounded-lg p-3 space-y-2">
+    <div className="bg-gray-700/50 border border-gray-700 rounded-lg p-3 space-y-2">
       {/* テキスト */}
       {notice.text_content && (
         <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">
@@ -98,7 +98,7 @@ function NoticeRenderer({ notice, consents, onConsent }: {
 
       {/* スクロール可能テキスト（規約など） */}
       {notice.scrollable_text && (
-        <div className="max-h-40 overflow-y-auto border border-gray-500 rounded-lg p-3 text-xs text-gray-300 leading-relaxed whitespace-pre-wrap bg-gray-800">
+        <div className="max-h-40 overflow-y-auto border border-gray-700 rounded-lg p-3 text-xs text-gray-300 leading-relaxed whitespace-pre-wrap bg-gray-800">
           {notice.scrollable_text}
         </div>
       )}
@@ -938,7 +938,7 @@ export default function EntryPage({ params }: Props) {
     );
   }
 
-  const inp = "w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
+  const inp = "w-full bg-gray-700 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
 
   return (
     <main className="min-h-screen bg-gray-800 text-white p-6">
@@ -975,7 +975,7 @@ export default function EntryPage({ params }: Props) {
                       className={`px-4 py-2 rounded-lg text-sm transition ${
                         checked
                           ? "bg-blue-600 text-white font-medium"
-                          : "bg-gray-700 border border-gray-600 text-gray-300 hover:bg-gray-600"
+                          : "bg-gray-700 border border-gray-700 text-gray-300 hover:bg-gray-600"
                       }`}
                     >
                       {checked ? "✓ " : ""}{r.name}

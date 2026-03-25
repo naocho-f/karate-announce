@@ -272,7 +272,7 @@ export function FormConfigPanel({ eventId }: Props) {
 
       {/* ── フォームプレビュー ── */}
       <div className="bg-gray-700 rounded-xl overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-gray-600 bg-gray-750">
+        <div className="px-4 py-2.5 border-b border-gray-700 bg-gray-750">
           <p className="text-xs text-gray-400">実際のフォームに近い見た目で表示しています。トグルで表示/非表示を切り替えできます。</p>
         </div>
 
@@ -360,7 +360,7 @@ export function FormConfigPanel({ eventId }: Props) {
 // フィールドプレビューカード
 // ══════════════════════════════════════════════════════════════
 
-const inp = "w-full bg-gray-800/60 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-500 pointer-events-none select-none min-h-[38px]";
+const inp = "w-full bg-gray-800/60 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-500 pointer-events-none select-none min-h-[38px]";
 
 function FieldPreviewCard({
   field, def, kanaField, ageField, index, total, notices, allFields,
@@ -399,7 +399,7 @@ function FieldPreviewCard({
     <div className="group">
       {/* ── カードヘッダー（操作バーのみ・ラベルなし） ── */}
       <div className={`flex items-center justify-between gap-2 rounded-t-xl px-3 py-1 border border-b-0 ${
-        isHidden ? "border-gray-600/30 bg-gray-700/40" : "border-gray-600/50 bg-gray-600/30"
+        isHidden ? "border-gray-700/30 bg-gray-700/40" : "border-gray-700/50 bg-gray-600/30"
       }`}>
         {/* 左: 操作コントロール */}
         <div className="flex items-center gap-1.5">
@@ -489,7 +489,7 @@ function FieldPreviewCard({
 
       {/* ── ボディ（実際のフォーム表示そのまま） ── */}
       <div className={`border rounded-b-xl transition relative ${
-        isHidden ? "border-gray-600/30 bg-gray-800/40 px-3 py-2" : "border-gray-600/50 px-3 py-3 space-y-2"
+        isHidden ? "border-gray-700/30 bg-gray-800/40 px-3 py-2" : "border-gray-700/50 px-3 py-3 space-y-2"
       }`}>
         {isHidden ? (
           <div className="flex items-center justify-center py-1">
@@ -557,13 +557,13 @@ function renderInputPreview(
             <p className="text-[10px] text-gray-500 mb-1">登録済みルール:</p>
             {rules.map((r) => (
               <label key={r.id} className="flex items-start gap-2 text-xs text-gray-500">
-                <div className="w-3.5 h-3.5 rounded border border-gray-500 shrink-0 mt-0.5" />
+                <div className="w-3.5 h-3.5 rounded border border-gray-700 shrink-0 mt-0.5" />
                 {r.name}
               </label>
             ))}
             {field.has_other_option && (
               <label className="flex items-center gap-2 text-xs text-gray-600">
-                <div className="w-3.5 h-3.5 rounded border border-gray-500" />
+                <div className="w-3.5 h-3.5 rounded border border-gray-700" />
                 その他（自由入力）
               </label>
             )}
@@ -617,7 +617,7 @@ function renderInputPreview(
         </div>
         <div className="space-y-0.5">
           <span className="text-[10px] text-gray-600">大会日時点の年齢</span>
-          <div className="w-full bg-gray-800/40 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-gray-500 pointer-events-none select-none min-h-[38px]">
+          <div className="w-full bg-gray-800/40 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-500 pointer-events-none select-none min-h-[38px]">
             26歳（自動計算）
           </div>
         </div>
@@ -668,13 +668,13 @@ function renderInputPreview(
       <div className="space-y-1 pl-1">
         {choices.map((c) => (
           <label key={c.value} className="flex items-center gap-2 text-xs text-gray-500">
-            <div className="w-3.5 h-3.5 rounded-full border border-gray-500" />
+            <div className="w-3.5 h-3.5 rounded-full border border-gray-700" />
             {c.label}
           </label>
         ))}
         {field.has_other_option && (
           <label className="flex items-center gap-2 text-xs text-gray-600">
-            <div className="w-3.5 h-3.5 rounded-full border border-gray-500" />
+            <div className="w-3.5 h-3.5 rounded-full border border-gray-700" />
             その他
           </label>
         )}
@@ -688,13 +688,13 @@ function renderInputPreview(
       <div className="space-y-1 pl-1">
         {choices.map((c) => (
           <label key={c.value} className="flex items-start gap-2 text-xs text-gray-500">
-            <div className="w-3.5 h-3.5 rounded border border-gray-500 shrink-0 mt-0.5" />
+            <div className="w-3.5 h-3.5 rounded border border-gray-700 shrink-0 mt-0.5" />
             {c.label}
           </label>
         ))}
         {field.has_other_option && (
           <label className="flex items-center gap-2 text-xs text-gray-600">
-            <div className="w-3.5 h-3.5 rounded border border-gray-500" />
+            <div className="w-3.5 h-3.5 rounded border border-gray-700" />
             その他
           </label>
         )}
@@ -757,7 +757,7 @@ function FieldDetailEditor({ field, def, allFields, onUpdate, onClose }: {
   }
 
   return (
-    <div className="bg-gray-800/40 rounded-lg p-2.5 mt-1 space-y-2 border border-gray-600/50">
+    <div className="bg-gray-800/40 rounded-lg p-2.5 mt-1 space-y-2 border border-gray-700/50">
       <div className="flex items-center justify-between">
         <p className="text-xs text-gray-500 font-medium">詳細設定</p>
         <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-300">閉じる</button>
@@ -778,7 +778,7 @@ function FieldDetailEditor({ field, def, allFields, onUpdate, onClose }: {
           <p className="text-xs text-gray-500">選択肢（1行1つ）</p>
           <textarea value={choicesText} onChange={(e) => setChoicesText(e.target.value)}
             rows={Math.min(choices_line_count(choicesText), 10)}
-            className="w-full bg-gray-800 border border-gray-500 rounded-lg p-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none" />
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none" />
           <button onClick={saveChoices} className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded transition">適用</button>
         </div>
       )}
@@ -824,7 +824,7 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
   if (!editing) {
     const hasContent = notice.text_content || notice.scrollable_text || notice.link_url || (notice.images?.length ?? 0) > 0;
     return (
-      <div className="bg-gray-700/60 border border-dashed border-gray-500 rounded-lg p-2.5 group/notice relative">
+      <div className="bg-gray-700/60 border border-dashed border-gray-700 rounded-lg p-2.5 group/notice relative">
         {busy && (
           <div className="absolute inset-0 bg-gray-800/50 rounded-lg flex items-center justify-center z-10">
             <Spinner className="text-blue-400" />
@@ -841,7 +841,7 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
           <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">{notice.text_content}</p>
         )}
         {notice.scrollable_text && (
-          <div className="max-h-24 overflow-y-auto border border-gray-500 rounded-lg p-2 text-xs text-gray-400 leading-relaxed whitespace-pre-wrap bg-gray-800 mt-1">
+          <div className="max-h-24 overflow-y-auto border border-gray-700 rounded-lg p-2 text-xs text-gray-400 leading-relaxed whitespace-pre-wrap bg-gray-800 mt-1">
             {notice.scrollable_text.slice(0, 200)}{notice.scrollable_text.length > 200 && "..."}
           </div>
         )}
@@ -850,7 +850,7 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
             {(notice.images ?? []).map((img: FormNoticeImage & { public_url?: string }) => (
               <img key={img.id}
                 src={img.public_url ?? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${img.storage_path}`}
-                alt="" className="h-12 rounded border border-gray-500" />
+                alt="" className="h-12 rounded border border-gray-700" />
             ))}
           </div>
         )}
@@ -859,7 +859,7 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
         )}
         {notice.require_consent && (
           <label className="flex items-center gap-1.5 text-xs text-gray-400 mt-1">
-            <div className="w-3.5 h-3.5 rounded border border-gray-500" />
+            <div className="w-3.5 h-3.5 rounded border border-gray-700" />
             {notice.consent_label || "上記に同意します"}
           </label>
         )}
@@ -886,7 +886,7 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
       <div>
         <label className="text-xs text-gray-500 block mb-0.5">テキスト</label>
         <textarea value={localText} onChange={(e) => setLocalText(e.target.value)}
-          rows={3} className="w-full bg-gray-700 border border-gray-500 rounded p-2 text-xs text-gray-200" placeholder="注意書きテキスト..." />
+          rows={3} className="w-full bg-gray-700 border border-gray-700 rounded p-2 text-xs text-gray-200" placeholder="注意書きテキスト..." />
       </div>
 
       <div>
@@ -895,7 +895,7 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
           {(notice.images ?? []).map((img: FormNoticeImage & { public_url?: string }) => (
             <div key={img.id} className="relative group/img">
               <img src={img.public_url ?? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${img.storage_path}`}
-                alt="" className="h-16 rounded border border-gray-500" />
+                alt="" className="h-16 rounded border border-gray-700" />
               <button onClick={() => onDeleteImage(img.id, notice.id)}
                 className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full text-white text-[10px] leading-none flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition">×</button>
             </div>
@@ -912,19 +912,19 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
         <div>
           <label className="text-xs text-gray-500 block mb-0.5">リンクURL</label>
           <input value={localUrl} onChange={(e) => setLocalUrl(e.target.value)}
-            className="w-full bg-gray-700 border border-gray-500 rounded px-2 py-1 text-xs text-gray-200" placeholder="https://..." />
+            className="w-full bg-gray-700 border border-gray-700 rounded px-2 py-1 text-xs text-gray-200" placeholder="https://..." />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-0.5">リンク表示名</label>
           <input value={localUrlLabel} onChange={(e) => setLocalUrlLabel(e.target.value)}
-            className="w-full bg-gray-700 border border-gray-500 rounded px-2 py-1 text-xs text-gray-200" placeholder="解説動画を見る" />
+            className="w-full bg-gray-700 border border-gray-700 rounded px-2 py-1 text-xs text-gray-200" placeholder="解説動画を見る" />
         </div>
       </div>
 
       <details className="text-xs">
         <summary className="text-gray-500 cursor-pointer hover:text-gray-400">規約テキスト（スクロール表示）</summary>
         <textarea value={localScrollable} onChange={(e) => setLocalScrollable(e.target.value)}
-          rows={4} className="w-full bg-gray-700 border border-gray-500 rounded p-2 text-xs text-gray-200 mt-1" placeholder="規約全文をここに入力..." />
+          rows={4} className="w-full bg-gray-700 border border-gray-700 rounded p-2 text-xs text-gray-200 mt-1" placeholder="規約全文をここに入力..." />
       </details>
 
       <div className="flex items-center gap-2">
@@ -935,7 +935,7 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
         </label>
         {notice.require_consent && (
           <input value={localConsentLabel} onChange={(e) => setLocalConsentLabel(e.target.value)}
-            className="flex-1 bg-gray-700 border border-gray-500 rounded px-2 py-1 text-xs text-gray-200" placeholder="上記に同意します" />
+            className="flex-1 bg-gray-700 border border-gray-700 rounded px-2 py-1 text-xs text-gray-200" placeholder="上記に同意します" />
         )}
       </div>
     </div>
