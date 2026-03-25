@@ -799,6 +799,13 @@ function EventPanel() {
   const [showForm, setShowForm] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
+  // 複製用
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [copySourceId, setCopySourceId] = useState<string>("");
+  const [copyName, setCopyName] = useState("");
+  const [copyEventDate, setCopyEventDate] = useState("");
+  const [copyEntries, setCopyEntries] = useState(false);
+  const [copying, setCopying] = useState(false);
 
   useEffect(() => { load(); }, []);
 
@@ -846,6 +853,36 @@ function EventPanel() {
     setActivatingId(null);
     if (!res.ok) { alert("状態の変更に失敗しました"); return; }
     load();
+  }
+
+  function openCopyModal(sourceId: string) {
+    const source = events.find((e) => e.id === sourceId);
+    setCopySourceId(sourceId);
+    setCopyName(source ? `${source.name}（コピー）` : "");
+    setCopyEventDate("");
+    setCopyEntries(false);
+    setShowCopyModal(true);
+  }
+
+  async function executeCopy() {
+    if (!copySourceId || !copyName.trim()) return;
+    if (copyEntries) {
+      if (!confirm("エントリーをコピーします。前回大会の参加者情報がそのまま引き継がれます。\n\n実際の参加者と異なる場合があるため、コピー後に必ず確認・修正してください。\n\n続行しますか？")) return;
+    }
+    setCopying(true);
+    const res = await fetch("/api/admin/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        copy_from_event_id: copySourceId,
+        name: copyName.trim(),
+        event_date: copyEventDate || null,
+        copy_entries: copyEntries,
+      }),
+    });
+    if (!res.ok) { alert("複製に失敗しました"); setCopying(false); return; }
+    const { id } = await res.json();
+    router.push(`/admin/events/${id}`);
   }
 
   return (
@@ -897,6 +934,9 @@ function EventPanel() {
                     アナウンス画面 ↗
                   </Link>
                 )}
+                <button onClick={() => openCopyModal(e.id)} className="text-xs text-gray-400 hover:text-blue-400 transition">
+                  複製
+                </button>
                 <button onClick={() => remove(e.id)} disabled={removingId === e.id} className="text-xs text-red-500 hover:text-red-400 ml-auto transition disabled:opacity-50">
                   {removingId === e.id ? "削除中..." : "削除"}
                 </button>
@@ -982,6 +1022,75 @@ function EventPanel() {
           </div>
         )}
       </div>
+
+      {/* 複製モーダル */}
+      {showCopyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowCopyModal(false)}>
+          <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-md mx-4 space-y-4" onClick={(ev) => ev.stopPropagation()}>
+            <h3 className="text-lg font-bold">大会を複製</h3>
+            <p className="text-xs text-gray-400">
+              コピー元: {events.find((e) => e.id === copySourceId)?.name}
+            </p>
+            <p className="text-xs text-gray-500">
+              大会名、コート設定、体重差/身長差上限、ルール、フォーム設定がコピーされます。
+            </p>
+
+            <div className="space-y-1">
+              <label className="text-xs text-gray-400">大会名</label>
+              <input
+                value={copyName}
+                onChange={(e) => setCopyName(e.target.value)}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs text-gray-400">開催日（任意）</label>
+              <input
+                type="date"
+                value={copyEventDate}
+                onChange={(e) => setCopyEventDate(e.target.value)}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div className="border border-amber-600/40 bg-amber-900/20 rounded-xl p-3 space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={copyEntries}
+                  onChange={(e) => setCopyEntries(e.target.checked)}
+                  className="rounded w-4 h-4"
+                />
+                <span className="text-sm text-amber-200 font-medium">エントリーもコピーする</span>
+              </label>
+              {copyEntries && (
+                <div className="text-xs text-amber-400 space-y-1 pl-6">
+                  <p>前回大会のエントリーがそのままコピーされます。</p>
+                  <p>実際の参加者と異なる場合があるため、コピー後に必ず確認・修正してください。</p>
+                  <p>トーナメント・試合結果はコピーされません。</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setShowCopyModal(false)}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 py-2 rounded-lg text-sm font-medium transition"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={executeCopy}
+                disabled={copying || !copyName.trim()}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition"
+              >
+                {copying ? "複製中..." : "複製する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
