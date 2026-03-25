@@ -66,6 +66,14 @@ export default function LivePage() {
   useEffect(() => {
     const timer = setInterval(load, 5000);
 
+    // Supabase Realtime: matches テーブルの変更を即座に検知
+    const channel = supabase
+      .channel("live-matches")
+      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => {
+        load();
+      })
+      .subscribe();
+
     // バックグラウンドタブ復帰時に即座にリロード（Android等でsetIntervalが停止するため）
     function handleVisibility() {
       if (document.visibilityState === "visible") load();
@@ -74,6 +82,7 @@ export default function LivePage() {
 
     return () => {
       clearInterval(timer);
+      supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [load]);
