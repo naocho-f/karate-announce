@@ -114,7 +114,7 @@ export default function Home() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">柔空会 - 試合管理 ＆ AI アナウンス</h1>
           <div className="flex items-center gap-4">
-            <Link href="/live" className="text-sm text-blue-400 hover:text-blue-300">試合速報</Link>
+            <Link href="/live" target="_blank" className="text-sm text-blue-400 hover:text-blue-300">試合速報</Link>
             <Link href="/admin" className="text-sm text-gray-500 hover:text-gray-300 underline">管理画面</Link>
           </div>
         </div>
