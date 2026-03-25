@@ -401,50 +401,17 @@ function FieldPreviewCard({
           </div>
         )}
 
-        {/* ── ヘッダー行: ラベル + トグル + ツールバー ── */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 relative z-10">
-            <span className={`text-xs font-medium ${isHidden ? "text-gray-600" : "text-gray-400"}`}>{def.label}</span>
-            {field.required && !isHidden && <span className="text-red-400 text-xs">*</span>}
-            {def.unit && !isHidden && <span className="text-xs text-gray-600">（{def.unit}）</span>}
-            {kanaField && !isHidden && <span className="text-xs text-gray-600">+ 読み仮名</span>}
-            {ageField && !isHidden && <span className="text-xs text-gray-600">+ 年齢自動計算</span>}
-          </div>
-
-          <div className="flex items-center gap-2 relative z-10">
-            {/* ツールバー（表示中のみ） */}
-            {!isHidden && (
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                <button onClick={() => onMove(key, -1)} disabled={index === 0}
-                  className="px-1.5 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition" title="上へ">▲</button>
-                <button onClick={() => onMove(key, 1)} disabled={index === total - 1}
-                  className="px-1.5 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition" title="下へ">▼</button>
-                <span className="w-px h-3.5 bg-gray-600" />
-                <select
-                  value={field.required ? "required" : "optional"}
-                  onChange={(e) => onUpdate(field.id, { required: e.target.value === "required" })}
-                  className="text-xs bg-transparent text-gray-400 border-none outline-none cursor-pointer"
-                >
-                  <option value="required">必須</option>
-                  <option value="optional">任意</option>
-                </select>
-                {kanaField && (
-                  <select
-                    value={kanaField.required ? "required" : "optional"}
-                    onChange={(e) => onUpdate(kanaField.id, { required: e.target.value === "required" })}
-                    className="text-xs bg-transparent text-gray-400 border-none outline-none cursor-pointer"
-                  >
-                    <option value="required">読み:必須</option>
-                    <option value="optional">読み:任意</option>
-                  </select>
-                )}
-                <span className="w-px h-3.5 bg-gray-600" />
-                <button onClick={() => setExpanded(!expanded)}
-                  className={`px-1.5 py-0.5 text-xs transition ${expanded ? "text-blue-400" : "text-gray-400 hover:text-white"}`}>
-                  詳細
-                </button>
-              </div>
-            )}
+        {/* ── ヘッダー: ラベル行 + ツールバー行 ── */}
+        <div className="space-y-1 relative z-10">
+          {/* ラベル + トグル */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+              <span className={`text-xs font-medium ${isHidden ? "text-gray-600" : "text-gray-400"}`}>{def.label}</span>
+              {field.required && !isHidden && <span className="text-red-400 text-xs">*</span>}
+              {def.unit && !isHidden && <span className="text-xs text-gray-600">（{def.unit}）</span>}
+              {kanaField && !isHidden && <span className="text-xs text-gray-600">+ 読み仮名</span>}
+              {ageField && !isHidden && <span className="text-xs text-gray-600">+ 年齢自動計算</span>}
+            </div>
 
             {/* トグルスイッチ */}
             <button
@@ -459,6 +426,40 @@ function FieldPreviewCard({
               }`} />
             </button>
           </div>
+
+          {/* ツールバー（表示中＋ホバー時のみ） */}
+          {!isHidden && (
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+              <button onClick={() => onMove(key, -1)} disabled={index === 0}
+                className="px-1.5 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition" title="上へ">▲</button>
+              <button onClick={() => onMove(key, 1)} disabled={index === total - 1}
+                className="px-1.5 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition" title="下へ">▼</button>
+              <span className="w-px h-3.5 bg-gray-600" />
+              <select
+                value={field.required ? "required" : "optional"}
+                onChange={(e) => onUpdate(field.id, { required: e.target.value === "required" })}
+                className="text-xs bg-transparent text-gray-400 border-none outline-none cursor-pointer"
+              >
+                <option value="required">必須</option>
+                <option value="optional">任意</option>
+              </select>
+              {kanaField && (
+                <select
+                  value={kanaField.required ? "required" : "optional"}
+                  onChange={(e) => onUpdate(kanaField.id, { required: e.target.value === "required" })}
+                  className="text-xs bg-transparent text-gray-400 border-none outline-none cursor-pointer"
+                >
+                  <option value="required">読み:必須</option>
+                  <option value="optional">読み:任意</option>
+                </select>
+              )}
+              <span className="w-px h-3.5 bg-gray-600" />
+              <button onClick={() => setExpanded(!expanded)}
+                className={`px-1.5 py-0.5 text-xs transition ${expanded ? "text-blue-400" : "text-gray-400 hover:text-white"}`}>
+                詳細
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 入力プレビュー（表示中のみ） */}
