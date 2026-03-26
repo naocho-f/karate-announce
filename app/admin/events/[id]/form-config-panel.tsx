@@ -549,10 +549,10 @@ function FieldPreviewCard({
               <>
                 <span className="text-[10px] bg-purple-600/30 text-purple-300 px-1.5 py-0.5 rounded font-medium">自由設問</span>
                 {onDuplicateCustom && (
-                  <button onClick={() => onDuplicateCustom(key)} className="text-[10px] text-gray-400 hover:text-blue-400 transition" title="複製">複製</button>
+                  <button onClick={() => onDuplicateCustom(key)} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-600 text-gray-200 hover:bg-blue-600 hover:text-white transition font-medium" title="複製">複製</button>
                 )}
                 {onDeleteCustom && (
-                  <button onClick={() => { if (confirm("この自由設問を削除しますか？")) onDeleteCustom(key); }} className="text-[10px] text-red-400 hover:text-red-300 transition" title="削除">削除</button>
+                  <button onClick={() => { if (confirm("この自由設問を削除しますか？")) onDeleteCustom(key); }} className="text-[10px] px-1.5 py-0.5 rounded bg-red-900/60 text-red-300 hover:bg-red-700 hover:text-white transition font-medium" title="削除">削除</button>
                 )}
                 <span className="w-px h-3 bg-gray-600" />
               </>
