@@ -676,7 +676,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 | 横幅統一 | 基本 `max-w-5xl`。エントリーフォーム本体のみ `max-w-md`（入力フォームのため例外）。ライブ速報 `/live` は `max-w-lg`（スマホ最適化のため例外） |
 | リアルタイム更新 | ライブ速報: Supabase Realtime（matches テーブル購読）で即時反映 + 5秒ポーリング（フォールバック）。コート画面: 3秒ポーリング、ホーム: 5秒ポーリング。全画面で `visibilitychange` イベントによるタブ復帰時即時リロード対応（モバイルブラウザの `setInterval` 停止対策） |
 | ブラウザ互換性 | PostCSS プラグイン `postcss-unwrap-layer.mjs` で Tailwind CSS 4 の `@layer` を除去し Chrome < 99 でもユーティリティクラスが動作。`browserslist` 設定（Chrome >= 80）で `color-mix()` を HEX fallback + `@supports` 段階的強化に自動変換。`globals.css` の CSS 変数フォールバックも安全策として維持。`lang="ja"` + 日本語システムフォント明示指定で CJK 混在テキストのフォント切り替え安定化 |
-| カスタムカラー | メイン背景色 `--color-main-bg: #172131`（gray-900 と gray-800 の中間）。Tailwind の `bg-main-bg` で全ページ共通使用。カード背景は `bg-gray-800`、ボーダーは `border-gray-700` のまま |
+| カスタムカラー | メイン背景色 `--color-main-bg: #101828`（gray-900 相当）。Tailwind の `bg-main-bg` で全ページ共通使用。カード背景は `bg-gray-800`、ボーダーは `border-gray-700` のまま |
 | LocalStorage 利用 | TTS設定、アナウンステンプレート（試合順序は DB 管理に移行） |
 | デプロイ | Vercel（karate.naocho.net） |
 
@@ -775,7 +775,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - `matchLabelNum` ユーティリティを `lib/match-utils.ts` に共通化（コート画面・ライブ速報で共用）
 - 全画面に `visibilitychange` イベントリスナー追加（モバイルブラウザのバックグラウンドタブ復帰時に即時リロード）
 - 古いChrome互換性包括対応: PostCSS で `@layer` 除去（Chrome < 99 対策）、`browserslist` で `color-mix()` を HEX fallback 化（Chrome < 111 対策）、`lang="ja"` + 日本語フォント明示（CJK混在テキスト対策）
-- 背景色を明るめに調整: カスタムカラー `--color-main-bg: #172131`（gray-900 と gray-800 の中間色）を定義し、全ページのメイン背景に適用。カード・ボーダー・テキスト色は変更なし（視覚的階層を維持）
+- 背景色: カスタムカラー `--color-main-bg` を `#101828`（gray-900 相当）に変更し、全ページのメイン背景に適用。カード・ボーダー・テキスト色は変更なし（視覚的階層を維持）
 - エントリーフォームの項目ラベル編集機能: `form_field_configs.custom_label` カラム追加。管理画面でラベルをクリックすると編集可能。エントリーフォームに反映される
 - 過去の大会から複製機能: 試合タブの各大会に「複製」ボタン追加。大会名・コート設定・ルール・フォーム設定をコピーして新規作成。エントリーは任意コピー（警告付き）
 
