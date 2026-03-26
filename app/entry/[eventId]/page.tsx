@@ -736,7 +736,7 @@ export default function EntryPage({ params }: Props) {
             {isReq && <span className="text-red-400 ml-1">*</span>}
             {ageFieldConfig && <span className="text-gray-500 ml-1">+ 年齢自動計算</span>}
           </p>
-          <div className={`grid ${ageFieldConfig ? "grid-cols-2" : "grid-cols-1"} gap-2 items-end`}>
+          <div className={`grid ${ageFieldConfig ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-2 items-end`}>
             <div className="space-y-1">
               {ageFieldConfig && <label className="text-xs text-gray-400">生年月日</label>}
               <input
@@ -764,7 +764,7 @@ export default function EntryPage({ params }: Props) {
                 <label className="text-xs text-gray-400">
                   {event?.event_date ? "大会日時点の年齢" : "年齢"}
                 </label>
-                <div className="w-full bg-gray-800/60 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-400 min-h-[38px]">
+                <div className="w-full bg-gray-800/60 border border-gray-700/50 rounded-lg px-3 py-2 text-base text-gray-400">
                   {computedAge !== null ? `${computedAge}歳（自動計算）` : "生年月日を入力してください"}
                 </div>
               </div>
