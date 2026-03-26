@@ -553,7 +553,6 @@ export default function EntryPage({ params }: Props) {
       const kanaRequired = kanaConfig?.config.required ?? false;
       const showKana = !!kanaConfig;
       const orgValue = values["organization"] ?? "";
-      const isMasterSelected = dojoMaster.some((d) => d.name === orgValue);
 
       return (
         <div key={key} className="space-y-2">
@@ -570,7 +569,7 @@ export default function EntryPage({ params }: Props) {
             className={inp}
             required={isReq}
           />
-          {showKana && !(isMasterSelected && def.hideKanaOnMasterSelect) && (
+          {showKana && (
             <div className="space-y-1">
               <label className="text-xs text-gray-400">
                 {kanaConfig?.config.custom_label || (getFieldDef("organization_kana")?.label ?? "よみがな")}
@@ -581,7 +580,7 @@ export default function EntryPage({ params }: Props) {
                 onChange={(e) => setValue("organization_kana", e.target.value)}
                 placeholder={getFieldDef("organization_kana")?.placeholder}
                 className={inp}
-                required={kanaRequired && !isMasterSelected}
+                required={kanaRequired}
               />
             </div>
           )}
