@@ -126,7 +126,7 @@ export const FIELD_POOL: FieldPoolItem[] = [
     type: "tel",
     category: "basic",
     defaultRequired: true,
-    placeholder: "090-1234-5678",
+    placeholder: "09012345678",
   },
   {
     key: "email",
