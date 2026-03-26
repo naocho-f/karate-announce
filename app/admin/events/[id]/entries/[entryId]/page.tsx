@@ -109,10 +109,16 @@ export default function EntryDetailPage({ params }: Props) {
     if (key === "organization_kana") return entry!.school_name_reading;
     if (key === "branch") return entry!.dojo_name;
     if (key === "branch_kana") return entry!.dojo_name_reading;
+    // rule_preference は entry_rules テーブルに保存されている
+    if (key === "rule_preference") {
+      const ruleNames = rules.filter((r) => entryRuleIds.includes(r.id)).map((r) => r.name);
+      return ruleNames.length > 0 ? ruleNames.join("、") : null;
+    }
     // extra_fields
     const extra = entry!.extra_fields?.[key];
-    if (extra != null && extra !== "") return String(extra);
-    return null;
+    if (extra == null || extra === "") return null;
+    if (Array.isArray(extra)) return JSON.stringify(extra);
+    return String(extra);
   }
 
   function getLabel(key: string): string {
