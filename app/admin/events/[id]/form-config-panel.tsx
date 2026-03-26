@@ -390,11 +390,11 @@ export function FormConfigPanel({ eventId }: Props) {
           {/* 全フィールド（表示/非表示とも） */}
           {mainFields.map((f, i) => {
             // カスタムフィールドの場合は customFieldDefs から def を生成
-            const def = isCustomField(f.field_key)
+            const def = f.field_key.startsWith("custom_")
               ? (() => { const cd = customFieldDefs.find((d) => d.field_key === f.field_key); return cd ? customFieldToPoolItem(cd) : null; })()
               : getFieldDef(f.field_key);
             if (!def) return null;
-            const kanaField = isCustomField(f.field_key) ? null : fields.find((kf) => {
+            const kanaField = f.field_key.startsWith("custom_") ? null : fields.find((kf) => {
               const kDef = FIELD_POOL.find((p) => p.kanaParent === f.field_key);
               return kDef && kf.field_key === kDef.key;
             });

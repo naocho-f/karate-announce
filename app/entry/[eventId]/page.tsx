@@ -237,7 +237,7 @@ export default function EntryPage({ params }: Props) {
       .filter((fc) => fc.visible)
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((fc) => {
-        const def = isCustomField(fc.field_key)
+        const def = fc.field_key.startsWith("custom_")
           ? (() => { const cd = customFieldDefs.find((d) => d.field_key === fc.field_key); return cd ? customFieldToPoolItem(cd) : null; })()
           : getFieldDef(fc.field_key);
         return { config: fc, def };
