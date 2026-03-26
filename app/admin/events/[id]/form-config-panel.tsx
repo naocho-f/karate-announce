@@ -451,7 +451,7 @@ function FieldPreviewCard({
     <div className="group">
       {/* ── カードヘッダー（2段構成） ── */}
       <div className={`rounded-t-xl border border-b-0 ${
-        isHidden ? "border-gray-700/30 bg-gray-800/40" : "border-gray-700/50 bg-gray-700/30"
+        isHidden ? "border-gray-600/40 bg-gray-800/40" : "border-gray-500 bg-gray-700/30"
       }`}>
         {/* 1段目: 表示順・必須/任意・トグル */}
         <div className="flex items-center justify-between gap-2 px-3 py-1.5">
@@ -567,7 +567,7 @@ function FieldPreviewCard({
 
       {/* ── ボディ（プレビュー専用） ── */}
       <div className={`border rounded-b-xl transition relative ${
-        isHidden ? "border-gray-700/30 bg-gray-900/40 px-3 py-2" : "border-gray-700/50 px-3 py-3 space-y-2"
+        isHidden ? "border-gray-600/40 bg-gray-900/40 px-3 py-2" : "border-gray-500 bg-gray-800/40 px-3 py-3 space-y-2"
       }`}>
         {isHidden ? (
           <div className="flex items-center justify-center py-1">
@@ -577,11 +577,11 @@ function FieldPreviewCard({
           <>
             {/* ラベル表示 */}
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-gray-400 font-medium">{field.custom_label || def.label}</span>
+              <span className="text-xs text-gray-200 font-medium">{field.custom_label || def.label}</span>
               {field.required && <span className="text-red-400 text-xs">*</span>}
-              {def.unit && <span className="text-xs text-gray-600">（{def.unit}）</span>}
-              {kanaField && <span className="text-xs text-gray-600">+ 読み仮名</span>}
-              {ageField && <span className="text-xs text-gray-600">+ 年齢自動計算</span>}
+              {def.unit && <span className="text-xs text-gray-500">（{def.unit}）</span>}
+              {kanaField && <span className="text-xs text-gray-500">+ 読み仮名</span>}
+              {ageField && <span className="text-xs text-gray-500">+ 年齢自動計算</span>}
             </div>
 
             {/* 入力プレビュー */}
@@ -652,21 +652,21 @@ function renderInputPreview(
     return (
       <div className="grid grid-cols-2 gap-1.5">
         <div className="space-y-0.5">
-          <span className="text-[10px] text-gray-600">姓</span>
+          <span className="text-[10px] text-gray-400">姓</span>
           <div className={inp}>山田</div>
         </div>
         <div className="space-y-0.5">
-          <span className="text-[10px] text-gray-600">名</span>
+          <span className="text-[10px] text-gray-400">名</span>
           <div className={inp}>太郎</div>
         </div>
         {kanaField?.visible && (
           <>
             <div className="space-y-0.5">
-              <span className="text-[10px] text-gray-600">姓（読み）</span>
+              <span className="text-[10px] text-gray-400">姓（読み）</span>
               <div className={inp}>やまだ</div>
             </div>
             <div className="space-y-0.5">
-              <span className="text-[10px] text-gray-600">名（読み）</span>
+              <span className="text-[10px] text-gray-400">名（読み）</span>
               <div className={inp}>たろう</div>
             </div>
           </>
@@ -680,11 +680,11 @@ function renderInputPreview(
     return (
       <div className="grid grid-cols-2 gap-2 items-end">
         <div className="space-y-0.5">
-          <span className="text-[10px] text-gray-600">生年月日</span>
+          <span className="text-[10px] text-gray-400">生年月日</span>
           <div className={inp}>2000-01-01</div>
         </div>
         <div className="space-y-0.5">
-          <span className="text-[10px] text-gray-600">大会日時点の年齢</span>
+          <span className="text-[10px] text-gray-400">大会日時点の年齢</span>
           <div className="w-full bg-gray-900/40 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-500 pointer-events-none select-none min-h-[38px]">
             26歳（自動計算）
           </div>
@@ -704,7 +704,7 @@ function renderInputPreview(
         </p>
         {kanaField?.visible && (
           <div className="space-y-0.5">
-            <span className="text-[10px] text-gray-600">よみがな</span>
+            <span className="text-[10px] text-gray-400">よみがな</span>
             <div className={inp}>じゅうくうかい</div>
           </div>
         )}
@@ -719,7 +719,7 @@ function renderInputPreview(
         <div className={inp}>{def.placeholder || "\u00A0"}</div>
         {kanaField?.visible && (
           <div className="space-y-0.5">
-            <span className="text-[10px] text-gray-600">よみがな</span>
+            <span className="text-[10px] text-gray-400">よみがな</span>
             <div className={inp}>{"\u00A0"}</div>
           </div>
         )}
@@ -786,7 +786,7 @@ function renderInputPreview(
       <div className="space-y-1.5">
         <div className={inp}>example@mail.com</div>
         <div className="space-y-0.5">
-          <span className="text-[10px] text-gray-600">メールアドレス（確認）</span>
+          <span className="text-[10px] text-gray-400">メールアドレス（確認）</span>
           <div className={inp}>もう一度入力</div>
         </div>
       </div>
