@@ -1124,9 +1124,10 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      const date = new Date().toISOString().slice(0, 10);
+      const now = new Date();
+      const datetime = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
       a.href = url;
-      a.download = `${eventName}_参加者一覧_${date}.csv`;
+      a.download = `${eventName}_参加者一覧_${datetime}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
