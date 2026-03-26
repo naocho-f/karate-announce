@@ -402,3 +402,33 @@ export const DB_COLUMN_FIELDS = FIELD_POOL.filter((f) => f.dbColumn).map((f) => 
 
 /** extra_fields に保存する項目の key 一覧 */
 export const EXTRA_FIELDS = FIELD_POOL.filter((f) => !f.dbColumn).map((f) => f.key);
+
+// ──────────────────────────────────────────────
+// カスタム（自由設問）フィールド
+// ──────────────────────────────────────────────
+
+import type { CustomFieldDef } from "@/lib/types";
+
+/** field_key が自由設問かどうかを判定 */
+export function isCustomField(key: string): boolean {
+  return key.startsWith("custom_");
+}
+
+/** CustomFieldDef → FieldPoolItem 互換オブジェクトに変換 */
+export function customFieldToPoolItem(def: CustomFieldDef): FieldPoolItem {
+  const typeMap: Record<string, FieldType> = {
+    text: "text",
+    number: "number",
+    select: "select",
+    checkbox: "checkbox",
+    textarea: "textarea",
+  };
+  return {
+    key: def.field_key,
+    label: def.label,
+    type: typeMap[def.field_type] ?? "text",
+    category: "basic",
+    defaultRequired: false,
+    defaultChoices: def.choices ?? undefined,
+  };
+}

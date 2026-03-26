@@ -4,8 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Event, FormFieldConfig, FormNotice } from "@/lib/types";
-import { FIELD_POOL, getFieldDef, getKanaFieldKey, isKanaField } from "@/lib/form-fields";
+import type { Event, FormFieldConfig, FormNotice, CustomFieldDef } from "@/lib/types";
+import { FIELD_POOL, getFieldDef, getKanaFieldKey, isKanaField, isCustomField, customFieldToPoolItem } from "@/lib/form-fields";
 import type { FieldPoolItem } from "@/lib/form-fields";
 
 type Props = { params: Promise<{ eventId: string }> };
@@ -18,6 +18,7 @@ type FormConfigResponse = {
   version?: number;
   fields?: FormFieldConfig[];
   notices?: NoticeWithImages[];
+  customFieldDefs?: CustomFieldDef[];
 };
 
 // ──────────────────────────────────────────────
@@ -229,17 +230,20 @@ export default function EntryPage({ params }: Props) {
   }, []);
 
   // ── 可視フィールド一覧（ソート済み） ──
+  const customFieldDefs = formConfig?.customFieldDefs ?? [];
   const visibleFields = useMemo(() => {
     if (!formConfig?.ready || !formConfig.fields) return [];
     return formConfig.fields
       .filter((fc) => fc.visible)
       .sort((a, b) => a.sort_order - b.sort_order)
-      .map((fc) => ({
-        config: fc,
-        def: getFieldDef(fc.field_key),
-      }))
+      .map((fc) => {
+        const def = isCustomField(fc.field_key)
+          ? (() => { const cd = customFieldDefs.find((d) => d.field_key === fc.field_key); return cd ? customFieldToPoolItem(cd) : null; })()
+          : getFieldDef(fc.field_key);
+        return { config: fc, def };
+      })
       .filter((f): f is { config: FormFieldConfig; def: FieldPoolItem } => !!f.def);
-  }, [formConfig]);
+  }, [formConfig, customFieldDefs]);
 
   // ── 注意書きグルーピング ──
   const notices = formConfig?.notices ?? [];

@@ -179,6 +179,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 3.5. カスタムフィールド定義をコピー
+    if (sourceConfig) {
+      const { data: sourceCustomFields } = await supabaseAdmin
+        .from("custom_field_defs")
+        .select("*")
+        .eq("form_config_id", sourceConfig.id);
+      if (sourceCustomFields?.length) {
+        const newConfigId = (await supabaseAdmin.from("form_configs").select("id").eq("event_id", newEvent.id).single()).data?.id;
+        if (newConfigId) {
+          const { error } = await supabaseAdmin.from("custom_field_defs").insert(
+            sourceCustomFields.map((cf) => ({
+              form_config_id: newConfigId,
+              field_key: cf.field_key,
+              label: cf.label,
+              field_type: cf.field_type,
+              choices: cf.choices,
+              sort_order: cf.sort_order,
+            }))
+          );
+          if (error) throw new Error(`カスタムフィールド定義のコピーに失敗: ${error.message}`);
+        }
+      }
+    }
+
     // 4. エントリーをコピー（オプション）
     if (copy_entries) {
       const { data: sourceEntries } = await supabaseAdmin

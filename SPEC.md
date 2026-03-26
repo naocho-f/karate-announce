@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-26（対戦表作成の階級分け対応・フィルター拡張・名前自動生成）
+> 最終更新: 2026-03-26（自由設問（カスタムフィールド）機能追加）
 
 ---
 
@@ -51,7 +51,7 @@
 
 **項目プール（`lib/form-fields.ts`）**
 
-開発者が定義する全項目プール。操作者が大会ごとに表示/非表示を切り替える。
+開発者が定義する全項目プール。操作者が大会ごとに表示/非表示を切り替える。管理者は固定項目に加えて「自由設問」を追加可能（後述）。
 
 | カテゴリ | 項目例 |
 |---------|--------|
@@ -75,9 +75,18 @@
 
 **送信データ**
 - DB の既存カラムに対応する項目はそのまま保存（`family_name`, `weight`, `sex` 等）
-- 既存カラムにない項目は `entries.extra_fields`（JSONB）に保存
+- 既存カラムにない項目は `entries.extra_fields`（JSONB）に保存（GIN インデックスで検索可能）
 - `rule_preference` の選択値は `entry_rules` テーブルに rule UUID で保存（`extra_fields` には入れない）
 - `form_version` を記録（管理画面で旧バージョンエントリーを識別可能）
+
+**自由設問（カスタムフィールド）**
+- 管理者がフォーム設定画面から任意の項目を追加・削除・複製可能
+- タイプ: テキスト（1行）、テキスト（複数行）、数値、プルダウン選択、チェックボックス（複数選択）
+- 定義は `custom_field_defs` テーブルに保存、`field_key` は `custom_{8桁hex}` で自動生成
+- 入力値は `entries.extra_fields` JSONB に `{"custom_xxx": "値"}` として格納
+- `form_field_configs` にも行が作成され、表示/非表示・必須/任意・並び順は固定項目と同じ仕組みで管理
+- 固定項目との視覚的区別: 紫の「自由設問」バッジ、削除・複製ボタン付き（固定項目は削除不可）
+- 大会複製時にカスタムフィールド定義もコピーされる
 
 **フォールバック**
 - `rule_preference` フィールドがフォーム設定に含まれない場合、既存のルール選択UI（event_rules ベース）を表示
@@ -159,7 +168,7 @@
 - 試合一覧（開催日降順）。各試合に「アクティブに設定」「管理画面を開く」「複製」「削除」ボタン
 - **新規作成**: 大会名・開催日・コート数・コート名・ルールを指定して作成
 - **過去の大会から複製**: 各試合の「複製」ボタンからモーダルを開く。コピー対象:
-  - 大会名（デフォルト「{元の名前}（コピー）」）、コート数・コート名、体重差/身長差上限、ルール紐づけ、フォーム設定（フィールド・注意書き・画像参照）
+  - 大会名（デフォルト「{元の名前}（コピー）」）、コート数・コート名、体重差/身長差上限、ルール紐づけ、フォーム設定（フィールド・注意書き・画像参照・カスタムフィールド定義）
   - エントリーは任意選択（チェックボックスで明示的にON + 確認ダイアログで注意喚起）
   - コピーしないもの: status（常に preparing）、is_active、entry_closed、トーナメント・試合結果
   - エラーハンドリング: 複製途中で失敗した場合、作成済みの関連データを子→親の順でクリーンアップしてからエラーを返却。中途半端なデータは残らない
@@ -491,6 +500,19 @@ form_notices (
   created_at TIMESTAMPTZ
 )
 
+-- カスタムフィールド定義（自由設問）
+custom_field_defs (
+  id UUID PK,
+  form_config_id UUID → form_configs ON DELETE CASCADE,
+  field_key TEXT NOT NULL,          -- "custom_{8桁hex}" 自動生成
+  label TEXT NOT NULL,              -- 表示名
+  field_type TEXT NOT NULL,         -- "text" | "number" | "select" | "checkbox" | "textarea"
+  choices JSONB,                    -- select/checkbox用 [{label, value}]
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ,
+  UNIQUE(form_config_id, field_key)
+)
+
 -- 注意書き画像
 form_notice_images (
   id UUID PK,
@@ -580,6 +602,9 @@ form_notice_images (
 | DELETE | `/api/admin/form-config/notices/[id]` | 注意書き削除（画像カスケード削除） |
 | POST | `/api/admin/form-config/image-upload` | 注意書き画像アップロード（5MB制限、JPEG/PNG/WebP） |
 | DELETE | `/api/admin/form-config/image-upload` | 注意書き画像削除 |
+| POST | `/api/admin/form-config/custom-fields` | 自由設問追加（custom_field_defs + form_field_configs） |
+| DELETE | `/api/admin/form-config/custom-fields` | 自由設問削除 |
+| POST | `/api/admin/form-config/custom-fields/duplicate` | 自由設問複製 |
 
 ### 5.5 TTS API
 
@@ -784,6 +809,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - コントラスト改善（エントリーフォーム）: メインラベルを `text-gray-300`、サブラベル（姓・名等）を `text-gray-400` に引き上げ。注意書きカード枠線を `border-gray-500`、入力欄枠線を `border-gray-600` に変更
 - コントラスト改善（管理画面フォーム設定）: フィールドカードの枠線を `border-gray-500`（非表示時は `border-gray-600/40`）に強化、ボディに `bg-gray-800/40` 背景を追加してカード内外を明確化。メインラベルを `text-gray-200`、サブラベル（姓・名・読み等）を `text-gray-400` に引き上げ
 - 設定タブのサブタブを `grid` 均等割レイアウトに変更（横幅をタブ数で等分）
+- 自由設問（カスタムフィールド）機能: 管理者がフォーム設定画面から任意の項目（テキスト・数値・選択肢等）を追加・削除・複製可能。`custom_field_defs` テーブルで定義を管理し、入力値は `entries.extra_fields` JSONB に格納。GIN インデックスで検索可能。固定項目とは紫の「自由設問」バッジで視覚的に区別。大会複製時にもコピーされる
 
 ---
 

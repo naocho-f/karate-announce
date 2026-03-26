@@ -282,7 +282,14 @@ export async function GET(request: NextRequest) {
     .eq("form_config_id", config.id)
     .order("sort_order");
 
-  return NextResponse.json({ config, fields: fields ?? [], notices: notices ?? [] });
+  // カスタムフィールド定義取得
+  const { data: customFieldDefs } = await supabaseAdmin
+    .from("custom_field_defs")
+    .select("*")
+    .eq("form_config_id", config.id)
+    .order("sort_order");
+
+  return NextResponse.json({ config, fields: fields ?? [], notices: notices ?? [], customFieldDefs: customFieldDefs ?? [] });
 }
 
 /** PUT — フォーム設定の一括更新（フィールド設定 + config） */

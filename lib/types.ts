@@ -201,3 +201,14 @@ export type FormNoticeImage = {
   sort_order: number;
   created_at: string;
 };
+
+export type CustomFieldDef = {
+  id: string;
+  form_config_id: string;
+  field_key: string;
+  label: string;
+  field_type: "text" | "number" | "select" | "checkbox" | "textarea";
+  choices: { label: string; value: string }[] | null;
+  sort_order: number;
+  created_at: string;
+};

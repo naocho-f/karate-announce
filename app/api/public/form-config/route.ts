@@ -39,10 +39,18 @@ export async function GET(request: NextRequest) {
     })),
   }));
 
+  // カスタムフィールド定義（visible なもののキーに対応する定義のみ）
+  const { data: customFieldDefs } = await supabaseAdmin
+    .from("custom_field_defs")
+    .select("*")
+    .eq("form_config_id", config.id)
+    .order("sort_order");
+
   return NextResponse.json({
     ready: true,
     version: config.version,
     fields: fields ?? [],
     notices: noticesWithUrls,
+    customFieldDefs: customFieldDefs ?? [],
   });
 }
