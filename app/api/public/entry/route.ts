@@ -43,7 +43,9 @@ export async function POST(request: NextRequest) {
   }
 
   // メール送信（fire-and-forget）
-  sendConfirmationEmail(entry, created.id, rule_ids).catch(console.error);
+  sendConfirmationEmail(entry, created.id, rule_ids).catch((err) =>
+    console.error("[email] sendConfirmationEmail failed:", err)
+  );
 
   return NextResponse.json({ id: created.id });
 }
@@ -53,23 +55,24 @@ async function sendConfirmationEmail(
   entryId: string,
   ruleIds: string[] | undefined,
 ) {
+  console.log("[email] sendConfirmationEmail called, event_id:", entry.event_id, "extra_fields keys:", Object.keys((entry.extra_fields ?? {}) as Record<string, unknown>));
   const resend = getResend();
-  if (!resend) return;
+  if (!resend) { console.log("[email] skip: RESEND_API_KEY not set"); return; }
 
   const eventId = entry.event_id as string;
-  if (!eventId) return;
+  if (!eventId) { console.log("[email] skip: no event_id"); return; }
 
   const { data: eventData } = await supabaseAdmin
     .from("events")
     .select("name, event_date, venue_info, email_subject_template, email_body_template, notification_emails")
     .eq("id", eventId)
     .single();
-  if (!eventData) return;
+  if (!eventData) { console.log("[email] skip: event not found"); return; }
 
   // 申込者メールアドレス取得（extra_fields に格納）
   const extra = (entry.extra_fields ?? {}) as Record<string, unknown>;
   const applicantEmail = (extra.email as string) || null;
-  if (!applicantEmail) return;
+  if (!applicantEmail) { console.log("[email] skip: no applicant email in extra_fields", Object.keys(extra)); return; }
 
   // ルール名取得
   let ruleNames: string[] = [];
@@ -115,11 +118,13 @@ async function sendConfirmationEmail(
   const adminEmails: string[] = eventData.notification_emails ?? [];
   const from = process.env.RESEND_FROM_EMAIL || "参加受付 <onboarding@resend.dev>";
 
-  await resend.emails.send({
+  console.log("[email] sending to:", applicantEmail, "bcc:", adminEmails, "from:", from);
+  const result = await resend.emails.send({
     from,
     to: applicantEmail,
     ...(adminEmails.length > 0 && { bcc: adminEmails }),
     subject,
     text: body,
   });
+  console.log("[email] sent successfully, result:", JSON.stringify(result));
 }

@@ -261,6 +261,7 @@
 - **確認メール送信**: 参加申込完了時に申込者へ確認メールを自動送信（Resend使用）
   - 送信条件: `RESEND_API_KEY` が設定済み かつ 申込者がメールアドレスを入力済み
   - 送信は fire-and-forget（メール送信失敗でも申込は成功する）
+  - 各ステップで `[email]` プレフィックス付きログを出力（Vercel ログで追跡可能）
   - 送信元: `RESEND_FROM_EMAIL` 環境変数 or デフォルト `onboarding@resend.dev`
 - **管理者通知メールアドレス**: イベントごとに `events.notification_emails`（text[]）を設定。BCCで管理者にも送信
 - **件名テンプレート**: `events.email_subject_template`。デフォルト: `【{{event_name}}】参加申込を受け付けました`
