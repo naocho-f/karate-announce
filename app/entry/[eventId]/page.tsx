@@ -393,6 +393,23 @@ export default function EntryPage({ params }: Props) {
       errors["email"] = errors["email"] || "確認用メールアドレスを入力してください";
     }
 
+    // よみがな（ひらがな・カタカナ・長音符・中黒・スペースのみ許可）
+    const kanaRegex = /^[\u3040-\u309F\u30A0-\u30FF\u30FC\u30FB\s　]*$/;
+    const kanaFields: [string, string][] = [
+      ["family_name_reading", "姓（読み）"],
+      ["given_name_reading", "名（読み）"],
+      ["organization_kana", "所属団体（読み）"],
+      ["branch_kana", "道場・支部名（読み）"],
+    ];
+    for (const [fkey, flabel] of kanaFields) {
+      const v = values[fkey]?.trim();
+      if (v && !kanaRegex.test(v)) {
+        const parentKey = fkey === "family_name_reading" || fkey === "given_name_reading" ? "full_name" :
+          fkey === "organization_kana" ? "organization" : "branch";
+        errors[parentKey] = errors[parentKey] || `${flabel}はひらがなまたはカタカナで入力してください`;
+      }
+    }
+
     // 年齢矛盾
     if (ageConflict) {
       errors["birthday"] = ageConflict;
