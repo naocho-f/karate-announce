@@ -988,8 +988,21 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
         if (key === "organization_kana") return entry.school_name_reading ?? "";
         if (key === "branch") return entry.dojo_name ?? "";
         if (key === "branch_kana") return entry.dojo_name_reading ?? "";
+        // rule_preference はルール名で出力（entry_rules から取得）
+        if (key === "rule_preference") {
+          const ruleIds = entryRuleIds[entry.id];
+          const ruleNames = ruleIds
+            ? eventRules.filter((r) => ruleIds.has(r.id)).map((r) => r.name)
+            : [];
+          return ruleNames.join("; ");
+        }
         const extra = entry.extra_fields?.[key];
-        return extra != null && extra !== "" ? String(extra) : "";
+        if (extra != null && extra !== "") {
+          // JSONB配列はネイティブ配列で返るので JSON文字列に変換
+          if (Array.isArray(extra)) return JSON.stringify(extra);
+          return String(extra);
+        }
+        return "";
       }
 
       // 選択肢ラベルに変換
@@ -1049,7 +1062,6 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
       const headers = [
         "No.",
         ...displayFields.map((f) => f.label),
-        ...(eventRules.length > 0 ? ["出場ルール"] : []),
         "管理者メモ",
         "欠場",
         "テスト",
@@ -1080,15 +1092,6 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
             if (entry.age != null) value = `${value}（${entry.age}歳）`;
           }
           cells.push(value ? formatValue(key, value) : "");
-        }
-
-        // ルール
-        if (eventRules.length > 0) {
-          const ruleIds = entryRuleIds[entry.id];
-          const ruleNames = ruleIds
-            ? eventRules.filter((r) => ruleIds.has(r.id)).map((r) => r.name)
-            : [];
-          cells.push(ruleNames.join("; "));
         }
 
         cells.push(entry.admin_memo ?? "");
