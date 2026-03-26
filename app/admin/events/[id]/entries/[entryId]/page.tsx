@@ -85,7 +85,7 @@ export default function EntryDetailPage({ params }: Props) {
       <main className="min-h-screen bg-main-bg text-white p-6">
         <div className="max-w-2xl mx-auto">
           <Link href={`/admin/events/${eventId}`} className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
-          <p className="mt-8 text-gray-400">エントリーが見つかりません</p>
+          <p className="mt-8 text-gray-400">参加者が見つかりません</p>
         </div>
       </main>
     );
@@ -195,7 +195,7 @@ export default function EntryDetailPage({ params }: Props) {
   return (
     <main className="min-h-screen bg-main-bg text-white p-6">
       <div className="max-w-2xl mx-auto">
-        <Link href={`/admin/events/${eventId}`} className="text-gray-400 hover:text-white text-sm">← エントリー一覧に戻る</Link>
+        <Link href={`/admin/events/${eventId}`} className="text-gray-400 hover:text-white text-sm">← 参加者一覧に戻る</Link>
 
         <div className="mt-4 flex items-center gap-3">
           <h1 className="text-xl font-bold">{entryFullName(entry)}</h1>
@@ -203,7 +203,7 @@ export default function EntryDetailPage({ params }: Props) {
           {entry.is_test && <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded">テスト</span>}
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          エントリー日時: {new Date(entry.created_at).toLocaleString("ja-JP")}
+          申込日時: {new Date(entry.created_at).toLocaleString("ja-JP")}
           {entry.form_version != null && <span className="ml-2">フォーム v{entry.form_version}</span>}
         </p>
 

@@ -203,7 +203,7 @@ export default function EventDetailPage({ params }: Props) {
   }
 
   async function deleteEntry(entryId: string) {
-    if (!confirm("エントリーを削除しますか？")) return;
+    if (!confirm("この参加者を削除しますか？")) return;
     setProcessingEntryIds((prev) => new Set(prev).add(entryId));
     const res = await fetch(`/api/admin/entries/${entryId}`, { method: "DELETE" });
     if (res.ok) {
@@ -332,12 +332,12 @@ export default function EventDetailPage({ params }: Props) {
         {/* ステップナビ */}
         <StepNav step={step} tournaments={tournaments} onStepChange={navigateStep} />
 
-        {/* ① エントリー管理 */}
+        {/* ① 参加者管理 */}
         {step === 1 && (
           <div className="space-y-4">
-            {/* サブタブ: エントリー管理 / フォーム設定 */}
+            {/* サブタブ: 参加者管理 / フォーム設定 */}
             <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
-              {([["entries", "エントリー管理"], ["form", "フォーム設定"]] as const).map(([key, label]) => (
+              {([["entries", "参加者管理"], ["form", "フォーム設定"]] as const).map(([key, label]) => (
                 <button
                   key={key}
                   onClick={() => setEntrySubTab(key)}
@@ -353,11 +353,11 @@ export default function EventDetailPage({ params }: Props) {
             {/* フォーム設定タブ */}
             {entrySubTab === "form" && <FormConfigPanel eventId={id} />}
 
-            {/* エントリー管理タブ */}
+            {/* 参加者管理タブ */}
             {entrySubTab === "entries" && (<>
             <div className="bg-gray-800 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-3">
-                <h2 className="font-semibold text-gray-200">エントリー受付</h2>
+                <h2 className="font-semibold text-gray-200">参加受付</h2>
                 <button
                   onClick={toggleEntryClosed}
                   disabled={togglingClosed}
@@ -394,15 +394,15 @@ export default function EventDetailPage({ params }: Props) {
         {/* ② 対戦表作成 */}
         {step === 2 && (
           <div className="space-y-6">
-            {/* エントリー変更警告 */}
+            {/* 参加者変更警告 */}
             {hasEntryChanges && (
               <div className="bg-orange-950 border border-orange-700 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap">
                 <span className="text-orange-400 shrink-0">⚠</span>
                 <p className="text-sm text-orange-200">
-                  エントリーに変更があります（{entryChangeSummary}）。各コートの対戦表を確認してください。
+                  参加者に変更があります（{entryChangeSummary}）。各コートの対戦表を確認してください。
                 </p>
                 <button onClick={() => navigateStep(1)} className="ml-auto shrink-0 text-xs text-orange-400 hover:text-orange-300">
-                  ① エントリー一覧を確認 →
+                  ① 参加者一覧を確認 →
                 </button>
               </div>
             )}
@@ -423,10 +423,10 @@ export default function EventDetailPage({ params }: Props) {
               <div className="bg-blue-950/50 border border-blue-700/50 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap">
                 <span className="text-blue-400 shrink-0">💡</span>
                 <p className="text-sm text-blue-300">
-                  エントリー受付が終了していません。締め切ってから対戦表を作成することをおすすめします。
+                  参加受付が終了していません。締め切ってから対戦表を作成することをおすすめします。
                 </p>
                 <button onClick={() => navigateStep(1)} className="ml-auto shrink-0 text-xs text-blue-400 hover:text-blue-300">
-                  ① エントリー管理へ →
+                  ① 参加者管理へ →
                 </button>
               </div>
             )}
@@ -478,7 +478,7 @@ export default function EventDetailPage({ params }: Props) {
 
 function StepNav({ step, tournaments, onStepChange }: { step: 1 | 2 | 3; tournaments: Tournament[]; onStepChange: (s: 1 | 2 | 3) => void }) {
   const steps: { n: 1 | 2 | 3; label: string; disabled?: boolean }[] = [
-    { n: 1, label: "① エントリー管理" },
+    { n: 1, label: "① 参加者管理" },
     { n: 2, label: "② 対戦表作成" },
     { n: 3, label: "③ 試合番号設定", disabled: tournaments.length === 0 },
   ];
@@ -658,7 +658,7 @@ function DashboardPanel({ entries, tournaments, eventRules, entryRuleIds, tourna
       <div className="space-y-3">
         {matchCountInfo}
         <DashboardCard
-          label="全エントリー"
+          label="全参加者"
           total={stats.total}
           unassigned={stats.unassigned}
           tournamentCount={tournamentTypeCount}
@@ -779,7 +779,7 @@ function EntryFormUrl({ eventId }: { eventId: string }) {
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-400">エントリーフォーム URL</span>
+        <span className="text-xs text-gray-400">参加申込フォーム URL</span>
         <a href={`/entry/${eventId}`} target="_blank" rel="noopener noreferrer"
           className="text-xs text-blue-400 hover:text-blue-300">フォームを開く →</a>
       </div>
@@ -927,7 +927,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
   }
 
   async function addDemoEntries() {
-    if (!confirm("テスト用に32名のダミーエントリーを追加しますか？")) return;
+    if (!confirm("テスト用に32名のダミー参加者を追加しますか？")) return;
     setGenerating(true);
     const ruleIds = eventRules.map((r) => r.id);
     const demoList = generateDemoEntries(eventId, 32, ruleIds, currentFormVersion);
@@ -956,7 +956,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
 
   // ── CSV ダウンロード ──────────────────────────────────────────────────
   async function downloadCsv() {
-    if (entries.length === 0) { alert("エントリーがありません"); return; }
+    if (entries.length === 0) { alert("参加者がいません"); return; }
     setDownloading(true);
     try {
       // フォーム設定取得
@@ -1053,7 +1053,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
         "管理者メモ",
         "欠場",
         "テスト",
-        "エントリー日時",
+        "申込日時",
         "フォームver",
       ];
 
@@ -1108,7 +1108,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
       const a = document.createElement("a");
       const date = new Date().toISOString().slice(0, 10);
       a.href = url;
-      a.download = `${eventName}_エントリー一覧_${date}.csv`;
+      a.download = `${eventName}_参加者一覧_${date}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
@@ -1123,7 +1123,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
     <div className="bg-gray-800 rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-gray-300">エントリー一覧</h2>
+          <h2 className="text-sm font-semibold text-gray-300">参加者一覧</h2>
           <span className="text-xs text-gray-500">{entries.filter(e => !e.is_withdrawn).length}名</span>
           {entries.some(e => e.is_withdrawn) && (
             <span className="text-xs text-orange-400">（欠場{entries.filter(e => e.is_withdrawn).length}名）</span>
@@ -1166,10 +1166,10 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
         <div>
           {entries.length === 0 && !showForm && (
             <p className="text-xs text-gray-500">
-              エントリーがありません。「+ 追加」から管理者が追加するか、
+              参加者がいません。「+ 追加」から管理者が追加するか、
               <a href={`/entry/${eventId}`} target="_blank" rel="noopener noreferrer"
                 className="text-blue-400 hover:text-blue-300 underline ml-1">
-                エントリーフォーム
+                参加申込フォーム
               </a>
               を参加者に共有してください。
             </p>
@@ -1196,7 +1196,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
                                 <span className="ml-1.5 text-xs bg-purple-900 text-purple-300 px-1.5 py-0.5 rounded" title={`フォームv${e.form_version}で入力（現在v${currentFormVersion}）`}>旧ver</span>
                               )}
                               {currentFormVersion != null && e.form_version == null && (
-                                <span className="ml-1.5 text-xs bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded" title="フォーム設定導入前のエントリー">旧ver</span>
+                                <span className="ml-1.5 text-xs bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded" title="フォーム設定導入前の申込">旧ver</span>
                               )}
                             </td>
                             <td className="px-2 py-1.5 text-xs text-gray-400">
@@ -1382,7 +1382,7 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
       }),
     });
     setSaving(false);
-    if (!res.ok) { alert("エントリーの追加に失敗しました"); return; }
+    if (!res.ok) { alert("参加者の追加に失敗しました"); return; }
     setFamilyName(""); setGivenName(""); setFamilyReading(""); setGivenReading("");
     setSchoolName(""); setSchoolNameReading(""); setDojoName(""); setDojoNameReading("");
     setWeight(""); setHeight(""); setAge(""); setGrade(""); setExperience("");
@@ -1394,7 +1394,7 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
 
   return (
     <form onSubmit={submit} className="border border-blue-700 rounded-lg p-3 space-y-2">
-      <p className="text-xs text-gray-400 font-medium">エントリー追加</p>
+      <p className="text-xs text-gray-400 font-medium">参加者追加</p>
       <div className="flex gap-2 flex-wrap">
         <input value={familyName} onChange={(e) => setFamilyName(e.target.value)} placeholder="姓 *" className={`w-24 ${inp}`} required />
         <input value={givenName} onChange={(e) => setGivenName(e.target.value)} placeholder="名" className={`w-24 ${inp}`} />
@@ -1414,7 +1414,7 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
       </div>
       {eventRules.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-gray-400">エントリーするルール:</span>
+          <span className="text-xs text-gray-400">出場ルール:</span>
           {eventRules.map((r) => (
             <button key={r.id} type="button" onClick={() => toggleRule(r.id)}
               className={`text-xs px-2 py-0.5 rounded transition ${
@@ -1775,7 +1775,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
         <span className="text-xs text-gray-500">
           {defaultRuleId && filteredEntries.length < entries.length
             ? `対象${filteredEntries.length}名（ルール絞込）`
-            : `エントリー${entries.length}名`}
+            : `参加者${entries.length}名`}
           {" / "}割当{assignedIds.size}名 / 未割当{unassigned.length}名
         </span>
       </div>

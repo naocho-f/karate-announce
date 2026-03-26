@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       .eq("id", entry.event_id)
       .single();
     if (ev?.entry_closed) {
-      return NextResponse.json({ error: "エントリー受付は終了しました" }, { status: 403 });
+      return NextResponse.json({ error: "参加受付は終了しました" }, { status: 403 });
     }
   }
 

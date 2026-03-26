@@ -242,7 +242,7 @@ function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
               })()}
             </div>
             <div className="mt-3 flex items-center gap-3 flex-wrap">
-              <span className="text-xs text-gray-500">{entryCounts[nextEvent.id] ?? 0} エントリー</span>
+              <span className="text-xs text-gray-500">{entryCounts[nextEvent.id] ?? 0} 名</span>
               <span className="text-xs text-gray-500">{nextEvent.court_count} コート</span>
               <Link
                 href={`/admin/events/${nextEvent.id}`}
@@ -266,7 +266,7 @@ function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
                   <div className="min-w-0">
                     <p className="font-medium text-white truncate">{e.name}</p>
                     <p className="text-xs text-yellow-400 mt-1">
-                      ⚠ エントリー {entryCounts[e.id]} 件あり・対戦表が未作成
+                      ⚠ 参加者 {entryCounts[e.id]} 名あり・対戦表が未作成
                     </p>
                   </div>
                   <Link
@@ -282,10 +282,10 @@ function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
         </section>
       )}
 
-      {/* C: エントリー状況 */}
+      {/* C: 参加受付状況 */}
       {entryEvents.length > 0 && (
         <section>
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">エントリー状況</h2>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">参加受付状況</h2>
           <div className="bg-gray-800 rounded-xl overflow-hidden">
             {entryEvents.map((e, i) => (
               <div
@@ -349,10 +349,10 @@ function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
       tab: "settings",
       tabLabel: "設定タブ（ルール）へ →",
       color: "border-yellow-500",
-      desc: "「ビギナー」「エキスパート」など大会の部門・クラスをルールとして登録します。エントリー時に参加者が自分の出る部門を選択でき、対戦表作成時にコートごとに部門を絞り込んで組み分けできます。",
+      desc: "「ビギナー」「エキスパート」など大会の部門・クラスをルールとして登録します。申込時に参加者が自分の出る部門を選択でき、対戦表作成時にコートごとに部門を絞り込んで組み分けできます。",
       details: [
         "例: ビギナー・エキスパート・形・ワンマッチ など部門名をそのまま登録",
-        "エントリーフォームで「ビギナーに出る」「エキスパートに出る」と選択できるようになる",
+        "参加申込フォームで「ビギナーに出る」「エキスパートに出る」と選択できるようになる",
         "対戦表作成時に「コートルール: ビギナー」に設定するとビギナー参加者だけが振り分け対象になる",
       ],
       screen: (
@@ -378,9 +378,9 @@ function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
       tab: "settings",
       tabLabel: "設定タブ（流派）へ →",
       color: "border-gray-500",
-      desc: "流派マスタは任意です。エントリーフォームで流派名が入力されると自動追加されます。事前に用意しておきたい場合に使ってください。",
+      desc: "流派マスタは任意です。参加申込フォームで流派名が入力されると自動追加されます。事前に用意しておきたい場合に使ってください。",
       details: [
-        "「流派」タブ: 極真会・正道会館など。エントリー時に自動追加されるので空でも OK",
+        "「流派」タブ: 極真会・正道会館など。申込時に自動追加されるので空でも OK",
       ],
       screen: (
         <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
@@ -389,7 +389,7 @@ function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
             <div className="bg-gray-800 rounded px-2 py-1.5 text-gray-300">極真会</div>
             <div className="bg-gray-800 rounded px-2 py-1.5 text-gray-300">正道会館</div>
           </div>
-          <p className="text-gray-600 text-center">↑ エントリー時に自動作成されます</p>
+          <p className="text-gray-600 text-center">↑ 申込時に自動作成されます</p>
         </div>
       ),
     },
@@ -399,7 +399,7 @@ function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
       title: "試合を作成する",
       tab: "events",
       color: "border-blue-500",
-      desc: "大会を作成します。試合名・コート数と開催するルールを選んで作成すると、エントリー受付・対戦表作成の詳細画面へ移動します。",
+      desc: "大会を作成します。試合名・コート数と開催するルールを選んで作成すると、参加受付・対戦表作成の詳細画面へ移動します。",
       details: [
         "「試合」タブで試合名・コート数を入力",
         "開催するルールをチェック（複数選択可）→「試合を作成」",
@@ -425,24 +425,24 @@ function GuidePanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
     {
       step: 4,
       icon: "📝",
-      title: "エントリーを集める",
+      title: "参加者を集める",
       tab: null,
       color: "border-green-500",
-      desc: "試合詳細画面に表示されるエントリーフォーム URL を参加者に共有します。参加者がフォームに入力すると一覧に表示されます。管理者が手動で追加することも可能です。",
+      desc: "試合詳細画面に表示される参加申込フォーム URL を参加者に共有します。参加者がフォームに入力すると一覧に表示されます。管理者が手動で追加することも可能です。",
       details: [
-        "試合詳細画面の「エントリーフォーム URL」をコピーして LINE・メール等で共有",
-        "参加者がフォームに氏名・体重・流派・エントリーするルールを入力して送信",
+        "試合詳細画面の「参加申込フォーム URL」をコピーして LINE・メール等で共有",
+        "参加者がフォームに氏名・体重・流派・出場ルールを入力して送信",
         "管理者は「+ 追加」から直接入力も可能",
       ],
       screen: (
         <div className="bg-gray-900 rounded-lg p-3 text-xs space-y-2">
-          <p className="text-gray-500 mb-1">試合詳細 → エントリーフォーム URL</p>
+          <p className="text-gray-500 mb-1">試合詳細 → 参加申込フォーム URL</p>
           <div className="flex items-center gap-2">
             <div className="flex-1 bg-gray-700 rounded px-2 py-1.5 text-gray-400 font-mono truncate">https://…/entry/xxxx</div>
             <div className="bg-gray-600 text-white rounded px-2 py-1.5 shrink-0">コピー</div>
           </div>
           <div className="border border-gray-700 rounded p-2 space-y-1">
-            <p className="text-gray-500">エントリー一覧 3名</p>
+            <p className="text-gray-500">参加者一覧 3名</p>
             {["山田 太郎　極真会　65kg", "鈴木 一郎　正道会館　70kg", "田中 花子　新極真　55kg"].map((n) => (
               <div key={n} className="flex justify-between bg-gray-800 rounded px-2 py-1">
                 <span className="text-gray-200">{n}</span>
@@ -867,7 +867,7 @@ function EventPanel() {
   async function executeCopy() {
     if (!copySourceId || !copyName.trim()) return;
     if (copyEntries) {
-      if (!confirm("エントリーをコピーします。前回大会の参加者情報がそのまま引き継がれます。\n\n実際の参加者と異なる場合があるため、コピー後に必ず確認・修正してください。\n\n続行しますか？")) return;
+      if (!confirm("参加者をコピーします。前回大会の参加者情報がそのまま引き継がれます。\n\n実際の参加者と異なる場合があるため、コピー後に必ず確認・修正してください。\n\n続行しますか？")) return;
     }
     setCopying(true);
     const res = await fetch("/api/admin/events", {
@@ -1068,11 +1068,11 @@ function EventPanel() {
                   onChange={(e) => setCopyEntries(e.target.checked)}
                   className="rounded w-4 h-4"
                 />
-                <span className="text-sm text-amber-200 font-medium">エントリーもコピーする</span>
+                <span className="text-sm text-amber-200 font-medium">参加者もコピーする</span>
               </label>
               {copyEntries && (
                 <div className="text-xs text-amber-400 space-y-1 pl-6">
-                  <p>前回大会のエントリーがそのままコピーされます。</p>
+                  <p>前回大会の参加者がそのままコピーされます。</p>
                   <p>実際の参加者と異なる場合があるため、コピー後に必ず確認・修正してください。</p>
                   <p>トーナメント・試合結果はコピーされません。</p>
                 </div>
@@ -1610,7 +1610,7 @@ function DescriptionInput({ value, onSave }: {
         autoFocus
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        placeholder="説明・詳細（エントリーフォームの注意書きにデフォルト挿入されます）"
+        placeholder="説明・詳細（参加申込フォームの注意書きにデフォルト挿入されます）"
         rows={3}
         className="w-full bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none resize-none"
       />

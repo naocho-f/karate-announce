@@ -374,7 +374,7 @@ export function FormConfigPanel({ eventId }: Props) {
           {/* タイトル */}
           <div className="text-center pb-2">
             <div className="text-lg font-bold text-gray-300">大会名</div>
-            <div className="text-sm text-gray-500">エントリーフォーム</div>
+            <div className="text-sm text-gray-500">参加申込フォーム</div>
           </div>
 
           {/* フォーム先頭注意書き */}
@@ -445,7 +445,7 @@ export function FormConfigPanel({ eventId }: Props) {
 
           {/* 送信ボタン */}
           <div className="bg-blue-600/30 border border-blue-700/50 py-3 rounded-xl text-center text-sm text-blue-300 font-bold cursor-default">
-            エントリーする
+            申し込む
           </div>
         </div>
       </div>
@@ -706,7 +706,7 @@ function renderInputPreview(
         )}
         <p className="text-[10px] text-gray-500 leading-relaxed">
           選択肢は <a href="/admin?tab=settings" target="_blank" className="text-blue-400 hover:text-blue-300 underline">設定 &gt; ルール管理</a> で登録したルールが自動で表示されます。
-          対戦表作成時にルールごとにエントリーを振り分けます。
+          対戦表作成時にルールごとに参加者を振り分けます。
         </p>
       </div>
     );

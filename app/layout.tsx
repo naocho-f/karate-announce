@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "柔空会 - 試合管理 ＆ AI アナウンス",
-  description: "試合管理・エントリー受付・対戦表作成・AI アナウンス",
+  description: "試合管理・参加受付・対戦表作成・AI アナウンス",
 };
 
 export default function RootLayout({

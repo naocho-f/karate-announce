@@ -1053,7 +1053,7 @@ export default function EntryPage({ params }: Props) {
         <div className="max-w-sm w-full text-center space-y-4">
           <div className="text-5xl">🔒</div>
           <h1 className="text-xl font-bold">{event.name}</h1>
-          <p className="text-gray-400">エントリー受付は終了しました。</p>
+          <p className="text-gray-400">参加受付は終了しました。</p>
         </div>
       </main>
     );
@@ -1066,7 +1066,7 @@ export default function EntryPage({ params }: Props) {
         <div className="max-w-sm w-full text-center space-y-4">
           <div className="text-5xl">🔧</div>
           <h1 className="text-xl font-bold">{event.name}</h1>
-          <p className="text-gray-400">エントリーフォームは準備中です。</p>
+          <p className="text-gray-400">参加申込フォームは準備中です。</p>
           <p className="text-gray-500 text-xs">しばらくお待ちください。</p>
         </div>
       </main>
@@ -1079,13 +1079,13 @@ export default function EntryPage({ params }: Props) {
       <main className="min-h-screen bg-main-bg text-white flex items-center justify-center p-6">
         <div className="max-w-sm w-full text-center space-y-4">
           <div className="text-5xl">✅</div>
-          <h1 className="text-xl font-bold">エントリー完了</h1>
+          <h1 className="text-xl font-bold">申込完了</h1>
           <p className="text-gray-400 text-sm">
-            {displayName} さんのエントリーを受け付けました。
+            {displayName} さんの参加申込を受け付けました。
           </p>
           <p className="text-gray-500 text-xs">{event.name}</p>
           <button onClick={resetForm} className="text-blue-400 hover:text-blue-300 text-sm underline">
-            別の方もエントリーする
+            別の方も申し込む
           </button>
         </div>
       </main>
@@ -1098,7 +1098,7 @@ export default function EntryPage({ params }: Props) {
     <main className="min-h-screen bg-main-bg text-white p-6">
       <div className="max-w-md mx-auto">
         <h1 className="text-xl font-bold mb-1">{event.name}</h1>
-        <p className="text-sm text-gray-400 mb-6">エントリーフォーム</p>
+        <p className="text-sm text-gray-400 mb-6">参加申込フォーム</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* フォーム先頭注意書き */}
@@ -1117,7 +1117,7 @@ export default function EntryPage({ params }: Props) {
           {/* ルール選択（フォールバック: rule_preference フィールドが無い場合） */}
           {!hasRuleField && eventRules.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs text-gray-300 font-medium">エントリーするルール（複数選択可）</p>
+              <p className="text-xs text-gray-300 font-medium">出場希望ルール（複数選択可）</p>
               <div className="flex flex-wrap gap-2">
                 {eventRules.map((r) => {
                   const checked = selectedRules.has(r.id);
@@ -1174,7 +1174,7 @@ export default function EntryPage({ params }: Props) {
             } disabled:opacity-40`}
           >
             {submitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
-            {submitting ? "送信中..." : "エントリーする"}
+            {submitting ? "送信中..." : "申し込む"}
           </button>
         </form>
       </div>
