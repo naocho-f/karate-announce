@@ -424,8 +424,8 @@ export function FormConfigPanel({ eventId }: Props) {
                 onDeleteImage={deleteImage}
                 busyNotices={busyNotices}
                 rules={rules}
-                onDeleteCustom={isCustomField(f.field_key) ? deleteCustomField : undefined}
-                onDuplicateCustom={isCustomField(f.field_key) ? duplicateCustomField : undefined}
+                onDeleteCustom={f.field_key.startsWith("custom_") ? deleteCustomField : undefined}
+                onDuplicateCustom={f.field_key.startsWith("custom_") ? duplicateCustomField : undefined}
               />
             );
           })}

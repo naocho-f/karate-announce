@@ -409,9 +409,21 @@ export const EXTRA_FIELDS = FIELD_POOL.filter((f) => !f.dbColumn).map((f) => f.k
 
 import type { CustomFieldDef } from "@/lib/types";
 
-/** field_key が自由設問かどうかを判定 */
+/** 固定項目（削除不可）の key セット */
+const FIXED_FIELD_KEYS = new Set([
+  "full_name", "kana", "age", "sex", "birthday",
+  "height", "weight", "branch", "branch_kana",
+  "martial_arts_experience", "memo",
+  "prefecture", "phone", "email",
+  "organization", "organization_kana", "rule_preference",
+]);
+
+/** field_key が自由設問（削除可・バッジ表示）かどうかを判定 */
 export function isCustomField(key: string): boolean {
-  return key.startsWith("custom_");
+  if (key.startsWith("custom_")) return true;
+  // FIELD_POOL に存在するが固定項目でないもの（guardian_name, equipment系など）
+  const inPool = FIELD_POOL.some((f) => f.key === key);
+  return inPool && !FIXED_FIELD_KEYS.has(key);
 }
 
 /** CustomFieldDef → FieldPoolItem 互換オブジェクトに変換 */
