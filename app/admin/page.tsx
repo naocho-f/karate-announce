@@ -1108,6 +1108,7 @@ function RulesPanel() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [reading, setReading] = useState("");
+  const [description, setDescription] = useState("");
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
@@ -1125,11 +1126,11 @@ function RulesPanel() {
     const res = await fetch("/api/admin/rules", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), name_reading: reading.trim() || null }),
+      body: JSON.stringify({ name: name.trim(), name_reading: reading.trim() || null, description: description.trim() || null }),
     });
     setAdding(false);
     if (!res.ok) { alert("追加に失敗しました"); return; }
-    setName(""); setReading("");
+    setName(""); setReading(""); setDescription("");
     load();
   }
 
@@ -1140,6 +1141,16 @@ function RulesPanel() {
       body: JSON.stringify({ name_reading: value.trim() || null }),
     });
     if (!res.ok) { alert("読み仮名の更新に失敗しました"); return; }
+    load();
+  }
+
+  async function updateDescription(id: string, value: string) {
+    const res = await fetch(`/api/admin/rules/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description: value.trim() || null }),
+    });
+    if (!res.ok) { alert("説明の更新に失敗しました"); return; }
     load();
   }
 
@@ -1174,6 +1185,13 @@ function RulesPanel() {
             {adding ? "追加中..." : "追加"}
           </button>
         </div>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="説明・詳細（例: 本戦3分、延長1分、体重無差別。防具はメンホー・拳サポーター着用必須。）"
+          rows={2}
+          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500 resize-none"
+        />
       </form>
       {loading ? (
         <p className="text-sm text-gray-500">読み込み中...</p>
@@ -1191,6 +1209,10 @@ function RulesPanel() {
                 value={r.name_reading ?? ""}
                 placeholder="読み仮名（例: くみて3ぷんえんちょう1ぷん）"
                 onSave={(v) => updateReading(r.id, v)}
+              />
+              <DescriptionInput
+                value={r.description ?? ""}
+                onSave={(v) => updateDescription(r.id, v)}
               />
             </li>
           ))}
@@ -1555,6 +1577,47 @@ function ReadingInput({ value, placeholder, onSave }: {
       />
       <button type="submit" className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded">保存</button>
       <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1">×</button>
+    </form>
+  );
+}
+
+function DescriptionInput({ value, onSave }: {
+  value: string;
+  onSave: (v: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  function commit() {
+    onSave(draft);
+    setEditing(false);
+  }
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => { setDraft(value); setEditing(true); }}
+        className="text-xs text-gray-500 hover:text-blue-400 transition mt-1 block"
+      >
+        説明: {value || "未設定（タップして編集）"}
+      </button>
+    );
+  }
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); commit(); }} className="mt-1 space-y-1">
+      <textarea
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        placeholder="説明・詳細（エントリーフォームの注意書きにデフォルト挿入されます）"
+        rows={3}
+        className="w-full bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none resize-none"
+      />
+      <div className="flex gap-1">
+        <button type="submit" className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded">保存</button>
+        <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1">×</button>
+      </div>
     </form>
   );
 }

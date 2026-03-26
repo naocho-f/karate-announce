@@ -214,6 +214,7 @@
 - **DB管理フィールド**（所属団体・出場希望ルール）: 選択肢はDB管理のため「選択肢設定」ボタンを非表示。代わりに設定画面へのリンクと登録済みデータのプレビューを表示
   - 所属団体: ボディに「設定 > 道場/団体マスター」へのリンクを表示。ヘッダーに「その他」チェックボックスを常時表示し、ONにすると参加者が未登録の団体名を自由入力できる
   - 出場希望ルール: ボディに「設定 > ルール管理」で登録済みのルール名一覧を表示。ヘッダーに「複数選択／単一選択」切替ドロップダウンを表示し、参加者が複数ルールにエントリーできるか1つだけか選べる。単一選択時はエントリーフォーム上でラジオボタン表示になる（内部的には `custom_choices` の `__single_select__` マーカーで管理）
+- **ルール説明のデフォルト注意書き**: フォーム設定初回作成時、イベントに紐づくルールに `description` が設定されている場合、`rule_preference` フィールド直下の注意書き（`form_notices`）として「【ルール名】\n説明」形式で自動挿入される。管理者は挿入後に自由に編集・削除可能
   - いずれも「その他」オプションのON/OFFはヘッダーから直接切り替え可能
 - **注意書き（インライン）**: フォーム先頭・項目直下・フォーム末尾に配置可能
   - テキスト、スクロール可能テキスト（規約等）、画像アップロード、リンク、同意チェックボックス
@@ -365,6 +366,7 @@ rules (
   id UUID PK,
   name TEXT NOT NULL,
   name_reading TEXT,            -- TTS 読み仮名
+  description TEXT,             -- ルールの説明・詳細（フォーム設定の注意書きにデフォルト挿入される）
   created_at TIMESTAMPTZ
 )
 
@@ -530,8 +532,8 @@ form_notice_images (
 | PATCH/DELETE | `/api/admin/dojos/[id]` | 流派更新・削除 |
 | POST | `/api/admin/fighters` | 選手追加 |
 | PATCH/DELETE | `/api/admin/fighters/[id]` | 選手更新・削除 |
-| POST | `/api/admin/rules` | ルール追加 |
-| PATCH/DELETE | `/api/admin/rules/[id]` | ルール更新・削除 |
+| POST | `/api/admin/rules` | ルール追加（name, name_reading, description） |
+| PATCH/DELETE | `/api/admin/rules/[id]` | ルール更新（name_reading, description）・削除 |
 | POST | `/api/admin/entries` | エントリー追加（管理者） |
 | PATCH | `/api/admin/entries/[id]` | エントリー更新 |
 | DELETE | `/api/admin/entries/[id]` | エントリー削除 |
@@ -778,6 +780,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - 背景色: カスタムカラー `--color-main-bg` を `#101828`（gray-900 相当）に変更し、全ページのメイン背景に適用。カード・ボーダー・テキスト色は変更なし（視覚的階層を維持）
 - エントリーフォームの項目ラベル編集機能: `form_field_configs.custom_label` カラム追加。管理画面でラベルをクリックすると編集可能。エントリーフォームに反映される
 - 過去の大会から複製機能: 試合タブの各大会に「複製」ボタン追加。大会名・コート設定・ルール・フォーム設定をコピーして新規作成。エントリーは任意コピー（警告付き）
+- ルール説明機能: `rules` テーブルに `description` カラム追加。設定タブのルール管理でルールごとに説明・詳細を登録可能。フォーム設定初回作成時に `description` が設定されたルールの説明を `rule_preference` フィールドのデフォルト注意書きとして自動挿入
 
 ---
 

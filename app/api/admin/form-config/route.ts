@@ -232,7 +232,40 @@ export async function GET(request: NextRequest) {
     await supabaseAdmin.from("form_field_configs").insert(fieldConfigs);
 
     // デフォルトの注意書きを作成
-    await supabaseAdmin.from("form_notices").insert(buildDefaultNotices(config.id));
+    const defaultNotices = buildDefaultNotices(config.id);
+
+    // イベントに紐づくルールの説明をデフォルト注意書きとして追加
+    const { data: eventRules } = await supabaseAdmin
+      .from("event_rules")
+      .select("rule_id")
+      .eq("event_id", eventId);
+    if (eventRules?.length) {
+      const { data: rules } = await supabaseAdmin
+        .from("rules")
+        .select("name, description")
+        .in("id", eventRules.map((er) => er.rule_id))
+        .order("name");
+      const rulesWithDesc = rules?.filter((r) => r.description) ?? [];
+      if (rulesWithDesc.length > 0) {
+        const ruleNoticeText = rulesWithDesc
+          .map((r) => `【${r.name}】\n${r.description}`)
+          .join("\n\n");
+        defaultNotices.push({
+          form_config_id: config.id,
+          anchor_type: "field",
+          anchor_field_key: "rule_preference",
+          sort_order: 0,
+          text_content: ruleNoticeText,
+          scrollable_text: null,
+          link_url: null,
+          link_label: null,
+          require_consent: false,
+          consent_label: null,
+        });
+      }
+    }
+
+    await supabaseAdmin.from("form_notices").insert(defaultNotices);
   }
 
   // フィールド設定取得

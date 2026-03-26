@@ -60,6 +60,7 @@ export type Rule = {
   id: string;
   name: string;
   name_reading: string | null;
+  description: string | null;
   created_at: string;
 };
 

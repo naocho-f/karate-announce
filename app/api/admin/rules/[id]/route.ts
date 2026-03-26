@@ -7,8 +7,11 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(request: NextRequest, { params }: Params) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { id } = await params;
-  const { name_reading } = await request.json();
-  const { error } = await supabaseAdmin.from("rules").update({ name_reading: name_reading ?? null }).eq("id", id);
+  const { name_reading, description } = await request.json();
+  const update: Record<string, unknown> = {};
+  if (name_reading !== undefined) update.name_reading = name_reading ?? null;
+  if (description !== undefined) update.description = description ?? null;
+  const { error } = await supabaseAdmin.from("rules").update(update).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
