@@ -1238,12 +1238,12 @@ function SettingsPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 flex-wrap">
+      <div className="grid grid-cols-3 gap-2">
         {(["announce", "rules", "dojos"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setSubTab(t)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${
+            className={`py-1.5 rounded-lg text-sm font-medium transition text-center ${
               subTab === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
             }`}
           >
