@@ -255,6 +255,13 @@ export default function EntryPage({ params }: Props) {
       .filter((f): f is { config: FormFieldConfig; def: FieldPoolItem } => !!f.def);
   }, [formConfig, customFieldDefs]);
 
+  // ── 生年月日の初期値を2000年に設定（カレンダーのデフォルト表示年） ──
+  useEffect(() => {
+    if (visibleFields.some((f) => f.def.key === "birthday") && !values["birthday"]) {
+      setValues((prev) => prev["birthday"] ? prev : { ...prev, birthday: "2000-01-01" });
+    }
+  }, [visibleFields]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── 注意書きグルーピング ──
   const notices = formConfig?.notices ?? [];
   const formStartNotices = notices.filter((n) => n.anchor_type === "form_start");
