@@ -1095,7 +1095,7 @@ export default function EntryPage({ params }: Props) {
     );
   }
 
-  const inp = "w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
+  const inp = "w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-base text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
 
   return (
     <main className="min-h-screen bg-main-bg text-white p-6">
