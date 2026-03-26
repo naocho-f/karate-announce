@@ -88,7 +88,7 @@ function NoticeRenderer({ notice, consents, onConsent }: {
   onConsent: (noticeId: string, checked: boolean) => void;
 }) {
   return (
-    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 space-y-2">
+    <div className="bg-gray-800/50 border border-gray-500 rounded-lg p-3 space-y-2">
       {/* テキスト */}
       {notice.text_content && (
         <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">
@@ -500,32 +500,32 @@ export default function EntryPage({ params }: Props) {
       const showKana = !!kanaConfig;
       return (
         <div key={key} className="space-y-2">
-          <p className="text-xs text-gray-400 font-medium">
+          <p className="text-xs text-gray-300 font-medium">
             {label}
             {isReq && <span className="text-red-400 ml-1">*</span>}
           </p>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <label className="text-xs text-gray-500">姓</label>
+              <label className="text-xs text-gray-400">姓</label>
               <input value={values["family_name"] ?? ""} onChange={(e) => setValue("family_name", e.target.value)}
                 placeholder="山田" className={inp} required={isReq} />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-gray-500">名</label>
+              <label className="text-xs text-gray-400">名</label>
               <input value={values["given_name"] ?? ""} onChange={(e) => setValue("given_name", e.target.value)}
                 placeholder="太郎" className={inp} required={isReq} />
             </div>
             {showKana && (
               <>
                 <div className="space-y-1">
-                  <label className="text-xs text-gray-500">
+                  <label className="text-xs text-gray-400">
                     姓（読み）{kanaRequired && <span className="text-red-400 ml-1">*</span>}
                   </label>
                   <input value={values["family_name_reading"] ?? ""} onChange={(e) => setValue("family_name_reading", e.target.value)}
                     placeholder="やまだ" className={inp} required={kanaRequired} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-gray-500">
+                  <label className="text-xs text-gray-400">
                     名（読み）{kanaRequired && <span className="text-red-400 ml-1">*</span>}
                   </label>
                   <input value={values["given_name_reading"] ?? ""} onChange={(e) => setValue("given_name_reading", e.target.value)}
@@ -553,7 +553,7 @@ export default function EntryPage({ params }: Props) {
 
       return (
         <div key={key} className="space-y-2">
-          <p className="text-xs text-gray-400 font-medium">
+          <p className="text-xs text-gray-300 font-medium">
             {label}
             {isReq && <span className="text-red-400 ml-1">*</span>}
           </p>
@@ -568,7 +568,7 @@ export default function EntryPage({ params }: Props) {
           />
           {showKana && !(isMasterSelected && def.hideKanaOnMasterSelect) && (
             <div className="space-y-1">
-              <label className="text-xs text-gray-500">
+              <label className="text-xs text-gray-400">
                 {kanaConfig?.config.custom_label || (getFieldDef("organization_kana")?.label ?? "よみがな")}
                 {kanaRequired && <span className="text-red-400 ml-1">*</span>}
               </label>
@@ -596,7 +596,7 @@ export default function EntryPage({ params }: Props) {
       const showKana = !!kanaConfig;
       return (
         <div key={key} className="space-y-2">
-          <p className="text-xs text-gray-400 font-medium">
+          <p className="text-xs text-gray-300 font-medium">
             {label}
             {isReq && <span className="text-red-400 ml-1">*</span>}
           </p>
@@ -609,7 +609,7 @@ export default function EntryPage({ params }: Props) {
           />
           {showKana && (
             <div className="space-y-1">
-              <label className="text-xs text-gray-500">
+              <label className="text-xs text-gray-400">
                 {kanaConfig?.config.custom_label || (getFieldDef("branch_kana")?.label ?? "よみがな")}
                 {kanaRequired && <span className="text-red-400 ml-1">*</span>}
               </label>
@@ -638,7 +638,7 @@ export default function EntryPage({ params }: Props) {
     // ── 汎用レンダリング ──
     return (
       <div key={key} className="space-y-2">
-        <p className="text-xs text-gray-400 font-medium">
+        <p className="text-xs text-gray-300 font-medium">
           {label}
           {isReq && <span className="text-red-400 ml-1">*</span>}
           {def.unit && <span className="text-gray-500 ml-1">（{def.unit}）</span>}
@@ -702,7 +702,7 @@ export default function EntryPage({ params }: Props) {
             />
             {def.hasConfirmInput && (
               <div className="space-y-1">
-                <label className="text-xs text-gray-500">メールアドレス（確認）</label>
+                <label className="text-xs text-gray-400">メールアドレス（確認）</label>
                 <input
                   type="email"
                   value={emailConfirm}
@@ -939,7 +939,7 @@ export default function EntryPage({ params }: Props) {
     );
   }
 
-  const inp = "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
+  const inp = "w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
 
   return (
     <main className="min-h-screen bg-main-bg text-white p-6">
@@ -964,7 +964,7 @@ export default function EntryPage({ params }: Props) {
           {/* ルール選択（フォールバック: rule_preference フィールドが無い場合） */}
           {!hasRuleField && eventRules.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs text-gray-400 font-medium">エントリーするルール（複数選択可）</p>
+              <p className="text-xs text-gray-300 font-medium">エントリーするルール（複数選択可）</p>
               <div className="flex flex-wrap gap-2">
                 {eventRules.map((r) => {
                   const checked = selectedRules.has(r.id);
