@@ -1050,8 +1050,22 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
         .filter((fc) => !mergedKeys.has(fc.field_key))
         .map((fc) => ({ key: fc.field_key, label: getLabel(fc.field_key) }));
 
+      // 数値として解釈させないフィールド（先頭0落ち防止）
+      const textForceKeys = new Set(
+        fieldConfigs
+          .filter((fc) => {
+            const def = getFieldDef(fc.field_key);
+            return def?.type === "tel";
+          })
+          .map((fc) => fc.field_key)
+      );
+
       // CSV セルエスケープ
-      function csvCell(val: string): string {
+      function csvCell(val: string, forceText?: boolean): string {
+        // スプレッドシートで数値解釈されないよう ="value" 形式にする
+        if (forceText && val) {
+          return `="${val.replace(/"/g, '""')}"`;
+        }
         if (val.includes(",") || val.includes('"') || val.includes("\n")) {
           return `"${val.replace(/"/g, '""')}"`;
         }
@@ -1071,11 +1085,9 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
 
       // データ行
       const rows = entries.map((entry, idx) => {
-        const cells: string[] = [String(idx + 1)];
-
+        const fieldCells: { val: string; forceText: boolean }[] = [];
         for (const { key } of displayFields) {
           let value = getFieldValue(entry, key);
-          // 親フィールドに読み仮名を付加
           if (key === "full_name") {
             const kana = getFieldValue(entry, "kana");
             if (kana) value = `${value}（${kana}）`;
@@ -1091,21 +1103,24 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
           if (key === "birthday") {
             if (entry.age != null) value = `${value}（${entry.age}歳）`;
           }
-          cells.push(value ? formatValue(key, value) : "");
+          fieldCells.push({ val: value ? formatValue(key, value) : "", forceText: textForceKeys.has(key) });
         }
 
-        cells.push(entry.admin_memo ?? "");
-        cells.push(entry.is_withdrawn ? "○" : "");
-        cells.push(entry.is_test ? "○" : "");
-        cells.push(new Date(entry.created_at).toLocaleString("ja-JP"));
-        cells.push(entry.form_version != null ? String(entry.form_version) : "");
+        const suffix = [
+          { val: entry.admin_memo ?? "", forceText: false },
+          { val: entry.is_withdrawn ? "○" : "", forceText: false },
+          { val: entry.is_test ? "○" : "", forceText: false },
+          { val: new Date(entry.created_at).toLocaleString("ja-JP"), forceText: false },
+          { val: entry.form_version != null ? String(entry.form_version) : "", forceText: false },
+        ];
 
-        return cells.map(csvCell).join(",");
+        return [{ val: String(idx + 1), forceText: false }, ...fieldCells, ...suffix]
+          .map((c) => csvCell(c.val, c.forceText)).join(",");
       });
 
       // BOM + CSV
       const bom = "\uFEFF";
-      const csv = bom + headers.map(csvCell).join(",") + "\n" + rows.join("\n");
+      const csv = bom + headers.map((h) => csvCell(h)).join(",") + "\n" + rows.join("\n");
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
