@@ -861,6 +861,7 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
   const [generating, setGenerating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [openMemoId, setOpenMemoId] = useState<string | null>(null);
+  const [openAppMemoId, setOpenAppMemoId] = useState<string | null>(null);
 
   async function refresh() {
     setRefreshing(true);
@@ -957,12 +958,13 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
                       const hasAdminMemo = !!e.admin_memo;
                       const hasAppMemo = !!e.memo;
                       const memoOpen = openMemoId === e.id;
+                      const appMemoOpen = openAppMemoId === e.id;
                       return (
                         <>
-                          <tr key={e.id} className={`border-b border-gray-700 ${e.is_withdrawn ? "opacity-50 bg-gray-900/40" : memoOpen ? "bg-gray-750" : "hover:bg-gray-750"}`}>
+                          <tr key={e.id} className={`border-b border-gray-700 ${e.is_withdrawn ? "opacity-50 bg-gray-900/40" : (memoOpen || appMemoOpen) ? "bg-gray-750" : "hover:bg-gray-750"}`}>
                             <td className="px-2 py-1.5 text-xs text-gray-600 text-right w-7">{i + 1}</td>
                             <td className="px-2 py-1.5 whitespace-nowrap">
-                              <span className={`text-sm font-medium ${e.is_withdrawn ? "line-through text-gray-500" : "text-white"}`}>{entryFullName(e)}</span>
+                              <a href={`/admin/events/${eventId}/entries/${e.id}`} className={`text-sm font-medium hover:underline ${e.is_withdrawn ? "line-through text-gray-500" : "text-white"}`}>{entryFullName(e)}</a>
                               {e.is_withdrawn && <span className="ml-1.5 text-xs bg-orange-900 text-orange-300 px-1.5 py-0.5 rounded">欠場</span>}
                               {currentFormVersion != null && e.form_version != null && e.form_version < currentFormVersion && (
                                 <span className="ml-1.5 text-xs bg-purple-900 text-purple-300 px-1.5 py-0.5 rounded" title={`フォームv${e.form_version}で入力（現在v${currentFormVersion}）`}>旧ver</span>
@@ -1001,18 +1003,30 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
                               </td>
                             )}
                             <td className="px-2 py-1.5">
-                              <button
-                                onClick={() => setOpenMemoId(memoOpen ? null : e.id)}
-                                className={`text-xs px-2 py-0.5 rounded border transition whitespace-nowrap ${
-                                  hasAdminMemo
-                                    ? "bg-yellow-900/60 text-yellow-200 border-yellow-700 hover:bg-yellow-800/60"
-                                    : hasAppMemo
-                                    ? "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
-                                    : "bg-gray-800 text-gray-600 border-gray-700 hover:bg-gray-700 hover:text-gray-400"
-                                }`}
-                              >
-                                {hasAdminMemo ? "📋 メモあり" : hasAppMemo ? "📝 備考あり" : "メモ"}
-                              </button>
+                              <div className="flex gap-1">
+                                {hasAppMemo && (
+                                  <button
+                                    onClick={() => setOpenAppMemoId(appMemoOpen ? null : e.id)}
+                                    className={`text-xs px-2 py-0.5 rounded border transition whitespace-nowrap ${
+                                      appMemoOpen
+                                        ? "bg-gray-600 text-gray-200 border-gray-500"
+                                        : "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
+                                    }`}
+                                  >
+                                    申込備考あり
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => setOpenMemoId(memoOpen ? null : e.id)}
+                                  className={`text-xs px-2 py-0.5 rounded border transition whitespace-nowrap ${
+                                    hasAdminMemo
+                                      ? "bg-yellow-900/60 text-yellow-200 border-yellow-700 hover:bg-yellow-800/60"
+                                      : "bg-gray-800 text-gray-500 border-gray-700 hover:bg-gray-700 hover:text-gray-400"
+                                  }`}
+                                >
+                                  {hasAdminMemo ? "メモあり" : "メモ記入"}
+                                </button>
+                              </div>
                             </td>
                             <td className="px-2 py-1.5 text-right whitespace-nowrap">
                               {processingEntryIds.has(e.id) ? (
@@ -1030,14 +1044,18 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
                               )}
                             </td>
                           </tr>
+                          {appMemoOpen && (
+                            <tr key={`${e.id}-appmemo`} className="bg-gray-900/60 border-b border-gray-700">
+                              <td colSpan={colSpan} className="px-4 py-3">
+                                <p className="text-xs text-gray-400 whitespace-pre-wrap">
+                                  <span className="text-gray-500 font-medium">申込時の備考: </span>{e.memo}
+                                </p>
+                              </td>
+                            </tr>
+                          )}
                           {memoOpen && (
                             <tr key={`${e.id}-memo`} className="bg-gray-900/60 border-b border-gray-700">
                               <td colSpan={colSpan} className="px-4 py-3">
-                                {hasAppMemo && (
-                                  <p className="text-xs text-gray-400 italic mb-2">
-                                    <span className="text-gray-500 not-italic">申込備考: </span>{e.memo}
-                                  </p>
-                                )}
                                 <InlineMemoEditor entryId={e.id} initialValue={hasAdminMemo ? e.admin_memo : null} onSaved={onAdded} />
                               </td>
                             </tr>
