@@ -983,11 +983,11 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
           </div>
         )}
         {(notice.images ?? []).length > 0 && (
-          <div className="flex gap-2 mt-1">
+          <div className="space-y-2 mt-1">
             {(notice.images ?? []).map((img: FormNoticeImage & { public_url?: string }) => (
               <img key={img.id}
                 src={img.public_url ?? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${img.storage_path}`}
-                alt="" className="h-12 rounded border border-gray-600" />
+                alt="" className="w-full rounded-lg" />
             ))}
           </div>
         )}
