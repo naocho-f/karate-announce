@@ -1036,7 +1036,7 @@ function EntryFormUrl({ eventId }: { eventId: string }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     import("qrcode").then((QRCode) => {
-      QRCode.toDataURL(url, { width: 512, margin: 2, color: { dark: "#ffffff", light: "#00000000" } })
+      QRCode.toDataURL(url, { width: 512, margin: 2, color: { dark: "#ffffff", light: "#1f2937" } })
         .then(setQrDataUrl);
     });
   }, [url]);
@@ -1078,7 +1078,7 @@ function EntryFormUrl({ eventId }: { eventId: string }) {
       </div>
       {qrDataUrl && (
         <div className="flex items-center gap-3">
-          <img src={qrDataUrl} alt="QR Code" className="w-24 h-24 rounded bg-white p-1" />
+          <img src={qrDataUrl} alt="QR Code" className="w-24 h-24 rounded" />
           <button onClick={downloadQr} className="text-xs text-blue-400 hover:text-blue-300">
             QRコードをダウンロード
           </button>
