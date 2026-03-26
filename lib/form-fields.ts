@@ -136,14 +136,6 @@ export const FIELD_POOL: FieldPoolItem[] = [
     defaultRequired: true,
     hasConfirmInput: true,
   },
-  {
-    key: "guardian_name",
-    label: "保護者名",
-    type: "text",
-    category: "basic",
-    defaultRequired: false,
-  },
-
   // ═══ B. 所属・経験 ═══
   {
     key: "organization",
@@ -193,20 +185,6 @@ export const FIELD_POOL: FieldPoolItem[] = [
     placeholder: "例: 4級、柔道初段、○○空手3級、キックボクシング2年",
   },
   {
-    key: "match_experience",
-    label: "武道・格闘技の試合経験",
-    type: "select",
-    category: "affiliation",
-    defaultRequired: true,
-    defaultHasOther: true,
-    defaultChoices: [
-      { label: "なし", value: "none" },
-      { label: "1〜3回", value: "1-3" },
-      { label: "4〜10回", value: "4-10" },
-      { label: "11回以上", value: "11+" },
-    ],
-  },
-  {
     key: "memo",
     label: "主催者への要望・備考",
     type: "textarea",
@@ -225,31 +203,6 @@ export const FIELD_POOL: FieldPoolItem[] = [
     defaultRequired: true,
     defaultHasOther: false,
     // 選択肢は event_rules → rules テーブルから動的取得（DB管理フィールド）
-  },
-  {
-    key: "desired_match_count",
-    label: "希望試合数",
-    type: "radio",
-    category: "competition",
-    defaultRequired: true,
-    defaultChoices: [
-      { label: "1試合", value: "1" },
-      { label: "2試合", value: "2" },
-      { label: "3試合", value: "3" },
-      { label: "4試合", value: "4" },
-    ],
-  },
-  {
-    key: "head_butt_preference",
-    label: "頭突きあり/なし希望",
-    type: "checkbox",
-    category: "competition",
-    defaultRequired: true,
-    defaultChoices: [
-      { label: "頭突き有りを希望←投げ技決めたい人おすすめ", value: "with_headbutt" },
-      { label: "頭突き無しを希望←掴み技が苦手な人はこちらが無難", value: "without_headbutt" },
-      { label: "どちらでもよい", value: "either" },
-    ],
   },
   {
     key: "height",
@@ -274,100 +227,6 @@ export const FIELD_POOL: FieldPoolItem[] = [
     placeholder: "例: 65.0",
   },
 
-  // ═══ D. 防具 ═══
-  {
-    key: "equipment_owned",
-    label: "持っている防具",
-    type: "checkbox",
-    category: "equipment",
-    defaultRequired: true,
-    defaultChoices: [
-      { label: "道着（空手着・柔道着・柔術着）※全く袖の無いものは不可【レンタル有】", value: "gi" },
-      { label: "シールド面（前面に直径1cm以上の開口部のないもの）【レンタル有】", value: "shield_mask" },
-      { label: "フィストガード（布製に限る）【レンタル有】", value: "fist_guard" },
-      { label: "レッグガード（布・皮問わず）【レンタル有】", value: "leg_guard" },
-      { label: "ファールカップ（樹脂・金属問わず）【レンタル有】", value: "groin_guard" },
-      { label: "帯（流派問わず布製）【レンタル有】", value: "belt" },
-    ],
-  },
-  {
-    key: "shield_mask",
-    label: "シールド面（直径1cm以上の開口部のないもの）の有無",
-    type: "radio",
-    category: "equipment",
-    defaultRequired: true,
-    defaultHasOther: true,
-    defaultChoices: [
-      { label: "持っているので持参する", value: "own" },
-      { label: "レンタル希望 ¥500", value: "rental" },
-      { label: "市販品を事前購入予定", value: "buy" },
-    ],
-  },
-  {
-    key: "fist_guard",
-    label: "フィストガード（布製限定）の有無",
-    type: "radio",
-    category: "equipment",
-    defaultRequired: true,
-    defaultHasOther: true,
-    defaultChoices: [
-      { label: "持っているので持参する", value: "own" },
-      { label: "レンタル希望 ¥100", value: "rental" },
-      { label: "市販品を事前購入予定", value: "buy" },
-    ],
-  },
-  {
-    key: "leg_guard",
-    label: "レッグガード（布・皮問わず）の有無",
-    type: "radio",
-    category: "equipment",
-    defaultRequired: true,
-    defaultHasOther: true,
-    defaultChoices: [
-      { label: "持っているので持参する", value: "own" },
-      { label: "レンタル希望 ¥100", value: "rental" },
-      { label: "市販品を事前購入予定", value: "buy" },
-    ],
-  },
-  {
-    key: "groin_guard",
-    label: "ファールカップ（樹脂・金属問わず）の有無",
-    type: "radio",
-    category: "equipment",
-    defaultRequired: true,
-    defaultHasOther: true,
-    defaultChoices: [
-      { label: "持っているので持参する", value: "own" },
-      { label: "レンタル希望 ¥100", value: "rental" },
-      { label: "市販品を事前購入予定", value: "buy" },
-    ],
-  },
-  {
-    key: "gi",
-    label: "道着（空手着・柔道着・柔術着）の有無",
-    type: "radio",
-    category: "equipment",
-    defaultRequired: true,
-    defaultHasOther: true,
-    defaultChoices: [
-      { label: "持っているので持参する", value: "own" },
-      { label: "レンタル希望 ¥500", value: "rental" },
-      { label: "市販品を事前購入予定", value: "buy" },
-    ],
-  },
-  {
-    key: "belt",
-    label: "帯の有無",
-    type: "radio",
-    category: "equipment",
-    defaultRequired: true,
-    defaultHasOther: true,
-    defaultChoices: [
-      { label: "持っているので持参する", value: "own" },
-      { label: "レンタル希望 ¥100", value: "rental" },
-      { label: "市販品を事前購入予定", value: "buy" },
-    ],
-  },
 ];
 
 // ──────────────────────────────────────────────
@@ -420,11 +279,101 @@ const FIXED_FIELD_KEYS = new Set([
 
 /** field_key が自由設問（削除可・バッジ表示）かどうかを判定 */
 export function isCustomField(key: string): boolean {
-  if (key.startsWith("custom_")) return true;
-  // FIELD_POOL に存在するが固定項目でないもの（guardian_name, equipment系など）
-  const inPool = FIELD_POOL.some((f) => f.key === key);
-  return inPool && !FIXED_FIELD_KEYS.has(key);
+  return !FIXED_FIELD_KEYS.has(key);
 }
+
+/** FIXED_FIELD_KEYS を外部に公開（def 取得の分岐に使用） */
+export { FIXED_FIELD_KEYS };
+
+/** デフォルトの自由設問定義（フォーム設定初回作成時に custom_field_defs に挿入） */
+export const DEFAULT_CUSTOM_FIELDS: Omit<CustomFieldDef, "id" | "form_config_id" | "created_at">[] = [
+  { field_key: "guardian_name", label: "保護者名", field_type: "text", choices: null, sort_order: 0 },
+  {
+    field_key: "match_experience", label: "武道・格闘技の試合経験", field_type: "select", sort_order: 1,
+    choices: [
+      { label: "なし", value: "none" },
+      { label: "1〜3回", value: "1-3" },
+      { label: "4〜10回", value: "4-10" },
+      { label: "11回以上", value: "11+" },
+    ],
+  },
+  {
+    field_key: "desired_match_count", label: "希望試合数", field_type: "select", sort_order: 2,
+    choices: [
+      { label: "1試合", value: "1" },
+      { label: "2試合", value: "2" },
+      { label: "3試合", value: "3" },
+      { label: "4試合", value: "4" },
+    ],
+  },
+  {
+    field_key: "head_butt_preference", label: "頭突きあり/なし希望", field_type: "checkbox", sort_order: 3,
+    choices: [
+      { label: "頭突き有りを希望←投げ技決めたい人おすすめ", value: "with_headbutt" },
+      { label: "頭突き無しを希望←掴み技が苦手な人はこちらが無難", value: "without_headbutt" },
+      { label: "どちらでもよい", value: "either" },
+    ],
+  },
+  {
+    field_key: "equipment_owned", label: "持っている防具", field_type: "checkbox", sort_order: 4,
+    choices: [
+      { label: "道着（空手着・柔道着・柔術着）※全く袖の無いものは不可【レンタル有】", value: "gi" },
+      { label: "シールド面（前面に直径1cm以上の開口部のないもの）【レンタル有】", value: "shield_mask" },
+      { label: "フィストガード（布製に限る）【レンタル有】", value: "fist_guard" },
+      { label: "レッグガード（布・皮問わず）【レンタル有】", value: "leg_guard" },
+      { label: "ファールカップ（樹脂・金属問わず）【レンタル有】", value: "groin_guard" },
+      { label: "帯（流派問わず布製）【レンタル有】", value: "belt" },
+    ],
+  },
+  {
+    field_key: "shield_mask", label: "シールド面（直径1cm以上の開口部のないもの）の有無", field_type: "select", sort_order: 5,
+    choices: [
+      { label: "持っているので持参する", value: "own" },
+      { label: "レンタル希望 ¥500", value: "rental" },
+      { label: "市販品を事前購入予定", value: "buy" },
+    ],
+  },
+  {
+    field_key: "fist_guard", label: "フィストガード（布製限定）の有無", field_type: "select", sort_order: 6,
+    choices: [
+      { label: "持っているので持参する", value: "own" },
+      { label: "レンタル希望 ¥100", value: "rental" },
+      { label: "市販品を事前購入予定", value: "buy" },
+    ],
+  },
+  {
+    field_key: "leg_guard", label: "レッグガード（布・皮問わず）の有無", field_type: "select", sort_order: 7,
+    choices: [
+      { label: "持っているので持参する", value: "own" },
+      { label: "レンタル希望 ¥100", value: "rental" },
+      { label: "市販品を事前購入予定", value: "buy" },
+    ],
+  },
+  {
+    field_key: "groin_guard", label: "ファールカップ（樹脂・金属問わず）の有無", field_type: "select", sort_order: 8,
+    choices: [
+      { label: "持っているので持参する", value: "own" },
+      { label: "レンタル希望 ¥100", value: "rental" },
+      { label: "市販品を事前購入予定", value: "buy" },
+    ],
+  },
+  {
+    field_key: "gi", label: "道着（空手着・柔道着・柔術着）の有無", field_type: "select", sort_order: 9,
+    choices: [
+      { label: "持っているので持参する", value: "own" },
+      { label: "レンタル希望 ¥500", value: "rental" },
+      { label: "市販品を事前購入予定", value: "buy" },
+    ],
+  },
+  {
+    field_key: "belt", label: "帯の有無", field_type: "select", sort_order: 10,
+    choices: [
+      { label: "持っているので持参する", value: "own" },
+      { label: "レンタル希望 ¥100", value: "rental" },
+      { label: "市販品を事前購入予定", value: "buy" },
+    ],
+  },
+];
 
 /** CustomFieldDef → FieldPoolItem 互換オブジェクトに変換 */
 export function customFieldToPoolItem(def: CustomFieldDef): FieldPoolItem {

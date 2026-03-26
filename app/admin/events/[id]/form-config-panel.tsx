@@ -390,11 +390,11 @@ export function FormConfigPanel({ eventId }: Props) {
           {/* 全フィールド（表示/非表示とも） */}
           {mainFields.map((f, i) => {
             // カスタムフィールドの場合は customFieldDefs から def を生成
-            const def = f.field_key.startsWith("custom_")
+            const def = isCustomField(f.field_key)
               ? (() => { const cd = customFieldDefs.find((d) => d.field_key === f.field_key); return cd ? customFieldToPoolItem(cd) : null; })()
               : getFieldDef(f.field_key);
             if (!def) return null;
-            const kanaField = f.field_key.startsWith("custom_") ? null : fields.find((kf) => {
+            const kanaField = isCustomField(f.field_key) ? null : fields.find((kf) => {
               const kDef = FIELD_POOL.find((p) => p.kanaParent === f.field_key);
               return kDef && kf.field_key === kDef.key;
             });
@@ -424,8 +424,8 @@ export function FormConfigPanel({ eventId }: Props) {
                 onDeleteImage={deleteImage}
                 busyNotices={busyNotices}
                 rules={rules}
-                onDeleteCustom={f.field_key.startsWith("custom_") ? deleteCustomField : undefined}
-                onDuplicateCustom={f.field_key.startsWith("custom_") ? duplicateCustomField : undefined}
+                onDeleteCustom={isCustomField(f.field_key) ? deleteCustomField : undefined}
+                onDuplicateCustom={isCustomField(f.field_key) ? duplicateCustomField : undefined}
               />
             );
           })}

@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
-import { FIELD_POOL } from "@/lib/form-fields";
+import { FIELD_POOL, DEFAULT_CUSTOM_FIELDS } from "@/lib/form-fields";
 
 // ──────────────────────────────────────────────
 // デフォルトフォーム設定（Google Forms の実績フォームを再現）
 // ──────────────────────────────────────────────
 
 /** デフォルトの表示順（key → sort_order）。ここにないものは非表示 */
+/** デフォルトの表示順（FIELD_POOL由来の固定項目のみ） */
 const DEFAULT_FIELD_ORDER: { key: string; visible: boolean }[] = [
   { key: "full_name", visible: true },
   { key: "kana", visible: true },
@@ -19,7 +20,6 @@ const DEFAULT_FIELD_ORDER: { key: string; visible: boolean }[] = [
   { key: "email", visible: true },
   // ↑ ここに承諾書注意書き（form_start ではなく email フィールドに紐づけ）
   { key: "rule_preference", visible: true },
-  { key: "head_butt_preference", visible: true },
   { key: "height", visible: true },
   { key: "weight", visible: true },
   // ↑ ここに体重注意書き
@@ -28,16 +28,22 @@ const DEFAULT_FIELD_ORDER: { key: string; visible: boolean }[] = [
   { key: "branch", visible: true },
   { key: "branch_kana", visible: true },
   { key: "martial_arts_experience", visible: true },
-  { key: "match_experience", visible: true },
-  { key: "equipment_owned", visible: true },
-  { key: "shield_mask", visible: true },
-  { key: "fist_guard", visible: true },
-  { key: "leg_guard", visible: true },
-  { key: "groin_guard", visible: true },
-  { key: "gi", visible: true },
-  { key: "belt", visible: false },         // デフォルト非表示
   { key: "memo", visible: true },
-  { key: "guardian_name", visible: false }, // デフォルト非表示
+];
+
+/** デフォルトの自由設問 表示順・表示/非表示設定 */
+const DEFAULT_CUSTOM_FIELD_ORDER: { key: string; visible: boolean; required: boolean }[] = [
+  { key: "head_butt_preference", visible: true, required: true },
+  { key: "match_experience", visible: true, required: true },
+  { key: "equipment_owned", visible: true, required: true },
+  { key: "shield_mask", visible: true, required: true },
+  { key: "fist_guard", visible: true, required: true },
+  { key: "leg_guard", visible: true, required: true },
+  { key: "groin_guard", visible: true, required: true },
+  { key: "gi", visible: true, required: true },
+  { key: "belt", visible: false, required: true },
+  { key: "desired_match_count", visible: true, required: true },
+  { key: "guardian_name", visible: false, required: false },
 ];
 
 const DEFAULT_SORT_MAP = new Map(DEFAULT_FIELD_ORDER.map((f, i) => [f.key, { sort: i, visible: f.visible }]));
@@ -231,6 +237,33 @@ export async function GET(request: NextRequest) {
     });
     await supabaseAdmin.from("form_field_configs").insert(fieldConfigs);
 
+    // デフォルトの自由設問を custom_field_defs + form_field_configs に挿入
+    const baseSortOrder = fieldConfigs.length;
+    const customDefs = DEFAULT_CUSTOM_FIELDS.map((cf) => ({
+      form_config_id: config!.id,
+      field_key: cf.field_key,
+      label: cf.label,
+      field_type: cf.field_type,
+      choices: cf.choices,
+      sort_order: cf.sort_order,
+    }));
+    await supabaseAdmin.from("custom_field_defs").insert(customDefs);
+
+    const customFieldConfigs = DEFAULT_CUSTOM_FIELDS.map((cf, i) => {
+      const order = DEFAULT_CUSTOM_FIELD_ORDER.find((o) => o.key === cf.field_key);
+      return {
+        form_config_id: config!.id,
+        field_key: cf.field_key,
+        visible: order?.visible ?? true,
+        required: order?.required ?? false,
+        sort_order: baseSortOrder + i,
+        has_other_option: cf.field_key === "match_experience",
+        custom_choices: cf.choices,
+        custom_label: cf.label,
+      };
+    });
+    await supabaseAdmin.from("form_field_configs").insert(customFieldConfigs);
+
     // デフォルトの注意書きを作成
     const defaultNotices = buildDefaultNotices(config.id);
 
@@ -283,11 +316,36 @@ export async function GET(request: NextRequest) {
     .order("sort_order");
 
   // カスタムフィールド定義取得
-  const { data: customFieldDefs } = await supabaseAdmin
+  let { data: customFieldDefs } = await supabaseAdmin
     .from("custom_field_defs")
     .select("*")
     .eq("form_config_id", config.id)
     .order("sort_order");
+
+  // 既存大会の自動補完: form_field_configs にあるが custom_field_defs にない自由設問を補完
+  const existingDefKeys = new Set((customFieldDefs ?? []).map((d) => d.field_key));
+  const fieldKeys = (fields ?? []).map((f) => f.field_key);
+  const missingDefs = DEFAULT_CUSTOM_FIELDS.filter(
+    (cf) => fieldKeys.includes(cf.field_key) && !existingDefKeys.has(cf.field_key)
+  );
+  if (missingDefs.length > 0) {
+    const inserts = missingDefs.map((cf) => ({
+      form_config_id: config.id,
+      field_key: cf.field_key,
+      label: cf.label,
+      field_type: cf.field_type,
+      choices: cf.choices,
+      sort_order: cf.sort_order,
+    }));
+    await supabaseAdmin.from("custom_field_defs").insert(inserts);
+    // 再取得
+    const { data: refreshed } = await supabaseAdmin
+      .from("custom_field_defs")
+      .select("*")
+      .eq("form_config_id", config.id)
+      .order("sort_order");
+    customFieldDefs = refreshed;
+  }
 
   return NextResponse.json({ config, fields: fields ?? [], notices: notices ?? [], customFieldDefs: customFieldDefs ?? [] });
 }
