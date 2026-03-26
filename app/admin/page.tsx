@@ -298,8 +298,8 @@ function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm font-semibold text-white">{entryCounts[e.id]} 件</p>
-                  <p className={`text-xs ${e.entry_closed ? "text-gray-500" : "text-green-400"}`}>
-                    {e.entry_closed ? "締切済" : "受付中"}
+                  <p className={`text-xs ${e.entry_closed || (e.entry_close_at && new Date(e.entry_close_at) <= new Date()) ? "text-gray-500" : "text-green-400"}`}>
+                    {e.entry_closed || (e.entry_close_at && new Date(e.entry_close_at) <= new Date()) ? "締切済" : "受付中"}
                   </p>
                 </div>
                 <Link href={`/admin/events/${e.id}`} className="text-gray-500 hover:text-gray-300 shrink-0 text-sm">

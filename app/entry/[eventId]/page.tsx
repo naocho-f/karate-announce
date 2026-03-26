@@ -1047,7 +1047,10 @@ export default function EntryPage({ params }: Props) {
     );
   }
 
-  if (event.entry_closed) {
+  const isClosed = event.entry_closed ||
+    (event.entry_close_at && new Date(event.entry_close_at) <= new Date());
+
+  if (isClosed) {
     return (
       <main className="min-h-screen bg-main-bg text-white flex items-center justify-center p-6">
         <div className="max-w-sm w-full text-center space-y-4">
@@ -1097,8 +1100,21 @@ export default function EntryPage({ params }: Props) {
   return (
     <main className="min-h-screen bg-main-bg text-white p-6">
       <div className="max-w-md mx-auto">
+        {event.banner_image_path && (
+          <img
+            src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${event.banner_image_path}`}
+            alt={event.name}
+            className="w-full rounded-xl mb-4"
+          />
+        )}
         <h1 className="text-xl font-bold mb-1">{event.name}</h1>
-        <p className="text-sm text-gray-400 mb-6">参加申込フォーム</p>
+        <p className="text-sm text-gray-400 mb-1">参加申込フォーム</p>
+        {event.entry_close_at && !isClosed && (
+          <p className="text-xs text-yellow-400 mb-5">
+            受付期限: {new Date(event.entry_close_at).toLocaleString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tokyo" })}
+          </p>
+        )}
+        {!event.entry_close_at && <div className="mb-5" />}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* フォーム先頭注意書き */}

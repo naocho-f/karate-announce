@@ -53,6 +53,13 @@ export type Event = {
   max_height_diff: number | null;
   court_names: string[] | null;
   entry_closed: boolean;
+  entry_close_at: string | null;
+  banner_image_path: string | null;
+  ogp_image_path: string | null;
+  email_subject_template: string | null;
+  email_body_template: string | null;
+  venue_info: string | null;
+  notification_emails: string[] | null;
   created_at: string;
 };
 

@@ -17,6 +17,11 @@ import { MatchLabelEditor } from "@/components/match-label-editor";
 import Link from "next/link";
 import { FormConfigPanel } from "./form-config-panel";
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+function supabaseStorageUrl(path: string): string {
+  return `${SUPABASE_URL}/storage/v1/object/public/form-notice-images/${path}`;
+}
+
 type Props = { params: Promise<{ id: string }> };
 
 type Pair = {
@@ -79,7 +84,7 @@ export default function EventDetailPage({ params }: Props) {
   const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: null, maxHeightDiff: null });
   const [tournamentMatchFighterIds, setTournamentMatchFighterIds] = useState<Record<string, Set<string>>>({});
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [entrySubTab, setEntrySubTab] = useState<"entries" | "form">("entries");
+  const [entrySubTab, setEntrySubTab] = useState<"entries" | "form" | "email">("entries");
   const initialStepSetRef = useRef(false);
 
   function navigateStep(s: 1 | 2 | 3) {
@@ -92,6 +97,10 @@ export default function EventDetailPage({ params }: Props) {
   const [metaDate, setMetaDate] = useState("");
   const [metaCourtNames, setMetaCourtNames] = useState<string[]>([]);
   const [togglingClosed, setTogglingClosed] = useState(false);
+  const [entryCloseAtLocal, setEntryCloseAtLocal] = useState("");
+  const [savingCloseAt, setSavingCloseAt] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingOgp, setUploadingOgp] = useState(false);
   const [processingEntryIds, setProcessingEntryIds] = useState<Set<string>>(new Set());
   const [processingRuleKeys, setProcessingRuleKeys] = useState<Set<string>>(new Set());
   const [currentFormVersion, setCurrentFormVersion] = useState<number | null>(null);
@@ -107,6 +116,14 @@ export default function EventDetailPage({ params }: Props) {
     setCurrentFormVersion(fc?.version ?? null);
 
     setEvent(e ?? null);
+    // entry_close_at (UTC) → datetime-local 用 JST 文字列
+    if (e?.entry_close_at) {
+      const d = new Date(e.entry_close_at);
+      const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+      setEntryCloseAtLocal(jst.toISOString().slice(0, 16));
+    } else {
+      setEntryCloseAtLocal("");
+    }
     const ruleIds = (er ?? []).map((r) => r.rule_id);
     setEventRuleIds(new Set(ruleIds));
     const entryList = (ents ?? []) as Entry[];
@@ -180,6 +197,55 @@ export default function EventDetailPage({ params }: Props) {
     setTogglingClosed(false);
     if (!res.ok) { alert("受付状態の変更に失敗しました"); return; }
     setEvent((prev) => prev ? { ...prev, entry_closed: newVal } : prev);
+  }
+
+  async function saveEntryCloseAt() {
+    setSavingCloseAt(true);
+    const utc = entryCloseAtLocal ? new Date(entryCloseAtLocal + "+09:00").toISOString() : null;
+    const res = await fetch(`/api/admin/events/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entry_close_at: utc }),
+    });
+    setSavingCloseAt(false);
+    if (!res.ok) { alert("保存に失敗しました"); return; }
+    setEvent((prev) => prev ? { ...prev, entry_close_at: utc } : prev);
+  }
+
+  async function clearEntryCloseAt() {
+    setEntryCloseAtLocal("");
+    setSavingCloseAt(true);
+    const res = await fetch(`/api/admin/events/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entry_close_at: null }),
+    });
+    setSavingCloseAt(false);
+    if (!res.ok) { alert("クリアに失敗しました"); return; }
+    setEvent((prev) => prev ? { ...prev, entry_close_at: null } : prev);
+  }
+
+  async function uploadEventImage(e: React.ChangeEvent<HTMLInputElement>, type: "banner" | "ogp") {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const setLoading = type === "banner" ? setUploadingBanner : setUploadingOgp;
+    setLoading(true);
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`/api/admin/events/${id}/${type}`, { method: "POST", body: form });
+    setLoading(false);
+    if (!res.ok) { alert("アップロードに失敗しました"); return; }
+    const data = await res.json();
+    const key = type === "banner" ? "banner_image_path" : "ogp_image_path";
+    setEvent((prev) => prev ? { ...prev, [key]: data.path } : prev);
+    e.target.value = "";
+  }
+
+  async function deleteEventImage(type: "banner" | "ogp") {
+    const res = await fetch(`/api/admin/events/${id}/${type}`, { method: "DELETE" });
+    if (!res.ok) { alert("削除に失敗しました"); return; }
+    const key = type === "banner" ? "banner_image_path" : "ogp_image_path";
+    setEvent((prev) => prev ? { ...prev, [key]: null } : prev);
   }
 
   async function toggleEntryRule(entryId: string, ruleId: string) {
@@ -270,7 +336,7 @@ export default function EventDetailPage({ params }: Props) {
         <div className="flex items-center gap-3 mb-4 flex-wrap">
           <Link href="/admin?tab=events" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
           <h1 className="text-2xl font-bold">{event.name}</h1>
-          {event.entry_closed ? (
+          {event.entry_closed || (event.entry_close_at && new Date(event.entry_close_at) <= new Date()) ? (
             <span className="text-xs bg-red-900 text-red-300 px-2 py-0.5 rounded">受付終了</span>
           ) : (
             <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">受付中</span>
@@ -336,8 +402,8 @@ export default function EventDetailPage({ params }: Props) {
         {step === 1 && (
           <div className="space-y-4">
             {/* サブタブ: 参加者管理 / フォーム設定 */}
-            <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
-              {([["entries", "参加者管理"], ["form", "フォーム設定"]] as const).map(([key, label]) => (
+            <div className="grid grid-cols-3 gap-1 bg-gray-800 rounded-lg p-1">
+              {([["entries", "参加者管理"], ["form", "フォーム設定"], ["email", "メール設定"]] as const).map(([key, label]) => (
                 <button
                   key={key}
                   onClick={() => setEntrySubTab(key)}
@@ -352,6 +418,11 @@ export default function EventDetailPage({ params }: Props) {
 
             {/* フォーム設定タブ */}
             {entrySubTab === "form" && <FormConfigPanel eventId={id} />}
+
+            {/* メール設定タブ */}
+            {entrySubTab === "email" && (
+              <EmailSettingsPanel event={event} onUpdate={(updates) => setEvent((prev) => prev ? { ...prev, ...updates } : prev)} />
+            )}
 
             {/* 参加者管理タブ */}
             {entrySubTab === "entries" && (<>
@@ -372,6 +443,81 @@ export default function EventDetailPage({ params }: Props) {
                 </button>
               </div>
               <EntryFormUrl eventId={id} />
+              {/* 受付自動終了日時 */}
+              <div className="mt-3 flex items-center gap-3 flex-wrap">
+                <label className="text-sm text-gray-400 shrink-0">受付自動終了:</label>
+                <input
+                  type="datetime-local"
+                  className="bg-gray-700 text-white text-sm rounded px-2 py-1 border border-gray-600"
+                  value={entryCloseAtLocal}
+                  onChange={(e) => setEntryCloseAtLocal(e.target.value)}
+                />
+                <button
+                  onClick={saveEntryCloseAt}
+                  disabled={savingCloseAt}
+                  className="px-3 py-1 text-sm bg-blue-700 hover:bg-blue-600 rounded disabled:opacity-50"
+                >
+                  {savingCloseAt ? "保存中..." : "保存"}
+                </button>
+                {entryCloseAtLocal && (
+                  <button
+                    onClick={clearEntryCloseAt}
+                    disabled={savingCloseAt}
+                    className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded text-gray-300 disabled:opacity-50"
+                  >
+                    クリア
+                  </button>
+                )}
+                {event.entry_close_at && (
+                  <span className="text-xs text-gray-500">
+                    ({new Date(event.entry_close_at) <= new Date() ? "期限切れ" : "予約済み"})
+                  </span>
+                )}
+              </div>
+              {/* バナー画像 */}
+              <div className="mt-3 space-y-2">
+                <p className="text-sm text-gray-400">バナー画像（フォーム上部に表示）</p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <label className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded cursor-pointer">
+                    画像を選択
+                    <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => uploadEventImage(e, "banner")} />
+                  </label>
+                  {uploadingBanner && <span className="text-xs text-gray-400">アップロード中...</span>}
+                  {event.banner_image_path && (
+                    <>
+                      <img
+                        src={supabaseStorageUrl(event.banner_image_path)}
+                        alt="バナー"
+                        className="h-16 rounded object-cover"
+                      />
+                      <button onClick={() => deleteEventImage("banner")} className="text-xs text-red-400 hover:text-red-300">削除</button>
+                    </>
+                  )}
+                </div>
+              </div>
+              {/* OGP画像 */}
+              <div className="mt-3 space-y-2">
+                <p className="text-sm text-gray-400">OGP画像（SNS共有時のサムネイル、推奨 1200x630）</p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <label className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded cursor-pointer">
+                    画像を選択
+                    <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => uploadEventImage(e, "ogp")} />
+                  </label>
+                  {uploadingOgp && <span className="text-xs text-gray-400">アップロード中...</span>}
+                  {event.ogp_image_path ? (
+                    <>
+                      <img
+                        src={supabaseStorageUrl(event.ogp_image_path)}
+                        alt="OGP"
+                        className="h-16 rounded object-cover"
+                      />
+                      <button onClick={() => deleteEventImage("ogp")} className="text-xs text-red-400 hover:text-red-300">削除</button>
+                    </>
+                  ) : event.banner_image_path ? (
+                    <span className="text-xs text-gray-500">未設定（バナー画像を使用）</span>
+                  ) : null}
+                </div>
+              </div>
             </div>
             <EntriesSection
               eventId={id}
@@ -761,13 +907,139 @@ function DashboardCard({ label, total, unassigned, tournamentCount, oneMatchCoun
   );
 }
 
+// ── メール設定パネル ─────────────────────────────────────────────────────
+
+function EmailSettingsPanel({ event, onUpdate }: { event: Event; onUpdate: (u: Partial<Event>) => void }) {
+  const [subjectTemplate, setSubjectTemplate] = useState(event.email_subject_template ?? "");
+  const [bodyTemplate, setBodyTemplate] = useState(event.email_body_template ?? "");
+  const [venueInfo, setVenueInfo] = useState(event.venue_info ?? "");
+  const [notificationEmails, setNotificationEmails] = useState((event.notification_emails ?? []).join("\n"));
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    const emails = notificationEmails.split("\n").map((e) => e.trim()).filter(Boolean);
+    const body: Record<string, unknown> = {
+      email_subject_template: subjectTemplate || null,
+      email_body_template: bodyTemplate || null,
+      venue_info: venueInfo || null,
+      notification_emails: emails.length > 0 ? emails : null,
+    };
+    const res = await fetch(`/api/admin/events/${event.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    setSaving(false);
+    if (!res.ok) { alert("保存に失敗しました"); return; }
+    onUpdate(body as Partial<Event>);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  return (
+    <div className="bg-gray-800 rounded-xl p-4 space-y-4">
+      <h2 className="font-semibold text-gray-200">確認メール設定</h2>
+      <p className="text-xs text-gray-400">
+        申込完了時に申込者へ確認メールを送信します。RESEND_API_KEY が未設定の場合、メールは送信されません。
+      </p>
+
+      <div className="space-y-1">
+        <label className="text-sm text-gray-400">管理者通知メールアドレス（BCC、1行1アドレス）</label>
+        <textarea
+          rows={3}
+          className="w-full bg-gray-700 text-white text-sm rounded px-3 py-2 border border-gray-600"
+          value={notificationEmails}
+          onChange={(e) => setNotificationEmails(e.target.value)}
+          placeholder="admin@example.com&#10;manager@example.com"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-sm text-gray-400">件名テンプレート</label>
+        <input
+          type="text"
+          className="w-full bg-gray-700 text-white text-sm rounded px-3 py-2 border border-gray-600"
+          value={subjectTemplate}
+          onChange={(e) => setSubjectTemplate(e.target.value)}
+          placeholder="【{{event_name}}】参加申込を受け付けました"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-sm text-gray-400">会場情報</label>
+        <textarea
+          rows={3}
+          className="w-full bg-gray-700 text-white text-sm rounded px-3 py-2 border border-gray-600"
+          value={venueInfo}
+          onChange={(e) => setVenueInfo(e.target.value)}
+          placeholder="〇〇体育館 2F アリーナ&#10;住所: ..."
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-sm text-gray-400">本文テンプレート</label>
+        <textarea
+          rows={12}
+          className="w-full bg-gray-700 text-white text-sm rounded px-3 py-2 border border-gray-600 font-mono"
+          value={bodyTemplate}
+          onChange={(e) => setBodyTemplate(e.target.value)}
+          placeholder="{{participant_name}} 様&#10;&#10;{{event_name}} への参加申込を受け付けました。..."
+        />
+      </div>
+
+      <div className="space-y-1">
+        <p className="text-xs text-gray-500">利用可能な変数:</p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            ["{{participant_name}}", "申込者名"],
+            ["{{event_name}}", "大会名"],
+            ["{{event_date}}", "開催日"],
+            ["{{venue_info}}", "会場情報"],
+            ["{{entry_details}}", "申込内容"],
+            ["{{submission_date}}", "申込日時"],
+          ].map(([key, desc]) => (
+            <span key={key} className="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">
+              <code className="text-blue-400">{key}</code> {desc}
+            </span>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500 mt-1">
+          条件ブロック: {"{{#key}}...{{/key}}"} — 値がある場合のみ表示
+        </p>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={save}
+          disabled={saving}
+          className="px-4 py-2 bg-blue-700 hover:bg-blue-600 rounded-lg text-sm font-medium disabled:opacity-50"
+        >
+          {saving ? "保存中..." : "保存"}
+        </button>
+        {saved && <span className="text-sm text-green-400">保存しました</span>}
+      </div>
+    </div>
+  );
+}
+
 // ── エントリーフォーム URL ────────────────────────────────────────────────
 
 function EntryFormUrl({ eventId }: { eventId: string }) {
   const [copied, setCopied] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const url = typeof window !== "undefined"
     ? `${window.location.origin}/entry/${eventId}`
     : `/entry/${eventId}`;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    import("qrcode").then((QRCode) => {
+      QRCode.toDataURL(url, { width: 512, margin: 2, color: { dark: "#ffffff", light: "#00000000" } })
+        .then(setQrDataUrl);
+    });
+  }, [url]);
 
   function copy() {
     navigator.clipboard.writeText(url).then(() => {
@@ -776,8 +1048,16 @@ function EntryFormUrl({ eventId }: { eventId: string }) {
     });
   }
 
+  function downloadQr() {
+    if (!qrDataUrl) return;
+    const a = document.createElement("a");
+    a.href = qrDataUrl;
+    a.download = `entry-form-qr-${eventId}.png`;
+    a.click();
+  }
+
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs text-gray-400">参加申込フォーム URL</span>
         <a href={`/entry/${eventId}`} target="_blank" rel="noopener noreferrer"
@@ -796,6 +1076,14 @@ function EntryFormUrl({ eventId }: { eventId: string }) {
           {copied ? "コピー済 ✓" : "コピー"}
         </button>
       </div>
+      {qrDataUrl && (
+        <div className="flex items-center gap-3">
+          <img src={qrDataUrl} alt="QR Code" className="w-24 h-24 rounded bg-white p-1" />
+          <button onClick={downloadQr} className="text-xs text-blue-400 hover:text-blue-300">
+            QRコードをダウンロード
+          </button>
+        </div>
+      )}
     </div>
   );
 }

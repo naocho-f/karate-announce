@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-26（UI表記を「エントリー」→「参加者/参加申込」に統一）
+> 最終更新: 2026-03-26（受付自動終了・バナー画像・OGP・QRコード・確認メール機能を追加）
 
 ---
 
@@ -43,6 +43,22 @@
 ### 3.2 参加申込フォーム (`/entry/[eventId]`)
 
 参加申し込みフォーム。**フォーム設定に基づいて動的にレンダリング**される。
+
+**動的OGPメタデータ**
+- `app/entry/[eventId]/layout.tsx` で `generateMetadata()` を実装
+- og:title: `{大会名} - 参加申込`、og:description: `{大会名}の参加申込フォーム（{開催日}）`
+- og:image: OGP画像 → バナー画像 → なし（優先順位でフォールバック）
+- LINE/Twitter等でURL共有時にプレビュー表示
+
+**バナー画像（大会ポスター）**
+- フォーム上部に画面幅で大きく表示（`w-full rounded-xl`）
+- 管理者がイベントごとにアップロード（`events.banner_image_path`）
+- Supabase Storage `form-notice-images` バケット内 `event-banners/{eventId}/` に保存
+- API: `POST/DELETE /api/admin/events/[id]/banner`
+
+**受付期限表示**
+- `events.entry_close_at` が設定されている場合、フォームヘッダーに「受付期限: YYYY/MM/DD HH:MM」を黄色テキストで表示
+- 期限切れの場合は受付終了画面（🔒）を表示
 
 **動的フォーム**
 - 管理者がステップ①のフォーム設定タブで項目の表示/非表示・必須/任意を設定
@@ -212,7 +228,7 @@
 
 #### ステップ① 参加者管理
 
-サブタブ構成: 「参加者管理」「フォーム設定」
+サブタブ構成: 「参加者管理」「フォーム設定」「メール設定」
 
 **フォーム設定タブ（`FormConfigPanel`）**
 - **フォームプレビュー型UI**: 実際の参加申込フォームに近い見た目で項目を表示し、その場で設定変更が可能
@@ -240,6 +256,19 @@
 - **公開**: 「公開する」ボタンでバージョンをインクリメントして `is_ready=true` に設定
 - 参加者が既にいる状態でも設定変更可能
 
+**メール設定タブ（`EmailSettingsPanel`）**
+- **確認メール送信**: 参加申込完了時に申込者へ確認メールを自動送信（Resend使用）
+  - 送信条件: `RESEND_API_KEY` が設定済み かつ 申込者がメールアドレスを入力済み
+  - 送信は fire-and-forget（メール送信失敗でも申込は成功する）
+  - 送信元: `RESEND_FROM_EMAIL` 環境変数 or デフォルト `onboarding@resend.dev`
+- **管理者通知メールアドレス**: イベントごとに `events.notification_emails`（text[]）を設定。BCCで管理者にも送信
+- **件名テンプレート**: `events.email_subject_template`。デフォルト: `【{{event_name}}】参加申込を受け付けました`
+- **本文テンプレート**: `events.email_body_template`。デフォルトテンプレートあり
+- **会場情報**: `events.venue_info`。テンプレート変数 `{{venue_info}}` で本文に挿入
+- **テンプレート変数**: `{{participant_name}}`, `{{event_name}}`, `{{event_date}}`, `{{venue_info}}`, `{{entry_details}}`, `{{submission_date}}`
+- **条件ブロック**: `{{#key}}...{{/key}}` — 値がある場合のみ表示
+- テンプレート処理: `lib/email-template.ts`
+
 **参加者管理タブ**
 - **参加申込フォーム URL** 表示（公開フォームへのリンク）
 - **参加受付切り替えボタン**: 「受付中」「受付終了」をワンクリックでトグル
@@ -248,6 +277,16 @@
   - 管理者が自由に切り替え可能
   - 受付終了中は公開フォーム (`/entry/[eventId]`) に 🔒 ロック画面を表示
   - 受付終了中は `/api/public/entry` が 403 を返し送信を拒否
+- **受付自動終了**: `events.entry_close_at`（timestamptz）を設定すると、指定日時に自動で受付終了
+  - cronは使わず、リクエスト時に判定: `entry_closed === true` OR `now() > entry_close_at` → 受付終了
+  - datetime-local 入力 + 保存/クリアボタン。JST→UTC変換して保存
+  - 期限切れ/予約済みのステータス表示あり
+- **バナー画像/OGP画像アップロード**: 参加受付セクション内に画像アップロードUI
+  - バナー画像: エントリーフォーム上部に表示される大会ポスター
+  - OGP画像: SNS共有時のサムネイル（推奨1200x630）。未設定時はバナー画像をフォールバック
+  - API: `POST/DELETE /api/admin/events/[id]/banner` および `/api/admin/events/[id]/ogp`
+- **QRコード**: 参加申込フォームURLセクションにQRコードプレビュー + PNGダウンロードボタンを表示
+  - クライアントサイドで `qrcode` ライブラリを使用して生成（API不要）
 - **参加者一覧**（`EntriesSection`）
   - 番号・氏名・所属・体格情報・ルール設定・メモ
   - **旧バージョンマーク**: フォーム設定更新後に古いバージョンで入力された参加者に「旧ver」バッジ（紫）を表示。フォーム設定導入前の参加者にも灰色の「旧ver」バッジを表示
@@ -390,6 +429,13 @@ events (
   max_height_diff NUMERIC,    -- 身長差上限 (cm)
   court_names TEXT[],         -- コートごとの表示名（例: ["Aコート", "Bコート"]）
   entry_closed BOOLEAN NOT NULL DEFAULT false,  -- エントリー受付締め切りフラグ
+  entry_close_at TIMESTAMPTZ,                  -- 受付自動終了日時（NULLなら無効）
+  banner_image_path TEXT,                      -- バナー画像 Supabase Storage パス
+  ogp_image_path TEXT,                         -- OGP画像パス（未設定時はバナー画像にフォールバック）
+  email_subject_template TEXT,                 -- 確認メール件名テンプレート
+  email_body_template TEXT,                    -- 確認メール本文テンプレート
+  venue_info TEXT,                             -- 会場情報（メールテンプレート変数）
+  notification_emails TEXT[],                  -- 管理者通知メールアドレス
   created_at TIMESTAMPTZ
 )
 
@@ -587,6 +633,8 @@ form_notice_images (
 | DELETE | `/api/admin/tournaments/[id]` | トーナメント削除 |
 | PATCH | `/api/admin/matches/[id]` | マッチ更新（管理者） |
 | POST | `/api/admin/matches/[id]/replace` | マッチの選手差し替え（`{ slot, entry_id }`） |
+| POST/DELETE | `/api/admin/events/[id]/banner` | バナー画像アップロード/削除 |
+| POST/DELETE | `/api/admin/events/[id]/ogp` | OGP画像アップロード/削除 |
 
 ### 5.2 コート用 API（認証不要）
 
@@ -853,3 +901,5 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 | `OPENAI_API_KEY` | OpenAI API キー | サーバー (TTS API) |
 | `ADMIN_USERNAME` | 管理者ユーザー名（未設定時は `"admin"`） | サーバー (認証) |
 | `ADMIN_PASSWORD` | 管理者パスワード（未設定時はローカル開発として認証スキップ） | サーバー (認証) |
+| `RESEND_API_KEY` | Resend メール送信 API キー（未設定時はメール送信をスキップ） | サーバー (メール) |
+| `RESEND_FROM_EMAIL` | メール送信元アドレス（未設定時は `onboarding@resend.dev`） | サーバー (メール) |
