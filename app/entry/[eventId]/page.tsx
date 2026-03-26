@@ -89,7 +89,7 @@ function NoticeRenderer({ notice, consents, onConsent }: {
   onConsent: (noticeId: string, checked: boolean) => void;
 }) {
   return (
-    <div className="bg-gray-800/30 border-l-2 border-yellow-600/40 rounded-r-lg pl-3 pr-2 py-2 space-y-2">
+    <div id={`field-consent_${notice.id}`} className="bg-gray-800/30 border-l-2 border-yellow-600/40 rounded-r-lg pl-3 pr-2 py-2 space-y-2">
       {/* テキスト */}
       {notice.text_content && (
         <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">
@@ -184,15 +184,25 @@ export default function EntryPage({ params }: Props) {
   // メール確認用
   const [emailConfirm, setEmailConfirm] = useState("");
 
+  // バリデーションエラー（フィールドキー → メッセージ）
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   // 流派・道場サジェストデータ
   const [dojoMaster, setDojoMaster] = useState<{ name: string; name_reading: string | null }[]>([]);
 
   const setValue = useCallback((key: string, val: string) => {
     setValues((prev) => ({ ...prev, [key]: val }));
+    setFieldErrors((prev) => { if (!prev[key]) return prev; const next = { ...prev }; delete next[key]; return next; });
   }, []);
 
   const setMultiValue = useCallback((key: string, val: Set<string>) => {
     setMultiValues((prev) => ({ ...prev, [key]: val }));
+    setFieldErrors((prev) => { if (!prev[key]) return prev; const next = { ...prev }; delete next[key]; return next; });
+  }, []);
+
+  const handleConsent = useCallback((id: string, checked: boolean) => {
+    setConsents((prev) => ({ ...prev, [id]: checked }));
+    if (checked) setFieldErrors((prev) => { const k = `consent_${id}`; if (!prev[k]) return prev; const next = { ...prev }; delete next[k]; return next; });
   }, []);
 
   // ── イベント情報取得 ──
@@ -356,6 +366,50 @@ export default function EntryPage({ params }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values, multiValues, consents, submitting, ageConflict, emailMismatch, emailConfirm, visibleFields, notices]);
 
+  // ── バリデーション実行 ──
+  function validate(): boolean {
+    const errors: Record<string, string> = {};
+
+    for (const { config, def } of visibleFields) {
+      if (!isFieldFilled(config, def)) {
+        const label = config.custom_label || def.label;
+        errors[def.key] = `${label}は必須です`;
+      }
+    }
+
+    // メール確認
+    if (emailMismatch) {
+      errors["email"] = "メールアドレスが一致しません";
+    }
+    const emailField = visibleFields.find((f) => f.def.key === "email");
+    if (emailField && emailField.config.required && emailField.def.hasConfirmInput && !emailConfirm.trim()) {
+      errors["email"] = errors["email"] || "確認用メールアドレスを入力してください";
+    }
+
+    // 年齢矛盾
+    if (ageConflict) {
+      errors["birthday"] = ageConflict;
+    }
+
+    // 同意チェック
+    for (const n of notices) {
+      if (n.require_consent && !consents[n.id]) {
+        errors[`consent_${n.id}`] = `「${n.consent_label || "上記に同意します"}」にチェックしてください`;
+      }
+    }
+
+    setFieldErrors(errors);
+
+    // 最初のエラー箇所にスクロール
+    if (Object.keys(errors).length > 0) {
+      const firstKey = Object.keys(errors)[0];
+      const el = document.getElementById(`field-${firstKey}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      return false;
+    }
+    return true;
+  }
+
   // ── 送信ペイロード構築 ──
   function buildPayload() {
     const entry: Record<string, unknown> = { event_id: eventId };
@@ -427,7 +481,8 @@ export default function EntryPage({ params }: Props) {
 
   async function handleSubmit(ev: React.FormEvent) {
     ev.preventDefault();
-    if (!canSubmit) return;
+    if (submitting) return;
+    if (!validate()) return;
     setSubmitting(true);
     setError("");
 
@@ -503,7 +558,7 @@ export default function EntryPage({ params }: Props) {
       const kanaRequired = kanaConfig?.config.required ?? false;
       const showKana = !!kanaConfig;
       return (
-        <div key={key} className="space-y-2">
+        <div key={key} id={`field-${key}`} className="space-y-2">
           <p className="text-xs text-gray-300 font-medium">
             {label}
             {isReq && <span className="text-red-400 ml-1">*</span>}
@@ -512,12 +567,12 @@ export default function EntryPage({ params }: Props) {
             <div className="space-y-1">
               <label className="text-xs text-gray-400">姓</label>
               <input value={values["family_name"] ?? ""} onChange={(e) => setValue("family_name", e.target.value)}
-                placeholder="山田" className={inp} required={isReq} />
+                placeholder="山田" className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`} required={isReq} />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-gray-400">名</label>
               <input value={values["given_name"] ?? ""} onChange={(e) => setValue("given_name", e.target.value)}
-                placeholder="太郎" className={inp} required={isReq} />
+                placeholder="太郎" className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`} required={isReq} />
             </div>
             {showKana && (
               <>
@@ -526,20 +581,22 @@ export default function EntryPage({ params }: Props) {
                     姓（読み）{kanaRequired && <span className="text-red-400 ml-1">*</span>}
                   </label>
                   <input value={values["family_name_reading"] ?? ""} onChange={(e) => setValue("family_name_reading", e.target.value)}
-                    placeholder="やまだ" className={inp} required={kanaRequired} />
+                    placeholder="やまだ" className={`${inp} ${fieldErrors["kana"] ? "border-red-500" : ""}`} required={kanaRequired} />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-gray-400">
                     名（読み）{kanaRequired && <span className="text-red-400 ml-1">*</span>}
                   </label>
                   <input value={values["given_name_reading"] ?? ""} onChange={(e) => setValue("given_name_reading", e.target.value)}
-                    placeholder="たろう" className={inp} required={kanaRequired} />
+                    placeholder="たろう" className={`${inp} ${fieldErrors["kana"] ? "border-red-500" : ""}`} required={kanaRequired} />
                 </div>
               </>
             )}
           </div>
           {renderFieldNotices(key)}
           {showKana && renderFieldNotices("kana")}
+          {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
+          {fieldErrors["kana"] && <p className="text-xs text-red-400">{fieldErrors["kana"]}</p>}
         </div>
       );
     }
@@ -555,7 +612,7 @@ export default function EntryPage({ params }: Props) {
       const orgValue = values["organization"] ?? "";
 
       return (
-        <div key={key} className="space-y-2">
+        <div key={key} id={`field-${key}`} className="space-y-2">
           <p className="text-xs text-gray-300 font-medium">
             {label}
             {isReq && <span className="text-red-400 ml-1">*</span>}
@@ -586,6 +643,7 @@ export default function EntryPage({ params }: Props) {
           )}
           {renderFieldNotices(key)}
           {showKana && renderFieldNotices("organization_kana")}
+          {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
         </div>
       );
     }
@@ -598,7 +656,7 @@ export default function EntryPage({ params }: Props) {
       const kanaRequired = kanaConfig?.config.required ?? false;
       const showKana = !!kanaConfig;
       return (
-        <div key={key} className="space-y-2">
+        <div key={key} id={`field-${key}`} className="space-y-2">
           <p className="text-xs text-gray-300 font-medium">
             {label}
             {isReq && <span className="text-red-400 ml-1">*</span>}
@@ -607,7 +665,7 @@ export default function EntryPage({ params }: Props) {
             value={values[key] ?? ""}
             onChange={(e) => setValue(key, e.target.value)}
             placeholder={def.placeholder}
-            className={inp}
+            className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`}
             required={isReq}
           />
           {showKana && (
@@ -627,6 +685,7 @@ export default function EntryPage({ params }: Props) {
           )}
           {renderFieldNotices(key)}
           {showKana && renderFieldNotices("branch_kana")}
+          {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
         </div>
       );
     }
@@ -647,7 +706,7 @@ export default function EntryPage({ params }: Props) {
         return age;
       })();
       return (
-        <div key={key} className="space-y-2">
+        <div key={key} id={`field-${key}`} className="space-y-2">
           <p className="text-xs text-gray-300 font-medium">
             {label}
             {isReq && <span className="text-red-400 ml-1">*</span>}
@@ -672,7 +731,7 @@ export default function EntryPage({ params }: Props) {
                     setValue("age", String(age));
                   }
                 }}
-                className={inp}
+                className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`}
                 required={isReq}
               />
             </div>
@@ -691,6 +750,7 @@ export default function EntryPage({ params }: Props) {
             <p className="text-xs text-red-400">{ageConflict}</p>
           )}
           {renderFieldNotices(key)}
+          {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
         </div>
       );
     }
@@ -702,8 +762,9 @@ export default function EntryPage({ params }: Props) {
     }
 
     // ── 汎用レンダリング ──
+    const hasError = !!fieldErrors[key];
     return (
-      <div key={key} className="space-y-2">
+      <div key={key} id={`field-${key}`} className="space-y-2">
         <p className="text-xs text-gray-300 font-medium">
           {label}
           {isReq && <span className="text-red-400 ml-1">*</span>}
@@ -715,7 +776,7 @@ export default function EntryPage({ params }: Props) {
             value={values[key] ?? ""}
             onChange={(e) => setValue(key, e.target.value)}
             placeholder={def.placeholder}
-            className={inp}
+            className={`${inp} ${hasError ? "border-red-500" : ""}`}
             required={isReq}
             maxLength={def.maxLength}
           />
@@ -727,7 +788,7 @@ export default function EntryPage({ params }: Props) {
             onChange={(e) => setValue(key, e.target.value)}
             placeholder={def.placeholder}
             rows={3}
-            className={`${inp} resize-none`}
+            className={`${inp} resize-none ${hasError ? "border-red-500" : ""}`}
             required={isReq}
             maxLength={def.maxLength}
           />
@@ -740,7 +801,7 @@ export default function EntryPage({ params }: Props) {
             onChange={(e) => setValue(key, e.target.value)}
             placeholder={def.placeholder}
             step={def.step}
-            className={`${inp} ${key === "age" && ageConflict ? "border-red-500" : ""}`}
+            className={`${inp} ${hasError || (key === "age" && ageConflict) ? "border-red-500" : ""}`}
             required={isReq}
           />
         )}
@@ -751,7 +812,7 @@ export default function EntryPage({ params }: Props) {
             value={values[key] ?? ""}
             onChange={(e) => setValue(key, e.target.value)}
             placeholder={def.placeholder}
-            className={inp}
+            className={`${inp} ${hasError ? "border-red-500" : ""}`}
             required={isReq}
           />
         )}
@@ -763,7 +824,7 @@ export default function EntryPage({ params }: Props) {
               value={values[key] ?? ""}
               onChange={(e) => setValue(key, e.target.value)}
               placeholder={def.placeholder || "example@mail.com"}
-              className={inp}
+              className={`${inp} ${hasError ? "border-red-500" : ""}`}
               required={isReq}
             />
             {def.hasConfirmInput && (
@@ -774,7 +835,7 @@ export default function EntryPage({ params }: Props) {
                   value={emailConfirm}
                   onChange={(e) => setEmailConfirm(e.target.value)}
                   placeholder="もう一度入力してください"
-                  className={`${inp} ${emailMismatch ? "border-red-500" : ""}`}
+                  className={`${inp} ${emailMismatch || hasError ? "border-red-500" : ""}`}
                   required={isReq}
                 />
                 {emailMismatch && (
@@ -790,7 +851,7 @@ export default function EntryPage({ params }: Props) {
             type="date"
             value={values[key] ?? ""}
             onChange={(e) => setValue(key, e.target.value)}
-            className={inp}
+            className={`${inp} ${hasError ? "border-red-500" : ""}`}
             required={isReq}
           />
         )}
@@ -799,7 +860,7 @@ export default function EntryPage({ params }: Props) {
           <select
             value={values[key] ?? ""}
             onChange={(e) => setValue(key, e.target.value)}
-            className={inp}
+            className={`${inp} ${hasError ? "border-red-500" : ""}`}
             required={isReq}
           >
             <option value="">選択してください</option>
@@ -919,6 +980,8 @@ export default function EntryPage({ params }: Props) {
         )}
 
         {renderFieldNotices(key)}
+
+        {hasError && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
       </div>
     );
   }
@@ -933,7 +996,7 @@ export default function EntryPage({ params }: Props) {
             key={n.id}
             notice={n}
             consents={consents}
-            onConsent={(id, checked) => setConsents((prev) => ({ ...prev, [id]: checked }))}
+            onConsent={handleConsent}
           />
         ))}
       </>
@@ -1020,7 +1083,7 @@ export default function EntryPage({ params }: Props) {
               key={n.id}
               notice={n}
               consents={consents}
-              onConsent={(id, checked) => setConsents((prev) => ({ ...prev, [id]: checked }))}
+              onConsent={handleConsent}
             />
           ))}
 
@@ -1059,7 +1122,7 @@ export default function EntryPage({ params }: Props) {
               key={n.id}
               notice={n}
               consents={consents}
-              onConsent={(id, checked) => setConsents((prev) => ({ ...prev, [id]: checked }))}
+              onConsent={handleConsent}
             />
           ))}
 
@@ -1067,10 +1130,24 @@ export default function EntryPage({ params }: Props) {
             <p className="text-sm text-red-400 bg-red-900/30 rounded-lg px-3 py-2">{error}</p>
           )}
 
+          {/* バリデーションエラーサマリー */}
+          {Object.keys(fieldErrors).length > 0 && (
+            <div className="bg-red-900/30 border border-red-500/40 rounded-lg px-3 py-2 space-y-1">
+              <p className="text-xs font-bold text-red-400">入力内容を確認してください</p>
+              {Object.values(fieldErrors).map((msg, i) => (
+                <p key={i} className="text-xs text-red-400/80">・{msg}</p>
+              ))}
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={!canSubmit}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-3 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2"
+            disabled={submitting}
+            className={`w-full py-3 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${
+              canSubmit
+                ? "bg-blue-600 hover:bg-blue-500 text-white"
+                : "bg-blue-600/60 text-white/80"
+            } disabled:opacity-40`}
           >
             {submitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
             {submitting ? "送信中..." : "エントリーする"}
