@@ -5,8 +5,9 @@ export const dynamic = "force-dynamic";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import type { Entry, Event, Fighter, Match, Tournament, Rule } from "@/lib/types";
+import type { Entry, Event, Fighter, Match, Tournament, Rule, CustomFieldDef } from "@/lib/types";
 import { entryFullName } from "@/lib/types";
+import { getFieldDef, isCustomField } from "@/lib/form-fields";
 import {
   checkCompatibility,
   COMPAT_COLORS, COMPAT_LABEL, type CompatibilityLevel, type MismatchSettings,
@@ -374,6 +375,7 @@ export default function EventDetailPage({ params }: Props) {
             </div>
             <EntriesSection
               eventId={id}
+              eventName={event.name}
               entries={entries}
               entryRuleIds={entryRuleIds}
               eventRules={eventRules}
@@ -886,8 +888,19 @@ function generateDemoEntries(eventId: string, count: number, ruleIds: string[], 
   });
 }
 
-function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processingEntryIds, processingRuleKeys, currentFormVersion, onToggleRule, onToggleWithdrawn, onDelete, onAdded }: {
+type FormFieldConfig = {
+  id: string;
+  field_key: string;
+  visible: boolean;
+  required: boolean;
+  sort_order: number;
+  custom_label: string | null;
+  custom_choices: { label: string; value: string }[] | null;
+};
+
+function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules, processingEntryIds, processingRuleKeys, currentFormVersion, onToggleRule, onToggleWithdrawn, onDelete, onAdded }: {
   eventId: string;
+  eventName: string;
   entries: Entry[];
   entryRuleIds: Record<string, Set<string>>;
   eventRules: Rule[];
@@ -905,6 +918,7 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
   const [refreshing, setRefreshing] = useState(false);
   const [openMemoId, setOpenMemoId] = useState<string | null>(null);
   const [openAppMemoId, setOpenAppMemoId] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   async function refresh() {
     setRefreshing(true);
@@ -940,6 +954,171 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
     onAdded();
   }
 
+  // ── CSV ダウンロード ──────────────────────────────────────────────────
+  async function downloadCsv() {
+    if (entries.length === 0) { alert("エントリーがありません"); return; }
+    setDownloading(true);
+    try {
+      // フォーム設定取得
+      const { data: config } = await supabase
+        .from("form_configs").select("id").eq("event_id", eventId).maybeSingle();
+      let fieldConfigs: FormFieldConfig[] = [];
+      let customFieldDefs: CustomFieldDef[] = [];
+      if (config) {
+        const [{ data: fields }, { data: defs }] = await Promise.all([
+          supabase.from("form_field_configs").select("*").eq("form_config_id", config.id).eq("visible", true).order("sort_order"),
+          supabase.from("custom_field_defs").select("*").eq("form_config_id", config.id).order("sort_order"),
+        ]);
+        fieldConfigs = (fields ?? []) as FormFieldConfig[];
+        customFieldDefs = (defs ?? []) as CustomFieldDef[];
+      }
+
+      // フィールド値を解決する関数
+      function getFieldValue(entry: Entry, key: string): string {
+        const def = getFieldDef(key);
+        if (def?.dbColumn && key !== "full_name" && key !== "kana") {
+          const val = (entry as Record<string, unknown>)[def.dbColumn];
+          return val != null && val !== "" ? String(val) : "";
+        }
+        if (key === "full_name") return entryFullName(entry);
+        if (key === "kana") {
+          return [entry.family_name_reading, entry.given_name_reading].filter(Boolean).join(" ");
+        }
+        if (key === "organization") return entry.school_name ?? "";
+        if (key === "organization_kana") return entry.school_name_reading ?? "";
+        if (key === "branch") return entry.dojo_name ?? "";
+        if (key === "branch_kana") return entry.dojo_name_reading ?? "";
+        const extra = entry.extra_fields?.[key];
+        return extra != null && extra !== "" ? String(extra) : "";
+      }
+
+      // 選択肢ラベルに変換
+      function formatValue(key: string, raw: string): string {
+        if (key === "sex") return raw === "male" ? "男性" : raw === "female" ? "女性" : raw;
+        if (raw.startsWith("[")) {
+          try {
+            const arr = JSON.parse(raw);
+            if (Array.isArray(arr)) {
+              const fc = fieldConfigs.find((f) => f.field_key === key);
+              const def = isCustomField(key) ? customFieldDefs.find((d) => d.field_key === key) : null;
+              const choices = fc?.custom_choices ?? def?.choices ?? getFieldDef(key)?.defaultChoices ?? [];
+              return arr.map((v: string) => {
+                const c = choices.find((ch) => ch.value === v);
+                return c?.label ?? v;
+              }).join("; ");
+            }
+          } catch { /* not JSON */ }
+        }
+        const fc = fieldConfigs.find((f) => f.field_key === key);
+        const def = isCustomField(key) ? customFieldDefs.find((d) => d.field_key === key) : null;
+        const poolDef = getFieldDef(key);
+        const choices = fc?.custom_choices ?? def?.choices ?? poolDef?.fixedChoices ?? poolDef?.defaultChoices ?? [];
+        if (choices.length > 0) {
+          const c = choices.find((ch) => ch.value === raw);
+          if (c) return c.label;
+        }
+        return raw;
+      }
+
+      // ラベル取得
+      function getLabel(key: string): string {
+        const fc = fieldConfigs.find((f) => f.field_key === key);
+        if (fc?.custom_label) return fc.custom_label;
+        if (isCustomField(key)) {
+          const cd = customFieldDefs.find((d) => d.field_key === key);
+          if (cd) return cd.label;
+        }
+        return getFieldDef(key)?.label ?? key;
+      }
+
+      // 表示フィールド（kana/age/organization_kana/branch_kana は親に統合）
+      const mergedKeys = new Set(["age", "kana", "organization_kana", "branch_kana"]);
+      const displayFields = fieldConfigs
+        .filter((fc) => !mergedKeys.has(fc.field_key))
+        .map((fc) => ({ key: fc.field_key, label: getLabel(fc.field_key) }));
+
+      // CSV セルエスケープ
+      function csvCell(val: string): string {
+        if (val.includes(",") || val.includes('"') || val.includes("\n")) {
+          return `"${val.replace(/"/g, '""')}"`;
+        }
+        return val;
+      }
+
+      // ヘッダー
+      const headers = [
+        "No.",
+        ...displayFields.map((f) => f.label),
+        ...(eventRules.length > 0 ? ["出場ルール"] : []),
+        "管理者メモ",
+        "欠場",
+        "テスト",
+        "エントリー日時",
+        "フォームver",
+      ];
+
+      // データ行
+      const rows = entries.map((entry, idx) => {
+        const cells: string[] = [String(idx + 1)];
+
+        for (const { key } of displayFields) {
+          let value = getFieldValue(entry, key);
+          // 親フィールドに読み仮名を付加
+          if (key === "full_name") {
+            const kana = getFieldValue(entry, "kana");
+            if (kana) value = `${value}（${kana}）`;
+          }
+          if (key === "organization") {
+            const kana = getFieldValue(entry, "organization_kana");
+            if (kana) value = `${value}（${kana}）`;
+          }
+          if (key === "branch") {
+            const kana = getFieldValue(entry, "branch_kana");
+            if (kana) value = `${value}（${kana}）`;
+          }
+          if (key === "birthday") {
+            if (entry.age != null) value = `${value}（${entry.age}歳）`;
+          }
+          cells.push(value ? formatValue(key, value) : "");
+        }
+
+        // ルール
+        if (eventRules.length > 0) {
+          const ruleIds = entryRuleIds[entry.id];
+          const ruleNames = ruleIds
+            ? eventRules.filter((r) => ruleIds.has(r.id)).map((r) => r.name)
+            : [];
+          cells.push(ruleNames.join("; "));
+        }
+
+        cells.push(entry.admin_memo ?? "");
+        cells.push(entry.is_withdrawn ? "○" : "");
+        cells.push(entry.is_test ? "○" : "");
+        cells.push(new Date(entry.created_at).toLocaleString("ja-JP"));
+        cells.push(entry.form_version != null ? String(entry.form_version) : "");
+
+        return cells.map(csvCell).join(",");
+      });
+
+      // BOM + CSV
+      const bom = "\uFEFF";
+      const csv = bom + headers.map(csvCell).join(",") + "\n" + rows.join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const date = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `${eventName}_エントリー一覧_${date}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("CSV download error:", e);
+      alert("CSVのダウンロードに失敗しました");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   return (
     <div className="bg-gray-800 rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
@@ -960,6 +1139,10 @@ function EntriesSection({ eventId, entries, entryRuleIds, eventRules, processing
           <button onClick={addDemoEntries} disabled={generating}
             className="text-xs text-gray-500 hover:text-gray-300 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition">
             {generating ? "処理中..." : "テスト32名"}
+          </button>
+          <button onClick={downloadCsv} disabled={downloading || entries.length === 0}
+            className="text-xs text-green-400 hover:text-green-200 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-green-800 hover:border-green-600 transition">
+            {downloading ? "出力中..." : "CSV出力"}
           </button>
           <button onClick={refresh} disabled={refreshing}
             className="text-xs text-gray-400 hover:text-gray-200 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition">
