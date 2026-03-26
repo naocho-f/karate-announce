@@ -89,7 +89,7 @@ function NoticeRenderer({ notice, consents, onConsent }: {
   onConsent: (noticeId: string, checked: boolean) => void;
 }) {
   return (
-    <div className="bg-gray-800/50 border border-gray-500 rounded-lg p-3 space-y-2">
+    <div className="bg-gray-800/30 border-l-2 border-yellow-600/40 rounded-r-lg pl-3 pr-2 py-2 space-y-2">
       {/* テキスト */}
       {notice.text_content && (
         <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">
@@ -234,7 +234,7 @@ export default function EntryPage({ params }: Props) {
   const visibleFields = useMemo(() => {
     if (!formConfig?.ready || !formConfig.fields) return [];
     return formConfig.fields
-      .filter((fc) => fc.visible)
+      .filter((fc) => fc.visible && fc.field_key !== "age")
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((fc) => {
         const def = isCustomField(fc.field_key)
@@ -633,6 +633,69 @@ export default function EntryPage({ params }: Props) {
     }
     if (key === "branch_kana") return null;
 
+    // birthday: 生年月日 + 年齢自動計算を2列グリッドで統合表示
+    if (key === "birthday") {
+      const ageFieldConfig = formConfig?.fields?.find((f) => f.field_key === "age" && f.visible);
+      const computedAge = (() => {
+        const bday = values["birthday"];
+        if (!bday) return null;
+        const refDate = event?.event_date ? new Date(event.event_date) : new Date();
+        const birth = new Date(bday);
+        let age = refDate.getFullYear() - birth.getFullYear();
+        const hasBday = refDate.getMonth() > birth.getMonth() ||
+          (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
+        if (!hasBday) age--;
+        return age;
+      })();
+      return (
+        <div key={key} className="space-y-2">
+          <p className="text-xs text-gray-300 font-medium">
+            {label}
+            {isReq && <span className="text-red-400 ml-1">*</span>}
+            {ageFieldConfig && <span className="text-gray-500 ml-1">+ 年齢自動計算</span>}
+          </p>
+          <div className={`grid ${ageFieldConfig ? "grid-cols-2" : "grid-cols-1"} gap-2 items-end`}>
+            <div className="space-y-1">
+              {ageFieldConfig && <label className="text-xs text-gray-400">生年月日</label>}
+              <input
+                type="date"
+                value={values[key] ?? ""}
+                onChange={(e) => {
+                  setValue(key, e.target.value);
+                  // 年齢を自動計算して age にセット
+                  if (ageFieldConfig && e.target.value) {
+                    const refDate = event?.event_date ? new Date(event.event_date) : new Date();
+                    const birth = new Date(e.target.value);
+                    let age = refDate.getFullYear() - birth.getFullYear();
+                    const hasBday = refDate.getMonth() > birth.getMonth() ||
+                      (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
+                    if (!hasBday) age--;
+                    setValue("age", String(age));
+                  }
+                }}
+                className={inp}
+                required={isReq}
+              />
+            </div>
+            {ageFieldConfig && (
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">
+                  {event?.event_date ? "大会日時点の年齢" : "年齢"}
+                </label>
+                <div className="w-full bg-gray-800/60 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-400 min-h-[38px]">
+                  {computedAge !== null ? `${computedAge}歳（自動計算）` : "生年月日を入力してください"}
+                </div>
+              </div>
+            )}
+          </div>
+          {ageConflict && (
+            <p className="text-xs text-red-400">{ageConflict}</p>
+          )}
+          {renderFieldNotices(key)}
+        </div>
+      );
+    }
+
     // 一般的な読み仮名フィールド（親と一緒に処理される場合はスキップ）
     if (isKanaField(key)) {
       const parent = def.kanaParent;
@@ -951,7 +1014,7 @@ export default function EntryPage({ params }: Props) {
         <h1 className="text-xl font-bold mb-1">{event.name}</h1>
         <p className="text-sm text-gray-400 mb-6">エントリーフォーム</p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* フォーム先頭注意書き */}
           {formStartNotices.sort((a, b) => a.sort_order - b.sort_order).map((n) => (
             <NoticeRenderer
