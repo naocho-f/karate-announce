@@ -24,6 +24,7 @@ export default function CourtPage({ params }: Props) {
   const [withdrawnFighterIds, setWithdrawnFighterIds] = useState<Set<string>>(new Set());
   const [fighterEntryMap, setFighterEntryMap] = useState<Record<string, string>>({});
   const [announceTemplates, setAnnounceTemplates] = useState<AnnounceTemplates>(DEFAULT_TEMPLATES);
+  const [rulesReadingMap, setRulesReadingMap] = useState<Record<string, string>>({});
   const [processingMatchIds, setProcessingMatchIds] = useState<Set<string>>(new Set());
   const [mutedMatchIds, setMutedMatchIds] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
@@ -159,6 +160,14 @@ export default function CourtPage({ params }: Props) {
         if (d.announce_templates) setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...d.announce_templates });
       })
       .catch(() => {});
+    // ルール読み仮名マップを取得
+    supabase.from("rules").select("name, name_reading").then(({ data }) => {
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((r) => { if (r.name_reading) map[r.name] = r.name_reading; });
+        setRulesReadingMap(map);
+      }
+    });
   }, []);
 
   async function startMatch(tournamentId: string, matchId: string) {
@@ -182,6 +191,7 @@ export default function CourtPage({ params }: Props) {
     if (!mutedMatchIds.has(matchId)) {
       const label = roundName(match.round, rounds);
       const tournament = tournaments.find((t) => t.id === tournamentId);
+      const rulesText = match.rules ?? tournament?.default_rules;
       announceMatchStart(
         fighterFullName(f1), f1.affiliation ?? f1.dojo?.name ?? "",
         fighterFullName(f2), f2.affiliation ?? f2.dojo?.name ?? "",
@@ -189,8 +199,9 @@ export default function CourtPage({ params }: Props) {
         fighterFullReading(f1), f1.affiliation_reading ?? f1.dojo?.name_reading,
         fighterFullReading(f2), f2.affiliation_reading ?? f2.dojo?.name_reading,
         match.match_label,
-        match.rules ?? tournament?.default_rules,
+        rulesText,
         announceTemplates,
+        rulesText ? rulesReadingMap[rulesText] ?? null : null,
       );
     }
   }
@@ -288,6 +299,7 @@ export default function CourtPage({ params }: Props) {
     if (!f1 || !f2) return;
     const rounds = Math.max(...matches.map((m) => m.round), 1);
     const tournament = tournaments.find((t) => t.id === tournamentId);
+    const rulesText = match.rules ?? tournament?.default_rules;
     announceMatchStart(
       fighterFullName(f1), f1.affiliation ?? f1.dojo?.name ?? "",
       fighterFullName(f2), f2.affiliation ?? f2.dojo?.name ?? "",
@@ -295,8 +307,9 @@ export default function CourtPage({ params }: Props) {
       fighterFullReading(f1), f1.affiliation_reading ?? f1.dojo?.name_reading,
       fighterFullReading(f2), f2.affiliation_reading ?? f2.dojo?.name_reading,
       match.match_label,
-      match.rules ?? tournament?.default_rules,
+      rulesText,
       announceTemplates,
+      rulesText ? rulesReadingMap[rulesText] ?? null : null,
     );
   }
 

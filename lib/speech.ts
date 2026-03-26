@@ -87,6 +87,58 @@ function splitAffiliationParts(aff: string): { school: string; dojo: string } {
   };
 }
 
+// ── 試合ラベル読み仮名変換 ──────────────────────────────────────────────
+
+/** 漢数字・全角数字・半角数字を読み仮名に変換するマップ */
+const NUM_READING: Record<string, string> = {
+  "1": "いち", "2": "に", "3": "さん", "4": "よん", "5": "ご",
+  "6": "ろく", "7": "なな", "8": "はち", "9": "きゅう", "10": "じゅう",
+  "11": "じゅういち", "12": "じゅうに", "13": "じゅうさん", "14": "じゅうよん",
+  "15": "じゅうご", "16": "じゅうろく",
+  "一": "いち", "二": "に", "三": "さん", "四": "よん", "五": "ご",
+  "六": "ろく", "七": "なな", "八": "はち", "九": "きゅう", "十": "じゅう",
+  "１": "いち", "２": "に", "３": "さん", "４": "よん", "５": "ご",
+  "６": "ろく", "７": "なな", "８": "はち", "９": "きゅう", "１０": "じゅう",
+  "１１": "じゅういち", "１２": "じゅうに", "１３": "じゅうさん", "１４": "じゅうよん",
+  "１５": "じゅうご", "１６": "じゅうろく",
+};
+
+/** よく使う試合ラベルの固定読み */
+const LABEL_READING: Record<string, string> = {
+  "決勝": "けっしょう",
+  "準決勝": "じゅんけっしょう",
+  "準々決勝": "じゅんじゅんけっしょう",
+  "3位決定戦": "さんいけっていせん",
+  "３位決定戦": "さんいけっていせん",
+  "三位決定戦": "さんいけっていせん",
+};
+
+/**
+ * 試合ラベルを TTS 用の読み仮名に変換。
+ * 「第1試合」→「だいいちしあい」「準決勝」→「じゅんけっしょう」など。
+ */
+export function normalizeMatchLabelForTts(label: string): string {
+  // 完全一致
+  if (LABEL_READING[label]) return LABEL_READING[label];
+
+  let result = label;
+
+  // 「第N試合」「第N回戦」パターン
+  result = result.replace(/第([０-９0-9一二三四五六七八九十]+)(試合|回戦)/g, (_, num, suffix) => {
+    const reading = NUM_READING[num];
+    const suffixReading = suffix === "試合" ? "しあい" : "かいせん";
+    return reading ? `だい${reading}${suffixReading}` : `だい${num}${suffixReading}`;
+  });
+
+  // 「N回戦」パターン（第なし）
+  result = result.replace(/^([０-９0-9一二三四五六七八九十]+)回戦$/g, (_, num) => {
+    const reading = NUM_READING[num];
+    return reading ? `${reading}かいせん` : `${num}かいせん`;
+  });
+
+  return result;
+}
+
 // ── TTS 発話 ───────────────────────────────────────────────────────────
 
 async function speak(text: string) {
@@ -121,6 +173,7 @@ export function announceMatchStart(
   matchLabel?: string | null,
   rules?: string | null,
   templates?: AnnounceTemplates,
+  rulesReading?: string | null,
 ) {
   const f1name = fighter1NameReading || fighter1Name;
   const f1affRaw = fighter1AffiliationReading || fighter1Affiliation;
@@ -131,9 +184,10 @@ export function announceMatchStart(
   const f1parts = splitAffiliationParts(f1affRaw);
   const f2parts = splitAffiliationParts(f2affRaw);
   const { matchStart } = templates ?? DEFAULT_TEMPLATES;
+  const rawLabel = matchLabel || roundLabel;
   const text = renderTemplate(matchStart, {
-    "試合ラベル":    matchLabel || roundLabel,
-    "ルール":        rules ?? "",
+    "試合ラベル":    normalizeMatchLabelForTts(rawLabel),
+    "ルール":        rulesReading || (rules ?? ""),
     "選手1名前":     f1name,
     "選手1流派＋道場": f1aff,
     "選手1流派":     f1parts.school,

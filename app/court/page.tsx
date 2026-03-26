@@ -13,10 +13,11 @@ import { BracketView } from "@/lib/bracket-view";
 
 // ── 単一コートのパネルコンポーネント ─────────────────────────────────────────
 
-function CourtPanel({ courtNum, courtDisplayName, announceTemplates }: {
+function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadingMap }: {
   courtNum: string;
   courtDisplayName: string;
   announceTemplates: AnnounceTemplates;
+  rulesReadingMap: Record<string, string>;
 }) {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matchesMap, setMatchesMap] = useState<Record<string, Match[]>>({});
@@ -139,6 +140,7 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates }: {
 
     if (!mutedMatchIds.has(matchId)) {
       const tournament = tournaments.find((t) => t.id === tournamentId);
+      const rulesText = match.rules ?? tournament?.default_rules;
       announceMatchStart(
         fighterFullName(f1), f1.affiliation ?? f1.dojo?.name ?? "",
         fighterFullName(f2), f2.affiliation ?? f2.dojo?.name ?? "",
@@ -146,8 +148,9 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates }: {
         fighterFullReading(f1), f1.affiliation_reading ?? f1.dojo?.name_reading,
         fighterFullReading(f2), f2.affiliation_reading ?? f2.dojo?.name_reading,
         match.match_label,
-        match.rules ?? tournament?.default_rules,
+        rulesText,
         announceTemplates,
+        rulesText ? rulesReadingMap[rulesText] ?? null : null,
       );
     }
   }
@@ -231,6 +234,7 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates }: {
     if (!f1 || !f2) return;
     const rounds = Math.max(...matches.map((m) => m.round), 1);
     const tournament = tournaments.find((t) => t.id === tournamentId);
+    const rulesText = match.rules ?? tournament?.default_rules;
     announceMatchStart(
       fighterFullName(f1), f1.affiliation ?? f1.dojo?.name ?? "",
       fighterFullName(f2), f2.affiliation ?? f2.dojo?.name ?? "",
@@ -238,8 +242,9 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates }: {
       fighterFullReading(f1), f1.affiliation_reading ?? f1.dojo?.name_reading,
       fighterFullReading(f2), f2.affiliation_reading ?? f2.dojo?.name_reading,
       match.match_label,
-      match.rules ?? tournament?.default_rules,
+      rulesText,
       announceTemplates,
+      rulesText ? rulesReadingMap[rulesText] ?? null : null,
     );
   }
 
@@ -333,6 +338,7 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates }: {
 export default function CourtIndexPage() {
   const [activeEvent, setActiveEvent] = useState<Event | null | undefined>(undefined);
   const [announceTemplates, setAnnounceTemplates] = useState<AnnounceTemplates>(DEFAULT_TEMPLATES);
+  const [rulesReadingMap, setRulesReadingMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     supabase.from("events").select("*").eq("is_active", true).maybeSingle()
@@ -346,6 +352,13 @@ export default function CourtIndexPage() {
         if (d.announce_templates) setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...d.announce_templates });
       })
       .catch(() => {});
+    supabase.from("rules").select("name, name_reading").then(({ data }) => {
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((r) => { if (r.name_reading) map[r.name] = r.name_reading; });
+        setRulesReadingMap(map);
+      }
+    });
   }, []);
 
   if (activeEvent === undefined) return <div className="min-h-screen bg-main-bg" />;
@@ -377,6 +390,7 @@ export default function CourtIndexPage() {
               courtNum={String(n)}
               courtDisplayName={activeEvent.court_names?.[n - 1]?.trim() || `コート${n}`}
               announceTemplates={announceTemplates}
+              rulesReadingMap={rulesReadingMap}
             />
           ))}
         </div>
