@@ -224,7 +224,7 @@ export default function EntryPage({ params }: Props) {
   // ── フォーム設定取得 ──
   useEffect(() => {
     fetch(`/api/public/form-config?event_id=${eventId}`)
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((data: FormConfigResponse) => {
         setFormConfig(data);
         setFormLoading(false);

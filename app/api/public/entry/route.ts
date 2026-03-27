@@ -26,7 +26,12 @@ export async function POST(request: NextRequest) {
       .select("id")
       .eq("name", school_name)
       .maybeSingle();
-    if (!existing) await supabaseAdmin.from("dojos").insert({ name: school_name });
+    if (!existing) {
+      await supabaseAdmin.from("dojos").insert({
+        name: school_name,
+        name_reading: entry.school_name_reading || null,
+      });
+    }
   }
 
   const { data: created, error } = await supabaseAdmin

@@ -120,37 +120,37 @@ export async function POST(request: NextRequest) {
     await supabaseAdmin.from("matches").insert(allRoundMatches);
   }
 
-  // 不戦勝の処理を並列実行
-  await Promise.all(
-    resolvedPairs.flatMap((p, i) => {
-      if (!p.f1 || p.f2) return [];
-      const ops = [
-        supabaseAdmin
-          .from("matches")
-          .update({ winner_id: p.f1, status: "done" })
-          .eq("tournament_id", t.id)
-          .eq("round", 1)
-          .eq("position", i),
-      ];
-      if (totalR > 1) {
-        const field = i % 2 === 0 ? "fighter1_id" : "fighter2_id";
-        // 隣接するペアも不戦勝か確認して status を決定
-        const pairedIndex = i % 2 === 0 ? i + 1 : i - 1;
-        const pairedPair = resolvedPairs[pairedIndex];
-        const pairedIsBye = pairedPair && pairedPair.f1 && !pairedPair.f2;
-        const bothSlotsFilled = !!pairedIsBye;
-        ops.push(
-          supabaseAdmin
-            .from("matches")
-            .update({ [field]: p.f1, status: bothSlotsFilled ? "ready" : "waiting" })
-            .eq("tournament_id", t.id)
-            .eq("round", 2)
-            .eq("position", Math.floor(i / 2))
-        );
-      }
-      return ops;
-    })
-  );
+  // 不戦勝の処理（同一 round-2 match への並列書き込みを避けるため順次実行）
+  for (let i = 0; i < resolvedPairs.length; i++) {
+    const p = resolvedPairs[i];
+    if (!p.f1 || p.f2) continue;
+    await supabaseAdmin
+      .from("matches")
+      .update({ winner_id: p.f1, status: "done" })
+      .eq("tournament_id", t.id)
+      .eq("round", 1)
+      .eq("position", i);
+    if (totalR > 1) {
+      const field = i % 2 === 0 ? "fighter1_id" : "fighter2_id";
+      // 次ラウンドの相手スロットを確認して status を決定
+      const nextPos = Math.floor(i / 2);
+      const otherField = i % 2 === 0 ? "fighter2_id" : "fighter1_id";
+      const { data: nextMatch } = await supabaseAdmin
+        .from("matches")
+        .select("id, fighter1_id, fighter2_id")
+        .eq("tournament_id", t.id)
+        .eq("round", 2)
+        .eq("position", nextPos)
+        .single();
+      const otherFilled = nextMatch && (nextMatch as Record<string, string | null>)[otherField];
+      await supabaseAdmin
+        .from("matches")
+        .update({ [field]: p.f1, status: otherFilled ? "ready" : "waiting" })
+        .eq("tournament_id", t.id)
+        .eq("round", 2)
+        .eq("position", nextPos);
+    }
+  }
 
   return NextResponse.json({ id: t.id });
 }

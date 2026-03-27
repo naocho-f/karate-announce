@@ -88,10 +88,24 @@
 
 | ファイル | 修正内容 |
 |---------|---------|
-| `app/entry/[eventId]/page.tsx` | 403 エラー時に受付終了メッセージ表示 |
+| `app/entry/[eventId]/page.tsx` | 403 エラー時に受付終了メッセージ表示、form-config fetch に res.ok チェック追加 |
 | `lib/form-fields.ts` | organization_kana に `dbColumn: "school_name_reading"` 追加 |
-| `app/api/admin/tournaments/route.ts` | 不戦勝の次ラウンド status を条件付きに修正 |
-| `app/api/court/matches/[id]/route.ts` | set_winner/correct_winner の次ラウンド status を条件付きに修正 |
+| `app/api/admin/tournaments/route.ts` | 不戦勝処理を順次実行に変更（race condition 修正）、次ラウンド status を DB 参照で決定 |
+| `app/api/court/matches/[id]/route.ts` | set_winner/correct_winner の次ラウンド status を明示的カラム指定で判定（テンプレートリテラル排除） |
 | `app/court/[court]/page.tsx` | 5箇所の fetch に res.ok チェック + エラー通知追加 |
+| `app/api/public/entry/route.ts` | 道場自動作成時に `name_reading` も保存 |
 
 **ビルド確認**: `npm run build` 成功（エラーなし）
+
+---
+
+## 再レビュー（2回目）
+
+2回目の全体レビューで追加検出・修正した事項:
+
+| # | 重要度 | 内容 | 対応 |
+|---|--------|------|------|
+| R1 | Critical | 不戦勝の `Promise.all` で同一 round-2 match に並列書き込み → race condition | 順次実行 (`for` ループ) に変更、DB参照で status 決定 |
+| R2 | High | `.select()` にテンプレートリテラル使用 + `as Record` による型キャスト | 明示的カラム名 `"id, fighter1_id, fighter2_id"` に変更、三項演算子で直接参照 |
+| R3 | Medium | 道場自動作成時に `name_reading` が保存されない | `entry.school_name_reading` を insert に追加 |
+| R4 | Medium | form-config fetch の `res.ok` チェック欠落 | チェック追加（エラー時は catch に落とす） |

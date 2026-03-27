@@ -34,18 +34,17 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     if (round! < rounds!) {
       const nextPosition = Math.floor(position! / 2);
       const field = position! % 2 === 0 ? "fighter1_id" : "fighter2_id";
-      const otherField = position! % 2 === 0 ? "fighter2_id" : "fighter1_id";
       const { data: nextMatch } = await supabaseAdmin
         .from("matches")
-        .select(`id, ${otherField}`)
+        .select("id, fighter1_id, fighter2_id")
         .eq("tournament_id", tournamentId)
         .eq("round", round! + 1)
         .eq("position", nextPosition)
         .single();
-      const bothPresent = nextMatch && (nextMatch as Record<string, unknown>)[otherField];
+      const otherFilled = nextMatch && (position! % 2 === 0 ? nextMatch.fighter2_id : nextMatch.fighter1_id);
       await supabaseAdmin
         .from("matches")
-        .update({ [field]: winnerId, status: bothPresent ? "ready" : "waiting" })
+        .update({ [field]: winnerId, status: otherFilled ? "ready" : "waiting" })
         .eq("tournament_id", tournamentId)
         .eq("round", round! + 1)
         .eq("position", nextPosition);
@@ -92,23 +91,17 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       const field = position! % 2 === 0 ? "fighter1_id" : "fighter2_id";
       const { data: nextMatch } = await supabaseAdmin
         .from("matches")
-        .select("id, status")
+        .select("id, status, fighter1_id, fighter2_id")
         .eq("tournament_id", tournamentId)
         .eq("round", round! + 1)
         .eq("position", nextPosition)
         .single();
       // 次のラウンドがまだ done/ongoing でなければ選手を差し替え
       if (nextMatch && nextMatch.status !== "done" && nextMatch.status !== "ongoing") {
-        const otherField = position! % 2 === 0 ? "fighter2_id" : "fighter1_id";
-        const { data: fullNextMatch } = await supabaseAdmin
-          .from("matches")
-          .select(`${otherField}`)
-          .eq("id", nextMatch.id)
-          .single();
-        const bothPresent = fullNextMatch && (fullNextMatch as Record<string, unknown>)[otherField];
+        const otherFilled = position! % 2 === 0 ? nextMatch.fighter2_id : nextMatch.fighter1_id;
         await supabaseAdmin
           .from("matches")
-          .update({ [field]: winnerId, status: bothPresent ? "ready" : "waiting" })
+          .update({ [field]: winnerId, status: otherFilled ? "ready" : "waiting" })
           .eq("id", nextMatch.id);
       }
     }
