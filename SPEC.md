@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-27（設定タブにタイマープリセットへのリンク追加、ナビゲーションチェックリスト追加）
+> 最終更新: 2026-03-27（全面見直し: 未記載ページ3件追加、未記載API3件追加、未テストlib3件のテスト追加、タイマー操作リンク追加）
 
 ---
 
@@ -386,6 +386,24 @@
 - **試合ラベル読み仮名変換**: TTS送信前に「決勝」→「けっしょう」「第1試合」→「だいいちしあい」等の漢数字・全角数字を含む一般的な試合ラベルを読み仮名に自動変換（`normalizeMatchLabelForTts`）
 - **ルール名読み仮名**: `rules.name_reading` が設定されていればTTSでルール名の代わりに読み仮名を使用。コート画面起動時にルールマスタ（name→name_reading マップ）を取得
 
+### 3.7 ログインページ (`/admin/login`)
+- ID・パスワード入力フォーム
+- 認証成功で `/admin` にリダイレクト
+- `POST /api/admin/login` で Cookie ベースのセッション管理
+
+### 3.8 参加者詳細画面 (`/admin/events/[id]/entries/[entryId]`)
+- 個別参加者の全情報を表示（氏名・読み・連絡先・申込フォームの全項目）
+- フォーム設定に基づいてフィールドを動的にレンダリング
+- カスタムフィールドの値も表示
+- 管理者メモの編集
+- 戻るリンク: `/admin/events/[id]`
+
+### 3.9 統合コート画面 (`/court`)
+- アクティブイベントの全コートを1画面に統合表示
+- 各コートの対戦表・試合状態をパネルで一覧
+- 個別コート画面 (`/court/[court]`) と同じ機能を統合
+- 戻るリンク: `/`
+
 ### 3.10 タイマー表示画面 (`/timer/[courtId]`)
 - 外付けモニターにフルスクリーン表示するスコアボード
 - 16:9 SEIKO JT-801 風デジタルスコアボードデザイン
@@ -692,6 +710,9 @@ form_notice_images (
 | DELETE | `/api/admin/tournaments/[id]` | トーナメント削除 |
 | PATCH | `/api/admin/matches/[id]` | マッチ更新（管理者） |
 | POST | `/api/admin/matches/[id]/replace` | マッチの選手差し替え（`{ slot, entry_id }`） |
+| POST | `/api/admin/matches/batch` | 試合ラベル一括更新 |
+| POST | `/api/admin/matches/swap` | 同一ラウンド内の隣接試合入替 |
+| GET/PUT | `/api/admin/settings` | 全体設定（体重差・身長差上限等）の取得・更新 |
 | POST/DELETE | `/api/admin/events/[id]/banner` | バナー画像アップロード/削除 |
 | POST/DELETE | `/api/admin/events/[id]/ogp` | OGP画像アップロード/削除 |
 | GET/POST | `/api/admin/timer-presets` | タイマープリセット一覧取得・新規作成 |
@@ -996,6 +1017,9 @@ __tests__/
     compatibility.test.ts    # 対戦相性チェック（体重差・身長差・閾値判定・worst判定）
     speech.test.ts           # TTS読み仮名変換・テンプレート・設定保存
     admin-navigation.test.ts # 管理画面ナビゲーション構造（全ページへの導線・戻るリンク）
+    bracket.test.ts          # トーナメントブラケット生成（ペア・バイ・ラウンド計算）
+    ensure-fighter.test.ts   # エントリーからの選手自動作成（道場検索・新規作成）
+    form-fields.test.ts      # フォームフィールド定義・カテゴリ・カスタムフィールド変換
   api/            # API ルートテスト（Vitest + Supabase モック）
     admin-login.test.ts          # ログイン/ログアウト
     admin-crud.test.ts           # 道場・選手・エントリー・ルール・設定 CRUD
@@ -1038,6 +1062,6 @@ __tests__/
 
 ### 13.6 テスト統計
 
-- 単体テスト: 186 テスト（10 ファイル）
+- 単体テスト: 279 テスト（13 ファイル）
 - API ルートテスト: 100 テスト（8 ファイル）
-- **合計: 286 テスト**（実行時間 ~700ms）
+- **合計: 379 テスト**（実行時間 ~900ms）

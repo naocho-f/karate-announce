@@ -184,15 +184,25 @@ function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
                   {Array.from({ length: e.court_count }, (_, i) => {
                     const courtName = e.court_names?.[i] ?? `コート${i + 1}`;
                     return (
-                      <a
-                        key={i}
-                        href={`/court/${i + 1}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs bg-green-700 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg transition font-medium"
-                      >
-                        🎤 {courtName}
-                      </a>
+                      <div key={i} className="flex gap-1">
+                        <a
+                          href={`/court/${i + 1}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs bg-green-700 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg transition font-medium"
+                        >
+                          🎤 {courtName}
+                        </a>
+                        <a
+                          href={`/timer/${i + 1}/control`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs bg-orange-700 hover:bg-orange-600 text-white px-2 py-1.5 rounded-lg transition"
+                          title={`${courtName} タイマー操作`}
+                        >
+                          ⏱
+                        </a>
+                      </div>
                     );
                   })}
                   <Link

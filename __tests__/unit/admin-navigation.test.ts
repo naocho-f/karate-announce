@@ -66,4 +66,14 @@ describe("管理画面ナビゲーション", () => {
   it("設定サブタブが grid-cols-4 で均等配置されている", () => {
     expect(ADMIN_PAGE).toContain("grid-cols-4");
   });
+
+  it("進行中の試合にタイマー操作画面へのリンクがある", () => {
+    expect(ADMIN_PAGE).toContain("/timer/");
+    expect(ADMIN_PAGE).toContain("/control");
+  });
+
+  it("参加者詳細ページにイベント詳細への戻るリンクがある", () => {
+    const entryPage = readFileSync(join(ROOT, "app/admin/events/[id]/entries/[entryId]/page.tsx"), "utf-8");
+    expect(entryPage).toContain("/admin/events/");
+  });
 });
