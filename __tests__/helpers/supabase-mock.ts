@@ -176,6 +176,6 @@ export function createAdminRequest(
 }
 
 /** params オブジェクトを生成（App Router の動的ルート用） */
-export function createParams(values: Record<string, string>) {
-  return { params: Promise.resolve(values) };
+export function createParams<T extends Record<string, string>>(values: T) {
+  return { params: Promise.resolve(values) } as { params: Promise<T> };
 }
