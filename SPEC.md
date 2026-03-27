@@ -1055,7 +1055,7 @@ __tests__/
 
 - カバレッジツール: `@vitest/coverage-v8`
 - 全 `lib/` モジュールの **Lines カバレッジ 100%** を維持する
-- 全 API ルート（35エンドポイント）の**正常系は 100% テスト**済み
+- 全 API ルート（37エンドポイント）の**正常系は 100% テスト**済み
 - BroadcastChannel 等ブラウザ固有 API は `vi.stubGlobal` でモックしてテスト可能にする
 - `localStorage` は happy-dom の制約があるため手動モックを使用
 - API ルートテストは Supabase モック基盤（`supabase-mock.ts`）を使用し、DB 依存なしで高速実行
