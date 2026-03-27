@@ -93,7 +93,7 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 ### 4.1 特殊フィールド
 
 #### full_name（氏名）
-- **描画**: 読み仮名非表示時は2カラム（姓 | 名）、表示時は4カラム（姓 | 名 | 姓読み | 名読み）
+- **描画**: 常に2カラムグリッド。読み仮名非表示時は1行（姓 | 名）、表示時は2行（姓 | 名 / 姓読み | 名読み）
 - **DB マッピング**: `family_name`, `given_name`, `family_name_reading`, `given_name_reading`
 - **バリデーション**: 必須時は姓・名の両方が入力済みであること
 - **読み仮名バリデーション**: ひらがな・カタカナ・長音符・中黒・スペースのみ許可（正規表現: `/^[\u3040-\u309F\u30A0-\u30FF\u30FC\u30FB\s　]*$/`）
@@ -227,9 +227,9 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 | `full_name` → 名 | `entries.given_name` | |
 | `kana` → 姓読み | `entries.family_name_reading` | |
 | `kana` → 名読み | `entries.given_name_reading` | |
-| `organization` | `entries.school_name` | ※カラム名注意 |
+| `organization` | `entries.school_name` | ※歴史的命名（8.7 注記参照） |
 | `organization_kana` | `entries.school_name_reading` | |
-| `branch` | `entries.dojo_name` | ※カラム名注意 |
+| `branch` | `entries.dojo_name` | ※歴史的命名（8.7 注記参照） |
 | `branch_kana` | `entries.dojo_name_reading` | |
 | `birthday` | `entries.birth_date` | |
 | `age` | `entries.age` | |
@@ -351,10 +351,23 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 4. `年齢: {age}歳`
 5. `体重: {weight}kg`
 6. `身長: {height}cm`
-7. `所属: {dojo_name}`
-8. `支部: {school_name}`
+7. `所属: {dojo_name}`（← branch の値。DB カラム名と表示ラベルの対応は下記注記参照）
+8. `支部: {school_name}`（← organization の値。同上）
 9. `参加ルール: {ルール名カンマ区切り}`
 10. extra_fields の各項目（email, email_confirm を除く。配列値はカンマ区切り）
+
+> **注記: DB カラム名と UI ラベルの歴史的な不一致**
+>
+> DB カラム名はフォームフィールド名・UI ラベルと直感的に逆になっている（7.1 参照）:
+>
+> | フォームフィールド | UI ラベル | DB カラム | メールでの表示ラベル |
+> |-------------------|----------|----------|-------------------|
+> | `organization` | 所属団体 | `school_name` | 支部 |
+> | `branch` | 道場・支部 | `dojo_name` | 所属 |
+>
+> これは歴史的な命名の経緯によるもので、既存データとの互換性のため維持している。
+> メール生成コードは DB カラム名（`entry.dojo_name`, `entry.school_name`）を直接参照するため、
+> フォームフィールド名からは逆に見える点に注意。
 
 ---
 

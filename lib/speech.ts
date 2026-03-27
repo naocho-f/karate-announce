@@ -215,16 +215,6 @@ export function announceWinner(winnerName: string, winnerAffiliation: string, na
   speak(text);
 }
 
-export function announceWalkover(winnerName: string, winnerAffiliation: string, nameReading?: string | null, affiliationReading?: string | null) {
-  const name = nameReading || winnerName;
-  const affRaw = affiliationReading || winnerAffiliation;
-  const aff = buildAffiliationForTts(affRaw);
-  const text = aff
-    ? `${aff}、所属、${name}選手の不戦勝です。`
-    : `${name}選手の不戦勝です。`;
-  speak(text);
-}
-
 export function announceCustom(text: string) {
   speak(text);
 }

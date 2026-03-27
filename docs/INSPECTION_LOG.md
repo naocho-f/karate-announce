@@ -109,3 +109,22 @@
 | R2 | High | `.select()` にテンプレートリテラル使用 + `as Record` による型キャスト | 明示的カラム名 `"id, fighter1_id, fighter2_id"` に変更、三項演算子で直接参照 |
 | R3 | Medium | 道場自動作成時に `name_reading` が保存されない | `entry.school_name_reading` を insert に追加 |
 | R4 | Medium | form-config fetch の `res.ok` チェック欠落 | チェック追加（エラー時は catch に落とす） |
+
+---
+
+## 仕様書 vs 実装の照合（3回目）
+
+仕様書10本と実装コードを全件突合した結果:
+
+| # | 重要度 | 仕様書 | 食い違い内容 | 対応 |
+|---|--------|--------|-------------|------|
+| S1 | High | FORM_CONFIG_SPEC §2.2 | `custom_label` 初期値が spec では NULL だがコードでは `f.label` | コード修正: `null` に変更（2箇所） |
+| S2 | Medium | EVENT_ADMIN_SPEC §7.2 | dojos PATCH がボディ全体を DB に渡していた（spec は `name_reading` のみ） | コード修正: `name_reading` のみ抽出するパターンに変更 |
+| S3 | Medium | ANNOUNCE_SPEC §6.3 | `announceWalkover()` が spec 記載あり・コードに未実装 | spec に「未実装」注記が既にあり、コードにも関数なし。対応不要 |
+| S4 | Low | ENTRY_FORM_SPEC §4.1 | 氏名欄 spec「4カラム」だがコードは常に2カラム | spec 修正: 「常に2カラムグリッド、2行表示」に修正 |
+| S5 | Low | ENTRY_FORM_SPEC §7.1/§8.7 | 所属/支部の DB カラム名と email ラベルの対応が spec 内で矛盾 | spec 修正: 歴史的命名の注記を追加、§8.7 に対応表を追加 |
+
+**修正ファイル:**
+- `app/api/admin/form-config/route.ts` — custom_label 初期値を null に（2箇所）
+- `app/api/admin/dojos/[id]/route.ts` — PATCH でフィールドフィルタリング追加
+- `docs/ENTRY_FORM_SPEC.md` — 氏名グリッド記述修正、DB 命名矛盾の注記追加

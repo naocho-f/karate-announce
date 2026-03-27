@@ -232,7 +232,7 @@ export async function GET(request: NextRequest) {
         sort_order: def?.sort ?? 99,
         has_other_option: f.defaultHasOther ?? false,
         custom_choices: f.defaultChoices ?? null,
-        custom_label: f.label,
+        custom_label: null,
       };
     });
     await supabaseAdmin.from("form_field_configs").insert(fieldConfigs);
@@ -259,7 +259,7 @@ export async function GET(request: NextRequest) {
         sort_order: baseSortOrder + i,
         has_other_option: cf.field_key === "match_experience",
         custom_choices: cf.choices,
-        custom_label: cf.label,
+        custom_label: null,
       };
     });
     await supabaseAdmin.from("form_field_configs").insert(customFieldConfigs);
