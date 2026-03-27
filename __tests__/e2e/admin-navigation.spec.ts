@@ -7,7 +7,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
 const ADMIN_USER = process.env.ADMIN_USERNAME ?? "admin";
-const ADMIN_PASS = process.env.ADMIN_PASSWORD ?? "jmma-jukukai";
+const ADMIN_PASS = process.env.ADMIN_PASSWORD!;
 
 /** API 経由でログインし Cookie を設定 */
 async function adminLogin(page: Page) {

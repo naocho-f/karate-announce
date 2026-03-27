@@ -19,7 +19,7 @@ import { test, expect, type Page } from "@playwright/test";
 
 // テスト用定数
 const ADMIN_USER = process.env.ADMIN_USERNAME ?? "admin";
-const ADMIN_PASS = process.env.ADMIN_PASSWORD ?? "admin";
+const ADMIN_PASS = process.env.ADMIN_PASSWORD!;
 
 // ── ヘルパー ──
 

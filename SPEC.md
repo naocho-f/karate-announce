@@ -978,7 +978,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 | レイヤー | ツール | 設定ファイル |
 |---------|--------|-------------|
 | 単体テスト | Vitest + happy-dom | `vitest.config.ts` |
-| E2E テスト | Playwright (Chromium) | `playwright.config.ts` |
+| E2E テスト | Playwright (Chromium) + dotenv | `playwright.config.ts`（`.env.local` を自動読み込み） |
 | CI/CD | GitHub Actions | `.github/workflows/test.yml` |
 
 ### 13.2 テスト構成
