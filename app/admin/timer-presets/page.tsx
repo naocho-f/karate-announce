@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { TimerPreset } from "@/lib/types";
+import { DEFAULT_LAYOUT } from "@/lib/types";
+import type { LayoutConfig, LayoutRow, LayoutRowType, LayoutAlignment, LayoutVerticalAlign } from "@/lib/types";
+import { rowTypeLabel } from "@/lib/timer-layout";
 
 type EditablePreset = Partial<TimerPreset> & { name: string };
 
@@ -48,7 +51,25 @@ const EMPTY_PRESET: EditablePreset = {
   buzzer_on_time_up: "auto",
   buzzer_on_newaza: "auto",
   buzzer_sound: "default",
+  layout: { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) },
 };
+
+const FONT_FAMILY_MAP: Record<string, string> = {
+  digital: "'Courier New', 'Consolas', monospace",
+  sans: "system-ui, sans-serif",
+  mono: "'Courier New', monospace",
+};
+
+const ROW_DEFAULTS: Record<LayoutRowType, LayoutRow> = {
+  timer: { type: "timer", height: 40, fontSize: 35, align: "center", verticalAlign: "middle" },
+  scores: { type: "scores", height: 0, fontSize: 25, align: "center", verticalAlign: "middle", subFontSize: 6 },
+  player_names: { type: "player_names", height: 0, fontSize: 2.5, align: "left", verticalAlign: "middle" },
+  match_info: { type: "match_info", height: 0, fontSize: 2, align: "center", verticalAlign: "middle" },
+  newaza: { type: "newaza", height: 8, fontSize: 4, align: "center", verticalAlign: "middle" },
+  spacer: { type: "spacer", height: 5, fontSize: 0, align: "center", verticalAlign: "middle" },
+};
+
+const ALL_ROW_TYPES: LayoutRowType[] = ["timer", "scores", "player_names", "match_info", "newaza", "spacer"];
 
 export default function TimerPresetsPage() {
   const router = useRouter();
@@ -57,6 +78,11 @@ export default function TimerPresetsPage() {
   const [editing, setEditing] = useState<EditablePreset | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [addRowOpen, setAddRowOpen] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [previewHeight, setPreviewHeight] = useState(0);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/admin/timer-presets");
@@ -65,6 +91,58 @@ export default function TimerPresetsPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Measure preview container height
+  useEffect(() => {
+    if (!previewRef.current) return;
+    const obs = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setPreviewHeight(entry.contentRect.height);
+      }
+    });
+    obs.observe(previewRef.current);
+    return () => obs.disconnect();
+  }, [editing]);
+
+  // Derive layout when editing changes
+  const layout: LayoutConfig = editing?.layout ?? { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) };
+
+  const setLayout = (newLayout: LayoutConfig) => {
+    if (!editing) return;
+    setEditing({ ...editing, layout: newLayout });
+  };
+
+  const updateRow = (idx: number, patch: Partial<LayoutRow>) => {
+    const rows = [...layout.rows];
+    rows[idx] = { ...rows[idx], ...patch };
+    setLayout({ ...layout, rows });
+  };
+
+  const removeRow = (idx: number) => {
+    const rows = layout.rows.filter((_, i) => i !== idx);
+    setLayout({ ...layout, rows });
+    if (expandedRow === idx) setExpandedRow(null);
+    else if (expandedRow !== null && expandedRow > idx) setExpandedRow(expandedRow - 1);
+  };
+
+  const addRow = (type: LayoutRowType) => {
+    const newRow: LayoutRow = { ...ROW_DEFAULTS[type] };
+    setLayout({ ...layout, rows: [...layout.rows, newRow] });
+    setAddRowOpen(false);
+  };
+
+  const moveRow = (from: number, to: number) => {
+    if (from === to) return;
+    const rows = [...layout.rows];
+    const [moved] = rows.splice(from, 1);
+    rows.splice(to, 0, moved);
+    setLayout({ ...layout, rows });
+    if (expandedRow === from) setExpandedRow(to);
+    else if (expandedRow !== null) {
+      if (from < expandedRow && to >= expandedRow) setExpandedRow(expandedRow - 1);
+      else if (from > expandedRow && to <= expandedRow) setExpandedRow(expandedRow + 1);
+    }
+  };
 
   const handleSave = async () => {
     if (!editing?.name) return;
@@ -152,6 +230,204 @@ export default function TimerPresetsPage() {
     );
   };
 
+  const alignButton = (current: LayoutAlignment, value: LayoutAlignment, label: string, onChange: (v: LayoutAlignment) => void) => (
+    <button
+      type="button"
+      onClick={() => onChange(value)}
+      className={`px-2 py-1 text-xs rounded ${current === value ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+    >
+      {label}
+    </button>
+  );
+
+  const vAlignButton = (current: LayoutVerticalAlign, value: LayoutVerticalAlign, label: string, onChange: (v: LayoutVerticalAlign) => void) => (
+    <button
+      type="button"
+      onClick={() => onChange(value)}
+      className={`px-2 py-1 text-xs rounded ${current === value ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+    >
+      {label}
+    </button>
+  );
+
+  // Preview helper: convert vh to px
+  const vhToPx = (vh: number) => (vh / 100) * previewHeight;
+
+  const renderPreview = () => {
+    if (!editing) return null;
+    const bgColor = editing.theme_bg_color ?? "#000000";
+    const timerColor = editing.theme_timer_color ?? "#00FF00";
+    const dividerColor = editing.theme_divider_color ?? "#333333";
+    const colorLeft = editing.color_left ?? "#DC2626";
+    const colorRight = editing.color_right ?? "#FFFFFF";
+    const fontFamily = FONT_FAMILY_MAP[editing.theme_font_family ?? "digital"] ?? FONT_FAMILY_MAP.digital;
+    const dividerThickness = layout.dividerThickness;
+
+    // Calculate row heights
+    const totalFixedVh = layout.rows.reduce((s, r) => s + r.height, 0);
+    const flexCount = layout.rows.filter((r) => r.height === 0).length;
+    const remainingVh = Math.max(0, 100 - totalFixedVh);
+    const flexVh = flexCount > 0 ? remainingVh / flexCount : 0;
+
+    const alignStyle = (a: LayoutAlignment): React.CSSProperties => ({
+      justifyContent: a === "left" ? "flex-start" : a === "right" ? "flex-end" : "center",
+    });
+    const vAlignStyle = (v: LayoutVerticalAlign): React.CSSProperties => ({
+      alignItems: v === "top" ? "flex-start" : v === "bottom" ? "flex-end" : "center",
+    });
+
+    return (
+      <div
+        ref={previewRef}
+        className="relative aspect-video overflow-hidden rounded"
+        style={{ background: bgColor, fontFamily }}
+      >
+        <div className="absolute inset-0 flex flex-col" style={{ height: "100%" }}>
+          {layout.rows.map((row, idx) => {
+            const rowVh = row.height === 0 ? flexVh : row.height;
+            const heightPx = vhToPx(rowVh);
+            const fsPx = vhToPx(row.fontSize);
+            const borderTop = idx > 0 ? `${dividerThickness}px solid ${dividerColor}` : "none";
+
+            if (row.type === "timer") {
+              return (
+                <div
+                  key={idx}
+                  className="flex"
+                  style={{
+                    height: `${rowVh}%`,
+                    borderTop,
+                    ...alignStyle(row.align),
+                    ...vAlignStyle(row.verticalAlign),
+                    padding: "0 4px",
+                  }}
+                >
+                  <span className="font-bold tabular-nums leading-none" style={{ color: timerColor, fontSize: `${fsPx}px` }}>
+                    1:{editing.theme_show_decimals ? "23.4" : "23"}
+                  </span>
+                </div>
+              );
+            }
+
+            if (row.type === "newaza") {
+              return (
+                <div
+                  key={idx}
+                  className="flex gap-1"
+                  style={{
+                    height: `${rowVh}%`,
+                    borderTop,
+                    ...alignStyle(row.align),
+                    ...vAlignStyle(row.verticalAlign),
+                    padding: "0 4px",
+                  }}
+                >
+                  <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.5}px` }}>寝技</span>
+                  <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${fsPx}px` }}>0:12</span>
+                </div>
+              );
+            }
+
+            if (row.type === "match_info") {
+              return (
+                <div
+                  key={idx}
+                  className="flex"
+                  style={{
+                    height: `${rowVh}%`,
+                    borderTop,
+                    ...alignStyle(row.align),
+                    ...vAlignStyle(row.verticalAlign),
+                    padding: "0 4px",
+                  }}
+                >
+                  <span className="text-gray-400" style={{ fontSize: `${fsPx}px` }}>A-1 第1試合</span>
+                </div>
+              );
+            }
+
+            if (row.type === "player_names") {
+              return (
+                <div
+                  key={idx}
+                  className="flex"
+                  style={{
+                    height: `${rowVh}%`,
+                    borderTop,
+                    ...alignStyle(row.align),
+                    ...vAlignStyle(row.verticalAlign),
+                    padding: "0 4px",
+                    gap: `${layout.scoreGap}px`,
+                  }}
+                >
+                  <div className="flex-1 flex" style={{ ...alignStyle(row.align) }}>
+                    <span className="font-bold" style={{ color: colorLeft, fontSize: `${fsPx}px` }}>山田 太郎</span>
+                  </div>
+                  <div className="flex-1 flex" style={{ ...alignStyle(row.align) }}>
+                    <span className="font-bold" style={{ color: colorRight, fontSize: `${fsPx}px` }}>鈴木 一郎</span>
+                  </div>
+                </div>
+              );
+            }
+
+            if (row.type === "scores") {
+              const subFsPx = vhToPx(row.subFontSize ?? 6);
+              return (
+                <div
+                  key={idx}
+                  className="flex"
+                  style={{
+                    height: `${rowVh}%`,
+                    borderTop,
+                    gap: `${layout.scoreGap}px`,
+                  }}
+                >
+                  {/* Left */}
+                  <div className="flex-1 flex flex-col items-center justify-center relative">
+                    <span className="font-bold tabular-nums leading-none" style={{ color: colorLeft, fontSize: `${fsPx}px`, ...alignStyle(row.align) }}>3</span>
+                    <div className="flex items-center gap-1" style={{ fontSize: `${subFsPx}px` }}>
+                      <span className="font-bold tabular-nums" style={{ color: colorLeft }}>
+                        <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>W</span>1
+                      </span>
+                      <span className="font-bold tabular-nums text-yellow-400">
+                        <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>F</span>1
+                      </span>
+                    </div>
+                  </div>
+                  {/* Divider */}
+                  <div style={{ width: `${dividerThickness}px`, background: dividerColor }} />
+                  {/* Right */}
+                  <div className="flex-1 flex flex-col items-center justify-center relative">
+                    <span className="font-bold tabular-nums leading-none" style={{ color: colorRight, fontSize: `${fsPx}px` }}>1</span>
+                    <div className="flex items-center gap-1" style={{ fontSize: `${subFsPx}px` }}>
+                      <span className="font-bold tabular-nums" style={{ color: colorRight }}>
+                        <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>W</span>0
+                      </span>
+                      <span className="font-bold tabular-nums text-yellow-400">
+                        <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>F</span>0
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (row.type === "spacer") {
+              return (
+                <div
+                  key={idx}
+                  style={{ height: `${rowVh}%`, borderTop }}
+                />
+              );
+            }
+
+            return <div key={idx} style={{ height: `${rowVh}%`, borderTop }} />;
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 p-6">
       <div className="max-w-4xl mx-auto">
@@ -162,7 +438,7 @@ export default function TimerPresetsPage() {
               className="px-3 py-1.5 rounded bg-gray-800 hover:bg-gray-700 text-sm text-gray-300 transition">
               ← 設定に戻る
             </button>
-            <button onClick={() => { setEditing({ ...EMPTY_PRESET }); setEditId(null); }}
+            <button onClick={() => { setEditing({ ...EMPTY_PRESET, layout: { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) } }); setEditId(null); }}
               className="px-3 py-1.5 rounded bg-blue-700 hover:bg-blue-600 text-sm text-white transition">
               新規作成
             </button>
@@ -280,7 +556,7 @@ export default function TimerPresetsPage() {
                   {field("show_match_number", "試合番号表示", "checkbox")}
                 </div>
 
-                <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">テーマ</h3>
+                <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">カラー・フォント</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {field("theme_bg_color", "背景色", "color")}
                   {field("theme_timer_color", "タイマー色", "color")}
@@ -289,100 +565,215 @@ export default function TimerPresetsPage() {
                   {field("theme_divider_color", "区切り線色", "color")}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  {field("theme_timer_font_size", "タイマーフォントサイズ", "select", {
-                    options: [{ value: "large", label: "Large" }, { value: "xlarge", label: "XLarge" }, { value: "xxlarge", label: "XXLarge" }, { value: "xxxlarge", label: "XXXLarge" }]
-                  })}
-                  {field("theme_score_font_size", "スコアフォントサイズ", "select", {
-                    options: [{ value: "medium", label: "Medium" }, { value: "large", label: "Large" }, { value: "xlarge", label: "XLarge" }]
-                  })}
                   {field("theme_font_family", "フォント", "select", {
                     options: [{ value: "digital", label: "デジタル" }, { value: "sans", label: "ゴシック" }, { value: "mono", label: "等幅" }]
                   })}
                 </div>
                 {field("theme_show_decimals", "0.1秒表示", "checkbox")}
 
-                {/* テーマ プレビュー（16:9 SEIKO風レイアウト） */}
+                {/* レイアウトエディタ */}
+                <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">レイアウトエディタ</h3>
+
+                {/* Row list */}
+                <div className="space-y-2">
+                  {layout.rows.map((row, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden"
+                      draggable
+                      onDragStart={(e) => {
+                        setDragIdx(idx);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (dragIdx !== null) {
+                          moveRow(dragIdx, idx);
+                          setDragIdx(null);
+                        }
+                      }}
+                      onDragEnd={() => setDragIdx(null)}
+                    >
+                      {/* Row header */}
+                      <div
+                        className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-700/30"
+                        onClick={() => setExpandedRow(expandedRow === idx ? null : idx)}
+                      >
+                        <span className="cursor-grab text-gray-500 hover:text-gray-300 text-sm select-none" title="ドラッグで並べ替え">≡</span>
+                        <span className="flex-1 text-sm font-medium">{rowTypeLabel(row.type)}</span>
+                        <span className="text-xs text-gray-500">
+                          {row.height > 0 ? `${row.height}vh` : "自動"} / {row.fontSize}vh
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeRow(idx); }}
+                          className="text-gray-500 hover:text-red-400 text-sm px-1"
+                          title="削除"
+                        >
+                          ×
+                        </button>
+                      </div>
+
+                      {/* Row detail panel */}
+                      {expandedRow === idx && (
+                        <div className="px-3 pb-3 pt-1 border-t border-gray-700 space-y-3">
+                          {/* Height */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-20 shrink-0">高さ</span>
+                            <input
+                              type="range"
+                              min={0} max={80} step={1}
+                              value={row.height}
+                              onChange={(e) => updateRow(idx, { height: Number(e.target.value) })}
+                              className="flex-1 accent-blue-500"
+                            />
+                            <input
+                              type="number"
+                              min={0} max={80} step={1}
+                              value={row.height}
+                              onChange={(e) => updateRow(idx, { height: Number(e.target.value) })}
+                              className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right"
+                            />
+                            <span className="text-xs text-gray-500">vh</span>
+                            {row.height === 0 && <span className="text-xs text-blue-400">(自動)</span>}
+                          </div>
+
+                          {/* Font size */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-20 shrink-0">フォント</span>
+                            <input
+                              type="range"
+                              min={1} max={100} step={0.5}
+                              value={row.fontSize}
+                              onChange={(e) => updateRow(idx, { fontSize: Number(e.target.value) })}
+                              className="flex-1 accent-blue-500"
+                            />
+                            <input
+                              type="number"
+                              min={0} step={0.5}
+                              value={row.fontSize}
+                              onChange={(e) => updateRow(idx, { fontSize: Number(e.target.value) })}
+                              className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right"
+                            />
+                            <span className="text-xs text-gray-500">vh</span>
+                          </div>
+
+                          {/* Horizontal align */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-20 shrink-0">水平揃え</span>
+                            <div className="grid grid-cols-3 gap-1">
+                              {alignButton(row.align, "left", "左", (v) => updateRow(idx, { align: v }))}
+                              {alignButton(row.align, "center", "中", (v) => updateRow(idx, { align: v }))}
+                              {alignButton(row.align, "right", "右", (v) => updateRow(idx, { align: v }))}
+                            </div>
+                          </div>
+
+                          {/* Vertical align */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-20 shrink-0">垂直揃え</span>
+                            <div className="grid grid-cols-3 gap-1">
+                              {vAlignButton(row.verticalAlign, "top", "上", (v) => updateRow(idx, { verticalAlign: v }))}
+                              {vAlignButton(row.verticalAlign, "middle", "中", (v) => updateRow(idx, { verticalAlign: v }))}
+                              {vAlignButton(row.verticalAlign, "bottom", "下", (v) => updateRow(idx, { verticalAlign: v }))}
+                            </div>
+                          </div>
+
+                          {/* scores-specific: subFontSize and subAlign */}
+                          {row.type === "scores" && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-400 w-20 shrink-0">副フォント</span>
+                                <input
+                                  type="range"
+                                  min={1} max={100} step={0.5}
+                                  value={row.subFontSize ?? 6}
+                                  onChange={(e) => updateRow(idx, { subFontSize: Number(e.target.value) })}
+                                  className="flex-1 accent-blue-500"
+                                />
+                                <input
+                                  type="number"
+                                  min={0} step={0.5}
+                                  value={row.subFontSize ?? 6}
+                                  onChange={(e) => updateRow(idx, { subFontSize: Number(e.target.value) })}
+                                  className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right"
+                                />
+                                <span className="text-xs text-gray-500">vh</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-400 w-20 shrink-0">副揃え</span>
+                                <div className="grid grid-cols-3 gap-1">
+                                  {alignButton(row.subAlign ?? "center", "left", "左", (v) => updateRow(idx, { subAlign: v }))}
+                                  {alignButton(row.subAlign ?? "center", "center", "中", (v) => updateRow(idx, { subAlign: v }))}
+                                  {alignButton(row.subAlign ?? "center", "right", "右", (v) => updateRow(idx, { subAlign: v }))}
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Global layout settings */}
+                <div className="flex items-center gap-4 mt-2">
+                  <label className="text-xs text-gray-400 flex items-center gap-2">
+                    区切り線の太さ
+                    <input
+                      type="number"
+                      min={0} step={1}
+                      value={layout.dividerThickness}
+                      onChange={(e) => setLayout({ ...layout, dividerThickness: Number(e.target.value) })}
+                      className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right"
+                    />
+                    <span className="text-gray-500">px</span>
+                  </label>
+                  <label className="text-xs text-gray-400 flex items-center gap-2">
+                    スコア間隔
+                    <input
+                      type="number"
+                      min={0} step={1}
+                      value={layout.scoreGap}
+                      onChange={(e) => setLayout({ ...layout, scoreGap: Number(e.target.value) })}
+                      className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right"
+                    />
+                    <span className="text-gray-500">px</span>
+                  </label>
+                </div>
+
+                {/* Add row button */}
+                <div className="relative mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setAddRowOpen(!addRowOpen)}
+                    className="px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-sm text-gray-300 transition"
+                  >
+                    + 行を追加
+                  </button>
+                  {addRowOpen && (
+                    <div className="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 py-1 min-w-48">
+                      {ALL_ROW_TYPES.map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => addRow(type)}
+                          className="block w-full text-left px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-700 transition"
+                        >
+                          {rowTypeLabel(type)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 16:9 Preview */}
                 <div className="mt-3 rounded-lg overflow-hidden border border-gray-700">
                   <p className="text-xs text-gray-500 px-2 py-1 bg-gray-800/50">プレビュー（実際のタイマー画面イメージ）</p>
-                  {(() => {
-                    const pvBg = editing.theme_bg_color ?? "#000000";
-                    const pvDiv = editing.theme_divider_color ?? "#333333";
-                    const pvCL = editing.color_left ?? "#DC2626";
-                    const pvCR = editing.color_right ?? "#FFFFFF";
-                    const pvFont = editing.theme_font_family === "sans" ? "sans-serif" : "monospace";
-                    const pvTimerFs = { large: "42px", xlarge: "56px", xxlarge: "72px", xxxlarge: "88px" }[editing.theme_timer_font_size ?? "xlarge"] ?? "56px";
-                    const pvScoreFs = { medium: "36px", large: "48px", xlarge: "64px" }[editing.theme_score_font_size ?? "large"] ?? "48px";
-                    const pvWazaFs = { medium: "18px", large: "22px", xlarge: "28px" }[editing.theme_score_font_size ?? "large"] ?? "22px";
-                    return (
-                      <div className="relative aspect-video flex flex-col" style={{ background: pvBg, fontFamily: pvFont }}>
-                        {/* 上段: メインタイマー — 35% */}
-                        <div className="relative flex items-center justify-center" style={{ height: editing.newaza_enabled ? "35%" : "42%" }}>
-                          {editing.show_match_number && (
-                            <span className="absolute top-0.5 left-1.5 text-gray-500" style={{ fontSize: "8px" }}>A-1 第1試合</span>
-                          )}
-                          <span className="font-bold tabular-nums leading-none" style={{ color: editing.theme_timer_color ?? "#00FF00", fontSize: pvTimerFs }}>
-                            1:{editing.theme_show_decimals ? "23.4" : "23"}
-                          </span>
-                          {/* 警告色サンプル — 右下に小さく */}
-                          <span className="absolute bottom-0.5 right-1.5 font-bold tabular-nums" style={{ color: editing.theme_timer_warn_color ?? "#FF0000", fontSize: "12px" }}>
-                            0:{editing.theme_show_decimals ? "05.2" : "05"} <span className="text-gray-600" style={{ fontSize: "8px" }}>← 警告色</span>
-                          </span>
-                        </div>
-                        {/* 中段: 寝技 */}
-                        {editing.newaza_enabled && (
-                          <div className="flex items-center justify-center gap-1" style={{ height: "8%", borderTop: `1px solid ${pvDiv}`, borderBottom: `1px solid ${pvDiv}` }}>
-                            <span className="text-gray-500 font-bold" style={{ fontSize: "8px" }}>寝技</span>
-                            <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: "14px" }}>0:12</span>
-                          </div>
-                        )}
-                        {/* 下段: スコア */}
-                        <div className="flex flex-1" style={{ borderTop: editing.newaza_enabled ? "none" : `1px solid ${pvDiv}` }}>
-                          {/* 赤（左） */}
-                          <div className="flex-1 flex flex-col items-center justify-center relative" style={{ borderRight: `1px solid ${pvDiv}` }}>
-                            {editing.show_player_names && (
-                              <span className="absolute top-0.5 font-bold" style={{ color: pvCL, fontSize: "9px" }}>山田 太郎</span>
-                            )}
-                            {editing.show_points && (
-                              <span className="font-bold tabular-nums leading-none" style={{ color: pvCL, fontSize: pvScoreFs }}>3</span>
-                            )}
-                            <div className="absolute bottom-0.5 flex items-center gap-2">
-                              {editing.show_wazaari && (
-                                <span className="font-bold tabular-nums" style={{ color: pvCL, fontSize: pvWazaFs }}>
-                                  <span className="text-gray-600" style={{ fontSize: "7px" }}>W</span>1
-                                </span>
-                              )}
-                              {editing.show_fouls && (
-                                <span className="font-bold tabular-nums text-yellow-400" style={{ fontSize: pvWazaFs }}>
-                                  <span className="text-gray-600" style={{ fontSize: "7px" }}>F</span>1
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          {/* 白（右） */}
-                          <div className="flex-1 flex flex-col items-center justify-center relative">
-                            {editing.show_player_names && (
-                              <span className="absolute top-0.5 font-bold" style={{ color: pvCR, fontSize: "9px" }}>鈴木 一郎</span>
-                            )}
-                            {editing.show_points && (
-                              <span className="font-bold tabular-nums leading-none" style={{ color: pvCR, fontSize: pvScoreFs }}>1</span>
-                            )}
-                            <div className="absolute bottom-0.5 flex items-center gap-2">
-                              {editing.show_wazaari && (
-                                <span className="font-bold tabular-nums" style={{ color: pvCR, fontSize: pvWazaFs }}>
-                                  <span className="text-gray-600" style={{ fontSize: "7px" }}>W</span>0
-                                </span>
-                              )}
-                              {editing.show_fouls && (
-                                <span className="font-bold tabular-nums text-yellow-400" style={{ fontSize: pvWazaFs }}>
-                                  <span className="text-gray-600" style={{ fontSize: "7px" }}>F</span>0
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  {renderPreview()}
                 </div>
 
                 <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">ブザー</h3>

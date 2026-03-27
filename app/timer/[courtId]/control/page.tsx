@@ -84,6 +84,7 @@ const DEFAULT_PRESET: TimerPreset = {
   theme_show_decimals: false,
   theme_font_family: "digital",
   theme_divider_color: "#333333",
+  layout: null,
   buzzer_on_time_up: "auto",
   buzzer_on_newaza: "auto",
   buzzer_sound: "default",

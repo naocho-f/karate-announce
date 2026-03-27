@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { createTimerChannel, loadState } from "@/lib/timer-broadcast";
 import type { TimerState } from "@/lib/timer-state";
 import { createInitialState, getDisplayMs, getNewazaElapsedMs } from "@/lib/timer-state";
+import { resolveLayout } from "@/lib/timer-layout";
+import type { LayoutRow, LayoutAlignment, LayoutVerticalAlign } from "@/lib/types";
 
 // ── フォーマット ──────────────────────────────────────────────
 
@@ -17,23 +19,17 @@ function formatTime(ms: number, showDecimals = false): string {
   return showDecimals ? `${base}.${tenths}` : base;
 }
 
-const FONT_SIZE_MAP: Record<string, string> = {
-  large: "clamp(6rem, 25vh, 20rem)",
-  xlarge: "clamp(8rem, 33vh, 28rem)",
-  xxlarge: "clamp(10rem, 40vh, 36rem)",
-  xxxlarge: "clamp(12rem, 48vh, 44rem)",
-};
-
-const SCORE_FONT_MAP: Record<string, string> = {
-  medium: "clamp(3rem, 12vh, 8rem)",
-  large: "clamp(5rem, 20vh, 14rem)",
-  xlarge: "clamp(7rem, 28vh, 20rem)",
-};
-
 const FONT_FAMILY_MAP: Record<string, string> = {
   digital: "'Courier New', 'Consolas', monospace",
   sans: "system-ui, sans-serif",
   mono: "'Courier New', monospace",
+};
+
+const ALIGN_MAP: Record<LayoutAlignment, string> = {
+  left: "flex-start", center: "center", right: "flex-end",
+};
+const VALIGN_MAP: Record<LayoutVerticalAlign, string> = {
+  top: "flex-start", middle: "center", bottom: "flex-end",
 };
 
 // ── 勝利方法テキスト ──────────────────────────────────────────
@@ -80,10 +76,7 @@ export default function TimerDisplayPage() {
   const channelRef = useRef<ReturnType<typeof createTimerChannel> | null>(null);
   const rafRef = useRef<number>(0);
 
-  // localStorage から初期復元
   useEffect(() => {
-    // eventId は state から取得できないため、localStorage のキーをスキャン
-    // → 操作画面が BroadcastChannel で送ってくるまで idle を表示
     const saved = localStorage.getItem(`timer-display-courtId`);
     if (saved) {
       try {
@@ -94,7 +87,6 @@ export default function TimerDisplayPage() {
     }
   }, [courtId]);
 
-  // BroadcastChannel 受信
   useEffect(() => {
     const ch = createTimerChannel(courtId);
     channelRef.current = ch;
@@ -102,7 +94,6 @@ export default function TimerDisplayPage() {
     return () => { unsub(); ch.close(); };
   }, [courtId]);
 
-  // requestAnimationFrame で表示更新（running 中のリアルタイム計算）
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -121,7 +112,6 @@ export default function TimerDisplayPage() {
     return () => cancelAnimationFrame(rafRef.current);
   }, [animateLoop]);
 
-  // 非 running 時も displayMs を更新
   useEffect(() => {
     if (state.phase !== "running") {
       setDisplayMs(getDisplayMs(state));
@@ -129,7 +119,6 @@ export default function TimerDisplayPage() {
     }
   }, [state]);
 
-  // フルスクリーン切り替え
   const handleClick = () => {
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
@@ -139,12 +128,11 @@ export default function TimerDisplayPage() {
   };
 
   const p = state.preset;
+  const layout = resolveLayout(p);
   const bgColor = p?.theme_bg_color ?? "#000000";
   const timerColor = p?.theme_timer_color ?? "#00FF00";
   const warnColor = p?.theme_timer_warn_color ?? "#FF0000";
   const warnThreshold = (p?.theme_warn_threshold ?? 10) * 1000;
-  const timerFontSize = FONT_SIZE_MAP[p?.theme_timer_font_size ?? "xlarge"];
-  const scoreFontSize = SCORE_FONT_MAP[p?.theme_score_font_size ?? "large"];
   const fontFamily = FONT_FAMILY_MAP[p?.theme_font_family ?? "digital"];
   const dividerColor = p?.theme_divider_color ?? "#333333";
   const showDecimals = p?.theme_show_decimals ?? false;
@@ -182,148 +170,150 @@ export default function TimerDisplayPage() {
     );
   }
 
+  // ── 行レンダリング ──
+  const renderRow = (row: LayoutRow, idx: number) => {
+    const baseStyle: React.CSSProperties = {
+      height: row.height > 0 ? `${row.height}vh` : undefined,
+      flex: row.height === 0 ? 1 : undefined,
+      display: "flex",
+      justifyContent: ALIGN_MAP[row.align],
+      alignItems: VALIGN_MAP[row.verticalAlign],
+      borderTop: idx > 0 ? `${layout.dividerThickness}px solid ${dividerColor}` : undefined,
+      overflow: "hidden",
+    };
+
+    switch (row.type) {
+      case "timer":
+        return (
+          <div key={idx} style={baseStyle}>
+            <span
+              className="font-bold leading-none tabular-nums"
+              style={{ fontSize: `${row.fontSize}vh`, color: currentTimerColor }}
+            >
+              {formatTime(displayMs, showDecimals)}
+            </span>
+          </div>
+        );
+
+      case "match_info":
+        if (!p?.show_match_number && !state.isExtension) return null;
+        return (
+          <div key={idx} className="text-gray-500" style={{ ...baseStyle, fontSize: `${row.fontSize}vh` }}>
+            {p?.show_match_number && state.matchLabel}
+            {p?.show_match_number && state.totalMatches > 0 && ` / 全${state.totalMatches}試合`}
+            {state.isExtension && <span className="ml-2 text-yellow-400 font-bold">延長戦</span>}
+          </div>
+        );
+
+      case "newaza":
+        if (!showNewaza) return null;
+        return (
+          <div key={idx} className="gap-3" style={{ ...baseStyle }}>
+            <span className="text-gray-500 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.5, 1)}vh` }}>寝技</span>
+            <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${row.fontSize}vh` }}>
+              {formatTime(newazaMs)}
+            </span>
+            {newazaMax !== null && (
+              <span className="text-gray-600" style={{ fontSize: `${Math.max(row.fontSize * 0.4, 0.8)}vh` }}>[{state.newaza.usedCount}/{newazaMax}]</span>
+            )}
+            <div className="w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+              <div className="h-full bg-cyan-500 transition-all" style={{ width: `${newazaProgress * 100}%` }} />
+            </div>
+          </div>
+        );
+
+      case "player_names":
+        if (!p?.show_player_names) return null;
+        return (
+          <div key={idx} style={{ ...baseStyle, gap: `${layout.scoreGap}px` }}>
+            <div className="flex-1 font-bold truncate px-2" style={{ color: colorLeft, fontSize: `${row.fontSize}vh`, textAlign: row.align }}>
+              {state.red.name || p?.color_left_name || "赤"}
+            </div>
+            <div className="flex-1 font-bold truncate px-2" style={{ color: colorRight, fontSize: `${row.fontSize}vh`, textAlign: row.align }}>
+              {state.white.name || p?.color_right_name || "白"}
+            </div>
+          </div>
+        );
+
+      case "scores": {
+        const subFs = row.subFontSize ?? row.fontSize * 0.3;
+        return (
+          <div key={idx} style={{ ...baseStyle, gap: `${layout.scoreGap}px` }}>
+            {/* 赤スコア */}
+            <div
+              className="flex-1 flex flex-col items-center justify-center relative"
+              style={{ backgroundColor: redWins ? `${colorLeft}33` : "transparent" }}
+            >
+              {p?.show_points && (
+                <span className="font-bold leading-none tabular-nums" style={{ fontSize: `${row.fontSize}vh`, color: colorLeft }}>
+                  {state.redScore.points}
+                </span>
+              )}
+              <div className="flex items-center gap-2 mt-1">
+                {p?.show_wazaari && (
+                  <span className="font-bold tabular-nums" style={{ fontSize: `${subFs}vh`, color: colorLeft }}>
+                    <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>W</span>{state.redScore.wazaari}
+                  </span>
+                )}
+                {p?.show_fouls && (
+                  <span className="font-bold tabular-nums text-yellow-400" style={{ fontSize: `${subFs}vh` }}>
+                    <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>F</span>{state.redScore.fouls}
+                  </span>
+                )}
+              </div>
+              {redWins && (
+                <p className="text-green-400 font-bold" style={{ fontSize: `${Math.max(subFs * 0.6, 1)}vh` }}>{resultDisplayText(state)}</p>
+              )}
+            </div>
+            {/* 白スコア */}
+            <div
+              className="flex-1 flex flex-col items-center justify-center relative"
+              style={{ backgroundColor: whiteWins ? `${colorRight}33` : "transparent" }}
+            >
+              {p?.show_points && (
+                <span className="font-bold leading-none tabular-nums" style={{ fontSize: `${row.fontSize}vh`, color: colorRight }}>
+                  {state.whiteScore.points}
+                </span>
+              )}
+              <div className="flex items-center gap-2 mt-1">
+                {p?.show_wazaari && (
+                  <span className="font-bold tabular-nums" style={{ fontSize: `${subFs}vh`, color: colorRight }}>
+                    <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>W</span>{state.whiteScore.wazaari}
+                  </span>
+                )}
+                {p?.show_fouls && (
+                  <span className="font-bold tabular-nums text-yellow-400" style={{ fontSize: `${subFs}vh` }}>
+                    <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>F</span>{state.whiteScore.fouls}
+                  </span>
+                )}
+              </div>
+              {whiteWins && (
+                <p className="text-green-400 font-bold" style={{ fontSize: `${Math.max(subFs * 0.6, 1)}vh` }}>{resultDisplayText(state)}</p>
+              )}
+              {isDraw && (
+                <p className="absolute inset-0 flex items-center justify-center text-gray-400 font-bold" style={{ fontSize: `${Math.max(subFs, 2)}vh` }}>引き分け</p>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      case "spacer":
+        return <div key={idx} style={baseStyle} />;
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <div
       className="flex flex-col h-screen cursor-pointer select-none overflow-hidden"
       style={{ backgroundColor: bgColor, fontFamily }}
       onClick={handleClick}
     >
-      {/* ── 上段: メインタイマー ── */}
-      <div className="relative flex items-center justify-center" style={{ height: showNewaza ? "35%" : "42%" }}>
-        {/* 試合番号 — 左上に小さく */}
-        {p?.show_match_number && (
-          <div className="absolute top-1 left-3 text-gray-500" style={{ fontSize: "clamp(0.6rem, 1.5vh, 1rem)" }}>
-            {state.matchLabel}
-            {state.totalMatches > 0 && ` / 全${state.totalMatches}試合`}
-          </div>
-        )}
-        {state.isExtension && (
-          <div className="absolute top-1 right-3 text-yellow-400 font-bold" style={{ fontSize: "clamp(0.6rem, 1.5vh, 1rem)" }}>
-            延長戦
-          </div>
-        )}
-        <span
-          className="font-bold leading-none tabular-nums"
-          style={{ fontSize: timerFontSize, color: currentTimerColor }}
-        >
-          {formatTime(displayMs, showDecimals)}
-        </span>
-      </div>
+      {layout.rows.map(renderRow)}
 
-      {/* ── 中段: 寝技 + インジケータ ── */}
-      {showNewaza && (
-        <div
-          className="flex items-center justify-center gap-3"
-          style={{ height: "8%", borderTop: `2px solid ${dividerColor}`, borderBottom: `2px solid ${dividerColor}` }}
-        >
-          <span className="text-gray-500 font-bold" style={{ fontSize: "clamp(0.7rem, 1.8vh, 1rem)" }}>寝技</span>
-          <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: "clamp(1.2rem, 4vh, 2.5rem)" }}>
-            {formatTime(newazaMs)}
-          </span>
-          {newazaMax !== null && (
-            <span className="text-gray-600" style={{ fontSize: "clamp(0.5rem, 1.2vh, 0.8rem)" }}>[{state.newaza.usedCount}/{newazaMax}]</span>
-          )}
-          <div className="w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-            <div className="h-full bg-cyan-500 transition-all" style={{ width: `${newazaProgress * 100}%` }} />
-          </div>
-        </div>
-      )}
-
-      {/* ── 下段: スコアエリア ── */}
-      <div className="flex flex-1" style={{ borderTop: showNewaza ? "none" : `2px solid ${dividerColor}` }}>
-        {/* 赤（左） */}
-        <div
-          className="flex-1 flex flex-col items-center justify-center relative"
-          style={{
-            borderRight: `2px solid ${dividerColor}`,
-            backgroundColor: redWins ? `${colorLeft}33` : "transparent",
-          }}
-        >
-          {/* 選手名 — 上部 */}
-          {p?.show_player_names && (
-            <p className="font-bold truncate px-2 absolute top-1" style={{ color: colorLeft, fontSize: "clamp(0.7rem, 2vh, 1.2rem)" }}>
-              {state.red.name || p?.color_left_name || "赤"}
-            </p>
-          )}
-          {/* メインスコア */}
-          <div className="flex items-baseline gap-[2%]">
-            {p?.show_points && (
-              <span style={{ fontSize: scoreFontSize, color: colorLeft }} className="font-bold leading-none tabular-nums">
-                {state.redScore.points}
-              </span>
-            )}
-          </div>
-          {/* 技あり・反則 — 下部に横並び */}
-          <div className="absolute bottom-1 flex items-center gap-3">
-            {p?.show_wazaari && (
-              <div className="flex items-center gap-1">
-                <span className="text-gray-600 font-bold" style={{ fontSize: "clamp(0.5rem, 1.2vh, 0.7rem)" }}>W</span>
-                <span style={{ fontSize: "clamp(1rem, 5vh, 3rem)", color: colorLeft }} className="font-bold leading-none tabular-nums">
-                  {state.redScore.wazaari}
-                </span>
-              </div>
-            )}
-            {p?.show_fouls && (
-              <div className="flex items-center gap-1">
-                <span className="text-gray-600 font-bold" style={{ fontSize: "clamp(0.5rem, 1.2vh, 0.7rem)" }}>F</span>
-                <span className="font-bold leading-none tabular-nums text-yellow-400" style={{ fontSize: "clamp(1rem, 5vh, 3rem)" }}>
-                  {state.redScore.fouls}
-                </span>
-              </div>
-            )}
-          </div>
-          {redWins && (
-            <p className="absolute top-1 right-2 text-green-400 font-bold" style={{ fontSize: "clamp(0.6rem, 1.5vh, 1rem)" }}>{resultDisplayText(state)}</p>
-          )}
-        </div>
-
-        {/* 白（右） */}
-        <div
-          className="flex-1 flex flex-col items-center justify-center relative"
-          style={{
-            backgroundColor: whiteWins ? `${colorRight}33` : "transparent",
-          }}
-        >
-          {p?.show_player_names && (
-            <p className="font-bold truncate px-2 absolute top-1" style={{ color: colorRight, fontSize: "clamp(0.7rem, 2vh, 1.2rem)" }}>
-              {state.white.name || p?.color_right_name || "白"}
-            </p>
-          )}
-          <div className="flex items-baseline gap-[2%]">
-            {p?.show_points && (
-              <span style={{ fontSize: scoreFontSize, color: colorRight }} className="font-bold leading-none tabular-nums">
-                {state.whiteScore.points}
-              </span>
-            )}
-          </div>
-          <div className="absolute bottom-1 flex items-center gap-3">
-            {p?.show_wazaari && (
-              <div className="flex items-center gap-1">
-                <span className="text-gray-600 font-bold" style={{ fontSize: "clamp(0.5rem, 1.2vh, 0.7rem)" }}>W</span>
-                <span style={{ fontSize: "clamp(1rem, 5vh, 3rem)", color: colorRight }} className="font-bold leading-none tabular-nums">
-                  {state.whiteScore.wazaari}
-                </span>
-              </div>
-            )}
-            {p?.show_fouls && (
-              <div className="flex items-center gap-1">
-                <span className="text-gray-600 font-bold" style={{ fontSize: "clamp(0.5rem, 1.2vh, 0.7rem)" }}>F</span>
-                <span className="font-bold leading-none tabular-nums text-yellow-400" style={{ fontSize: "clamp(1rem, 5vh, 3rem)" }}>
-                  {state.whiteScore.fouls}
-                </span>
-              </div>
-            )}
-          </div>
-          {whiteWins && (
-            <p className="absolute top-1 left-2 text-green-400 font-bold" style={{ fontSize: "clamp(0.6rem, 1.5vh, 1rem)" }}>{resultDisplayText(state)}</p>
-          )}
-          {isDraw && (
-            <p className="absolute inset-0 flex items-center justify-center text-gray-400 font-bold" style={{ fontSize: "clamp(1rem, 3vh, 2rem)" }}>引き分け</p>
-          )}
-        </div>
-      </div>
-
-      {/* 一本オーバーレイ */}
       {isFinished && state.resultMethod === "ippon" && (
         <IpponOverlay />
       )}

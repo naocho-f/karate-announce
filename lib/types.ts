@@ -1,3 +1,49 @@
+// ──────────────────────────────────────────────
+// タイマーレイアウト
+// ──────────────────────────────────────────────
+
+export type LayoutAlignment = "left" | "center" | "right";
+export type LayoutVerticalAlign = "top" | "middle" | "bottom";
+export type LayoutRowType =
+  | "timer"
+  | "scores"
+  | "player_names"
+  | "match_info"
+  | "newaza"
+  | "spacer";
+
+export type LayoutRow = {
+  type: LayoutRowType;
+  height: number;           // vh。0 = flex-1（残りを均等分割）
+  fontSize: number;         // vh。制限なし
+  align: LayoutAlignment;
+  verticalAlign: LayoutVerticalAlign;
+  subFontSize?: number;     // scores用: 技あり・反則のフォントサイズ(vh)
+  subAlign?: LayoutAlignment;
+};
+
+export type LayoutConfig = {
+  rows: LayoutRow[];
+  dividerThickness: number; // px
+  scoreGap: number;         // px
+};
+
+export const DEFAULT_LAYOUT: LayoutConfig = {
+  rows: [
+    { type: "match_info",   height: 0,  fontSize: 2,   align: "center", verticalAlign: "middle" },
+    { type: "timer",        height: 40, fontSize: 35,  align: "center", verticalAlign: "middle" },
+    { type: "newaza",       height: 8,  fontSize: 4,   align: "center", verticalAlign: "middle" },
+    { type: "player_names", height: 0,  fontSize: 2.5, align: "left",   verticalAlign: "middle" },
+    { type: "scores",       height: 0,  fontSize: 25,  align: "center", verticalAlign: "middle", subFontSize: 6, subAlign: "center" },
+  ],
+  dividerThickness: 2,
+  scoreGap: 2,
+};
+
+// ──────────────────────────────────────────────
+// マスタデータ
+// ──────────────────────────────────────────────
+
 export type Dojo = {
   id: string;
   name: string;
@@ -219,6 +265,8 @@ export type TimerPreset = {
   theme_show_decimals: boolean;
   theme_font_family: "digital" | "sans" | "mono";
   theme_divider_color: string;
+  // レイアウト（行ベースエディタ）
+  layout: LayoutConfig | null;
   // ブザー
   buzzer_on_time_up: "auto" | "manual" | "off";
   buzzer_on_newaza: "auto" | "manual" | "off";

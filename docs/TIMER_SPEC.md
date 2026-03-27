@@ -161,18 +161,57 @@
 | 選手カラー名（左） | string | 「赤」 | アナウンス用 |
 | 選手カラー名（右） | string | 「白」 | アナウンス用 |
 
-#### 表示テーマ設定
+#### 表示テーマ設定（カラー・フォント）
 | 項目 | 型 | 例 | 説明 |
 |------|-----|-----|------|
 | 背景色 | string | `#000000` | 表示画面の背景色 |
-| タイマーフォントサイズ | enum | `large` / `xlarge` / `xxlarge` / `xxxlarge` | `large`: `clamp(6rem, 25vh, 20rem)`、`xlarge`: `clamp(8rem, 33vh, 28rem)`、`xxlarge`: `clamp(10rem, 40vh, 36rem)`、`xxxlarge`: `clamp(12rem, 48vh, 44rem)` — vh 基準 |
 | タイマー文字色 | string | `#00FF00` | 通常時のタイマー色 |
 | タイマー警告色 | string | `#FF0000` | 残り時間が閾値以下の色 |
 | 警告閾値 | number (秒) | 10 | この秒数以下でタイマー色が変化 |
-| スコアフォントサイズ | enum | `medium` / `large` / `xlarge` | `medium`: `clamp(3rem, 12vh, 8rem)`、`large`: `clamp(5rem, 20vh, 14rem)`、`xlarge`: `clamp(7rem, 28vh, 20rem)` — vh 基準 |
 | 0.1秒表示 | boolean | false | タイマーに 0.1 秒単位を表示するか |
 | フォントファミリー | enum | `digital` / `sans` / `mono` | タイマーのフォントスタイル |
 | 区切り線色 | string | `#333333` | |
+
+#### レイアウト設定（行ベースエディタ）
+フォントサイズはenum選択を廃止し、数値（vh単位）で自由に指定可能。上限なし（画面からはみ出すサイズも設定可）。
+
+| 項目 | 型 | 説明 |
+|------|-----|------|
+| `layout` | jsonb (nullable) | `LayoutConfig` オブジェクト。null の場合は旧 enum フィールドから自動変換 |
+
+**LayoutConfig 構造:**
+```typescript
+type LayoutConfig = {
+  rows: LayoutRow[];      // 行の配列。並び順 = 表示順
+  dividerThickness: number; // 区切り線の太さ (px)
+  scoreGap: number;         // 左右スコア間の隙間 (px)
+};
+type LayoutRow = {
+  type: "timer" | "scores" | "player_names" | "match_info" | "newaza" | "spacer";
+  height: number;           // vh。0 = flex-1（残りを均等分割）
+  fontSize: number;         // vh。制限なし
+  align: "left" | "center" | "right";
+  verticalAlign: "top" | "middle" | "bottom";
+  subFontSize?: number;     // scores用: 技あり・反則のフォントサイズ(vh)
+  subAlign?: "left" | "center" | "right";
+};
+```
+
+**行タイプ:**
+| type | 説明 | 左右分割 |
+|------|------|---------|
+| `timer` | メインタイマー | なし |
+| `scores` | ポイント・技あり・反則 | あり（赤/白） |
+| `player_names` | 選手名 | あり（赤/白） |
+| `match_info` | 試合番号・延長表示 | なし |
+| `newaza` | 寝技タイマー | なし |
+| `spacer` | 空白行 | なし |
+
+**管理画面のレイアウトエディタ:**
+- ドラッグ&ドロップで行の並べ替え
+- 各行をクリックで展開 → 高さ・フォントサイズ（スライダー+数値入力）、配置（左/中/右、上/中/下）を設定
+- 行の追加・削除
+- 16:9 リアルタイムプレビュー（vh→px 変換で忠実に再現）
 
 #### ブザー設定
 | 項目 | 型 | 例 | 説明 |
@@ -188,7 +227,7 @@
 - **ルール紐付け**: 既存の `rules` テーブルのルールにプリセットを紐付け可能。トーナメント/試合にルールが設定されていれば、そのプリセットが自動適用される
 - **管理画面**: `/admin` 内にタイマープリセット管理ページを設置
 - **カラー設定**: 6 つのカラーフィールド（`color_left`, `color_right`, `theme_bg_color`, `theme_timer_color`, `theme_timer_warn_color`, `theme_divider_color`）はネイティブカラーピッカー（`<input type="color">`）で選択。HEX コードも横に自動表示
-- **テーマプレビュー**: テーマセクションの下に 16:9 アスペクト比のミニタイマー画面をリアルタイム表示。SEIKO 柔道タイマー風レイアウト（上段: メインタイマー 35%、中段: 寝技 8%、下段: スコア flex-1）を縮小再現。タイマーフォントサイズ・スコアフォントサイズの選択がプレビューに即座に反映される
+- **レイアウトエディタ**: 行ベースのビジュアルエディタ。行の追加・削除・並べ替え（ドラッグ&ドロップ）、各行のフォントサイズ（vh数値、上限なし）・高さ・配置をスライダー+数値入力で自由に設定。16:9 リアルタイムプレビュー付き
 - **試合中の設定変更**: 試合中（`running` / `paused`）に変更可能な項目は**表示設定・テーマ設定のみ**（色・フォントサイズ等）。ルール系設定（試合時間、ポイント先取り数、反則負け回数等）は `idle` / `ready` 状態でのみ変更可能。変更不可の項目はグレーアウト表示
 
 ---
