@@ -968,3 +968,53 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 | `ADMIN_PASSWORD` | 管理者パスワード（未設定時はローカル開発として認証スキップ） | サーバー (認証) |
 | `RESEND_API_KEY` | Resend メール送信 API キー（未設定時はメール送信をスキップ） | サーバー (メール) |
 | `RESEND_FROM_EMAIL` | メール送信元アドレス（未設定時は `onboarding@resend.dev`） | サーバー (メール) |
+
+---
+
+## 13. テスト戦略
+
+### 13.1 テストフレームワーク
+
+| レイヤー | ツール | 設定ファイル |
+|---------|--------|-------------|
+| 単体テスト | Vitest + happy-dom | `vitest.config.ts` |
+| E2E テスト | Playwright (Chromium) | `playwright.config.ts` |
+| CI/CD | GitHub Actions | `.github/workflows/test.yml` |
+
+### 13.2 テスト構成
+
+```
+__tests__/
+  unit/           # 単体テスト（Vitest）
+    timer-state.test.ts      # タイマーステートマシン（状態遷移・スコア・自動判定・Undo・延長・寝技）
+    timer-broadcast.test.ts  # localStorage 永続化・排他制御フラグ・BroadcastChannel
+    types.test.ts            # ユーティリティ関数（名前結合・読み仮名）
+    tournament.test.ts       # トーナメントロジック（ラウンド数・名前・初回戦生成）
+    match-utils.test.ts      # 試合ラベルユーティリティ
+    email-template.test.ts   # メールテンプレート変数置換・条件ブロック
+    admin-auth.test.ts       # 管理者認証（Cookie 検証）
+  e2e/            # E2E テスト（Playwright）
+    full-tournament-flow.spec.ts  # 大会フル進行フロー・タイマー操作・プリセット管理
+```
+
+### 13.3 npm スクリプト
+
+| コマンド | 内容 |
+|---------|------|
+| `npm run test` | 全単体テスト実行 |
+| `npm run test:watch` | ウォッチモード |
+| `npm run test:unit` | unit ディレクトリのみ |
+| `npm run test:e2e` | Playwright E2E テスト |
+| `npm run test:all` | 単体 + E2E |
+
+### 13.4 CI パイプライン（GitHub Actions）
+
+- **unit-and-build** ジョブ: TypeScript 型チェック → 単体テスト → ビルド確認（push to main + PR）
+- **e2e** ジョブ: Playwright テスト（PR のみ、unit-and-build 成功後）
+
+### 13.5 カバレッジ方針
+
+- カバレッジツール: `@vitest/coverage-v8`
+- 全 `lib/` モジュールの **Lines カバレッジ 100%** を維持する
+- BroadcastChannel 等ブラウザ固有 API は `vi.stubGlobal` でモックしてテスト可能にする
+- `localStorage` は happy-dom の制約があるため手動モックを使用
