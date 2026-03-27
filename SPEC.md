@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-27（仕様書vs実装照合: custom_label初期値修正、dojos PATCHフィールドフィルタリング、氏名グリッド記述修正、DB命名矛盾注記追加）
+> 最終更新: 2026-03-27（タイマー機能Phase1実装: DB/型/ブラケット拡張/ステートマシン/BroadcastChannel/ブザー/表示画面/操作画面/プリセットCRUD+管理画面）
 
 ---
 
@@ -27,6 +27,7 @@
 | **参加者** | `/entry/[eventId]` | なし（URL 直アクセス） |
 | **観客** | `/`、`/live` | なし |
 | **運営スタッフ（コート担当）** | `/court/[court]` | なし（URL 直アクセス） |
+| **タイムキーパー** | `/timer/[courtId]`, `/timer/[courtId]/control` | なし（URL 直アクセス） |
 | **管理者** | `/admin/*` | Cookie 認証（ID/パスワード） |
 
 ---
@@ -385,6 +386,31 @@
 - **試合ラベル読み仮名変換**: TTS送信前に「決勝」→「けっしょう」「第1試合」→「だいいちしあい」等の漢数字・全角数字を含む一般的な試合ラベルを読み仮名に自動変換（`normalizeMatchLabelForTts`）
 - **ルール名読み仮名**: `rules.name_reading` が設定されていればTTSでルール名の代わりに読み仮名を使用。コート画面起動時にルールマスタ（name→name_reading マップ）を取得
 
+### 3.10 タイマー表示画面 (`/timer/[courtId]`)
+- 外付けモニターにフルスクリーン表示するスコアボード
+- 16:9 SEIKO JT-801 風デジタルスコアボードデザイン
+- BroadcastChannel 経由で操作画面からリアルタイム状態受信
+- 操作要素なし（クリックでフルスクリーン切替のみ）
+- 表示: メインタイマー（画面50%）、スコア（30%）、寝技タイマー（15%）、試合番号（5%）
+- 詳細仕様: `docs/TIMER_SPEC.md`
+
+### 3.11 タイマー操作画面 (`/timer/[courtId]/control`)
+- タイムキーパーが操作する画面。アナウンス機能も統合
+- ミニプレビュー + メイン操作（開始/停止/再開）+ スコア操作（ポイント/技あり/反則/一本）+ 寝技
+- キーボードショートカット対応（右サイドバーに参照パネル）
+- beforeunload で離脱防止
+- BroadcastChannel + localStorage で状態同期・永続化
+- 詳細仕様: `docs/TIMER_SPEC.md`
+
+### 3.12 ショートカット印刷用ページ (`/timer/shortcuts`)
+- タイマー操作のキーボードショートカット一覧
+- `@media print` 最適化
+
+### 3.13 タイマープリセット管理 (`/admin/timer-presets`)
+- ルールプリセットの CRUD + 複製
+- 基本設定（試合時間・方向・延長）、寝技、ポイント・反則、表示テーマ、ブザーをフルカスタマイズ
+- API: `/api/admin/timer-presets`
+
 ---
 
 ## 4. データモデル
@@ -487,8 +513,34 @@ matches (
   status TEXT,                -- 'waiting' | 'ready' | 'ongoing' | 'done'
   match_label TEXT,           -- 「第1試合」など
   rules TEXT,                 -- このマッチのルール
+  result_method TEXT,         -- 勝利方法（point/wazaari/ippon/foul/decision/draw 等）
+  result_detail JSONB,        -- 詳細（ポイント数、技あり数、反則数等）
   created_at TIMESTAMPTZ,
   UNIQUE(tournament_id, round, position)
+)
+
+-- タイマープリセット
+timer_presets (
+  id UUID PK,
+  name TEXT NOT NULL,
+  event_id UUID → events,     -- NULL = グローバル
+  rule_id UUID → rules,       -- 紐付けルール
+  match_duration INT DEFAULT 120,
+  timer_direction TEXT DEFAULT 'countdown',
+  -- 延長・寝技・ポイント・反則・表示・テーマ・ブザー（全45+カラム）
+  -- 詳細は docs/TIMER_SPEC.md §9.1 参照
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+)
+
+-- タイマー操作ログ
+timer_logs (
+  id UUID PK,
+  match_id UUID → matches (ON DELETE CASCADE),
+  action TEXT NOT NULL,
+  payload JSONB DEFAULT '{}',
+  elapsed_ms INT DEFAULT 0,
+  created_at TIMESTAMPTZ
 )
 
 -- エントリー（参加申し込み）
@@ -638,6 +690,10 @@ form_notice_images (
 | POST | `/api/admin/matches/[id]/replace` | マッチの選手差し替え（`{ slot, entry_id }`） |
 | POST/DELETE | `/api/admin/events/[id]/banner` | バナー画像アップロード/削除 |
 | POST/DELETE | `/api/admin/events/[id]/ogp` | OGP画像アップロード/削除 |
+| GET/POST | `/api/admin/timer-presets` | タイマープリセット一覧取得・新規作成 |
+| PATCH/DELETE | `/api/admin/timer-presets/[id]` | プリセット更新・削除 |
+| POST | `/api/admin/timer-presets/[id]/duplicate` | プリセット複製 |
+| POST/DELETE | `/api/admin/timer-presets/[id]/buzzer` | カスタムブザー音源アップロード/削除 |
 
 ### 5.2 コート用 API（認証不要）
 

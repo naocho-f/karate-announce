@@ -1781,6 +1781,8 @@ function buildBracketPreview(pairs: Pair[]): { matches: MatchRow[]; nameMap: Rec
       status: "ready" as const,
       match_label: p.matchLabel || null,
       rules: null,
+      result_method: null,
+      result_detail: null,
     };
   });
 
@@ -1800,6 +1802,8 @@ function buildBracketPreview(pairs: Pair[]): { matches: MatchRow[]; nameMap: Rec
         status: "waiting" as const,
         match_label: null,
         rules: null,
+        result_method: null,
+        result_detail: null,
       });
     }
     r++;
@@ -2682,7 +2686,7 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
   const load = useCallback(async () => {
     const { data } = await supabase
       .from("matches")
-      .select("id, round, position, fighter1_id, fighter2_id, winner_id, status, match_label, rules")
+      .select("id, round, position, fighter1_id, fighter2_id, winner_id, status, match_label, rules, result_method, result_detail")
       .eq("tournament_id", tournament.id)
       .order("round").order("position");
     const matchList = data ?? [];

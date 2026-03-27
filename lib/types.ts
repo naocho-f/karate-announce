@@ -152,9 +152,90 @@ export type Match = {
   status: "waiting" | "ready" | "ongoing" | "done";
   match_label: string | null;
   rules: string | null;
+  result_method: string | null;
+  result_detail: ResultDetail | null;
   fighter1?: Fighter | null;
   fighter2?: Fighter | null;
   winner?: Fighter | null;
+};
+
+export type ResultDetail = {
+  red_points?: number;
+  white_points?: number;
+  red_wazaari?: number;
+  white_wazaari?: number;
+  red_fouls?: number;
+  white_fouls?: number;
+  corrected?: boolean;
+};
+
+// ── タイマープリセット ──────────────────────────────────
+
+export type TimerPreset = {
+  id: string;
+  name: string;
+  event_id: string | null;
+  rule_id: string | null;
+  // 基本設定
+  match_duration: number;
+  timer_direction: "countdown" | "countup";
+  has_extension: boolean;
+  extension_duration: number;
+  extension_mode: "sudden_death" | "full_round";
+  allow_draw: boolean;
+  // 寝技タイマー
+  newaza_enabled: boolean;
+  newaza_duration: number;
+  newaza_limit_type: "limited" | "unlimited";
+  newaza_max_count: number;
+  newaza_free_release: number;
+  // ポイント・判定
+  show_points: boolean;
+  show_wazaari: boolean;
+  wazaari_points: number;
+  show_ippon: boolean;
+  ippon_wins: boolean;
+  point_win_threshold: number;
+  // 反則
+  show_fouls: boolean;
+  foul_to_point_start: number;
+  foul_point_value: number;
+  foul_loss_count: number;
+  foul_vs_point_priority: "foul_priority" | "point_priority";
+  // 表示設定
+  show_player_names: boolean;
+  show_match_number: boolean;
+  color_left: string;
+  color_right: string;
+  color_left_name: string;
+  color_right_name: string;
+  // テーマ
+  theme_bg_color: string;
+  theme_timer_font_size: "large" | "xlarge" | "xxlarge";
+  theme_timer_color: string;
+  theme_timer_warn_color: string;
+  theme_warn_threshold: number;
+  theme_score_font_size: "medium" | "large" | "xlarge";
+  theme_show_decimals: boolean;
+  theme_font_family: "digital" | "sans" | "mono";
+  theme_divider_color: string;
+  // ブザー
+  buzzer_on_time_up: "auto" | "manual" | "off";
+  buzzer_on_newaza: "auto" | "manual" | "off";
+  buzzer_sound: "default" | "custom";
+  buzzer_custom_path: string | null;
+  // メタ
+  created_at: string;
+  updated_at: string;
+};
+
+export type TimerLog = {
+  id: string;
+  match_id: string;
+  action: string;
+  payload: Record<string, unknown>;
+  elapsed_ms: number;
+  created_at: string;
 };
 
 /** Supabase JOIN で取得する選手の最小情報 */

@@ -13,6 +13,16 @@ export type BracketMatch = {
   winner_id: string | null;
   status: string;
   match_label: string | null;
+  result_method?: string | null;
+  result_detail?: {
+    red_points?: number;
+    white_points?: number;
+    red_wazaari?: number;
+    white_wazaari?: number;
+    red_fouls?: number;
+    white_fouls?: number;
+    corrected?: boolean;
+  } | null;
 };
 
 export function roundLabel(round: number, totalRounds: number): string {
@@ -31,10 +41,32 @@ function pendingSlotLabel(round: number, position: number, slot: 0 | 1, totalRou
   return `${roundLabel(feederRound, totalRounds)} 第${feederPos + 1}試合勝者`;
 }
 
+/** 勝利方法を表示テキストに変換 */
+function formatResultMethod(method: string | null | undefined, detail: BracketMatch["result_detail"]): string | null {
+  if (!method) return null;
+  const d = detail ?? {};
+  switch (method) {
+    case "ippon": return "一本";
+    case "combined_ippon": {
+      const n = Math.max(d.red_wazaari ?? 0, d.white_wazaari ?? 0);
+      return `合わせ一本 (技${n})`;
+    }
+    case "wazaari": return `技あり優勢 (技${d.red_wazaari ?? 0}-${d.white_wazaari ?? 0})`;
+    case "point": return `ポイント (${d.red_points ?? 0}-${d.white_points ?? 0} 技${d.red_wazaari ?? 0}-${d.white_wazaari ?? 0})`;
+    case "foul": return "反則勝ち";
+    case "decision": return "判定";
+    case "sudden_death": return "延長戦";
+    case "withdraw": return "棄権勝ち";
+    case "injury": return "負傷勝ち";
+    case "draw": return "引き分け";
+    default: return method;
+  }
+}
+
 const BRACKET_CARD_W = 172;
 const BRACKET_FOOTER_H = 24;
-const BRACKET_FIGHTER_H = 38;
-const BRACKET_CARD_H = BRACKET_FIGHTER_H * 2 + BRACKET_FOOTER_H; // 100
+const BRACKET_FIGHTER_H = 48;
+const BRACKET_CARD_H = BRACKET_FIGHTER_H * 2 + BRACKET_FOOTER_H; // 120
 const BRACKET_GAP_W = 40;
 const BRACKET_COL_W = BRACKET_CARD_W + BRACKET_GAP_W;
 const BRACKET_BASE_SLOT = 120;
@@ -189,11 +221,15 @@ export function BracketView({
 
           const isCorrectingThis = correctionMatchId === m.id;
 
+          const resultText = formatResultMethod(m.result_method, m.result_detail);
+          const isDraw = m.result_method === "draw";
+          const isCorrected = m.result_detail?.corrected;
+
           const FighterSlot = ({
-            name, aff, fighterId, isWinner, isWithdrawn, entryId, borderBottom, isRed,
+            name, aff, fighterId, isWinner, isWithdrawn, entryId, borderBottom, isRed, showResult,
           }: {
             name: string; aff?: string; fighterId: string | null;
-            isWinner: boolean; isWithdrawn: boolean; entryId?: string; borderBottom?: boolean; isRed: boolean;
+            isWinner: boolean; isWithdrawn: boolean; entryId?: string; borderBottom?: boolean; isRed: boolean; showResult?: boolean;
           }) => {
             const clickable = isOngoing && !!onSetWinner && !!fighterId && !isWithdrawn;
             const correctable = isCorrectingThis && !!onCorrectWinner && !!fighterId && !isWithdrawn;
@@ -230,6 +266,11 @@ export function BracketView({
                 </div>
                 {aff && !isWithdrawn && (
                   <p className="truncate text-[9px] text-gray-500 leading-tight pl-4 pr-7">{aff}</p>
+                )}
+                {showResult && resultText && (
+                  <p className="truncate text-[8px] text-green-400 leading-tight pl-4 pr-7">
+                    {resultText}{isCorrected && <span className="text-yellow-400 ml-0.5">(訂正)</span>}
+                  </p>
                 )}
                 {/* 棄権トグルボタン */}
                 {!isDone && !isOngoing && fighterId && entryId && onWithdrawnToggle && (
@@ -287,10 +328,12 @@ export function BracketView({
               <FighterSlot
                 name={name1} aff={aff1} fighterId={m.fighter1_id}
                 isWinner={m.winner_id === m.fighter1_id} isWithdrawn={isW1} entryId={eid1} borderBottom isRed={true}
+                showResult={isDone && !isDraw && m.winner_id === m.fighter1_id}
               />
               <FighterSlot
                 name={name2} aff={aff2} fighterId={m.fighter2_id}
                 isWinner={m.winner_id === m.fighter2_id} isWithdrawn={isW2} entryId={eid2} isRed={false}
+                showResult={isDone && !isDraw && m.winner_id === m.fighter2_id}
               />
 
               {/* 番号付けモードオーバーレイ（不戦勝は対象外） */}
