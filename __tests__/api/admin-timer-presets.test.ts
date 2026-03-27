@@ -1,0 +1,107 @@
+/**
+ * API テスト: /api/admin/timer-presets 系
+ *
+ * 対象:
+ * - /api/admin/timer-presets (GET, POST)
+ * - /api/admin/timer-presets/[id] (PATCH, DELETE)
+ * - /api/admin/timer-presets/[id]/duplicate (POST)
+ */
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import {
+  createMockSupabase,
+  mockResult,
+  createAdminRequest,
+  createParams,
+  resetAll,
+} from "../helpers/supabase-mock";
+
+vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: createMockSupabase() }));
+vi.mock("@/lib/admin-auth", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("@/lib/admin-auth")>();
+  return { ...orig, verifyAdminAuth: () => true };
+});
+
+describe("/api/admin/timer-presets", () => {
+  beforeEach(() => resetAll());
+
+  it("GET: プリセット一覧を取得できる", async () => {
+    mockResult("timer_presets", "select", {
+      data: [{ id: "p1", name: "デフォルト" }],
+    });
+    const { GET } = await import("@/app/api/admin/timer-presets/route");
+    const req = createAdminRequest("GET", "/api/admin/timer-presets");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toEqual([{ id: "p1", name: "デフォルト" }]);
+  });
+
+  it("GET: event_id フィルタ付き", async () => {
+    mockResult("timer_presets", "select", { data: [] });
+    const { GET } = await import("@/app/api/admin/timer-presets/route");
+    const req = createAdminRequest("GET", "/api/admin/timer-presets?event_id=ev1");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+  });
+
+  it("POST: プリセットを作成できる", async () => {
+    mockResult("timer_presets", "insert", {
+      data: { id: "p-new", name: "新規プリセット" },
+    });
+    const { POST } = await import("@/app/api/admin/timer-presets/route");
+    const req = createAdminRequest("POST", "/api/admin/timer-presets", {
+      body: { name: "新規プリセット", match_duration: 120 },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+  });
+});
+
+describe("/api/admin/timer-presets/[id]", () => {
+  beforeEach(() => resetAll());
+
+  it("PATCH: プリセットを更新できる", async () => {
+    mockResult("timer_presets", "update", {
+      data: { id: "p1", name: "変更後" },
+    });
+    const { PATCH } = await import("@/app/api/admin/timer-presets/[id]/route");
+    const req = createAdminRequest("PATCH", "/api/admin/timer-presets/p1", {
+      body: { name: "変更後" },
+    });
+    const res = await PATCH(req, createParams({ id: "p1" }));
+    expect(res.status).toBe(200);
+  });
+
+  it("DELETE: プリセットを削除できる", async () => {
+    const { DELETE } = await import("@/app/api/admin/timer-presets/[id]/route");
+    const req = createAdminRequest("DELETE", "/api/admin/timer-presets/p1");
+    const res = await DELETE(req, createParams({ id: "p1" }));
+    expect(res.status).toBe(200);
+  });
+});
+
+describe("/api/admin/timer-presets/[id]/duplicate", () => {
+  beforeEach(() => resetAll());
+
+  it("POST: プリセットを複製できる", async () => {
+    mockResult("timer_presets", "select", {
+      data: { id: "p1", name: "オリジナル", match_duration: 120, created_at: "", updated_at: "" },
+    });
+    mockResult("timer_presets", "insert", {
+      data: { id: "p-dup", name: "オリジナル (コピー)" },
+    });
+    const { POST } = await import("@/app/api/admin/timer-presets/[id]/duplicate/route");
+    const req = createAdminRequest("POST", "/api/admin/timer-presets/p1/duplicate");
+    const res = await POST(req, createParams({ id: "p1" }));
+    expect(res.status).toBe(201);
+  });
+
+  it("POST: 存在しないプリセットで 404", async () => {
+    // select がエラーを返す
+    mockResult("timer_presets", "select", { data: null, error: { message: "not found" } });
+    const { POST } = await import("@/app/api/admin/timer-presets/[id]/duplicate/route");
+    const req = createAdminRequest("POST", "/api/admin/timer-presets/nonexist/duplicate");
+    const res = await POST(req, createParams({ id: "nonexist" }));
+    expect(res.status).toBe(404);
+  });
+});

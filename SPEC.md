@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-27（タイマー機能Phase2実装: トーナメント連携/結果書き戻し/コート排他制御）
+> 最終更新: 2026-03-27（API ルートテスト全網羅: 全35エンドポイントの正常系テスト追加）
 
 ---
 
@@ -993,6 +993,17 @@ __tests__/
     match-utils.test.ts      # 試合ラベルユーティリティ
     email-template.test.ts   # メールテンプレート変数置換・条件ブロック
     admin-auth.test.ts       # 管理者認証（Cookie 検証）
+  api/            # API ルートテスト（Vitest + Supabase モック）
+    admin-login.test.ts          # ログイン/ログアウト
+    admin-crud.test.ts           # 道場・選手・エントリー・ルール・設定 CRUD
+    admin-events.test.ts         # イベント作成・更新・削除・複製
+    admin-matches.test.ts        # 試合更新・入替・一括・選手差替・トーナメント更新削除
+    admin-timer-presets.test.ts  # タイマープリセット CRUD・複製
+    admin-form-config.test.ts    # フォーム設定 GET/PUT/PATCH・コピー・注意書き・カスタムフィールド・画像
+    admin-media-tournaments.test.ts  # バナー・OGP・ブザー・トーナメント作成
+    court-api.test.ts            # コート操作・公開エントリー・フォーム設定・TTS
+  helpers/
+    supabase-mock.ts             # Supabase クライアントモック基盤
   e2e/            # E2E テスト（Playwright）
     full-tournament-flow.spec.ts  # 大会フル進行フロー・タイマー操作・プリセット管理
 ```
@@ -1016,5 +1027,13 @@ __tests__/
 
 - カバレッジツール: `@vitest/coverage-v8`
 - 全 `lib/` モジュールの **Lines カバレッジ 100%** を維持する
+- 全 API ルート（35エンドポイント）の**正常系は 100% テスト**済み
 - BroadcastChannel 等ブラウザ固有 API は `vi.stubGlobal` でモックしてテスト可能にする
 - `localStorage` は happy-dom の制約があるため手動モックを使用
+- API ルートテストは Supabase モック基盤（`supabase-mock.ts`）を使用し、DB 依存なしで高速実行
+
+### 13.6 テスト統計
+
+- 単体テスト: 135 テスト（7 ファイル）
+- API ルートテスト: 100 テスト（8 ファイル）
+- **合計: 235 テスト**（実行時間 ~700ms）
