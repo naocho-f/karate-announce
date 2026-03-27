@@ -152,6 +152,7 @@ export const FIELD_POOL: FieldPoolItem[] = [
     label: "所属団体よみがな",
     type: "text",
     category: "affiliation",
+    dbColumn: "school_name_reading",
     defaultRequired: true,
     kanaParent: "organization",
     placeholder: "じゅうくうかい",

@@ -540,7 +540,11 @@ export default function EntryPage({ params }: Props) {
     });
 
     if (!res.ok) {
-      setError("送信に失敗しました。もう一度お試しください。");
+      if (res.status === 403) {
+        setError("参加受付は終了しました。");
+      } else {
+        setError("送信に失敗しました。もう一度お試しください。");
+      }
       setSubmitting(false);
       return;
     }

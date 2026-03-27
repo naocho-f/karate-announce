@@ -180,11 +180,12 @@ export default function CourtPage({ params }: Props) {
 
     startProcessing(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
-    await fetch(`/api/court/matches/${matchId}`, {
+    const res = await fetch(`/api/court/matches/${matchId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "start", tournamentId }),
     });
+    if (!res.ok) { endProcessing(matchId); alert("試合開始に失敗しました"); return; }
     await load();
     endProcessing(matchId);
 
@@ -215,7 +216,7 @@ export default function CourtPage({ params }: Props) {
 
     startProcessing(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
-    await fetch(`/api/court/matches/${matchId}`, {
+    const res = await fetch(`/api/court/matches/${matchId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -227,6 +228,7 @@ export default function CourtPage({ params }: Props) {
         position: match.position,
       }),
     });
+    if (!res.ok) { endProcessing(matchId); alert("勝者設定に失敗しました"); return; }
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
@@ -240,11 +242,12 @@ export default function CourtPage({ params }: Props) {
 
   async function toggleWithdrawal(matchId: string, entryId: string, withdrawn: boolean) {
     startProcessing(matchId);
-    await fetch(`/api/court/entries/${entryId}`, {
+    const res = await fetch(`/api/court/entries/${entryId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_withdrawn: withdrawn }),
     });
+    if (!res.ok) { endProcessing(matchId); alert("欠場切替に失敗しました"); return; }
     await load();
     endProcessing(matchId);
   }
@@ -267,7 +270,7 @@ export default function CourtPage({ params }: Props) {
 
     startProcessing(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
-    await fetch(`/api/court/matches/${matchId}`, {
+    const res = await fetch(`/api/court/matches/${matchId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -279,6 +282,7 @@ export default function CourtPage({ params }: Props) {
         position: match.position,
       }),
     });
+    if (!res.ok) { endProcessing(matchId); alert("勝者訂正に失敗しました"); return; }
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
@@ -335,11 +339,12 @@ export default function CourtPage({ params }: Props) {
     const nextMatch = roundMatches[idx + 1];
     startProcessing(matchId);
     startProcessing(nextMatch.id);
-    await fetch(`/api/court/matches/${matchId}`, {
+    const res = await fetch(`/api/court/matches/${matchId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "swap_with", otherMatchId: nextMatch.id }),
     });
+    if (!res.ok) { endProcessing(matchId); endProcessing(nextMatch.id); alert("試合入替に失敗しました"); return; }
     await load();
     endProcessing(matchId);
     endProcessing(nextMatch.id);

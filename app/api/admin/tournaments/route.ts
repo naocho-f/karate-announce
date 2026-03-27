@@ -134,10 +134,15 @@ export async function POST(request: NextRequest) {
       ];
       if (totalR > 1) {
         const field = i % 2 === 0 ? "fighter1_id" : "fighter2_id";
+        // 隣接するペアも不戦勝か確認して status を決定
+        const pairedIndex = i % 2 === 0 ? i + 1 : i - 1;
+        const pairedPair = resolvedPairs[pairedIndex];
+        const pairedIsBye = pairedPair && pairedPair.f1 && !pairedPair.f2;
+        const bothSlotsFilled = !!pairedIsBye;
         ops.push(
           supabaseAdmin
             .from("matches")
-            .update({ [field]: p.f1, status: "ready" })
+            .update({ [field]: p.f1, status: bothSlotsFilled ? "ready" : "waiting" })
             .eq("tournament_id", t.id)
             .eq("round", 2)
             .eq("position", Math.floor(i / 2))
