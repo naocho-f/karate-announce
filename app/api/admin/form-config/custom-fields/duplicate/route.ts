@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     .insert({
       form_config_id,
       field_key: newFieldKey,
-      label: `${source.label}（コピー）`,
+      label: `${source.label}(コピー)`,
       field_type: source.field_type,
       choices: source.choices,
       sort_order: nextOrder,
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       sort_order: nextOrder,
       has_other_option: sourceConfig?.has_other_option ?? false,
       custom_choices: sourceConfig?.custom_choices ?? source.choices ?? null,
-      custom_label: `${source.label}（コピー）`,
+      custom_label: `${source.label}(コピー)`,
     })
     .select()
     .single();

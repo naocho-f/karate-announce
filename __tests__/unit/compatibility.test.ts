@@ -158,6 +158,30 @@ describe("worstCompatibility", () => {
     );
     expect(result).toBe("unknown");
   });
+
+  it("ok と unknown が混在する場合 ok", () => {
+    const result = worstCompatibility(
+      { weight: 60, height: 170 },
+      [
+        { weight: 62, height: 172 },
+        { weight: null, height: null },
+      ],
+      settings,
+    );
+    expect(result).toBe("ok");
+  });
+
+  it("warn と unknown が混在する場合 warn", () => {
+    const result = worstCompatibility(
+      { weight: 60, height: 170 },
+      [
+        { weight: 67, height: 170 },
+        { weight: null, height: null },
+      ],
+      settings,
+    );
+    expect(result).toBe("warn");
+  });
 });
 
 describe("定数エクスポート", () => {

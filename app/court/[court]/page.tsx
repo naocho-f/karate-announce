@@ -331,6 +331,7 @@ export default function CourtPage({ params }: Props) {
     announceWinner(
       fighterFullName(winner), winner.affiliation ?? winner.dojo?.name ?? "",
       fighterFullReading(winner), winner.affiliation_reading ?? winner.dojo?.name_reading,
+      announceTemplates,
     );
   }
 

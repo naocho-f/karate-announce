@@ -20,8 +20,8 @@ export function generateFirstRound(fighters: Fighter[]): { fighter1_id: string |
   const rounds = Math.ceil(Math.log2(n));
   const slots = Math.pow(2, rounds);
 
-  // シャッフル
-  const shuffled = [...fighters].sort(() => Math.random() - 0.5);
+  // 体重昇順ソート（体重未設定は末尾）
+  const shuffled = [...fighters].sort((a, b) => (a.weight ?? 999) - (b.weight ?? 999));
 
   // null でスロットを埋める（シード）
   const padded: (Fighter | null)[] = [...shuffled];

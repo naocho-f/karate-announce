@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getResend } from "@/lib/resend";
-import { renderTemplate, DEFAULT_SUBJECT, DEFAULT_BODY } from "@/lib/email-template";
+import { renderTemplate, DEFAULT_SUBJECT, DEFAULT_BODY, buildEntryDetails } from "@/lib/email-template";
 
 export async function POST(request: NextRequest) {
   const { entry, school_name, rule_ids } = await request.json();
@@ -91,29 +91,13 @@ async function sendConfirmationEmail(
 
   // 申込内容のテキスト生成
   const participantName = [entry.family_name, entry.given_name].filter(Boolean).join(" ");
-  const lines: string[] = [];
-  if (participantName) lines.push(`氏名: ${participantName}`);
-  if (entry.sex) lines.push(`性別: ${entry.sex === "male" ? "男性" : entry.sex === "female" ? "女性" : String(entry.sex)}`);
-  if (entry.birth_date) lines.push(`生年月日: ${String(entry.birth_date)}`);
-  if (entry.age) lines.push(`年齢: ${String(entry.age)}歳`);
-  if (entry.weight) lines.push(`体重: ${String(entry.weight)}kg`);
-  if (entry.height) lines.push(`身長: ${String(entry.height)}cm`);
-  if (entry.dojo_name) lines.push(`所属: ${String(entry.dojo_name)}`);
-  if (entry.school_name) lines.push(`支部: ${String(entry.school_name)}`);
-  if (ruleNames.length > 0) lines.push(`参加ルール: ${ruleNames.join(", ")}`);
-  // extra_fields から主要項目
-  for (const [k, v] of Object.entries(extra)) {
-    if (k === "email" || k === "email_confirm" || !v) continue;
-    const val = Array.isArray(v) ? v.join(", ") : String(v);
-    if (val) lines.push(`${k}: ${val}`);
-  }
 
   const variables: Record<string, string> = {
     participant_name: participantName || "申込者",
     event_name: eventData.name,
     event_date: eventData.event_date ?? "",
     venue_info: eventData.venue_info ?? "",
-    entry_details: lines.join("\n"),
+    entry_details: buildEntryDetails(entry, ruleNames),
     submission_date: new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }),
   };
 

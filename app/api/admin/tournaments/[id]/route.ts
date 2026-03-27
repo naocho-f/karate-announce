@@ -7,16 +7,15 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(request: NextRequest, { params }: Params) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { id } = await params;
-  const { max_weight_diff, max_height_diff, sort_order } = await request.json() as {
+  const body = await request.json() as {
     max_weight_diff?: number | null;
     max_height_diff?: number | null;
     sort_order?: number;
   };
-  const updates: Record<string, unknown> = {
-    max_weight_diff: max_weight_diff ?? null,
-    max_height_diff: max_height_diff ?? null,
-  };
-  if (sort_order !== undefined) updates.sort_order = sort_order;
+  const updates: Record<string, unknown> = {};
+  if ("max_weight_diff" in body) updates.max_weight_diff = body.max_weight_diff;
+  if ("max_height_diff" in body) updates.max_height_diff = body.max_height_diff;
+  if ("sort_order" in body) updates.sort_order = body.sort_order;
   const { error } = await supabaseAdmin
     .from("tournaments")
     .update(updates)

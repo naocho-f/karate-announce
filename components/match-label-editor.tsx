@@ -15,7 +15,7 @@ type TournamentData = {
   nameMap: Record<string, string>;
 };
 
-function getCourtLabel(court: string, courtNames: string[] | null): string {
+export function getCourtLabel(court: string, courtNames: string[] | null): string {
   const idx = parseInt(court) - 1;
   return courtNames?.[idx]?.trim() || `コート${court}`;
 }
@@ -245,6 +245,7 @@ export function MatchLabelEditor({ eventId, courtNames, courtCount, onChanged }:
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     await load(true);
+    onChanged?.();
   }
 
   async function handleSwapFighters(matchId: string) {

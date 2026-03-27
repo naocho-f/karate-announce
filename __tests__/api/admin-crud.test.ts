@@ -119,7 +119,7 @@ describe("管理系 CRUD API", () => {
     it("PATCH: ルールを更新できる", async () => {
       const { PATCH } = await import("@/app/api/admin/rules/[id]/route");
       const req = createAdminRequest("PATCH", "/api/admin/rules/r1", {
-        body: { name: "変更後ルール" },
+        body: { description: "変更後説明" },
       });
       const res = await PATCH(req, createParams({ id: "r1" }));
       expect(res.status).toBe(200);
@@ -201,7 +201,8 @@ describe("管理系 CRUD API", () => {
         data: [{ key: "announce_templates", value: { test: true } }],
       });
       const { GET } = await import("@/app/api/admin/settings/route");
-      const res = await GET();
+      const req = createAdminRequest("GET", "/api/admin/settings");
+      const res = await GET(req);
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.announce_templates).toEqual({ test: true });

@@ -65,6 +65,9 @@ export const SAMPLE_WINNER_VARS: Record<string, string> = Object.fromEntries(
   WINNER_VARS.map(({ key, sample }) => [key, sample])
 );
 
+/** 試し聞き用サンプルテキスト */
+export const SAMPLE_TEXT = "Aコート、男子一般部、準決勝。極真会所属、山田太郎選手。対。正道会館所属、鈴木一郎選手。これより試合を開始します。";
+
 export function renderTemplate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{([^}]+)\}\}/g, (_, key: string) => vars[key] ?? "");
 }
@@ -74,12 +77,12 @@ export function renderTemplate(template: string, vars: Record<string, string>): 
  * 「柔空会　本部道場」→「柔空会、本部道場」（読点で自然な間を作る）
  * 道場なしの場合「柔空会」→「柔空会」（変化なし）
  */
-function buildAffiliationForTts(aff: string): string {
+export function buildAffiliationForTts(aff: string): string {
   return aff.split("　").filter(Boolean).join("、");
 }
 
 /** アフィリエーション文字列を流派・道場に分解する */
-function splitAffiliationParts(aff: string): { school: string; dojo: string } {
+export function splitAffiliationParts(aff: string): { school: string; dojo: string } {
   const parts = aff.split("　").filter(Boolean);
   return {
     school: parts[0] ?? aff,
@@ -135,6 +138,9 @@ export function normalizeMatchLabelForTts(label: string): string {
     const reading = NUM_READING[num];
     return reading ? `${reading}かいせん` : `${num}かいせん`;
   });
+
+  // 促音処理: 「いちかい」→「いっかい」（1回戦、第1回戦 等）
+  result = result.replace(/いちかい/g, "いっかい");
 
   return result;
 }

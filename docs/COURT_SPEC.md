@@ -194,6 +194,25 @@ Body: { action: "swap_with", otherMatchId: "..." }
 2. 相手の position → 自分の元position
 3. 自分の position → 相手の元position
 
+### 5.7 タイマー結果書き戻し（finish_timer）
+**トリガー**: タイマー操作画面から試合終了時に呼び出し
+
+**API**:
+```
+PATCH /api/court/matches/{id}
+Body: { action: "finish_timer", winnerId: "..." | null, tournamentId: "...", round: N, rounds: M, position: P, resultMethod: "...", resultDetail: {...} }
+```
+
+**処理**:
+1. `winner_id`、`status` → `"done"`、`result_method`、`result_detail` を更新
+2. 勝者がいる場合、次ラウンドへの勝ち上がり（`set_winner` と同じロジック）
+3. 決勝で勝者がいる場合: `tournaments.status` → `"finished"`
+4. 勝者なし（引き分け）の場合: `status` → `"done"` のみ（次ラウンドへの伝搬なし）
+
+**set_winner との違い**:
+- `result_method`（ippon, decision, draw 等）と `result_detail`（得点詳細）を記録
+- 勝者なし（`winnerId: null`）を許容（引き分け）
+
 ---
 
 ## 6. 欠場処理
@@ -272,7 +291,7 @@ Body: { is_withdrawn: boolean }
 |------|------|
 | 認証 | なし（コート画面は公開） |
 | リクエスト | `{ action, tournamentId?, winnerId?, round?, rounds?, position?, slot?, newFighterId?, matchLabel?, rules?, otherMatchId? }` |
-| アクション | `start`, `set_winner`, `correct_winner`, `replace`, `edit`, `swap_with` |
+| アクション | `start`, `set_winner`, `correct_winner`, `replace`, `edit`, `swap_with`, `finish_timer` |
 | レスポンス | `{ ok: true }` |
 
 ### 10.2 PATCH `/api/court/entries/{id}`

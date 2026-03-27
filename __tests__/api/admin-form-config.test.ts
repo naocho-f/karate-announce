@@ -17,6 +17,8 @@ import {
   createAdminRequest,
   createParams,
   resetAll,
+  resetCalls,
+  getCallsFor,
 } from "../helpers/supabase-mock";
 
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: createMockSupabase() }));
@@ -302,7 +304,7 @@ describe("/api/admin/form-config/custom-fields/duplicate", () => {
       data: { visible: true, required: false, has_other_option: false, custom_choices: null, sort_order: 5 },
     });
     mockResult("custom_field_defs", "insert", {
-      data: { id: "cfd2", field_key: "custom_new", label: "テスト（コピー）" },
+      data: { id: "cfd2", field_key: "custom_new", label: "テスト(コピー)" },
     });
     mockResult("form_field_configs", "insert", {
       data: { id: "ffc2", field_key: "custom_new" },
@@ -313,6 +315,36 @@ describe("/api/admin/form-config/custom-fields/duplicate", () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
+  });
+
+  it("POST: 複製ラベルに半角括弧の(コピー)サフィックスが付与される", async () => {
+    mockResult("custom_field_defs", "select", {
+      data: { id: "cfd1", field_key: "custom_abc", label: "所属", field_type: "text", choices: null },
+    });
+    mockResult("form_field_configs", "select", {
+      data: { visible: true, required: false, has_other_option: false, custom_choices: null, sort_order: 3 },
+    });
+    mockResult("custom_field_defs", "insert", {
+      data: { id: "cfd2", field_key: "custom_new", label: "所属(コピー)" },
+    });
+    mockResult("form_field_configs", "insert", {
+      data: { id: "ffc2", field_key: "custom_new" },
+    });
+    resetCalls();
+    const { POST } = await import("@/app/api/admin/form-config/custom-fields/duplicate/route");
+    const req = createAdminRequest("POST", "/api/admin/form-config/custom-fields/duplicate", {
+      body: { form_config_id: "fc1", source_field_key: "custom_abc" },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    // insert に渡されたラベルが半角括弧であることを確認
+    const insertCalls = getCallsFor("custom_field_defs", "insert");
+    expect(insertCalls.length).toBeGreaterThanOrEqual(1);
+    const insertArg = insertCalls[0].args[0] as Record<string, unknown>;
+    expect(insertArg.label).toBe("所属(コピー)");
+    // 全角括弧ではないことを確認
+    expect(insertArg.label).not.toContain("（");
+    expect(insertArg.label).not.toContain("）");
   });
 });
 

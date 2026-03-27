@@ -79,8 +79,8 @@ type BracketMatch = {
 | 定数 | 値 | 説明 |
 |------|-----|------|
 | `BRACKET_CARD_W` | 172px | カード幅 |
-| `BRACKET_CARD_H` | 100px | カード高さ（38 + 38 + 24） |
-| `BRACKET_FIGHTER_H` | 38px | 選手スロット高さ |
+| `BRACKET_CARD_H` | 120px | カード高さ（48 + 48 + 24） |
+| `BRACKET_FIGHTER_H` | 48px | 選手スロット高さ |
 | `BRACKET_FOOTER_H` | 24px | フッター高さ |
 | `BRACKET_GAP_W` | 40px | ラウンド間の水平間隔 |
 | `BRACKET_COL_W` | 212px | 列幅（172 + 40） |
@@ -161,10 +161,10 @@ y2     = centerY(round + 1, floor(position / 2))   // 親カードの中心Y
 ### 6.1 構造
 ```
 ┌──────────────────────────┐
-│ 🔴 [▶] 選手名1          [棄]│  ← fighter1スロット (38px)
+│ 🔴 [▶] 選手名1          [棄]│  ← fighter1スロット (48px)
 │    所属名                    │
 ├──────────────────────────┤
-│ ⚪ [▶] 選手名2          [棄]│  ← fighter2スロット (38px)
+│ ⚪ [▶] 選手名2          [棄]│  ← fighter2スロット (48px)
 │    所属名                    │
 ├──────────────────────────┤
 │ [第1試合]  [↕次][⇅赤白][📢] │  ← フッター (24px)
@@ -335,7 +335,7 @@ const isBye = (m: BracketMatch) =>
 
 - [x] 描画方式: HTML/CSS absolute positioning + SVG 接続線
 - [x] レイアウト: 指数的垂直拡大（ラウンドごとに2倍）
-- [x] カードサイズ: 172px × 100px 固定
+- [x] カードサイズ: 172px × 120px 固定
 - [x] ラウンド名: 決勝・準決勝・準々決勝・第N回戦
 - [x] bye カードは番号割当から除外
 - [x] ミュート状態は localStorage に永続化

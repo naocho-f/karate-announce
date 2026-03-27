@@ -56,7 +56,7 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 ```
 受付期限: YYYY/MM/DD HH:MM
 ```
-表示形式: `toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })`
+表示形式: `new Date(entry_close_at).toLocaleString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tokyo" })`（明示的に年・月・日・時・分のフォーマットオプションを指定。ブラウザのデフォルト `toLocaleString` ではなく、2桁固定の `2-digit` を使用）
 
 ---
 
@@ -186,7 +186,7 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 |---------|------|---------------|
 | 必須チェック | `config.required && !isFieldFilled()` | 「{ラベル}は必須です」 |
 | メール一致 | `email !== emailConfirm` | 「メールアドレスが一致しません」 |
-| 読み仮名形式 | ひらがな/カタカナ以外の文字 | 「{ラベル}はひらがなまたはカタカナで入力してください」 |
+| 読み仮名形式 | ひらがな/カタカナ以外の文字 | 「{サブラベル}はひらがなまたはカタカナで入力してください」（※サブラベルは「姓（読み）」「名（読み）」「団体名（読み）」「支部名（読み）」等の個別ラベルを使用。親フィールドのラベルではなくサブラベルを表示する。エラーは親フィールドの `fieldErrors` キーに格納される） |
 | 年齢不一致 | 生年月日の自動計算と入力値が異なる | 「生年月日から計算した年齢は XX 歳です（{基準}時点）」 |
 | 同意チェック | `notice.require_consent && !consents[notice.id]` | 「「{ラベル}」にチェックしてください」 |
 

@@ -226,6 +226,24 @@ describe("createTournamentBracket", () => {
     expect(updateCalls.length).toBeGreaterThanOrEqual(1);
   });
 
+  it("シード（bye）の advanceWinner が winner_id と done を正しく設定する", async () => {
+    // 3人: 1つのシード試合が存在する
+    const fighters = [makeFighter("A"), makeFighter("B"), makeFighter("C")];
+    await createTournamentBracket("大会", "A", fighters);
+
+    const updateCalls = getCallsFor("matches", "update");
+    // update 呼び出しの中に winner_id が設定されたものがある
+    const winnerUpdates = updateCalls.filter(
+      (c) => c.args[0] && typeof c.args[0] === "object" && "winner_id" in (c.args[0] as Record<string, unknown>)
+    );
+    expect(winnerUpdates.length).toBeGreaterThanOrEqual(1);
+    // done ステータスが設定されている
+    const doneUpdates = updateCalls.filter(
+      (c) => c.args[0] && typeof c.args[0] === "object" && (c.args[0] as Record<string, unknown>).status === "done"
+    );
+    expect(doneUpdates.length).toBeGreaterThanOrEqual(1);
+  });
+
   it("tournaments insert が失敗 → null を返す", async () => {
     mockResult("tournaments", "insert", { data: null, error: { message: "fail" } });
     const id = await createTournamentBracket("大会", "A", [makeFighter("A"), makeFighter("B")]);

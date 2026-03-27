@@ -111,7 +111,7 @@ function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
 
     Promise.race([
       Promise.all([
-        supabase.from("events").select("*").order("event_date", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false }),
+        supabase.from("events").select("*").order("event_date", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false }),
         supabase.from("entries").select("event_id").eq("is_withdrawn", false).eq("is_test", false),
         supabase.from("tournaments").select("event_id"),
       ]),
@@ -280,7 +280,7 @@ function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
                     </p>
                   </div>
                   <Link
-                    href={`/admin/events/${e.id}`}
+                    href={`/admin/events/${e.id}?step=2`}
                     className="shrink-0 text-xs bg-yellow-700 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-lg transition"
                   >
                     対戦表を作成 →
@@ -309,7 +309,7 @@ function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
                 <div className="text-right shrink-0">
                   <p className="text-sm font-semibold text-white">{entryCounts[e.id]} 件</p>
                   <p className={`text-xs ${e.entry_closed || (e.entry_close_at && new Date(e.entry_close_at) <= new Date()) ? "text-gray-500" : "text-green-400"}`}>
-                    {e.entry_closed || (e.entry_close_at && new Date(e.entry_close_at) <= new Date()) ? "締切済" : "受付中"}
+                    {e.entry_closed || (e.entry_close_at && new Date(e.entry_close_at) <= new Date()) ? "受付終了" : "受付中"}
                   </p>
                 </div>
                 <Link href={`/admin/events/${e.id}`} className="text-gray-500 hover:text-gray-300 shrink-0 text-sm">

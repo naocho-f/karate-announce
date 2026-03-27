@@ -117,7 +117,16 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
     const timer = setInterval(load, 3000);
-    return () => clearInterval(timer);
+
+    function handleVisibility() {
+      if (document.visibilityState === "visible") load();
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [load]);
 
   async function startMatch(tournamentId: string, matchId: string) {

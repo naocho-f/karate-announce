@@ -1186,7 +1186,7 @@ export default function EntryPage({ params }: Props) {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !canSubmit}
             className={`w-full py-3 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${
               canSubmit
                 ? "bg-blue-600 hover:bg-blue-500 text-white"

@@ -45,6 +45,35 @@ export function renderTemplate(
 }
 
 /**
+ * 申込内容テキスト（entry_details）を生成する。
+ * API route から抽出し、テスト可能にしたもの。
+ */
+export function buildEntryDetails(
+  entry: Record<string, unknown>,
+  ruleNames: string[],
+): string {
+  const participantName = [entry.family_name, entry.given_name].filter(Boolean).join(" ");
+  const lines: string[] = [];
+  if (participantName) lines.push(`氏名: ${participantName}`);
+  if (entry.sex) lines.push(`性別: ${entry.sex === "male" ? "男性" : entry.sex === "female" ? "女性" : String(entry.sex)}`);
+  if (entry.birth_date) lines.push(`生年月日: ${String(entry.birth_date)}`);
+  if (entry.age) lines.push(`年齢: ${String(entry.age)}歳`);
+  if (entry.weight) lines.push(`体重: ${String(entry.weight)}kg`);
+  if (entry.height) lines.push(`身長: ${String(entry.height)}cm`);
+  if (entry.dojo_name) lines.push(`所属: ${String(entry.dojo_name)}`);
+  if (entry.school_name) lines.push(`支部: ${String(entry.school_name)}`);
+  if (ruleNames.length > 0) lines.push(`参加ルール: ${ruleNames.join(", ")}`);
+  // extra_fields から主要項目
+  const extra = (entry.extra_fields ?? {}) as Record<string, unknown>;
+  for (const [k, v] of Object.entries(extra)) {
+    if (k === "email" || k === "email_confirm" || !v) continue;
+    const val = Array.isArray(v) ? v.join(", ") : String(v);
+    if (val) lines.push(`${k}: ${val}`);
+  }
+  return lines.join("\n");
+}
+
+/**
  * テンプレートで利用可能な変数一覧を返す（管理画面で表示用）
  */
 export const TEMPLATE_VARIABLES = [

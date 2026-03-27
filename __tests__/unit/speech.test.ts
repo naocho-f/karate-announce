@@ -22,12 +22,15 @@ const {
   normalizeMatchLabelForTts,
   getTtsSettings,
   saveTtsSettings,
+  buildAffiliationForTts,
+  splitAffiliationParts,
   DEFAULT_TEMPLATES,
   TTS_VOICES,
   MATCH_VARS,
   WINNER_VARS,
   SAMPLE_MATCH_VARS,
   SAMPLE_WINNER_VARS,
+  SAMPLE_TEXT,
 } = await import("@/lib/speech");
 
 describe("renderTemplate", () => {
@@ -91,7 +94,11 @@ describe("normalizeMatchLabelForTts", () => {
   });
 
   it("「1回戦」（第なし）を読み仮名に変換", () => {
-    expect(normalizeMatchLabelForTts("1回戦")).toBe("いちかいせん");
+    expect(normalizeMatchLabelForTts("1回戦")).toBe("いっかいせん");
+  });
+
+  it("「第1回戦」を促音付きで読み仮名に変換", () => {
+    expect(normalizeMatchLabelForTts("第1回戦")).toBe("だいいっかいせん");
   });
 
   it("未知のラベルはそのまま返す", () => {
@@ -147,5 +154,48 @@ describe("定数エクスポート", () => {
 
   it("SAMPLE_WINNER_VARS が Record として存在する", () => {
     expect(SAMPLE_WINNER_VARS["勝者名前"]).toBeDefined();
+  });
+
+  it("SAMPLE_TEXT がスペック通りの値である", () => {
+    expect(SAMPLE_TEXT).toBe(
+      "Aコート、男子一般部、準決勝。極真会所属、山田太郎選手。対。正道会館所属、鈴木一郎選手。これより試合を開始します。"
+    );
+  });
+});
+
+describe("buildAffiliationForTts", () => {
+  it("全角スペース区切りを読点に変換する", () => {
+    expect(buildAffiliationForTts("柔空会　本部道場")).toBe("柔空会、本部道場");
+  });
+
+  it("空文字列は空文字列を返す", () => {
+    expect(buildAffiliationForTts("")).toBe("");
+  });
+
+  it("スペースなしの単一文字列はそのまま返す", () => {
+    expect(buildAffiliationForTts("柔空会")).toBe("柔空会");
+  });
+});
+
+describe("splitAffiliationParts", () => {
+  it("全角スペース区切りを流派と道場に分割する", () => {
+    expect(splitAffiliationParts("柔空会　本部道場")).toEqual({
+      school: "柔空会",
+      dojo: "本部道場",
+    });
+  });
+
+  it("道場なしの場合は dojo が空文字", () => {
+    expect(splitAffiliationParts("柔空会")).toEqual({
+      school: "柔空会",
+      dojo: "",
+    });
+  });
+
+  it("空文字列の場合は両方空文字", () => {
+    expect(splitAffiliationParts("")).toEqual({
+      school: "",
+      dojo: "",
+    });
   });
 });

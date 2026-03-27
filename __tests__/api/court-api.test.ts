@@ -133,6 +133,44 @@ describe("/api/court/matches/[id]", () => {
     expect(res.status).toBe(200);
   });
 
+  it("PATCH: action=correct_winner 次試合が ongoing なら伝搬スキップ", async () => {
+    mockResult("matches", "select", {
+      data: { id: "next-m", status: "ongoing", fighter1_id: "f1", fighter2_id: "f2" },
+    });
+    const { PATCH } = await import("@/app/api/court/matches/[id]/route");
+    const req = createRequest("PATCH", "/api/court/matches/m1", {
+      body: {
+        action: "correct_winner",
+        winnerId: "f2",
+        tournamentId: "t1",
+        round: 1,
+        rounds: 3,
+        position: 0,
+      },
+    });
+    const res = await PATCH(req, createParams({ id: "m1" }));
+    expect(res.status).toBe(200);
+  });
+
+  it("PATCH: action=correct_winner 次試合が done なら伝搬スキップ", async () => {
+    mockResult("matches", "select", {
+      data: { id: "next-m", status: "done", fighter1_id: "f1", fighter2_id: "f2" },
+    });
+    const { PATCH } = await import("@/app/api/court/matches/[id]/route");
+    const req = createRequest("PATCH", "/api/court/matches/m1", {
+      body: {
+        action: "correct_winner",
+        winnerId: "f2",
+        tournamentId: "t1",
+        round: 1,
+        rounds: 3,
+        position: 0,
+      },
+    });
+    const res = await PATCH(req, createParams({ id: "m1" }));
+    expect(res.status).toBe(200);
+  });
+
   it("PATCH: action=finish_timer でタイマー結果書き戻し（非決勝）", async () => {
     mockResult("matches", "select", {
       data: { id: "next-m", fighter1_id: null, fighter2_id: "f2" },

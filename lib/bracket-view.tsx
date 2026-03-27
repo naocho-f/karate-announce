@@ -298,8 +298,8 @@ export function BracketView({
           const isByeMatch = isBye(m);
           const assignedNum = assignedNumbers?.[m.id];
           const isNextMatch = nextMatchId != null && m.id === nextMatchId;
-          // ready だが次の試合でも進行中でもない → トーンダウン
-          const isDimmed = isReady && !isNextMatch && !isOngoing && !isDone && !isNumberingMode;
+          // ready だが次の試合でも進行中でもない → hasOngoingMatch 時にトーンダウン
+          const isDimmed = isReady && !isNextMatch && !isOngoing && !isDone && !isNumberingMode && hasOngoingMatch;
 
           return (
             <div
@@ -351,8 +351,8 @@ export function BracketView({
                 </div>
               )}
 
-              {/* 試合開始オーバーレイ（ready 状態・進行中試合がない場合のみ） */}
-              {isReady && onMatchClick && !isProcessing && !hasOngoingMatch && (
+              {/* 試合開始オーバーレイ（ready + nextMatch は常時表示、それ以外は hasOngoingMatch でなければ表示） */}
+              {isReady && onMatchClick && !isProcessing && (isNextMatch || !hasOngoingMatch) && (
                 <div
                   className={`absolute inset-0 flex items-center justify-center z-10 cursor-pointer transition-colors ${
                     isNextMatch

@@ -18,11 +18,23 @@ async function advanceWinner(
 ) {
   if (round >= maxRounds) return;
   const field = position % 2 === 0 ? "fighter1_id" : "fighter2_id";
-  await supabase.from("matches")
-    .update({ [field]: winnerId, status: "ready" })
+  const otherField = position % 2 === 0 ? "fighter2_id" : "fighter1_id";
+  const nextPos = Math.floor(position / 2);
+
+  // 次ラウンドの相手スロットを確認して status を決定
+  const { data: nextMatch } = await supabase.from("matches")
+    .select("id, fighter1_id, fighter2_id")
     .eq("tournament_id", tournamentId)
     .eq("round", round + 1)
-    .eq("position", Math.floor(position / 2));
+    .eq("position", nextPos)
+    .single();
+  const otherFilled = nextMatch && (nextMatch as Record<string, string | null>)[otherField];
+
+  await supabase.from("matches")
+    .update({ [field]: winnerId, status: otherFilled ? "ready" : "waiting" })
+    .eq("tournament_id", tournamentId)
+    .eq("round", round + 1)
+    .eq("position", nextPos);
 }
 
 export async function createTournamentBracket(

@@ -107,6 +107,8 @@ karate-announce/
 | `form_notice_images` | 注意書き画像 |
 | `custom_field_defs` | カスタムフィールド定義 |
 | `settings` | アプリケーション設定 |
+| `timer_presets` | タイマープリセット |
+| `timer_logs` | タイマー操作ログ |
 
 ### 4.3 RLS
 全テーブルで RLS **無効**（現状は単一組織利用）。マルチテナント化（他団体へのライセンス販売）が現実的に計画されており、その際に `tenant_id` ベースの RLS ポリシーを有効化する。実装時は常にマルチテナント化を意識し、団体固有のハードコードを避けること。
@@ -250,14 +252,18 @@ karate-announce/
 | `/api/admin/matches/[id]/replace` | POST | 選手差替 |
 | `/api/admin/matches/swap` | POST | 試合位置スワップ |
 | `/api/admin/matches/batch` | POST | 試合ラベル一括更新 |
-| `/api/admin/form-config` | GET, POST, PATCH | フォーム設定管理 |
+| `/api/admin/form-config` | GET, PUT, PATCH | フォーム設定管理 |
 | `/api/admin/form-config/copy` | POST | 過去大会からのコピー |
 | `/api/admin/form-config/notices` | POST | 注意書き作成 |
 | `/api/admin/form-config/notices/[id]` | PATCH, DELETE | 注意書き更新・削除 |
-| `/api/admin/form-config/custom-fields` | POST, PATCH, DELETE | カスタムフィールド管理 |
+| `/api/admin/form-config/custom-fields` | POST, DELETE | カスタムフィールド管理 |
 | `/api/admin/form-config/custom-fields/duplicate` | POST | カスタムフィールド複製 |
 | `/api/admin/form-config/image-upload` | POST, DELETE | 注意書き画像アップロード・削除 |
 | `/api/admin/settings` | GET, PUT | アプリケーション設定 |
+| `/api/admin/timer-presets` | GET, POST | タイマープリセット一覧・作成 |
+| `/api/admin/timer-presets/[id]` | PATCH, DELETE | タイマープリセット更新・削除 |
+| `/api/admin/timer-presets/[id]/duplicate` | POST | タイマープリセット複製 |
+| `/api/admin/timer-presets/[id]/buzzer` | POST, DELETE | カスタムブザー音源アップロード・削除 |
 
 ### 9.2 コート用（`/api/court/*`、認証なし）
 | パス | メソッド | 機能 |

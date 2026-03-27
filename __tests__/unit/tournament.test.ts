@@ -8,7 +8,7 @@ import { describe, it, expect } from "vitest";
 import { generateFirstRound, totalRounds, roundName } from "@/lib/tournament";
 import type { Fighter } from "@/lib/types";
 
-function makeFighter(id: string): Fighter {
+function makeFighter(id: string, overrides?: Partial<Fighter>): Fighter {
   return {
     id, name: `選手${id}`, name_reading: null,
     family_name: null, given_name: null,
@@ -16,6 +16,7 @@ function makeFighter(id: string): Fighter {
     dojo_id: "dojo-1", affiliation: null, affiliation_reading: null,
     weight: null, height: null, age_info: null, experience: null,
     extra_fields: {}, created_at: "",
+    ...overrides,
   };
 }
 
@@ -84,6 +85,40 @@ describe("tournament", () => {
       const placedIds = matches.flatMap((m) => [m.fighter1_id, m.fighter2_id]).filter(Boolean);
       // 全6人が配置されている
       expect(new Set(placedIds).size).toBe(6);
+    });
+
+    it("体重昇順でソートされて配置される", () => {
+      const fighters = [
+        makeFighter("heavy", { weight: 80 }),
+        makeFighter("light", { weight: 40 }),
+        makeFighter("mid", { weight: 60 }),
+        makeFighter("mid2", { weight: 55 }),
+      ];
+      const matches = generateFirstRound(fighters);
+      // 4人 → 2試合。体重昇順: light(40), mid2(55), mid(60), heavy(80)
+      // match0: slot0=light, slot1=mid2
+      // match1: slot0=mid, slot1=heavy
+      expect(matches[0].fighter1_id).toBe("light");
+      expect(matches[0].fighter2_id).toBe("mid2");
+      expect(matches[1].fighter1_id).toBe("mid");
+      expect(matches[1].fighter2_id).toBe("heavy");
+    });
+
+    it("体重未設定の選手は末尾に配置される", () => {
+      const fighters = [
+        makeFighter("noweight", { weight: null }),
+        makeFighter("light", { weight: 30 }),
+        makeFighter("heavy", { weight: 70 }),
+        makeFighter("noweight2", { weight: null }),
+      ];
+      const matches = generateFirstRound(fighters);
+      // 体重昇順: light(30), heavy(70), noweight(999), noweight2(999)
+      expect(matches[0].fighter1_id).toBe("light");
+      expect(matches[0].fighter2_id).toBe("heavy");
+      // 体重なしの2人は後半
+      const lastMatch = matches[1];
+      expect([lastMatch.fighter1_id, lastMatch.fighter2_id]).toContain("noweight");
+      expect([lastMatch.fighter1_id, lastMatch.fighter2_id]).toContain("noweight2");
     });
   });
 });
