@@ -6,7 +6,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(request: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await request.json() as {
-    action: "start" | "set_winner" | "replace" | "edit" | "swap_with" | "correct_winner";
+    action: "start" | "set_winner" | "replace" | "edit" | "swap_with" | "correct_winner" | "finish_timer";
     tournamentId?: string;
     winnerId?: string;
     round?: number;
@@ -17,6 +17,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     matchLabel?: string | null;
     rules?: string | null;
     otherMatchId?: string;
+    resultMethod?: string | null;
+    resultDetail?: Record<string, unknown> | null;
   };
 
   if (body.action === "start") {
@@ -104,6 +106,41 @@ export async function PATCH(request: NextRequest, { params }: Params) {
           .update({ [field]: winnerId, status: otherFilled ? "ready" : "waiting" })
           .eq("id", nextMatch.id);
       }
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.action === "finish_timer") {
+    const { winnerId, tournamentId, round, rounds, position, resultMethod, resultDetail } = body;
+    // タイマーから結果を書き戻し: winner_id, status, result_method, result_detail
+    await supabaseAdmin.from("matches").update({
+      winner_id: winnerId ?? null,
+      status: "done",
+      result_method: resultMethod ?? null,
+      result_detail: resultDetail ?? null,
+    }).eq("id", id);
+
+    // 勝者がいる場合、次ラウンドへ進出させる
+    if (winnerId && round != null && rounds != null && position != null && round < rounds) {
+      const nextPosition = Math.floor(position / 2);
+      const field = position % 2 === 0 ? "fighter1_id" : "fighter2_id";
+      const { data: nextMatch } = await supabaseAdmin
+        .from("matches")
+        .select("id, fighter1_id, fighter2_id")
+        .eq("tournament_id", tournamentId)
+        .eq("round", round + 1)
+        .eq("position", nextPosition)
+        .single();
+      const otherFilled = nextMatch && (position % 2 === 0 ? nextMatch.fighter2_id : nextMatch.fighter1_id);
+      await supabaseAdmin
+        .from("matches")
+        .update({ [field]: winnerId, status: otherFilled ? "ready" : "waiting" })
+        .eq("tournament_id", tournamentId)
+        .eq("round", round + 1)
+        .eq("position", nextPosition);
+    } else if (winnerId && round != null && rounds != null && round >= rounds && tournamentId) {
+      // 決勝 → トーナメント完了
+      await supabaseAdmin.from("tournaments").update({ status: "finished" }).eq("id", tournamentId);
     }
     return NextResponse.json({ ok: true });
   }

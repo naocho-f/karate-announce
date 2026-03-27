@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { isTimerActive } from "@/lib/timer-broadcast";
 import type { Fighter, Match, Tournament } from "@/lib/types";
 import { fighterFullName, fighterFullReading } from "@/lib/types";
 import { roundName, totalRounds } from "@/lib/tournament";
@@ -25,6 +26,7 @@ export default function CourtPage({ params }: Props) {
   const [fighterEntryMap, setFighterEntryMap] = useState<Record<string, string>>({});
   const [announceTemplates, setAnnounceTemplates] = useState<AnnounceTemplates>(DEFAULT_TEMPLATES);
   const [rulesReadingMap, setRulesReadingMap] = useState<Record<string, string>>({});
+  const [timerControlActive, setTimerControlActive] = useState(false);
   const [processingMatchIds, setProcessingMatchIds] = useState<Set<string>>(new Set());
   const [mutedMatchIds, setMutedMatchIds] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
@@ -57,6 +59,9 @@ export default function CourtPage({ params }: Props) {
       return;
     }
     setIsEventActive(true);
+
+    // タイマー排他制御フラグの確認
+    setTimerControlActive(isTimerActive(activeEvent.id, court));
     const courtIndex = parseInt(court, 10) - 1;
     setCourtDisplayName(activeEvent.court_names?.[courtIndex]?.trim() || `コート${court}`);
 
@@ -384,6 +389,7 @@ export default function CourtPage({ params }: Props) {
             fighterEntryMap={fighterEntryMap}
             processingMatchIds={processingMatchIds}
             mutedMatchIds={mutedMatchIds}
+            timerControlActive={timerControlActive}
             onStartMatch={startMatch}
             onSetWinner={setWinner}
             onCorrectWinner={correctWinner}
@@ -401,7 +407,7 @@ export default function CourtPage({ params }: Props) {
 
 function CourtContent({
   tournaments, matchesMap, fighters, withdrawnFighterIds, fighterEntryMap,
-  processingMatchIds, mutedMatchIds,
+  processingMatchIds, mutedMatchIds, timerControlActive,
   onStartMatch, onSetWinner, onCorrectWinner, onReannounceStart, onReannounceWinner,
   onToggleWithdrawal, onSwapWithNext, onToggleMute,
 }: {
@@ -412,6 +418,7 @@ function CourtContent({
   fighterEntryMap: Record<string, string>;
   processingMatchIds: Set<string>;
   mutedMatchIds: Set<string>;
+  timerControlActive: boolean;
   onStartMatch: (tournamentId: string, matchId: string) => void;
   onSetWinner: (tournamentId: string, matchId: string, winnerId: string) => void;
   onCorrectWinner: (tournamentId: string, matchId: string, winnerId: string) => void;
@@ -450,6 +457,15 @@ function CourtContent({
 
   return (
     <div className="space-y-8">
+      {timerControlActive && (
+        <div className="sticky top-0 z-30 bg-orange-950 border border-orange-700 rounded-xl px-4 py-3 flex items-center gap-3">
+          <span className="text-orange-400 shrink-0">⏱</span>
+          <div>
+            <p className="text-sm text-orange-300 font-medium">タイマー操作画面で制御中</p>
+            <p className="text-xs text-orange-500">試合の開始・勝者設定はタイマー操作画面から行ってください</p>
+          </div>
+        </div>
+      )}
       {courtAllDone ? (
         <div className="sticky top-0 z-20 bg-green-950 border border-green-700 rounded-xl px-4 py-3 flex items-center gap-3">
           <span className="text-green-400 shrink-0">✅</span>

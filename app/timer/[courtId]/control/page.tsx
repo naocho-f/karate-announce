@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { createTimerChannel, saveState, setActiveFlag, clearActiveFlag } from "@/lib/timer-broadcast";
+import { supabase } from "@/lib/supabase";
+import { createTimerChannel, saveState, loadState, setActiveFlag, clearActiveFlag } from "@/lib/timer-broadcast";
 import {
   createInitialState, setMatch, startTimer, pauseTimer, resumeTimer,
-  timeUp, startExtension, adjustTime, setTime,
+  timeUp, startExtension, adjustTime,
   addPoint, addWazaari, addIppon, addFoul,
   toggleNewaza, newazaTimeUp, adjustNewazaCount,
   undo, finishManual, markResultWritten, cancelResult, resetToIdle,
@@ -13,7 +14,8 @@ import {
   type TimerState, type FighterSide, type ResultMethod, type FighterInfo,
 } from "@/lib/timer-state";
 import { preloadDefaultBuzzer, playBuzzer } from "@/lib/timer-buzzer";
-import type { TimerPreset } from "@/lib/types";
+import { fighterFullName, fighterFullReading } from "@/lib/types";
+import type { TimerPreset, Fighter, Match, Tournament } from "@/lib/types";
 
 // ── フォーマット ──────────────────────────────────────────────
 
@@ -90,6 +92,16 @@ const DEFAULT_PRESET: TimerPreset = {
   updated_at: "",
 };
 
+// ── トーナメントデータ型 ──────────────────────────────────
+
+type MatchCandidate = {
+  match: Match;
+  tournament: Tournament;
+  fighter1: Fighter;
+  fighter2: Fighter;
+  totalRounds: number;
+};
+
 // ── メインコンポーネント ──────────────────────────────────────
 
 export default function TimerControlPage() {
@@ -106,8 +118,126 @@ export default function TimerControlPage() {
   const [displayMs, setDisplayMs] = useState(0);
   const [newazaMs, setNewazaMs] = useState(0);
 
-  // 仮のeventId（トーナメント連携前は courtId をキーに使う）
-  const eventId = "default";
+  // ── トーナメント連携 ──
+  const [eventId, setEventId] = useState<string | null>(null);
+  const [presets, setPresets] = useState<TimerPreset[]>([]);
+  const [matchCandidates, setMatchCandidates] = useState<MatchCandidate[]>([]);
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+  const [loadingTournament, setLoadingTournament] = useState(true);
+  const [writingBack, setWritingBack] = useState(false);
+
+  // localStorage キー用の eventId（未ロード時は courtId をフォールバック）
+  const storageEventId = eventId ?? "default";
+
+  // ── トーナメントデータ読み込み ──
+  const loadTournamentData = useCallback(async () => {
+    // アクティブイベント取得
+    const { data: activeEvent } = await supabase
+      .from("events")
+      .select("id")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!activeEvent) {
+      setLoadingTournament(false);
+      return;
+    }
+    setEventId(activeEvent.id);
+
+    // プリセット取得
+    const presetsRes = await fetch("/api/admin/timer-presets");
+    if (presetsRes.ok) {
+      const allPresets: TimerPreset[] = await presetsRes.json();
+      // イベント用 or 汎用
+      const filtered = allPresets.filter(
+        (p) => !p.event_id || p.event_id === activeEvent.id
+      );
+      setPresets(filtered);
+      if (filtered.length > 0 && !selectedPresetId) {
+        setSelectedPresetId(filtered[0].id);
+      }
+    }
+
+    // このコートのトーナメントと試合を取得
+    const { data: tourns } = await supabase
+      .from("tournaments")
+      .select("*")
+      .eq("event_id", activeEvent.id)
+      .eq("court", courtId)
+      .neq("status", "finished")
+      .order("sort_order")
+      .order("created_at");
+
+    if (!tourns?.length) {
+      setMatchCandidates([]);
+      setLoadingTournament(false);
+      return;
+    }
+
+    const tournIds = tourns.map((t) => t.id);
+    const { data: allMatches } = await supabase
+      .from("matches")
+      .select("*")
+      .in("tournament_id", tournIds)
+      .order("round")
+      .order("position");
+
+    if (!allMatches?.length) {
+      setMatchCandidates([]);
+      setLoadingTournament(false);
+      return;
+    }
+
+    // 選手情報取得
+    const fighterIds = new Set<string>();
+    allMatches.forEach((m) => {
+      if (m.fighter1_id) fighterIds.add(m.fighter1_id);
+      if (m.fighter2_id) fighterIds.add(m.fighter2_id);
+    });
+
+    let fighterMap: Record<string, Fighter> = {};
+    if (fighterIds.size > 0) {
+      const { data: fs } = await supabase
+        .from("fighters")
+        .select("*, dojo:dojos(*)")
+        .in("id", [...fighterIds]);
+      (fs ?? []).forEach((f) => { fighterMap[f.id] = f as Fighter; });
+    }
+
+    // 試合候補を組み立て（ongoing + ready で両選手揃っている）
+    const candidates: MatchCandidate[] = [];
+    for (const tourn of tourns) {
+      const tMatches = allMatches.filter((m) => m.tournament_id === tourn.id);
+      const maxRound = Math.max(...tMatches.map((m) => m.round), 1);
+      for (const m of tMatches) {
+        if ((m.status === "ongoing" || m.status === "ready") && m.fighter1_id && m.fighter2_id) {
+          const f1 = fighterMap[m.fighter1_id];
+          const f2 = fighterMap[m.fighter2_id];
+          if (f1 && f2) {
+            candidates.push({ match: m, tournament: tourn, fighter1: f1, fighter2: f2, totalRounds: maxRound });
+          }
+        }
+      }
+    }
+    // ongoing を先に、次に match_label のソート
+    candidates.sort((a, b) => {
+      if (a.match.status === "ongoing" && b.match.status !== "ongoing") return -1;
+      if (a.match.status !== "ongoing" && b.match.status === "ongoing") return 1;
+      const nA = parseInt(a.match.match_label?.replace(/[^\d]/g, "") ?? "999", 10);
+      const nB = parseInt(b.match.match_label?.replace(/[^\d]/g, "") ?? "999", 10);
+      return nA - nB;
+    });
+
+    setMatchCandidates(candidates);
+    setLoadingTournament(false);
+  }, [courtId, selectedPresetId]);
+
+  useEffect(() => {
+    loadTournamentData();
+    // 10秒ごとに試合リストを更新
+    const interval = setInterval(loadTournamentData, 10_000);
+    return () => clearInterval(interval);
+  }, [loadTournamentData]);
 
   // ── 初期化 ──
   useEffect(() => {
@@ -115,17 +245,33 @@ export default function TimerControlPage() {
     const ch = createTimerChannel(courtId);
     channelRef.current = ch;
 
+    // localStorage から復元
+    const saved = loadState(storageEventId, courtId);
+    if (saved && saved.phase !== "idle") {
+      // running だった場合は paused で復元
+      if (saved.phase === "running") {
+        saved.phase = "paused";
+        saved.timerStartedAt = null;
+        if (saved.newaza.active) {
+          saved.newaza = { ...saved.newaza, active: false, elapsedMs: saved.newaza.elapsedMs, startedAt: null };
+        }
+      }
+      setState(saved);
+      ch.send(saved);
+    }
+
     // アクティブフラグ
-    setActiveFlag(eventId, courtId);
-    heartbeatRef.current = setInterval(() => setActiveFlag(eventId, courtId), 10_000);
+    setActiveFlag(storageEventId, courtId);
+    heartbeatRef.current = setInterval(() => setActiveFlag(storageEventId, courtId), 10_000);
 
     return () => {
       ch.close();
-      clearActiveFlag(eventId, courtId);
+      clearActiveFlag(storageEventId, courtId);
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (saveIntervalRef.current) clearInterval(saveIntervalRef.current);
     };
-  }, [courtId, eventId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courtId, storageEventId]);
 
   // ── 状態変更時に BroadcastChannel で送信 ──
   const broadcast = useCallback((s: TimerState) => {
@@ -194,19 +340,19 @@ export default function TimerControlPage() {
   useEffect(() => {
     if (state.phase === "running") {
       saveIntervalRef.current = setInterval(() => {
-        saveState(eventId, courtId, stateRef.current);
+        saveState(storageEventId, courtId, stateRef.current);
       }, 1000);
     } else {
       if (saveIntervalRef.current) {
         clearInterval(saveIntervalRef.current);
         saveIntervalRef.current = null;
       }
-      saveState(eventId, courtId, state);
+      saveState(storageEventId, courtId, state);
     }
     return () => {
       if (saveIntervalRef.current) clearInterval(saveIntervalRef.current);
     };
-  }, [state.phase, courtId, eventId, state]);
+  }, [state.phase, courtId, storageEventId, state]);
 
   // ── 離脱防止 ──
   useEffect(() => {
@@ -290,12 +436,71 @@ export default function TimerControlPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [update]);
 
+  // ── トーナメント試合をセット ──
+  const handleSelectMatch = (candidate: MatchCandidate) => {
+    const preset = getPresetForMatch(candidate);
+    const f1 = candidate.fighter1;
+    const f2 = candidate.fighter2;
+
+    const redInfo: FighterInfo = {
+      id: f1.id,
+      name: fighterFullName(f1),
+      nameReading: fighterFullReading(f1),
+      affiliation: f1.affiliation ?? f1.dojo?.name ?? "",
+      affiliationReading: f1.affiliation_reading ?? f1.dojo?.name_reading ?? null,
+    };
+    const whiteInfo: FighterInfo = {
+      id: f2.id,
+      name: fighterFullName(f2),
+      nameReading: fighterFullReading(f2),
+      affiliation: f2.affiliation ?? f2.dojo?.name ?? "",
+      affiliationReading: f2.affiliation_reading ?? f2.dojo?.name_reading ?? null,
+    };
+
+    update((s) => setMatch(s, {
+      matchId: candidate.match.id,
+      tournamentId: candidate.tournament.id,
+      preset,
+      red: redInfo,
+      white: whiteInfo,
+      matchLabel: candidate.match.match_label ?? "",
+      rules: candidate.match.rules ?? candidate.tournament.default_rules ?? null,
+      rulesReading: null,
+      matchNumber: 0,
+      totalMatches: 0,
+    }));
+
+    // 試合開始 API（status を ongoing に）
+    fetch(`/api/court/matches/${candidate.match.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "start", tournamentId: candidate.tournament.id }),
+    });
+  };
+
+  // プリセット選択ロジック: ルールにマッチするプリセット → 選択中プリセット → デフォルト
+  const getPresetForMatch = (candidate: MatchCandidate): TimerPreset => {
+    const rules = candidate.match.rules ?? candidate.tournament.default_rules;
+    if (rules && presets.length > 0) {
+      // rule_id が一致するプリセットを探す（ルール名マッチ）
+      const byRule = presets.find((p) => p.rule_id && p.name.includes(rules));
+      if (byRule) return byRule;
+    }
+    if (selectedPresetId) {
+      const sel = presets.find((p) => p.id === selectedPresetId);
+      if (sel) return sel;
+    }
+    if (presets.length > 0) return presets[0];
+    return DEFAULT_PRESET;
+  };
+
   // ── テスト用: 簡易試合セット ──
   const handleQuickMatch = () => {
+    const preset = presets.find((p) => p.id === selectedPresetId) ?? DEFAULT_PRESET;
     update((s) => setMatch(s, {
       matchId: null,
       tournamentId: null,
-      preset: DEFAULT_PRESET,
+      preset,
       red: { id: "red-1", name: "選手A", nameReading: null, affiliation: "道場A", affiliationReading: null },
       white: { id: "white-1", name: "選手B", nameReading: null, affiliation: "道場B", affiliationReading: null },
       matchLabel: "第1試合",
@@ -304,6 +509,56 @@ export default function TimerControlPage() {
       matchNumber: 1,
       totalMatches: 1,
     }));
+  };
+
+  // ── 結果書き戻し ──
+  const handleWriteBack = async () => {
+    const s = stateRef.current;
+    if (s.phase !== "finished" || !s.matchId || !s.tournamentId) {
+      // matchId がない場合（テスト試合）はマークだけ
+      update(markResultWritten);
+      return;
+    }
+
+    setWritingBack(true);
+
+    // 試合のラウンド情報を取得
+    const { data: matchData } = await supabase
+      .from("matches")
+      .select("round, position, tournament_id")
+      .eq("id", s.matchId)
+      .single();
+
+    const { data: allMatches } = await supabase
+      .from("matches")
+      .select("round")
+      .eq("tournament_id", s.tournamentId);
+
+    const rounds = allMatches ? Math.max(...allMatches.map((m) => m.round), 1) : 1;
+
+    const res = await fetch(`/api/court/matches/${s.matchId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "finish_timer",
+        winnerId: s.winnerId,
+        tournamentId: s.tournamentId,
+        round: matchData?.round,
+        rounds,
+        position: matchData?.position,
+        resultMethod: s.resultMethod,
+        resultDetail: s.resultDetail,
+      }),
+    });
+
+    if (res.ok) {
+      update(markResultWritten);
+      // 試合リストを更新
+      loadTournamentData();
+    } else {
+      alert("結果の書き戻しに失敗しました");
+    }
+    setWritingBack(false);
   };
 
   const phase = state.phase;
@@ -344,17 +599,75 @@ export default function TimerControlPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* ── メイン操作パネル ── */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* idle: 試合セットボタン */}
+          {/* idle: 試合セット */}
           {phase === "idle" && (
-            <section>
+            <section className="space-y-3">
               <h3 className="text-sm font-bold text-gray-400 mb-2">試合セット</h3>
-              <button
-                onClick={handleQuickMatch}
-                className="w-full py-3 rounded-lg bg-blue-700 hover:bg-blue-600 text-white font-bold text-lg transition"
-              >
-                クイック試合（テスト）
-              </button>
-              <p className="text-gray-600 text-xs mt-1">※ トーナメント連携は後続フェーズで実装</p>
+
+              {/* プリセット選択 */}
+              {presets.length > 0 && (
+                <div>
+                  <label className="text-xs text-gray-500">プリセット</label>
+                  <select
+                    value={selectedPresetId ?? ""}
+                    onChange={(e) => setSelectedPresetId(e.target.value || null)}
+                    className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm"
+                  >
+                    {presets.map((pr) => (
+                      <option key={pr.id} value={pr.id}>{pr.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* トーナメント試合一覧 */}
+              {loadingTournament ? (
+                <p className="text-gray-600 text-sm">読み込み中...</p>
+              ) : matchCandidates.length > 0 ? (
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-500">試合を選択して開始</p>
+                  {matchCandidates.map((c) => (
+                    <button
+                      key={c.match.id}
+                      onClick={() => handleSelectMatch(c)}
+                      className={`w-full text-left p-3 rounded-lg border transition ${
+                        c.match.status === "ongoing"
+                          ? "border-yellow-700 bg-yellow-950/50 hover:bg-yellow-950/80"
+                          : "border-gray-700 bg-gray-900 hover:bg-gray-800"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold">
+                          {c.match.match_label ?? `R${c.match.round}-P${c.match.position}`}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {c.match.status === "ongoing" && (
+                            <span className="text-xs text-yellow-400 font-bold">試合中</span>
+                          )}
+                          <span className="text-xs text-gray-600">{c.tournament.name}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        <span className="text-red-400">{fighterFullName(c.fighter1)}</span>
+                        <span className="text-gray-600 mx-1">vs</span>
+                        <span className="text-gray-200">{fighterFullName(c.fighter2)}</span>
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600 text-sm">開始可能な試合がありません</p>
+              )}
+
+              {/* テスト用 */}
+              <div className="border-t border-gray-800 pt-3">
+                <button
+                  onClick={handleQuickMatch}
+                  className="w-full py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 text-sm transition"
+                >
+                  クイック試合（テスト）
+                </button>
+              </div>
             </section>
           )}
 
@@ -590,21 +903,27 @@ export default function TimerControlPage() {
                     <p className="text-green-400 font-bold">{state.resultMethod}</p>
                   </div>
                   {!state.resultWritten && (
+                    <button onClick={handleWriteBack} disabled={writingBack}
+                      className="w-full py-2 rounded bg-green-700 hover:bg-green-600 text-white font-bold transition disabled:opacity-50">
+                      {writingBack ? "書き戻し中..." : state.matchId ? "結果を確定して書き戻し" : "結果を確定"}
+                    </button>
+                  )}
+                  {state.resultWritten && (
+                    <p className="text-center text-green-400 text-sm font-bold">結果を書き戻しました</p>
+                  )}
+                  {!state.resultWritten && (
                     <button onClick={() => {
-                      if (confirm("結果を確定して書き戻しますか？")) update(markResultWritten);
+                      if (confirm("結果を取り消しますか？")) update(cancelResult);
                     }}
-                      className="w-full py-2 rounded bg-green-700 hover:bg-green-600 text-white font-bold transition">
-                      結果を確定して書き戻し
+                      className="w-full py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
+                      結果取り消し
                     </button>
                   )}
                   <button onClick={() => {
-                    if (confirm("結果を取り消しますか？")) update(cancelResult);
-                  }}
-                    className="w-full py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
-                    結果取り消し
-                  </button>
-                  <button onClick={() => {
-                    if (confirm("現在の試合データは破棄されます。よろしいですか？")) update(resetToIdle);
+                    if (state.resultWritten || confirm("現在の試合データは破棄されます。よろしいですか？")) {
+                      update(resetToIdle);
+                      loadTournamentData();
+                    }
                   }}
                     className="w-full py-2 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 text-sm transition">
                     次の試合へ（リセット）

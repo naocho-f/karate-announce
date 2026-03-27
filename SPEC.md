@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-27（タイマー機能Phase1実装: DB/型/ブラケット拡張/ステートマシン/BroadcastChannel/ブザー/表示画面/操作画面/プリセットCRUD+管理画面）
+> 最終更新: 2026-03-27（タイマー機能Phase2実装: トーナメント連携/結果書き戻し/コート排他制御）
 
 ---
 
@@ -399,7 +399,11 @@
 - ミニプレビュー + メイン操作（開始/停止/再開）+ スコア操作（ポイント/技あり/反則/一本）+ 寝技
 - キーボードショートカット対応（右サイドバーに参照パネル）
 - beforeunload で離脱防止
-- BroadcastChannel + localStorage で状態同期・永続化
+- BroadcastChannel + localStorage で状態同期・永続化（状態復元はrunning→pausedで安全復帰）
+- **トーナメント連携**: アクティブイベントのコートに割り当てられた試合を自動取得、選択して開始
+- **プリセット選択**: ルール名マッチ → 手動選択 → デフォルトの優先順で適用
+- **結果書き戻し**: 試合終了後に finish_timer API でDB更新（winner_id, result_method, result_detail）、次ラウンド進出も自動処理
+- **コート画面排他制御**: localStorage の timer-active フラグ（30秒TTL、10秒ハートビート）でコート画面の操作を抑止
 - 詳細仕様: `docs/TIMER_SPEC.md`
 
 ### 3.12 ショートカット印刷用ページ (`/timer/shortcuts`)
@@ -710,7 +714,9 @@ form_notice_images (
 | `set_winner` | `winnerId`, `tournamentId`, `round`, `rounds`, `position` | 勝者確定・次ラウンド進出。最終ラウンドならトーナメントを `finished` に |
 | `replace` | `slot`, `newFighterId` | 選手差し替え |
 | `edit` | `matchLabel`, `rules` | マッチラベル・ルール変更 |
+| `correct_winner` | `winnerId`, `tournamentId`, `round`, `rounds`, `position` | 勝者訂正。次ラウンドが未進行なら選手を差し替え |
 | `swap_with` | `otherMatchId` | 試合順序入替（3ステップスワップで `UNIQUE` 制約を回避） |
+| `finish_timer` | `winnerId`, `tournamentId`, `round`, `rounds`, `position`, `resultMethod`, `resultDetail` | タイマーからの結果書き戻し。winner_id, status="done", result_method, result_detail を更新。次ラウンド進出も処理 |
 
 ### 5.3 公開 API（認証不要）
 
