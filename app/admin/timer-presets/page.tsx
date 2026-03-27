@@ -290,7 +290,7 @@ export default function TimerPresetsPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {field("theme_timer_font_size", "タイマーフォントサイズ", "select", {
-                    options: [{ value: "large", label: "Large" }, { value: "xlarge", label: "XLarge" }, { value: "xxlarge", label: "XXLarge" }]
+                    options: [{ value: "large", label: "Large" }, { value: "xlarge", label: "XLarge" }, { value: "xxlarge", label: "XXLarge" }, { value: "xxxlarge", label: "XXXLarge" }]
                   })}
                   {field("theme_score_font_size", "スコアフォントサイズ", "select", {
                     options: [{ value: "medium", label: "Medium" }, { value: "large", label: "Large" }, { value: "xlarge", label: "XLarge" }]
@@ -301,58 +301,88 @@ export default function TimerPresetsPage() {
                 </div>
                 {field("theme_show_decimals", "0.1秒表示", "checkbox")}
 
-                {/* テーマ プレビュー（16:9） */}
+                {/* テーマ プレビュー（16:9 SEIKO風レイアウト） */}
                 <div className="mt-3 rounded-lg overflow-hidden border border-gray-700">
                   <p className="text-xs text-gray-500 px-2 py-1 bg-gray-800/50">プレビュー（実際のタイマー画面イメージ）</p>
-                  <div className="relative aspect-video flex flex-col" style={{ background: editing.theme_bg_color ?? "#000000", fontFamily: editing.theme_font_family === "sans" ? "sans-serif" : editing.theme_font_family === "mono" ? "monospace" : "monospace" }}>
-                    {/* 上部: 試合番号 — 5% */}
-                    {editing.show_match_number && (
-                      <div className="flex items-center justify-center text-gray-500" style={{ height: "5%", fontSize: "min(1.2vw, 10px)" }}>
-                        A-1 第1試合
-                      </div>
-                    )}
-                    {/* スコアエリア — 30% */}
-                    <div className="flex" style={{ height: "30%", borderBottom: `1px solid ${editing.theme_divider_color ?? "#333333"}` }}>
-                      {/* 赤（左） */}
-                      <div className="flex-1 flex flex-col items-center justify-center" style={{ borderRight: `1px solid ${editing.theme_divider_color ?? "#333333"}` }}>
-                        <div className="font-bold" style={{ color: editing.color_left ?? "#DC2626", fontSize: "min(2vw, 11px)" }}>
-                          {editing.show_player_names ? "山田 太郎" : (editing.color_left_name ?? "赤")}
+                  {(() => {
+                    const pvBg = editing.theme_bg_color ?? "#000000";
+                    const pvDiv = editing.theme_divider_color ?? "#333333";
+                    const pvCL = editing.color_left ?? "#DC2626";
+                    const pvCR = editing.color_right ?? "#FFFFFF";
+                    const pvFont = editing.theme_font_family === "sans" ? "sans-serif" : "monospace";
+                    const pvTimerFs = { large: "42px", xlarge: "56px", xxlarge: "72px", xxxlarge: "88px" }[editing.theme_timer_font_size ?? "xlarge"] ?? "56px";
+                    const pvScoreFs = { medium: "36px", large: "48px", xlarge: "64px" }[editing.theme_score_font_size ?? "large"] ?? "48px";
+                    const pvWazaFs = { medium: "18px", large: "22px", xlarge: "28px" }[editing.theme_score_font_size ?? "large"] ?? "22px";
+                    return (
+                      <div className="relative aspect-video flex flex-col" style={{ background: pvBg, fontFamily: pvFont }}>
+                        {/* 上段: メインタイマー — 35% */}
+                        <div className="relative flex items-center justify-center" style={{ height: editing.newaza_enabled ? "35%" : "42%" }}>
+                          {editing.show_match_number && (
+                            <span className="absolute top-0.5 left-1.5 text-gray-500" style={{ fontSize: "8px" }}>A-1 第1試合</span>
+                          )}
+                          <span className="font-bold tabular-nums leading-none" style={{ color: editing.theme_timer_color ?? "#00FF00", fontSize: pvTimerFs }}>
+                            1:{editing.theme_show_decimals ? "23.4" : "23"}
+                          </span>
+                          {/* 警告色サンプル — 右下に小さく */}
+                          <span className="absolute bottom-0.5 right-1.5 font-bold tabular-nums" style={{ color: editing.theme_timer_warn_color ?? "#FF0000", fontSize: "12px" }}>
+                            0:{editing.theme_show_decimals ? "05.2" : "05"} <span className="text-gray-600" style={{ fontSize: "8px" }}>← 警告色</span>
+                          </span>
                         </div>
-                        <div className="flex items-baseline gap-1">
-                          {editing.show_points && <span className="font-bold" style={{ color: editing.color_left ?? "#DC2626", fontSize: "min(5vw, 28px)" }}>3</span>}
-                          {editing.show_wazaari && <span className="font-bold" style={{ color: editing.color_left ?? "#DC2626", fontSize: "min(3.5vw, 18px)" }}>W1</span>}
-                          {editing.show_fouls && <span className="font-bold text-yellow-400" style={{ fontSize: "min(3.5vw, 18px)" }}>F1</span>}
+                        {/* 中段: 寝技 */}
+                        {editing.newaza_enabled && (
+                          <div className="flex items-center justify-center gap-1" style={{ height: "8%", borderTop: `1px solid ${pvDiv}`, borderBottom: `1px solid ${pvDiv}` }}>
+                            <span className="text-gray-500 font-bold" style={{ fontSize: "8px" }}>寝技</span>
+                            <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: "14px" }}>0:12</span>
+                          </div>
+                        )}
+                        {/* 下段: スコア */}
+                        <div className="flex flex-1" style={{ borderTop: editing.newaza_enabled ? "none" : `1px solid ${pvDiv}` }}>
+                          {/* 赤（左） */}
+                          <div className="flex-1 flex flex-col items-center justify-center relative" style={{ borderRight: `1px solid ${pvDiv}` }}>
+                            {editing.show_player_names && (
+                              <span className="absolute top-0.5 font-bold" style={{ color: pvCL, fontSize: "9px" }}>山田 太郎</span>
+                            )}
+                            {editing.show_points && (
+                              <span className="font-bold tabular-nums leading-none" style={{ color: pvCL, fontSize: pvScoreFs }}>3</span>
+                            )}
+                            <div className="absolute bottom-0.5 flex items-center gap-2">
+                              {editing.show_wazaari && (
+                                <span className="font-bold tabular-nums" style={{ color: pvCL, fontSize: pvWazaFs }}>
+                                  <span className="text-gray-600" style={{ fontSize: "7px" }}>W</span>1
+                                </span>
+                              )}
+                              {editing.show_fouls && (
+                                <span className="font-bold tabular-nums text-yellow-400" style={{ fontSize: pvWazaFs }}>
+                                  <span className="text-gray-600" style={{ fontSize: "7px" }}>F</span>1
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {/* 白（右） */}
+                          <div className="flex-1 flex flex-col items-center justify-center relative">
+                            {editing.show_player_names && (
+                              <span className="absolute top-0.5 font-bold" style={{ color: pvCR, fontSize: "9px" }}>鈴木 一郎</span>
+                            )}
+                            {editing.show_points && (
+                              <span className="font-bold tabular-nums leading-none" style={{ color: pvCR, fontSize: pvScoreFs }}>1</span>
+                            )}
+                            <div className="absolute bottom-0.5 flex items-center gap-2">
+                              {editing.show_wazaari && (
+                                <span className="font-bold tabular-nums" style={{ color: pvCR, fontSize: pvWazaFs }}>
+                                  <span className="text-gray-600" style={{ fontSize: "7px" }}>W</span>0
+                                </span>
+                              )}
+                              {editing.show_fouls && (
+                                <span className="font-bold tabular-nums text-yellow-400" style={{ fontSize: pvWazaFs }}>
+                                  <span className="text-gray-600" style={{ fontSize: "7px" }}>F</span>0
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      {/* 白（右） */}
-                      <div className="flex-1 flex flex-col items-center justify-center">
-                        <div className="font-bold" style={{ color: editing.color_right ?? "#FFFFFF", fontSize: "min(2vw, 11px)" }}>
-                          {editing.show_player_names ? "鈴木 一郎" : (editing.color_right_name ?? "白")}
-                        </div>
-                        <div className="flex items-baseline gap-1">
-                          {editing.show_points && <span className="font-bold" style={{ color: editing.color_right ?? "#FFFFFF", fontSize: "min(5vw, 28px)" }}>1</span>}
-                          {editing.show_wazaari && <span className="font-bold" style={{ color: editing.color_right ?? "#FFFFFF", fontSize: "min(3.5vw, 18px)" }}>W0</span>}
-                          {editing.show_fouls && <span className="font-bold text-yellow-400" style={{ fontSize: "min(3.5vw, 18px)" }}>F0</span>}
-                        </div>
-                      </div>
-                    </div>
-                    {/* メインタイマー — 50% */}
-                    <div className="flex-1 flex flex-col items-center justify-center">
-                      <div className="font-bold tabular-nums leading-none" style={{ color: editing.theme_timer_color ?? "#00FF00", fontSize: editing.theme_timer_font_size === "xxlarge" ? "min(18vw, 100px)" : editing.theme_timer_font_size === "xlarge" ? "min(14vw, 80px)" : "min(10vw, 60px)" }}>
-                        1:{editing.theme_show_decimals ? "23.4" : "23"}
-                      </div>
-                      <div className="font-bold tabular-nums" style={{ color: editing.theme_timer_warn_color ?? "#FF0000", fontSize: "min(3vw, 16px)" }}>
-                        0:{editing.theme_show_decimals ? "05.2" : "05"} <span style={{ fontSize: "min(2vw, 10px)" }}>← 警告色</span>
-                      </div>
-                    </div>
-                    {/* 寝技エリア — 15% */}
-                    {editing.newaza_enabled && (
-                      <div className="flex items-center justify-center gap-1" style={{ height: "15%", borderTop: `1px solid ${editing.theme_divider_color ?? "#333333"}` }}>
-                        <span className="text-gray-400" style={{ fontSize: "min(1.5vw, 9px)" }}>寝技</span>
-                        <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: "min(3vw, 16px)" }}>0:12</span>
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })()}
                 </div>
 
                 <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">ブザー</h3>

@@ -19,14 +19,15 @@ function formatTime(ms: number, showDecimals = false): string {
 
 const FONT_SIZE_MAP: Record<string, string> = {
   large: "clamp(6rem, 25vh, 20rem)",
-  xlarge: "clamp(8rem, 35vh, 28rem)",
-  xxlarge: "clamp(10rem, 45vh, 36rem)",
+  xlarge: "clamp(8rem, 33vh, 28rem)",
+  xxlarge: "clamp(10rem, 40vh, 36rem)",
+  xxxlarge: "clamp(12rem, 48vh, 44rem)",
 };
 
 const SCORE_FONT_MAP: Record<string, string> = {
-  medium: "clamp(2rem, 6vh, 4rem)",
-  large: "clamp(3rem, 10vh, 7rem)",
-  xlarge: "clamp(4rem, 14vh, 10rem)",
+  medium: "clamp(3rem, 12vh, 8rem)",
+  large: "clamp(5rem, 20vh, 14rem)",
+  xlarge: "clamp(7rem, 28vh, 20rem)",
 };
 
 const FONT_FAMILY_MAP: Record<string, string> = {
@@ -187,19 +188,49 @@ export default function TimerDisplayPage() {
       style={{ backgroundColor: bgColor, fontFamily }}
       onClick={handleClick}
     >
-      {/* 上部バー — 試合番号 */}
-      {p?.show_match_number && (
-        <div className="flex items-center justify-center py-1 text-gray-400 text-sm" style={{ height: "5%" }}>
-          {state.matchLabel && <span>{state.matchLabel}</span>}
-          {state.totalMatches > 0 && (
-            <span className="ml-2">/ 全{state.totalMatches}試合</span>
+      {/* ── 上段: メインタイマー ── */}
+      <div className="relative flex items-center justify-center" style={{ height: showNewaza ? "35%" : "42%" }}>
+        {/* 試合番号 — 左上に小さく */}
+        {p?.show_match_number && (
+          <div className="absolute top-1 left-3 text-gray-500" style={{ fontSize: "clamp(0.6rem, 1.5vh, 1rem)" }}>
+            {state.matchLabel}
+            {state.totalMatches > 0 && ` / 全${state.totalMatches}試合`}
+          </div>
+        )}
+        {state.isExtension && (
+          <div className="absolute top-1 right-3 text-yellow-400 font-bold" style={{ fontSize: "clamp(0.6rem, 1.5vh, 1rem)" }}>
+            延長戦
+          </div>
+        )}
+        <span
+          className="font-bold leading-none tabular-nums"
+          style={{ fontSize: timerFontSize, color: currentTimerColor }}
+        >
+          {formatTime(displayMs, showDecimals)}
+        </span>
+      </div>
+
+      {/* ── 中段: 寝技 + インジケータ ── */}
+      {showNewaza && (
+        <div
+          className="flex items-center justify-center gap-3"
+          style={{ height: "8%", borderTop: `2px solid ${dividerColor}`, borderBottom: `2px solid ${dividerColor}` }}
+        >
+          <span className="text-gray-500 font-bold" style={{ fontSize: "clamp(0.7rem, 1.8vh, 1rem)" }}>寝技</span>
+          <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: "clamp(1.2rem, 4vh, 2.5rem)" }}>
+            {formatTime(newazaMs)}
+          </span>
+          {newazaMax !== null && (
+            <span className="text-gray-600" style={{ fontSize: "clamp(0.5rem, 1.2vh, 0.8rem)" }}>[{state.newaza.usedCount}/{newazaMax}]</span>
           )}
-          {state.isExtension && <span className="ml-2 text-yellow-400 font-bold">延長戦</span>}
+          <div className="w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-full bg-cyan-500 transition-all" style={{ width: `${newazaProgress * 100}%` }} />
+          </div>
         </div>
       )}
 
-      {/* スコアエリア — 30% */}
-      <div className="flex" style={{ height: "30%", borderBottom: `2px solid ${dividerColor}` }}>
+      {/* ── 下段: スコアエリア ── */}
+      <div className="flex flex-1" style={{ borderTop: showNewaza ? "none" : `2px solid ${dividerColor}` }}>
         {/* 赤（左） */}
         <div
           className="flex-1 flex flex-col items-center justify-center relative"
@@ -208,39 +239,41 @@ export default function TimerDisplayPage() {
             backgroundColor: redWins ? `${colorLeft}33` : "transparent",
           }}
         >
+          {/* 選手名 — 上部 */}
           {p?.show_player_names && (
-            <p className="text-lg font-bold truncate px-2" style={{ color: colorLeft }}>
+            <p className="font-bold truncate px-2 absolute top-1" style={{ color: colorLeft, fontSize: "clamp(0.7rem, 2vh, 1.2rem)" }}>
               {state.red.name || p?.color_left_name || "赤"}
             </p>
           )}
-          <div className="flex items-center gap-3 mt-1">
+          {/* メインスコア */}
+          <div className="flex items-baseline gap-[2%]">
             {p?.show_points && (
-              <div className="text-center">
-                <span style={{ fontSize: scoreFontSize, color: colorLeft }} className="font-bold leading-none">
-                  {state.redScore.points}
-                </span>
-                <p className="text-[10px] text-gray-500">pt</p>
-              </div>
+              <span style={{ fontSize: scoreFontSize, color: colorLeft }} className="font-bold leading-none tabular-nums">
+                {state.redScore.points}
+              </span>
             )}
+          </div>
+          {/* 技あり・反則 — 下部に横並び */}
+          <div className="absolute bottom-1 flex items-center gap-3">
             {p?.show_wazaari && (
-              <div className="text-center">
-                <span style={{ fontSize: `calc(${scoreFontSize} * 0.7)`, color: colorLeft }} className="font-bold leading-none">
+              <div className="flex items-center gap-1">
+                <span className="text-gray-600 font-bold" style={{ fontSize: "clamp(0.5rem, 1.2vh, 0.7rem)" }}>W</span>
+                <span style={{ fontSize: "clamp(1rem, 5vh, 3rem)", color: colorLeft }} className="font-bold leading-none tabular-nums">
                   {state.redScore.wazaari}
                 </span>
-                <p className="text-[10px] text-gray-500">技</p>
               </div>
             )}
             {p?.show_fouls && (
-              <div className="text-center">
-                <span style={{ fontSize: `calc(${scoreFontSize} * 0.7)` }} className="font-bold leading-none text-yellow-400">
+              <div className="flex items-center gap-1">
+                <span className="text-gray-600 font-bold" style={{ fontSize: "clamp(0.5rem, 1.2vh, 0.7rem)" }}>F</span>
+                <span className="font-bold leading-none tabular-nums text-yellow-400" style={{ fontSize: "clamp(1rem, 5vh, 3rem)" }}>
                   {state.redScore.fouls}
                 </span>
-                <p className="text-[10px] text-gray-500">反</p>
               </div>
             )}
           </div>
           {redWins && (
-            <p className="text-green-400 text-sm mt-1 font-bold">{resultDisplayText(state)}</p>
+            <p className="absolute top-1 right-2 text-green-400 font-bold" style={{ fontSize: "clamp(0.6rem, 1.5vh, 1rem)" }}>{resultDisplayText(state)}</p>
           )}
         </div>
 
@@ -252,82 +285,43 @@ export default function TimerDisplayPage() {
           }}
         >
           {p?.show_player_names && (
-            <p className="text-lg font-bold truncate px-2" style={{ color: colorRight }}>
+            <p className="font-bold truncate px-2 absolute top-1" style={{ color: colorRight, fontSize: "clamp(0.7rem, 2vh, 1.2rem)" }}>
               {state.white.name || p?.color_right_name || "白"}
             </p>
           )}
-          <div className="flex items-center gap-3 mt-1">
+          <div className="flex items-baseline gap-[2%]">
             {p?.show_points && (
-              <div className="text-center">
-                <span style={{ fontSize: scoreFontSize, color: colorRight }} className="font-bold leading-none">
-                  {state.whiteScore.points}
-                </span>
-                <p className="text-[10px] text-gray-500">pt</p>
-              </div>
+              <span style={{ fontSize: scoreFontSize, color: colorRight }} className="font-bold leading-none tabular-nums">
+                {state.whiteScore.points}
+              </span>
             )}
+          </div>
+          <div className="absolute bottom-1 flex items-center gap-3">
             {p?.show_wazaari && (
-              <div className="text-center">
-                <span style={{ fontSize: `calc(${scoreFontSize} * 0.7)`, color: colorRight }} className="font-bold leading-none">
+              <div className="flex items-center gap-1">
+                <span className="text-gray-600 font-bold" style={{ fontSize: "clamp(0.5rem, 1.2vh, 0.7rem)" }}>W</span>
+                <span style={{ fontSize: "clamp(1rem, 5vh, 3rem)", color: colorRight }} className="font-bold leading-none tabular-nums">
                   {state.whiteScore.wazaari}
                 </span>
-                <p className="text-[10px] text-gray-500">技</p>
               </div>
             )}
             {p?.show_fouls && (
-              <div className="text-center">
-                <span style={{ fontSize: `calc(${scoreFontSize} * 0.7)` }} className="font-bold leading-none text-yellow-400">
+              <div className="flex items-center gap-1">
+                <span className="text-gray-600 font-bold" style={{ fontSize: "clamp(0.5rem, 1.2vh, 0.7rem)" }}>F</span>
+                <span className="font-bold leading-none tabular-nums text-yellow-400" style={{ fontSize: "clamp(1rem, 5vh, 3rem)" }}>
                   {state.whiteScore.fouls}
                 </span>
-                <p className="text-[10px] text-gray-500">反</p>
               </div>
             )}
           </div>
           {whiteWins && (
-            <p className="text-green-400 text-sm mt-1 font-bold">{resultDisplayText(state)}</p>
+            <p className="absolute top-1 left-2 text-green-400 font-bold" style={{ fontSize: "clamp(0.6rem, 1.5vh, 1rem)" }}>{resultDisplayText(state)}</p>
           )}
           {isDraw && (
-            <p className="absolute inset-0 flex items-end justify-center pb-2 text-gray-400 text-sm">引き分け</p>
+            <p className="absolute inset-0 flex items-center justify-center text-gray-400 font-bold" style={{ fontSize: "clamp(1rem, 3vh, 2rem)" }}>引き分け</p>
           )}
         </div>
       </div>
-
-      {/* メインタイマー — 50% (寝技がなければ65%) */}
-      <div
-        className="flex items-center justify-center"
-        style={{ height: showNewaza ? "50%" : "65%", transition: "height 0.3s" }}
-      >
-        <span
-          className="font-bold leading-none tabular-nums"
-          style={{ fontSize: timerFontSize, color: currentTimerColor }}
-        >
-          {formatTime(displayMs, showDecimals)}
-        </span>
-      </div>
-
-      {/* 寝技タイマー — 15% */}
-      {showNewaza && (
-        <div
-          className="flex flex-col items-center justify-center gap-1"
-          style={{ height: "15%", borderTop: `2px solid ${dividerColor}` }}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-sm">寝技</span>
-            <span className="text-2xl font-bold text-cyan-400 tabular-nums">
-              {formatTime(newazaMs)}
-            </span>
-            {newazaMax !== null && (
-              <span className="text-gray-500 text-xs">[{state.newaza.usedCount}/{newazaMax}]</span>
-            )}
-          </div>
-          {/* プログレスバー */}
-          <div className="w-1/2 h-2 bg-gray-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-cyan-500 transition-all"
-              style={{ width: `${newazaProgress * 100}%` }}
-            />
-          </div>
-        </div>
-      )}
 
       {/* 一本オーバーレイ */}
       {isFinished && state.resultMethod === "ippon" && (
