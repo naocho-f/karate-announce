@@ -104,7 +104,7 @@ export default function TimerPresetsPage() {
     if (res.ok) load();
   };
 
-  const field = (key: keyof EditablePreset, label: string, type: "text" | "number" | "checkbox" | "select", opts?: { options?: { value: string; label: string }[] }) => {
+  const field = (key: keyof EditablePreset, label: string, type: "text" | "number" | "checkbox" | "select" | "color", opts?: { options?: { value: string; label: string }[] }) => {
     if (!editing) return null;
     const val = editing[key];
     if (type === "checkbox") {
@@ -126,6 +126,19 @@ export default function TimerPresetsPage() {
             className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm">
             {opts.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
+        </label>
+      );
+    }
+    if (type === "color") {
+      return (
+        <label className="text-sm">
+          <span className="text-gray-400">{label}</span>
+          <div className="mt-1 flex items-center gap-2">
+            <input type="color" value={String(val ?? "#000000")}
+              onChange={(e) => setEditing({ ...editing, [key]: e.target.value })}
+              className="h-8 w-10 rounded border border-gray-700 bg-gray-800 cursor-pointer [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded" />
+            <span className="text-xs text-gray-500 font-mono">{String(val ?? "#000000")}</span>
+          </div>
         </label>
       );
     }
@@ -257,8 +270,8 @@ export default function TimerPresetsPage() {
 
                 <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">表示設定</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  {field("color_left", "左選手カラー", "text")}
-                  {field("color_right", "右選手カラー", "text")}
+                  {field("color_left", "左選手カラー", "color")}
+                  {field("color_right", "右選手カラー", "color")}
                   {field("color_left_name", "左カラー名", "text")}
                   {field("color_right_name", "右カラー名", "text")}
                 </div>
@@ -269,11 +282,11 @@ export default function TimerPresetsPage() {
 
                 <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">テーマ</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  {field("theme_bg_color", "背景色", "text")}
-                  {field("theme_timer_color", "タイマー色", "text")}
-                  {field("theme_timer_warn_color", "警告色", "text")}
+                  {field("theme_bg_color", "背景色", "color")}
+                  {field("theme_timer_color", "タイマー色", "color")}
+                  {field("theme_timer_warn_color", "警告色", "color")}
                   {field("theme_warn_threshold", "警告閾値（秒）", "number")}
-                  {field("theme_divider_color", "区切り線色", "text")}
+                  {field("theme_divider_color", "区切り線色", "color")}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {field("theme_timer_font_size", "タイマーフォントサイズ", "select", {
@@ -287,6 +300,47 @@ export default function TimerPresetsPage() {
                   })}
                 </div>
                 {field("theme_show_decimals", "0.1秒表示", "checkbox")}
+
+                {/* テーマ プレビュー */}
+                <div className="mt-3 rounded-lg overflow-hidden border border-gray-700">
+                  <p className="text-xs text-gray-500 px-2 py-1 bg-gray-800/50">プレビュー</p>
+                  <div className="relative flex" style={{ background: editing.theme_bg_color ?? "#000000", fontFamily: editing.theme_font_family === "sans" ? "sans-serif" : editing.theme_font_family === "mono" ? "monospace" : "monospace" }}>
+                    {/* 左選手 */}
+                    <div className="flex-1 py-2 px-3 flex flex-col items-center gap-0.5">
+                      <div className="text-[10px] font-bold" style={{ color: editing.color_left ?? "#DC2626" }}>
+                        {editing.color_left_name ?? "赤"}
+                      </div>
+                      {editing.show_player_names && <div className="text-[9px] text-gray-400">山田 太郎</div>}
+                      <div className="font-bold" style={{ color: editing.color_left ?? "#DC2626", fontSize: editing.theme_score_font_size === "xlarge" ? "28px" : editing.theme_score_font_size === "large" ? "24px" : "20px" }}>
+                        {editing.show_wazaari ? "W1" : ""} {editing.show_points ? "3" : ""}
+                      </div>
+                      {editing.show_fouls && <div className="text-[9px] text-yellow-500">反則 1</div>}
+                    </div>
+                    {/* 区切り線 */}
+                    <div className="w-px self-stretch" style={{ background: editing.theme_divider_color ?? "#333333" }} />
+                    {/* 中央タイマー */}
+                    <div className="absolute inset-x-0 top-1 flex flex-col items-center pointer-events-none">
+                      {editing.show_match_number && <div className="text-[8px] text-gray-500">A-1 第1試合</div>}
+                      <div className="font-bold tabular-nums" style={{ color: editing.theme_timer_color ?? "#00FF00", fontSize: editing.theme_timer_font_size === "xxlarge" ? "32px" : editing.theme_timer_font_size === "xlarge" ? "26px" : "22px" }}>
+                        1:{editing.theme_show_decimals ? "23.4" : "23"}
+                      </div>
+                      <div className="font-bold tabular-nums" style={{ color: editing.theme_timer_warn_color ?? "#FF0000", fontSize: "12px" }}>
+                        0:{editing.theme_show_decimals ? "05.2" : "05"} <span className="text-[8px]">← 警告色</span>
+                      </div>
+                    </div>
+                    {/* 右選手 */}
+                    <div className="flex-1 py-2 px-3 flex flex-col items-center gap-0.5">
+                      <div className="text-[10px] font-bold" style={{ color: editing.color_right ?? "#FFFFFF" }}>
+                        {editing.color_right_name ?? "白"}
+                      </div>
+                      {editing.show_player_names && <div className="text-[9px] text-gray-400">鈴木 一郎</div>}
+                      <div className="font-bold" style={{ color: editing.color_right ?? "#FFFFFF", fontSize: editing.theme_score_font_size === "xlarge" ? "28px" : editing.theme_score_font_size === "large" ? "24px" : "20px" }}>
+                        {editing.show_wazaari ? "W0" : ""} {editing.show_points ? "1" : ""}
+                      </div>
+                      {editing.show_fouls && <div className="text-[9px] text-yellow-500">反則 0</div>}
+                    </div>
+                  </div>
+                </div>
 
                 <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">ブザー</h3>
                 <div className="grid grid-cols-2 gap-3">
