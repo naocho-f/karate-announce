@@ -182,9 +182,13 @@
 **LayoutConfig 構造:**
 ```typescript
 type LayoutConfig = {
-  rows: LayoutRow[];      // 行の配列。並び順 = 表示順
+  rows: LayoutRow[];        // 行の配列。並び順 = 表示順
   dividerThickness: number; // 区切り線の太さ (px)
   scoreGap: number;         // 左右スコア間の隙間 (px)
+  labelWazaari: string;     // 技ありラベル（"W", "技あり", "技" 等）
+  labelFoul: string;        // 反則ラベル（"F", "反則", "反" 等）
+  labelPoint: string;       // ポイントラベル（"", "pt", "P" 等。空で非表示）
+  labelNewaza: string;      // 寝技ラベル（"寝技", "NEWAZA" 等）
 };
 type LayoutRow = {
   type: "timer" | "scores" | "player_names" | "match_info" | "newaza" | "spacer";

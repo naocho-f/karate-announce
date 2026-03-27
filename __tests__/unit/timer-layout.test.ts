@@ -34,7 +34,7 @@ describe("resolveLayout", () => {
     expect(resolveLayout(null)).toEqual(DEFAULT_LAYOUT);
   });
 
-  it("layout が設定済みならそのまま返す", () => {
+  it("layout が設定済みならそのまま返す（ラベルフィールドはフォールバック補完）", () => {
     const custom: LayoutConfig = {
       rows: [
         { type: "scores", height: 50, fontSize: 30, align: "center", verticalAlign: "middle" },
@@ -42,9 +42,27 @@ describe("resolveLayout", () => {
       ],
       dividerThickness: 4,
       scoreGap: 0,
+      labelWazaari: "技あり",
+      labelFoul: "反則",
+      labelPoint: "P",
+      labelNewaza: "NEWAZA",
     };
     const preset = { ...BASE_PRESET, layout: custom };
     expect(resolveLayout(preset)).toEqual(custom);
+  });
+
+  it("layout にラベルフィールドがない場合はデフォルトで補完する", () => {
+    const customNoLabels = {
+      rows: [{ type: "timer" as const, height: 50, fontSize: 40, align: "center" as const, verticalAlign: "middle" as const }],
+      dividerThickness: 2,
+      scoreGap: 0,
+    } as LayoutConfig;
+    const preset = { ...BASE_PRESET, layout: customNoLabels };
+    const result = resolveLayout(preset);
+    expect(result.labelWazaari).toBe("W");
+    expect(result.labelFoul).toBe("F");
+    expect(result.labelPoint).toBe("");
+    expect(result.labelNewaza).toBe("寝技");
   });
 
   it("layout が null なら旧 enum から変換する", () => {

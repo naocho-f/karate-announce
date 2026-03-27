@@ -322,7 +322,7 @@ export default function TimerPresetsPage() {
                     padding: "0 4px",
                   }}
                 >
-                  <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.5}px` }}>寝技</span>
+                  <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.5}px` }}>{layout.labelNewaza || "寝技"}</span>
                   <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${fsPx}px` }}>0:12</span>
                 </div>
               );
@@ -387,10 +387,10 @@ export default function TimerPresetsPage() {
                     <span className="font-bold tabular-nums leading-none" style={{ color: colorLeft, fontSize: `${fsPx}px`, ...alignStyle(row.align) }}>3</span>
                     <div className="flex items-center gap-1" style={{ fontSize: `${subFsPx}px` }}>
                       <span className="font-bold tabular-nums" style={{ color: colorLeft }}>
-                        <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>W</span>1
+                        {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>{layout.labelWazaari}</span>}1
                       </span>
                       <span className="font-bold tabular-nums text-yellow-400">
-                        <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>F</span>1
+                        {layout.labelFoul && <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>{layout.labelFoul}</span>}1
                       </span>
                     </div>
                   </div>
@@ -401,10 +401,10 @@ export default function TimerPresetsPage() {
                     <span className="font-bold tabular-nums leading-none" style={{ color: colorRight, fontSize: `${fsPx}px` }}>1</span>
                     <div className="flex items-center gap-1" style={{ fontSize: `${subFsPx}px` }}>
                       <span className="font-bold tabular-nums" style={{ color: colorRight }}>
-                        <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>W</span>0
+                        {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>{layout.labelWazaari}</span>}0
                       </span>
                       <span className="font-bold tabular-nums text-yellow-400">
-                        <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>F</span>0
+                        {layout.labelFoul && <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>{layout.labelFoul}</span>}0
                       </span>
                     </div>
                   </div>
@@ -742,6 +742,42 @@ export default function TimerPresetsPage() {
                       className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right"
                     />
                     <span className="text-gray-500">px</span>
+                  </label>
+                </div>
+
+                {/* 表示ラベル設定 */}
+                <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-700">
+                  <label className="text-xs">
+                    <span className="text-gray-400">技ありラベル</span>
+                    <input type="text" value={layout.labelWazaari ?? "W"}
+                      onChange={(e) => setLayout({ ...layout, labelWazaari: e.target.value })}
+                      placeholder="W"
+                      className="mt-0.5 block w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs" />
+                    <span className="text-gray-600 text-[10px]">例: W, 技あり, 技</span>
+                  </label>
+                  <label className="text-xs">
+                    <span className="text-gray-400">反則ラベル</span>
+                    <input type="text" value={layout.labelFoul ?? "F"}
+                      onChange={(e) => setLayout({ ...layout, labelFoul: e.target.value })}
+                      placeholder="F"
+                      className="mt-0.5 block w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs" />
+                    <span className="text-gray-600 text-[10px]">例: F, 反則, 反</span>
+                  </label>
+                  <label className="text-xs">
+                    <span className="text-gray-400">ポイントラベル</span>
+                    <input type="text" value={layout.labelPoint ?? ""}
+                      onChange={(e) => setLayout({ ...layout, labelPoint: e.target.value })}
+                      placeholder="空欄で非表示"
+                      className="mt-0.5 block w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs" />
+                    <span className="text-gray-600 text-[10px]">例: pt, P, 空欄</span>
+                  </label>
+                  <label className="text-xs">
+                    <span className="text-gray-400">寝技ラベル</span>
+                    <input type="text" value={layout.labelNewaza ?? "寝技"}
+                      onChange={(e) => setLayout({ ...layout, labelNewaza: e.target.value })}
+                      placeholder="寝技"
+                      className="mt-0.5 block w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs" />
+                    <span className="text-gray-600 text-[10px]">例: 寝技, NEWAZA</span>
                   </label>
                 </div>
 

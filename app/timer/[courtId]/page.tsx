@@ -209,7 +209,7 @@ export default function TimerDisplayPage() {
         if (!showNewaza) return null;
         return (
           <div key={idx} className="gap-3" style={{ ...baseStyle }}>
-            <span className="text-gray-500 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.5, 1)}vh` }}>寝技</span>
+            <span className="text-gray-500 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.5, 1)}vh` }}>{layout.labelNewaza || "寝技"}</span>
             <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${row.fontSize}vh` }}>
               {formatTime(newazaMs)}
             </span>
@@ -252,12 +252,12 @@ export default function TimerDisplayPage() {
               <div className="flex items-center gap-2 mt-1">
                 {p?.show_wazaari && (
                   <span className="font-bold tabular-nums" style={{ fontSize: `${subFs}vh`, color: colorLeft }}>
-                    <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>W</span>{state.redScore.wazaari}
+                    {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelWazaari}</span>}{state.redScore.wazaari}
                   </span>
                 )}
                 {p?.show_fouls && (
                   <span className="font-bold tabular-nums text-yellow-400" style={{ fontSize: `${subFs}vh` }}>
-                    <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>F</span>{state.redScore.fouls}
+                    {layout.labelFoul && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelFoul}</span>}{state.redScore.fouls}
                   </span>
                 )}
               </div>
@@ -278,12 +278,12 @@ export default function TimerDisplayPage() {
               <div className="flex items-center gap-2 mt-1">
                 {p?.show_wazaari && (
                   <span className="font-bold tabular-nums" style={{ fontSize: `${subFs}vh`, color: colorRight }}>
-                    <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>W</span>{state.whiteScore.wazaari}
+                    {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelWazaari}</span>}{state.whiteScore.wazaari}
                   </span>
                 )}
                 {p?.show_fouls && (
                   <span className="font-bold tabular-nums text-yellow-400" style={{ fontSize: `${subFs}vh` }}>
-                    <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>F</span>{state.whiteScore.fouls}
+                    {layout.labelFoul && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelFoul}</span>}{state.whiteScore.fouls}
                   </span>
                 )}
               </div>

@@ -9,7 +9,17 @@ import { DEFAULT_LAYOUT } from "@/lib/types";
  */
 export function resolveLayout(preset: TimerPreset | null): LayoutConfig {
   if (!preset) return DEFAULT_LAYOUT;
-  if (preset.layout) return preset.layout;
+  if (preset.layout) {
+    // 既存データにラベルフィールドがない場合のフォールバック
+    return {
+      ...DEFAULT_LAYOUT,
+      ...preset.layout,
+      labelWazaari: preset.layout.labelWazaari ?? DEFAULT_LAYOUT.labelWazaari,
+      labelFoul: preset.layout.labelFoul ?? DEFAULT_LAYOUT.labelFoul,
+      labelPoint: preset.layout.labelPoint ?? DEFAULT_LAYOUT.labelPoint,
+      labelNewaza: preset.layout.labelNewaza ?? DEFAULT_LAYOUT.labelNewaza,
+    };
+  }
 
   // 旧 enum → 数値変換
   const timerFontMap: Record<string, number> = {
@@ -32,6 +42,10 @@ export function resolveLayout(preset: TimerPreset | null): LayoutConfig {
     ],
     dividerThickness: 2,
     scoreGap: 2,
+    labelWazaari: "W",
+    labelFoul: "F",
+    labelPoint: "",
+    labelNewaza: "寝技",
   };
 }
 

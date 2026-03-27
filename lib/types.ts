@@ -26,6 +26,11 @@ export type LayoutConfig = {
   rows: LayoutRow[];
   dividerThickness: number; // px
   scoreGap: number;         // px
+  // 表示ラベルカスタマイズ
+  labelWazaari: string;     // 技ありラベル（例: "W", "技あり", "技"）
+  labelFoul: string;        // 反則ラベル（例: "F", "反則", "反"）
+  labelPoint: string;       // ポイントラベル（例: "", "pt", "P"）
+  labelNewaza: string;      // 寝技ラベル（例: "寝技", "NEWAZA"）
 };
 
 export const DEFAULT_LAYOUT: LayoutConfig = {
@@ -38,6 +43,10 @@ export const DEFAULT_LAYOUT: LayoutConfig = {
   ],
   dividerThickness: 2,
   scoreGap: 2,
+  labelWazaari: "W",
+  labelFoul: "F",
+  labelPoint: "",
+  labelNewaza: "寝技",
 };
 
 // ──────────────────────────────────────────────
