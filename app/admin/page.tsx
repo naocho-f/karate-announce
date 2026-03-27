@@ -1225,29 +1225,39 @@ function RulesPanel() {
 
 // ── 設定（サブタブ: アナウンス設定・ルール・流派） ──────────────────────────────
 
-type SettingsSubTab = "announce" | "rules" | "dojos";
+type SettingsSubTab = "announce" | "rules" | "dojos" | "timer";
 
 const SETTINGS_SUBTAB_LABELS: Record<SettingsSubTab, string> = {
   announce: "アナウンス設定",
   rules: "ルール",
   dojos: "流派",
+  timer: "タイマー",
 };
 
 function SettingsPanel() {
+  const router = useRouter();
   const [subTab, setSubTab] = useState<SettingsSubTab>("announce");
+
+  function handleSubTab(t: SettingsSubTab) {
+    if (t === "timer") {
+      router.push("/admin/timer-presets");
+      return;
+    }
+    setSubTab(t);
+  }
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-2">
-        {(["announce", "rules", "dojos"] as const).map((t) => (
+      <div className="grid grid-cols-4 gap-2">
+        {(["announce", "rules", "dojos", "timer"] as const).map((t) => (
           <button
             key={t}
-            onClick={() => setSubTab(t)}
+            onClick={() => handleSubTab(t)}
             className={`py-1.5 rounded-lg text-sm font-medium transition text-center ${
-              subTab === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+              subTab === t && t !== "timer" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
             }`}
           >
-            {SETTINGS_SUBTAB_LABELS[t]}
+            {SETTINGS_SUBTAB_LABELS[t]}{t === "timer" ? " →" : ""}
           </button>
         ))}
       </div>

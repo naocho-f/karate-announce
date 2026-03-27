@@ -145,9 +145,9 @@ export default function TimerPresetsPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-bold">タイマープリセット管理</h1>
           <div className="flex gap-2">
-            <button onClick={() => router.push("/admin")}
+            <button onClick={() => router.push("/admin?tab=settings")}
               className="px-3 py-1.5 rounded bg-gray-800 hover:bg-gray-700 text-sm text-gray-300 transition">
-              ← 管理画面へ
+              ← 設定に戻る
             </button>
             <button onClick={() => { setEditing({ ...EMPTY_PRESET }); setEditId(null); }}
               className="px-3 py-1.5 rounded bg-blue-700 hover:bg-blue-600 text-sm text-white transition">
