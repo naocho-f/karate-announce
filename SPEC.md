@@ -993,6 +993,8 @@ __tests__/
     match-utils.test.ts      # 試合ラベルユーティリティ
     email-template.test.ts   # メールテンプレート変数置換・条件ブロック
     admin-auth.test.ts       # 管理者認証（Cookie 検証）
+    compatibility.test.ts    # 対戦相性チェック（体重差・身長差・閾値判定・worst判定）
+    speech.test.ts           # TTS読み仮名変換・テンプレート・設定保存
   api/            # API ルートテスト（Vitest + Supabase モック）
     admin-login.test.ts          # ログイン/ログアウト
     admin-crud.test.ts           # 道場・選手・エントリー・ルール・設定 CRUD
@@ -1034,6 +1036,6 @@ __tests__/
 
 ### 13.6 テスト統計
 
-- 単体テスト: 135 テスト（7 ファイル）
+- 単体テスト: 178 テスト（9 ファイル）
 - API ルートテスト: 100 テスト（8 ファイル）
-- **合計: 235 テスト**（実行時間 ~700ms）
+- **合計: 278 テスト**（実行時間 ~700ms）
