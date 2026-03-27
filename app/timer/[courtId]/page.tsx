@@ -18,15 +18,15 @@ function formatTime(ms: number, showDecimals = false): string {
 }
 
 const FONT_SIZE_MAP: Record<string, string> = {
-  large: "clamp(3rem, 10vw, 8rem)",
-  xlarge: "clamp(4rem, 14vw, 12rem)",
-  xxlarge: "clamp(5rem, 18vw, 16rem)",
+  large: "clamp(6rem, 25vh, 20rem)",
+  xlarge: "clamp(8rem, 35vh, 28rem)",
+  xxlarge: "clamp(10rem, 45vh, 36rem)",
 };
 
 const SCORE_FONT_MAP: Record<string, string> = {
-  medium: "clamp(1.5rem, 4vw, 3rem)",
-  large: "clamp(2rem, 6vw, 5rem)",
-  xlarge: "clamp(3rem, 8vw, 7rem)",
+  medium: "clamp(2rem, 6vh, 4rem)",
+  large: "clamp(3rem, 10vh, 7rem)",
+  xlarge: "clamp(4rem, 14vh, 10rem)",
 };
 
 const FONT_FAMILY_MAP: Record<string, string> = {

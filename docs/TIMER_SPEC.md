@@ -165,11 +165,11 @@
 | 項目 | 型 | 例 | 説明 |
 |------|-----|-----|------|
 | 背景色 | string | `#000000` | 表示画面の背景色 |
-| タイマーフォントサイズ | enum | `large` / `xlarge` / `xxlarge` | `large`: `clamp(3rem, 10vw, 8rem)`、`xlarge`: `clamp(4rem, 14vw, 12rem)`、`xxlarge`: `clamp(5rem, 18vw, 16rem)` |
+| タイマーフォントサイズ | enum | `large` / `xlarge` / `xxlarge` | `large`: `clamp(6rem, 25vh, 20rem)`、`xlarge`: `clamp(8rem, 35vh, 28rem)`、`xxlarge`: `clamp(10rem, 45vh, 36rem)` — vh 基準で画面高さの25〜45%を占める |
 | タイマー文字色 | string | `#00FF00` | 通常時のタイマー色 |
 | タイマー警告色 | string | `#FF0000` | 残り時間が閾値以下の色 |
 | 警告閾値 | number (秒) | 10 | この秒数以下でタイマー色が変化 |
-| スコアフォントサイズ | enum | `medium` / `large` / `xlarge` | `medium`: `clamp(1.5rem, 4vw, 3rem)`、`large`: `clamp(2rem, 6vw, 5rem)`、`xlarge`: `clamp(3rem, 8vw, 7rem)` |
+| スコアフォントサイズ | enum | `medium` / `large` / `xlarge` | `medium`: `clamp(2rem, 6vh, 4rem)`、`large`: `clamp(3rem, 10vh, 7rem)`、`xlarge`: `clamp(4rem, 14vh, 10rem)` — vh 基準 |
 | 0.1秒表示 | boolean | false | タイマーに 0.1 秒単位を表示するか |
 | フォントファミリー | enum | `digital` / `sans` / `mono` | タイマーのフォントスタイル |
 | 区切り線色 | string | `#333333` | |
@@ -188,7 +188,7 @@
 - **ルール紐付け**: 既存の `rules` テーブルのルールにプリセットを紐付け可能。トーナメント/試合にルールが設定されていれば、そのプリセットが自動適用される
 - **管理画面**: `/admin` 内にタイマープリセット管理ページを設置
 - **カラー設定**: 6 つのカラーフィールド（`color_left`, `color_right`, `theme_bg_color`, `theme_timer_color`, `theme_timer_warn_color`, `theme_divider_color`）はネイティブカラーピッカー（`<input type="color">`）で選択。HEX コードも横に自動表示
-- **テーマプレビュー**: テーマセクションの下にミニタイマー画面をリアルタイム表示。背景色・選手カラー・タイマー色・警告色・区切り線色・フォントサイズ・スコア/反則/選手名の表示設定が即座に反映される
+- **テーマプレビュー**: テーマセクションの下に 16:9 アスペクト比のミニタイマー画面をリアルタイム表示。実際の表示画面と同じレイアウト（上部: 試合番号 5%、スコアエリア 30%、メインタイマー 50%、寝技 15%）を縮小再現。背景色・選手カラー・タイマー色・警告色・区切り線色・フォントサイズ・スコア/反則/選手名の表示設定が即座に反映される
 - **試合中の設定変更**: 試合中（`running` / `paused`）に変更可能な項目は**表示設定・テーマ設定のみ**（色・フォントサイズ等）。ルール系設定（試合時間、ポイント先取り数、反則負け回数等）は `idle` / `ready` 状態でのみ変更可能。変更不可の項目はグレーアウト表示
 
 ---
