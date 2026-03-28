@@ -45,6 +45,40 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "pairs required" }, { status: 400 });
   }
 
+  // ワンマッチの場合、同じルール内で同じ対戦相手の組み合わせが既に存在するか確認
+  if (type === "one_match" && eventId) {
+    const pair = pairs[0];
+    if (pair.e1 && pair.e2 && pair.ruleName) {
+      const f1 = await ensureFighterFromEntry(pair.e1);
+      const f2 = await ensureFighterFromEntry(pair.e2);
+      if (f1 && f2) {
+        // 同じイベントのワンマッチトーナメントを取得
+        const { data: existingTournaments } = await supabaseAdmin
+          .from("tournaments")
+          .select("id")
+          .eq("event_id", eventId)
+          .eq("type", "one_match");
+        if (existingTournaments && existingTournaments.length > 0) {
+          const tids = existingTournaments.map((t) => t.id);
+          // 同じルールで同じ組み合わせの試合を検索
+          const { data: dupeMatches } = await supabaseAdmin
+            .from("matches")
+            .select("id, fighter1_id, fighter2_id, rules")
+            .in("tournament_id", tids)
+            .eq("round", 1);
+          const hasDupe = dupeMatches?.some((m) => {
+            if (m.rules !== pair.ruleName) return false;
+            const ids = new Set([m.fighter1_id, m.fighter2_id]);
+            return ids.has(f1) && ids.has(f2);
+          });
+          if (hasDupe) {
+            return NextResponse.json({ error: "同じルール内で同じ対戦相手の組み合わせが既に登録されています" }, { status: 409 });
+          }
+        }
+      }
+    }
+  }
+
   const { data: t, error: tErr } = await supabaseAdmin
     .from("tournaments")
     .insert({

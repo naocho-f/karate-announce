@@ -87,6 +87,7 @@ export default function EventDetailPage({ params }: Props) {
   const [tournamentMatchFighterIds, setTournamentMatchFighterIds] = useState<Record<string, Set<string>>>({});
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [entrySubTab, setEntrySubTab] = useState<"entries" | "form" | "email">("entries");
+  const [showClosedGuide, setShowClosedGuide] = useState(false);
   const initialStepSetRef = useRef(false);
 
   function navigateStep(s: 1 | 2 | 3) {
@@ -201,6 +202,7 @@ export default function EventDetailPage({ params }: Props) {
     setTogglingClosed(false);
     if (!res.ok) { alert("受付状態の変更に失敗しました"); return; }
     setEvent((prev) => prev ? { ...prev, entry_closed: newVal } : prev);
+    if (newVal) setShowClosedGuide(true);
   }
 
   async function saveEntryCloseAt() {
@@ -313,13 +315,13 @@ export default function EventDetailPage({ params }: Props) {
     return parts.join(" / ");
   }, [hasEntryChanges, entries, tournaments]);
 
-  // 全エントリー割り当て済み判定
+  // 全エントリー割り当て済み判定（fighter_id未設定のエントリーも未割当として扱う）
   const allEntriesAssigned = useMemo(() => {
     if (tournaments.length === 0) return false;
     const allFighterIds = new Set<string>();
     for (const fids of Object.values(tournamentMatchFighterIds)) fids.forEach(id => allFighterIds.add(id));
-    const active = entries.filter(e => !e.is_withdrawn && e.fighter_id);
-    return active.length > 0 && active.every(e => allFighterIds.has(e.fighter_id!));
+    const active = entries.filter(e => !e.is_withdrawn);
+    return active.length > 0 && active.every(e => e.fighter_id && allFighterIds.has(e.fighter_id));
   }, [entries, tournaments, tournamentMatchFighterIds]);
 
   useEffect(() => { load(); }, [load]);
@@ -482,6 +484,18 @@ export default function EventDetailPage({ params }: Props) {
                   );
                 })()}
               </div>
+              {/* 締め切り後のネクストアクション案内 */}
+              {showClosedGuide && event.entry_closed && (
+                <div className="flex items-center gap-3 px-3 py-2 bg-blue-950/50 border border-blue-700/50 rounded-lg">
+                  <span className="text-blue-400 shrink-0">💡</span>
+                  <p className="text-sm text-blue-300">
+                    参加受付を締め切りました。次は② 対戦表作成で対戦表を作成してください。
+                  </p>
+                  <button onClick={() => navigateStep(2)} className="ml-auto shrink-0 text-xs bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded transition">
+                    ② 対戦表作成へ →
+                  </button>
+                </div>
+              )}
               <EntryFormUrl eventId={id} />
               {/* 受付自動終了日時 */}
               <div className="mt-3 flex items-center gap-3 flex-wrap">
@@ -1192,13 +1206,23 @@ function generateDemoEntries(eventId: string, count: number, ruleIds: string[], 
     const gi = Math.floor(Math.random() * DEMO_GIVEN_NAMES.length);
     const si = Math.floor(Math.random() * DEMO_SCHOOLS.length);
     const di = Math.floor(Math.random() * DEMO_DOJOS.length);
-    const age = 18 + Math.floor(Math.random() * 22);
+    // 年齢分布: 小学生(6-12)30%, 中高生(13-18)25%, 成人(19-39)25%, 中高年(40-65)20%
+    const ageRand = Math.random();
+    const age = ageRand < 0.30 ? 6 + Math.floor(Math.random() * 7)
+      : ageRand < 0.55 ? 13 + Math.floor(Math.random() * 6)
+      : ageRand < 0.80 ? 19 + Math.floor(Math.random() * 21)
+      : 40 + Math.floor(Math.random() * 26);
     const birthYear = new Date().getFullYear() - age;
     const birthMonth = 1 + Math.floor(Math.random() * 12);
     const birthDay = 1 + Math.floor(Math.random() * 28);
     const birthDate = `${birthYear}-${String(birthMonth).padStart(2, "0")}-${String(birthDay).padStart(2, "0")}`;
     const sex = Math.random() < 0.6 ? "male" : "female";
     const memo = r(DEMO_MEMOS) || null;
+    // 年齢に応じた体重・身長
+    const [baseWeight, weightRange] = age < 10 ? [20, 15] : age < 13 ? [30, 20] : age < 18 ? [40, 30] : [50, 50];
+    const [baseHeight, heightRange] = age < 10 ? [110, 30] : age < 13 ? [130, 25] : age < 18 ? [145, 30] : [150, 40];
+    // 小学生は学年を設定
+    const grade = age >= 6 && age <= 12 ? `小${Math.min(age - 5, 6)}` : age >= 13 && age <= 15 ? `中${age - 12}` : age >= 16 && age <= 18 ? `高${age - 15}` : null;
 
     return {
       rule_ids: rulePool[i],
@@ -1214,10 +1238,10 @@ function generateDemoEntries(eventId: string, count: number, ruleIds: string[], 
         dojo_name_reading: DEMO_DOJO_READINGS[di],
         sex,
         birth_date: birthDate,
-        weight: Math.round((40 + Math.random() * 60) * 10) / 10,
-        height: Math.round((150 + Math.random() * 40) * 10) / 10,
+        weight: Math.round((baseWeight + Math.random() * weightRange) * 10) / 10,
+        height: Math.round((baseHeight + Math.random() * heightRange) * 10) / 10,
         age,
-        grade: null,
+        grade,
         experience: i < 4 ? "空手歴10年以上" : r(DEMO_EXPERIENCES),
         memo,
         is_test: true,
@@ -2126,6 +2150,14 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
         });
       })
     );
+    // エラーチェック（重複ワンマッチなど）
+    const failedRes = responses.find((r) => !r.ok);
+    if (failedRes) {
+      const err = await failedRes.json();
+      alert(err.error || "保存に失敗しました");
+      setConfirming(false);
+      return;
+    }
     const created = await Promise.all(responses.map((r) => r.json()));
     if (!editingTournamentId && created[0]?.id) newlyCreatedIdRef.current = created[0].id;
     setConfirming(false);
@@ -2209,7 +2241,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
         ))}
       </div>
 
-      {unassigned.length > 0 && (
+      {unassigned.length > 0 && !groups.every((g) => g.type === "one_match") && (
         <div className="flex gap-2">
           <button onClick={() => addGroup("tournament")}
             className="flex-1 border border-dashed border-gray-600 hover:border-blue-500 rounded-lg py-2 text-xs text-gray-400 hover:text-blue-400 transition">
@@ -2715,10 +2747,12 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
               })}
             </div>
           )}
-          <button onClick={onAddPair} disabled={unassigned.length === 0 || (isOneMatch && group.pairs.length >= 1)}
-            className="w-full bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-1.5 rounded text-xs transition">
-            ＋ 手動で対戦を追加
-          </button>
+          {!isOneMatch && (
+            <button onClick={onAddPair} disabled={unassigned.length === 0}
+              className="w-full bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-1.5 rounded text-xs transition">
+              ＋ 手動で対戦を追加
+            </button>
+          )}
         </>
       )}
     </div>
