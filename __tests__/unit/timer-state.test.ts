@@ -66,6 +66,7 @@ function makePreset(overrides: Partial<TimerPreset> = {}): TimerPreset {
     theme_warn_threshold: 10, theme_score_font_size: "large",
     theme_show_decimals: false, theme_font_family: "digital",
     theme_divider_color: "#333333",
+    layout: null,
     buzzer_on_time_up: "auto", buzzer_on_newaza: "auto",
     buzzer_sound: "default", buzzer_custom_path: null,
     created_at: "", updated_at: "",
