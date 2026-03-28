@@ -56,34 +56,34 @@ export function BugReportFab() {
           <p className="text-[10px] text-gray-500">URL・端末情報・バージョンは自動で記録されます</p>
 
           <div className="space-y-1">
-            <label className="text-xs text-gray-400">何をしましたか？ <span className="text-red-400">*</span></label>
+            <label className="text-xs text-gray-400">何をした？ <span className="text-red-400">*</span></label>
             <textarea
               rows={2}
               value={whatDid}
               onChange={(e) => setWhatDid(e.target.value)}
-              placeholder="例: フォーム設定で自由設問を追加した"
+              placeholder="例: 自由設問を追加した"
               className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-white placeholder:text-gray-600 resize-none"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs text-gray-400">どうなりましたか？ <span className="text-red-400">*</span></label>
+            <label className="text-xs text-gray-400">どうなった？ / 何が気になった？ <span className="text-red-400">*</span></label>
             <textarea
               rows={2}
               value={whatHappened}
               onChange={(e) => setWhatHappened(e.target.value)}
-              placeholder="例: 保存ボタンが押せないままだった"
+              placeholder="例: 保存ボタンが押せなかった"
               className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-white placeholder:text-gray-600 resize-none"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs text-gray-400">どうなるべきだと思いますか？（任意）</label>
+            <label className="text-xs text-gray-400">こうなってほしい（任意）</label>
             <textarea
               rows={2}
               value={whatExpected}
               onChange={(e) => setWhatExpected(e.target.value)}
-              placeholder="例: 保存ボタンが有効になるべき"
+              placeholder="例: 保存ボタンが押せるようになってほしい"
               className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-white placeholder:text-gray-600 resize-none"
             />
           </div>

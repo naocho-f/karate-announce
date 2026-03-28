@@ -179,6 +179,7 @@ export default function EntryPage({ params }: Props) {
   // 送信状態
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const [error, setError] = useState("");
 
   // メール確認用
@@ -549,12 +550,15 @@ export default function EntryPage({ params }: Props) {
       return;
     }
 
+    const resData = await res.json();
+    setEmailSent(!!resData.email_sent);
     setSubmitting(false);
     setSubmitted(true);
   }
 
   function resetForm() {
     setSubmitted(false);
+    setEmailSent(false);
     setValues({});
     setMultiValues({});
     setOtherValues({});
@@ -749,9 +753,21 @@ export default function EntryPage({ params }: Props) {
                 onChange={(e) => {
                   setValue(key, e.target.value);
                   // 年齢を自動計算して age にセット
-                  if (ageFieldConfig && e.target.value) {
+                  if (ageFieldConfig && e.target.value && /^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) {
                     const refDate = event?.event_date ? new Date(event.event_date) : new Date();
                     const birth = new Date(e.target.value);
+                    let age = refDate.getFullYear() - birth.getFullYear();
+                    const hasBday = refDate.getMonth() > birth.getMonth() ||
+                      (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
+                    if (!hasBday) age--;
+                    setValue("age", String(age));
+                  }
+                }}
+                onBlur={(e) => {
+                  const val = e.target.value;
+                  if (ageFieldConfig && val && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                    const refDate = event?.event_date ? new Date(event.event_date) : new Date();
+                    const birth = new Date(val);
                     let age = refDate.getFullYear() - birth.getFullYear();
                     const hasBday = refDate.getMonth() > birth.getMonth() ||
                       (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
@@ -1090,6 +1106,9 @@ export default function EntryPage({ params }: Props) {
           <p className="text-gray-400 text-sm">
             {displayName} さんの参加申込を受け付けました。
           </p>
+          {emailSent && (
+            <p className="text-gray-400 text-xs mt-2">確認メールを送信しました。届かない場合は迷惑メールフォルダをご確認ください。</p>
+          )}
           <p className="text-gray-500 text-xs">{event.name}</p>
           <button onClick={resetForm} className="text-blue-400 hover:text-blue-300 text-sm underline">
             別の方も申し込む

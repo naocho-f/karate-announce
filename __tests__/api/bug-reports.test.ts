@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { createMockSupabase, mockResult, createAdminRequest, resetAll } from "../helpers/supabase-mock";
+import { createMockSupabase, mockResult, createAdminRequest, createParams, resetAll } from "../helpers/supabase-mock";
 
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: createMockSupabase() }));
 vi.mock("@/lib/admin-auth", async (importOriginal) => {
@@ -46,6 +46,28 @@ describe("/api/bug-reports", () => {
     const { GET } = await import("@/app/api/bug-reports/route");
     const req = createAdminRequest("GET", "/api/bug-reports");
     const res = await GET(req);
+    expect(res.status).toBe(200);
+  });
+
+  it("PATCH: ステータスを更新できる", async () => {
+    mockResult("bug_reports", "update", { data: null, error: null });
+    const { PATCH } = await import("@/app/api/bug-reports/[id]/route");
+    const req = createAdminRequest("PATCH", "/api/bug-reports/abc-123", {
+      body: { status: "resolved", resolution: "修正済み", fixed_in_version: "v1.0.1" },
+    });
+    const res = await PATCH(req, createParams({ id: "abc-123" }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.ok).toBe(true);
+  });
+
+  it("PATCH: 正常に200を返す", async () => {
+    mockResult("bug_reports", "update", { data: null, error: null });
+    const { PATCH } = await import("@/app/api/bug-reports/[id]/route");
+    const req = createAdminRequest("PATCH", "/api/bug-reports/xyz-456", {
+      body: { status: "wontfix" },
+    });
+    const res = await PATCH(req, createParams({ id: "xyz-456" }));
     expect(res.status).toBe(200);
   });
 });

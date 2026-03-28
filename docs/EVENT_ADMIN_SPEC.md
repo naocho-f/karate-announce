@@ -258,7 +258,7 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 
 ### 4.4 設定タブ
 
-3つのサブタブで構成:
+4つのサブタブで構成（開発モード時は5つ）:
 
 #### アナウンス設定
 - **音声選択**: OpenAI TTS の6ボイス（nova, shimmer, alloy, echo, fable, onyx）
@@ -286,6 +286,17 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 - **削除**: 確認ダイアログ付き
 - **自動作成**: 申込フォームから新しい道場名が送信された場合、自動で `dojos` テーブルにレコード作成
 - **データ**: `dojos` テーブルに保存
+
+#### タイマー
+- 外部リンク（`/admin/timer-presets`）への遷移ボタン
+
+#### 不具合報告（開発モード限定）
+- **一覧表示**: `GET /api/bug-reports` で全報告を取得、created_at DESC でソート
+- **フィルタ**: 全件 / 未対応（open） / 対応済み（resolved） / 対応しない（wontfix）のピルボタン
+- **展開式カード**: クリックで詳細を展開。ステータスバッジ（赤/緑/灰）、30文字省略テキスト、相対時間、バージョンバッジを表示
+- **展開内容**: what_did / what_happened / what_expected の全文、page_url リンク、viewport、タイムスタンプ
+- **編集**: ステータス変更（select）、対応内容（textarea）、修正バージョン（input）
+- **保存**: `PATCH /api/bug-reports/[id]` で status / resolution / fixed_in_version を更新
 
 ### 4.5 操作説明タブ
 

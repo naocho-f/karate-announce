@@ -106,6 +106,8 @@ export default function EventDetailPage({ params }: Props) {
   const [processingEntryIds, setProcessingEntryIds] = useState<Set<string>>(new Set());
   const [processingRuleKeys, setProcessingRuleKeys] = useState<Set<string>>(new Set());
   const [currentFormVersion, setCurrentFormVersion] = useState<number | null>(null);
+  const [formConfigVersion, setFormConfigVersion] = useState(0);
+  const [formConfigReady, setFormConfigReady] = useState(false);
 
   const load = useCallback(async () => {
     const [{ data: e }, { data: er }, { data: ents }, { data: ts }, { data: fc }] = await Promise.all([
@@ -322,6 +324,13 @@ export default function EventDetailPage({ params }: Props) {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    supabase.from("form_configs").select("is_ready").eq("event_id", id).maybeSingle()
+      .then(({ data }) => {
+        setFormConfigReady(data?.is_ready ?? false);
+      });
+  }, [id, formConfigVersion]);
+
   if (!event) {
     return <div className="min-h-screen bg-main-bg text-white flex items-center justify-center text-gray-400">読み込み中...</div>;
   }
@@ -406,12 +415,16 @@ export default function EventDetailPage({ params }: Props) {
             {/* フォーム設定カード */}
             <div className="bg-gray-800 rounded-xl overflow-hidden">
               <button
-                onClick={() => setEntrySubTab(entrySubTab === "form" ? "entries" : "form")}
+                onClick={() => {
+                  const wasOpen = entrySubTab === "form";
+                  setEntrySubTab(wasOpen ? "entries" : "form");
+                  if (wasOpen) setFormConfigVersion(v => v + 1);
+                }}
                 className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-700/50 transition"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-gray-200">フォーム設定</span>
-                  <FormConfigStatusBadge eventId={id} />
+                  <FormConfigStatusBadge eventId={id} key={formConfigVersion} />
                 </div>
                 <span className={`text-gray-500 text-xs transition-transform ${entrySubTab === "form" ? "rotate-180" : ""}`}>▼</span>
               </button>
@@ -443,20 +456,31 @@ export default function EventDetailPage({ params }: Props) {
 
             {/* 参加受付（常時表示） */}
             <div className="bg-gray-800 rounded-xl p-4 space-y-3">
+              {!formConfigReady && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-yellow-900/30 border border-yellow-700/50 rounded-lg">
+                  <span className="text-sm text-yellow-400">⚠ フォーム設定が未完了です。設定完了後に受付を開始してください</span>
+                </div>
+              )}
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <h2 className="font-semibold text-gray-200">参加受付</h2>
-                <button
-                  onClick={toggleEntryClosed}
-                  disabled={togglingClosed}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition border disabled:opacity-50 ${
-                    event.entry_closed
-                      ? "bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600"
-                      : "bg-green-700 hover:bg-green-600 text-white border-transparent"
-                  }`}
-                >
-                  {togglingClosed && <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />}
-                  {togglingClosed ? "処理中..." : event.entry_closed ? "🔒 受付終了（クリックで再開）" : "🔓 受付中（クリックで締め切り）"}
-                </button>
+                {(() => {
+                  const isEffectivelyClosed = event.entry_closed ||
+                    (event.entry_close_at != null && new Date(event.entry_close_at) <= new Date());
+                  return (
+                    <button
+                      onClick={toggleEntryClosed}
+                      disabled={togglingClosed || !formConfigReady}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition border disabled:opacity-50 ${
+                        isEffectivelyClosed
+                          ? "bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600"
+                          : "bg-green-700 hover:bg-green-600 text-white border-transparent"
+                      }`}
+                    >
+                      {togglingClosed && <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />}
+                      {togglingClosed ? "処理中..." : event.entry_closed ? "🔒 受付終了（クリックで再開）" : isEffectivelyClosed ? "🔒 受付終了（自動）" : "🔓 受付中（クリックで締め切り）"}
+                    </button>
+                  );
+                })()}
               </div>
               <EntryFormUrl eventId={id} />
               {/* 受付自動終了日時 */}
@@ -1054,7 +1078,7 @@ function EmailSettingsPanel({ event, onUpdate }: { event: Event; onUpdate: (u: P
           ))}
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          条件ブロック: {"{{#key}}...{{/key}}"} — 値がある場合のみ表示
+          ※ {"{{#開催日}}...{{/開催日}}"} のように囲むと、その情報がある場合のみ表示されます（例: 開催日が未設定なら非表示）
         </p>
       </div>
 
@@ -1561,8 +1585,8 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
                             </td>
                             <td className="px-2 py-1.5 text-xs text-gray-500 whitespace-nowrap">
                               {[
-                                e.weight ? `${e.weight}kg` : null,
-                                e.height ? `${e.height}cm` : null,
+                                e.weight ? `${parseFloat(String(e.weight))}kg` : null,
+                                e.height ? `${parseFloat(String(e.height))}cm` : null,
                                 e.age != null ? `${e.age}歳` : null,
                                 e.grade,
                               ].filter(Boolean).join(" / ")}
@@ -1865,8 +1889,8 @@ function entryOptionLabel(e: Entry, prefix = ""): string {
   const name = entryFullName(e);
   const aff = [e.school_name, e.dojo_name].filter(Boolean).join(" ");
   const body = [
-    e.weight ? `${e.weight}kg` : null,
-    e.height ? `${e.height}cm` : null,
+    e.weight ? `${parseFloat(String(e.weight))}kg` : null,
+    e.height ? `${parseFloat(String(e.height))}cm` : null,
     e.age != null ? `${e.age}歳` : null,
   ].filter(Boolean).join("/");
   const exp = e.experience ? `[${e.experience}]` : "";
@@ -2559,7 +2583,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
                     {entryFullName(e)}{matchCountLabel}
                     {e.age != null ? ` ${e.age}才` : ""}
                     {e.grade ? `/${e.grade}` : ""}
-                    {e.weight ? ` ${e.weight}kg` : ""}
+                    {e.weight ? ` ${parseFloat(String(e.weight))}kg` : ""}
                     {e.admin_memo && <span className="ml-1 opacity-70">📋</span>}
                     {e.memo && !e.admin_memo && <span className="ml-1 opacity-50">📝</span>}
                   </span>

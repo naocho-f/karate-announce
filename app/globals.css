@@ -133,3 +133,15 @@ body {
   --default-transition-duration: .15s;
   --default-transition-timing-function: cubic-bezier(.4, 0, .2, 1);
 }
+
+/* Chrome/Safari autofill background override */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px #374151 inset !important;
+  -webkit-text-fill-color: white !important;
+  caret-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
+}

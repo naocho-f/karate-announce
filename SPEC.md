@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-28（開発/本番モード、不具合報告FAB、バージョン表示、設定サブタブURL同期）
+> 最終更新: 2026-03-28（不具合報告11件一括対応: バグ修正4件、UX改善4件、フロー改善1件、ラベル変更1件、不具合管理画面新設）
 
 ---
 
@@ -976,6 +976,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - TTS読み上げ改善: ルール名の読み仮名（`rules.name_reading`）をアナウンスに反映。試合ラベル（「決勝」「第1試合」等）の読み仮名自動変換（`normalizeMatchLabelForTts`）を追加
 - 参加者一覧のメモボタン分離: 申込備考ボタン（あるときのみ表示）と管理者メモボタン（「メモ記入」/「メモあり」）を個別に表示。選手名クリックで詳細画面に遷移
 - 参加者詳細画面（`/admin/events/[id]/entries/[entryId]`）: フォーム設定全項目を表示、読み仮名統合、管理者メモ編集可能
+- 不具合報告管理パネル（`BugReportsPanel`）: 設定タブの「不具合報告」サブタブ（開発モード限定）で報告一覧を閲覧・ステータス更新・対応内容記録。`PATCH /api/bug-reports/[id]` で status/resolution/fixed_in_version を更新。フィルタ（全件/未対応/対応済み/対応しない）、展開式カード、相対時間表示
 
 ---
 
@@ -1030,6 +1031,7 @@ __tests__/
     admin-timer-presets.test.ts  # タイマープリセット CRUD・複製
     admin-form-config.test.ts    # フォーム設定 GET/PUT/PATCH・コピー・注意書き・カスタムフィールド・画像
     admin-media-tournaments.test.ts  # バナー・OGP・ブザー・トーナメント作成
+    bug-reports.test.ts              # 不具合報告 POST/GET/PATCH
     court-api.test.ts            # コート操作・公開エントリー・フォーム設定・TTS
   helpers/
     supabase-mock.ts             # Supabase クライアントモック基盤
@@ -1057,13 +1059,13 @@ __tests__/
 
 - カバレッジツール: `@vitest/coverage-v8`
 - 全 `lib/` モジュールの **Lines カバレッジ 100%** を維持する
-- 全 API ルート（37エンドポイント）の**正常系は 100% テスト**済み
+- 全 API ルート（38エンドポイント）の**正常系は 100% テスト**済み
 - BroadcastChannel 等ブラウザ固有 API は `vi.stubGlobal` でモックしてテスト可能にする
 - `localStorage` は happy-dom の制約があるため手動モックを使用
 - API ルートテストは Supabase モック基盤（`supabase-mock.ts`）を使用し、DB 依存なしで高速実行
 
 ### 13.6 テスト統計
 
-- 単体テスト: 279 テスト（13 ファイル）
-- API ルートテスト: 100 テスト（8 ファイル）
+- 単体テスト: 329 テスト（13 ファイル）
+- API ルートテスト: 119 テスト（10 ファイル）
 - **合計: 379 テスト**（実行時間 ~900ms）

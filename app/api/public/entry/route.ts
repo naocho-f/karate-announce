@@ -48,11 +48,14 @@ export async function POST(request: NextRequest) {
   }
 
   // メール送信（fire-and-forget）
+  const extra = (entry.extra_fields ?? {}) as Record<string, unknown>;
+  const emailSent = !!process.env.RESEND_API_KEY && !!(extra.email as string);
+
   sendConfirmationEmail(entry, created.id, rule_ids).catch((err) =>
     console.error("[email] sendConfirmationEmail failed:", err)
   );
 
-  return NextResponse.json({ id: created.id });
+  return NextResponse.json({ id: created.id, email_sent: emailSent });
 }
 
 async function sendConfirmationEmail(
