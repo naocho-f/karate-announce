@@ -79,6 +79,7 @@ export function FormConfigPanel({ eventId }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [pastEvents, setPastEvents] = useState<{ id: string; name: string }[]>([]);
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [busyNotices, setBusyNotices] = useState<Set<string>>(new Set());
@@ -109,8 +110,17 @@ export function FormConfigPanel({ eventId }: Props) {
       .then(({ data }) => setRules((data ?? []).map((r) => ({ id: r.id, name: r.name }))));
   }, [eventId]);
 
+  function showSaveMessage(msg: string) {
+    setSaveMessage(msg);
+    setTimeout(() => setSaveMessage(null), 2000);
+  }
+
   async function save() {
     if (!config) return;
+    if (!dirty) {
+      showSaveMessage("変更はありません");
+      return;
+    }
     setSaving(true);
     const res = await fetch("/api/admin/form-config", {
       method: "PUT", credentials: "include",
@@ -120,6 +130,7 @@ export function FormConfigPanel({ eventId }: Props) {
     if (!res.ok) { alert("保存に失敗しました"); setSaving(false); return; }
     setSaving(false);
     setDirty(false);
+    showSaveMessage("保存しました");
   }
 
   async function toggleReady() {
@@ -352,10 +363,15 @@ export function FormConfigPanel({ eventId }: Props) {
             <button onClick={() => setShowCopyModal(true)} className="px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 rounded-lg transition">
               過去の大会から読み込む
             </button>
-            <button onClick={save} disabled={!dirty || saving}
-              className="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg transition font-medium">
-              {saving ? <><Spinner className="inline-block mr-1" />保存中...</> : dirty ? "保存する" : "保存済み"}
+            <button onClick={save} disabled={saving}
+              className={`px-4 py-1.5 text-sm rounded-lg transition font-medium ${dirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}>
+              {saving ? <><Spinner className="inline-block mr-1" />保存中...</> : dirty ? "保存する" : "保存"}
             </button>
+            {saveMessage && (
+              <span className={`text-xs animate-pulse ${saveMessage === "保存しました" ? "text-green-400" : "text-gray-400"}`}>
+                {saveMessage}
+              </span>
+            )}
             <button onClick={toggleReady}
               className={`px-4 py-1.5 text-sm rounded-lg transition font-medium ${config.is_ready ? "bg-yellow-700 hover:bg-yellow-600 text-white" : "bg-green-700 hover:bg-green-600 text-white"}`}>
               {config.is_ready ? "準備中に戻す" : "フォームを公開"}
