@@ -1918,6 +1918,16 @@ function BugReportsPanel() {
       <div className="flex items-center gap-3 flex-wrap">
         <h2 className="text-lg font-bold">不具合報告</h2>
         <span className="text-xs text-gray-400">{filtered.length}件</span>
+        {reports.some((r) => r.status === "open") && (
+          <a
+            href="http://localhost:3456/karate-announce/bugs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs bg-purple-700 hover:bg-purple-600 text-white px-3 py-1 rounded-lg transition"
+          >
+            Agent で自動修正 →
+          </a>
+        )}
         <div className="flex gap-1 ml-auto">
           {FILTER_BUTTONS.map((f) => (
             <button
