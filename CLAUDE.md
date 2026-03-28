@@ -112,6 +112,20 @@
 ## UIスタイルガイド
 - **タブのレイアウト**: サブタブは `grid grid-cols-{タブ数}` で横幅を均等割にする。`flex` で左寄せにしない。
 
+## 不具合報告の対応フロー
+- ユーザーから「不具合を直して」と依頼されたら:
+  1. `GET /api/bug-reports` で未対応（status: open）の報告を取得
+  2. 内容を分析し、コード修正を実施
+  3. テスト・ビルド確認 → コミット
+  4. **コミット後、自動で** `PATCH /api/bug-reports/{id}` を実行し、全対応済み報告のステータス・対応内容・修正バージョンを更新する
+  5. ユーザーに報告ではなく、管理画面（設定 → 不具合報告）で確認できる状態にする
+- API呼び出し方法:
+  ```
+  AUTH="Cookie: admin_auth=$(echo -n 'jmma-jukukaikarate-announce-v1' | shasum -a 256 | cut -d' ' -f1)"
+  curl -s "https://karate.naocho.net/api/bug-reports/{id}" -X PATCH -H "$AUTH" -H "Content-Type: application/json" \
+    -d '{"status":"resolved","resolution":"対応内容","fixed_in_version":"コミットSHA先頭7桁"}'
+  ```
+
 ## 継続ルールの蓄積
 - 「次からやって」「覚えといて」など継続的な指示は**このファイルに追記する**（Memory ファイルではなくここ）。
 - 継続的に行った方がいいと思うものも判断して追記する。
