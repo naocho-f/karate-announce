@@ -126,6 +126,37 @@ describe("email-template", () => {
       expect(result).toContain("prefecture: 東京都");
     });
 
+    it("fieldLabels が渡された場合、キー名の代わりに表示名を使う", () => {
+      const result = buildEntryDetails({
+        extra_fields: {
+          phone: "090-1234-5678",
+          prefecture: "東京都",
+          custom_abc123: "テスト値",
+        },
+      }, [], {
+        phone: "携帯電話番号",
+        prefecture: "お住まいの都道府県",
+        custom_abc123: "保護者名",
+      });
+      expect(result).toContain("携帯電話番号: 090-1234-5678");
+      expect(result).toContain("お住まいの都道府県: 東京都");
+      expect(result).toContain("保護者名: テスト値");
+      expect(result).not.toContain("phone:");
+      expect(result).not.toContain("prefecture:");
+      expect(result).not.toContain("custom_abc123:");
+    });
+
+    it("fieldLabels にないキーはキー名がそのまま表示される", () => {
+      const result = buildEntryDetails({
+        extra_fields: {
+          phone: "090-1234-5678",
+          unknown_field: "値",
+        },
+      }, [], { phone: "携帯電話番号" });
+      expect(result).toContain("携帯電話番号: 090-1234-5678");
+      expect(result).toContain("unknown_field: 値");
+    });
+
     it("extra_fields の配列値はカンマ区切りで表示", () => {
       const result = buildEntryDetails({
         extra_fields: {

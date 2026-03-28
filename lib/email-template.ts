@@ -47,10 +47,14 @@ export function renderTemplate(
 /**
  * 申込内容テキスト（entry_details）を生成する。
  * API route から抽出し、テスト可能にしたもの。
+ *
+ * @param fieldLabels extra_fields のキー → 表示名のマッピング。
+ *   未指定の場合はキー名がそのまま表示される（後方互換）。
  */
 export function buildEntryDetails(
   entry: Record<string, unknown>,
   ruleNames: string[],
+  fieldLabels?: Record<string, string>,
 ): string {
   const participantName = [entry.family_name, entry.given_name].filter(Boolean).join(" ");
   const lines: string[] = [];
@@ -68,7 +72,8 @@ export function buildEntryDetails(
   for (const [k, v] of Object.entries(extra)) {
     if (k === "email" || k === "email_confirm" || !v) continue;
     const val = Array.isArray(v) ? v.join(", ") : String(v);
-    if (val) lines.push(`${k}: ${val}`);
+    const label = fieldLabels?.[k] ?? k;
+    if (val) lines.push(`${label}: ${val}`);
   }
   return lines.join("\n");
 }

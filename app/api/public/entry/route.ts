@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getResend } from "@/lib/resend";
 import { renderTemplate, DEFAULT_SUBJECT, DEFAULT_BODY, buildEntryDetails } from "@/lib/email-template";
+import { getFieldDef } from "@/lib/form-fields";
 
 export async function POST(request: NextRequest) {
   const { entry, school_name, rule_ids } = await request.json();
@@ -92,6 +93,24 @@ async function sendConfirmationEmail(
     ruleNames = (rules ?? []).map((r) => r.name);
   }
 
+  // フィールド表示名マッピングを構築
+  const fieldLabels: Record<string, string> = {};
+  const { data: fieldConfigs } = await supabaseAdmin
+    .from("form_field_configs")
+    .select("field_key, custom_label")
+    .eq("event_id", eventId);
+  const { data: customDefs } = await supabaseAdmin
+    .from("custom_field_defs")
+    .select("field_key, label")
+    .eq("event_id", eventId);
+  for (const fc of fieldConfigs ?? []) {
+    const poolDef = getFieldDef(fc.field_key);
+    fieldLabels[fc.field_key] = fc.custom_label || poolDef?.label || fc.field_key;
+  }
+  for (const cd of customDefs ?? []) {
+    fieldLabels[cd.field_key] = cd.label;
+  }
+
   // 申込内容のテキスト生成
   const participantName = [entry.family_name, entry.given_name].filter(Boolean).join(" ");
 
@@ -100,7 +119,7 @@ async function sendConfirmationEmail(
     event_name: eventData.name,
     event_date: eventData.event_date ?? "",
     venue_info: eventData.venue_info ?? "",
-    entry_details: buildEntryDetails(entry, ruleNames),
+    entry_details: buildEntryDetails(entry, ruleNames, fieldLabels),
     submission_date: new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }),
   };
 

@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-28（bug_reports API CORS対応、Agent Dashboardリンク追加）
+> 最終更新: 2026-03-28（確認メールのフィールド表示名修正、Agent Dashboardリンク環境変数化）
 
 ---
 
@@ -270,6 +270,7 @@
 - **会場情報**: `events.venue_info`。テンプレート変数 `{{venue_info}}` で本文に挿入
 - **テンプレート変数**: `{{participant_name}}`, `{{event_name}}`, `{{event_date}}`, `{{venue_info}}`, `{{entry_details}}`, `{{submission_date}}`
 - **条件ブロック**: `{{#key}}...{{/key}}` — 値がある場合のみ表示
+- **フィールド表示名**: `entry_details` 内の extra_fields 項目は、`form_field_configs.custom_label` → `FIELD_POOL.label` → キー名 の優先順で日本語表示名を使用。カスタムフィールドは `custom_field_defs.label` を使用
 - テンプレート処理: `lib/email-template.ts`
 
 **参加者管理タブ**
@@ -976,7 +977,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - TTS読み上げ改善: ルール名の読み仮名（`rules.name_reading`）をアナウンスに反映。試合ラベル（「決勝」「第1試合」等）の読み仮名自動変換（`normalizeMatchLabelForTts`）を追加
 - 参加者一覧のメモボタン分離: 申込備考ボタン（あるときのみ表示）と管理者メモボタン（「メモ記入」/「メモあり」）を個別に表示。選手名クリックで詳細画面に遷移
 - 参加者詳細画面（`/admin/events/[id]/entries/[entryId]`）: フォーム設定全項目を表示、読み仮名統合、管理者メモ編集可能
-- 不具合報告管理パネル（`BugReportsPanel`）: 設定タブの「不具合報告」サブタブ（開発モード限定）で報告一覧を閲覧・ステータス更新・対応内容記録。`PATCH /api/bug-reports/[id]` で status/resolution/fixed_in_version を更新。フィルタ（全件/未対応/対応済み/対応しない）、展開式カード、相対時間表示
+- 不具合報告管理パネル（`BugReportsPanel`）: 設定タブの「不具合報告」サブタブ（開発モード限定）で報告一覧を閲覧・ステータス更新・対応内容記録。`PATCH /api/bug-reports/[id]` で status/resolution/fixed_in_version を更新。フィルタ（全件/未対応/対応済み/対応しない）、展開式カード、相対時間表示。Agent Dashboard へのリンク（`NEXT_PUBLIC_AGENT_DASHBOARD_URL` 環境変数、デフォルト `http://localhost:3456`）
 
 ---
 

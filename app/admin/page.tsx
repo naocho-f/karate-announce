@@ -1920,7 +1920,7 @@ function BugReportsPanel() {
         <span className="text-xs text-gray-400">{filtered.length}件</span>
         {reports.some((r) => r.status === "open") && (
           <a
-            href="http://localhost:3456/karate-announce/bugs"
+            href={process.env.NEXT_PUBLIC_AGENT_DASHBOARD_URL || "http://localhost:3456"}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs bg-purple-700 hover:bg-purple-600 text-white px-3 py-1 rounded-lg transition"
