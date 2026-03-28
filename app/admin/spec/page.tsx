@@ -11,7 +11,11 @@ export default function SpecPage() {
     <main className="min-h-screen bg-main-bg text-white">
       <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="flex items-center gap-4 mb-8">
-          <Link href="/admin" className="text-sm text-gray-400 hover:text-gray-200 transition">← 管理画面に戻る</Link>
+          <nav className="flex items-center gap-1 text-sm">
+            <Link href="/admin" className="text-gray-400 hover:text-white">管理画面</Link>
+            <span className="text-gray-600">/</span>
+            <span className="text-gray-200">仕様書</span>
+          </nav>
         </div>
         <div className="prose prose-invert prose-sm max-w-none
           prose-headings:font-bold prose-headings:text-white

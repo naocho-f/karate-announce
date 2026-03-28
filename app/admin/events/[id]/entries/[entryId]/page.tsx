@@ -31,14 +31,17 @@ export default function EntryDetailPage({ params }: Props) {
   const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
   const [adminMemo, setAdminMemo] = useState("");
   const [saving, setSaving] = useState(false);
+  const [eventName, setEventName] = useState("");
 
   useEffect(() => {
     async function load() {
-      const [{ data: e }, { data: rs }, { data: er }] = await Promise.all([
+      const [{ data: e }, { data: rs }, { data: er }, { data: ev }] = await Promise.all([
         supabase.from("entries").select("*").eq("id", entryId).maybeSingle(),
         supabase.from("rules").select("*"),
         supabase.from("entry_rules").select("rule_id").eq("entry_id", entryId),
+        supabase.from("events").select("name").eq("id", eventId).maybeSingle(),
       ]);
+      if (ev) setEventName(ev.name);
       if (e) {
         setEntry(e as Entry);
         setAdminMemo(e.admin_memo ?? "");
@@ -84,7 +87,13 @@ export default function EntryDetailPage({ params }: Props) {
     return (
       <main className="min-h-screen bg-main-bg text-white p-6">
         <div className="max-w-2xl mx-auto">
-          <Link href={`/admin/events/${eventId}`} className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
+          <nav className="flex items-center gap-1 text-sm">
+            <Link href="/admin" className="text-gray-400 hover:text-white">管理画面</Link>
+            <span className="text-gray-600">/</span>
+            <Link href="/admin?tab=events" className="text-gray-400 hover:text-white">試合</Link>
+            <span className="text-gray-600">/</span>
+            <Link href={`/admin/events/${eventId}`} className="text-gray-400 hover:text-white">{eventName || "イベント"}</Link>
+          </nav>
           <p className="mt-8 text-gray-400">参加者が見つかりません</p>
         </div>
       </main>
@@ -201,7 +210,15 @@ export default function EntryDetailPage({ params }: Props) {
   return (
     <main className="min-h-screen bg-main-bg text-white p-6">
       <div className="max-w-2xl mx-auto">
-        <Link href={`/admin/events/${eventId}`} className="text-gray-400 hover:text-white text-sm">← 参加者一覧に戻る</Link>
+        <nav className="flex items-center gap-1 text-sm">
+          <Link href="/admin" className="text-gray-400 hover:text-white">管理画面</Link>
+          <span className="text-gray-600">/</span>
+          <Link href="/admin?tab=events" className="text-gray-400 hover:text-white">試合</Link>
+          <span className="text-gray-600">/</span>
+          <Link href={`/admin/events/${eventId}`} className="text-gray-400 hover:text-white">{eventName || "イベント"}</Link>
+          <span className="text-gray-600">/</span>
+          <span className="text-gray-200">{entryFullName(entry)}</span>
+        </nav>
 
         <div className="mt-4 flex items-center gap-3">
           <h1 className="text-xl font-bold">{entryFullName(entry)}</h1>

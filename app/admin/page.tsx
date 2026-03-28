@@ -44,7 +44,7 @@ export default function AdminPage() {
     <main className="min-h-screen bg-main-bg text-white p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
-          <Link href="/" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
+          <Link href="/" className="text-gray-400 hover:text-white text-sm">← トップに戻る</Link>
           <h1 className="text-2xl font-bold">管理画面</h1>
           {isDev() && <Link href="/admin/spec" className="ml-auto text-xs text-gray-500 hover:text-gray-300 transition">仕様書</Link>}
           <LogoutButton />

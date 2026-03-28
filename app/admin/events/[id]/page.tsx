@@ -347,7 +347,13 @@ export default function EventDetailPage({ params }: Props) {
     <main className="min-h-screen bg-main-bg text-white p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-3 mb-4 flex-wrap">
-          <Link href="/admin?tab=events" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
+          <nav className="flex items-center gap-1 text-sm">
+            <Link href="/admin" className="text-gray-400 hover:text-white">管理画面</Link>
+            <span className="text-gray-600">/</span>
+            <Link href="/admin?tab=events" className="text-gray-400 hover:text-white">試合</Link>
+            <span className="text-gray-600">/</span>
+            <span className="text-gray-200">{event.name}</span>
+          </nav>
           <h1 className="text-2xl font-bold">{event.name}</h1>
           {event.entry_closed || (event.entry_close_at && new Date(event.entry_close_at) <= new Date()) ? (
             <span className="text-xs bg-red-900 text-red-300 px-2 py-0.5 rounded">受付終了</span>
