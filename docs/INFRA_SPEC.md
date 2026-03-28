@@ -62,6 +62,7 @@ karate-announce/
 |------|------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクト URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名キー（RLS 制限付き） |
+| `NEXT_PUBLIC_APP_MODE` | アプリモード。`development`: 不具合報告FAB・テストボタン・仕様書リンク表示。未設定 or `production`: 本番モード |
 
 ### 3.2 プライベート（サーバー専用）
 | 変数 | 説明 | デフォルト |

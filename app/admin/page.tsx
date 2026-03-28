@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { isDev, getAppVersion } from "@/lib/app-mode";
 import type { Dojo, Event, Fighter, Rule } from "@/lib/types";
 import { fighterFullName } from "@/lib/types";
 import {
@@ -44,7 +45,7 @@ export default function AdminPage() {
         <div className="flex items-center gap-4 mb-6">
           <Link href="/" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
           <h1 className="text-2xl font-bold">管理画面</h1>
-          <Link href="/admin/spec" className="ml-auto text-xs text-gray-500 hover:text-gray-300 transition">仕様書</Link>
+          {isDev() && <Link href="/admin/spec" className="ml-auto text-xs text-gray-500 hover:text-gray-300 transition">仕様書</Link>}
           <LogoutButton />
         </div>
 
@@ -66,6 +67,9 @@ export default function AdminPage() {
         {tab === "events"   && <EventPanel />}
         {tab === "settings" && <SettingsPanel />}
         {tab === "guide"    && <GuidePanel onNavigate={navigateTab} />}
+
+        {/* バージョン表示 */}
+        <p className="text-center text-[10px] text-gray-700 mt-8">v{getAppVersion()}{isDev() && " (dev)"}</p>
       </div>
     </main>
   );
@@ -1344,7 +1348,11 @@ const SETTINGS_SUBTAB_LABELS: Record<SettingsSubTab, string> = {
 
 function SettingsPanel() {
   const router = useRouter();
-  const [subTab, setSubTab] = useState<SettingsSubTab>("announce");
+  const [subTab, setSubTab] = useState<SettingsSubTab>(() => {
+    if (typeof window === "undefined") return "announce";
+    const sub = new URLSearchParams(window.location.search).get("sub") as SettingsSubTab | null;
+    return sub && sub in SETTINGS_SUBTAB_LABELS && sub !== "timer" ? sub : "announce";
+  });
 
   function handleSubTab(t: SettingsSubTab) {
     if (t === "timer") {
@@ -1352,6 +1360,7 @@ function SettingsPanel() {
       return;
     }
     setSubTab(t);
+    router.replace(`/admin?tab=settings&sub=${t}`, { scroll: false });
   }
 
   return (

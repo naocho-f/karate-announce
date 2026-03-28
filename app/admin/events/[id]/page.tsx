@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_SUBJECT, DEFAULT_BODY } from "@/lib/email-template";
+import { isDev } from "@/lib/app-mode";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Entry, Event, Fighter, Match, Tournament, Rule, CustomFieldDef } from "@/lib/types";
@@ -1484,16 +1485,18 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
           )}
         </div>
         <div className="flex items-center gap-2">
-          {entries.some((e) => e.is_test) && (
+          {isDev() && entries.some((e) => e.is_test) && (
             <button onClick={deleteTestEntries} disabled={generating}
               className="text-xs text-red-500 hover:text-red-300 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-red-900 hover:border-red-700 transition">
               テスト削除
             </button>
           )}
-          <button onClick={addDemoEntries} disabled={generating}
-            className="text-xs text-gray-500 hover:text-gray-300 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition">
-            {generating ? "処理中..." : "テスト32名"}
-          </button>
+          {isDev() && (
+            <button onClick={addDemoEntries} disabled={generating}
+              className="text-xs text-gray-500 hover:text-gray-300 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition">
+              {generating ? "処理中..." : "テスト32名"}
+            </button>
+          )}
           <button onClick={downloadCsv} disabled={downloading || entries.length === 0}
             className="text-xs text-green-400 hover:text-green-200 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-green-800 hover:border-green-600 transition">
             {downloading ? "出力中..." : "CSV出力"}
