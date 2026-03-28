@@ -83,6 +83,25 @@ describe("/api/tts", () => {
     expect(fetchBody.speed).toBe(1.0);
   });
 
+  it("POST: OpenAI API がエラーを返した場合はそのステータスを返す", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 429,
+      text: () => Promise.resolve("Rate limit exceeded"),
+    });
+
+    const req = new Request("http://localhost:3000/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: "テスト", voice: "nova", speed: 1.0 }),
+    });
+    const res = await POST(req as any);
+
+    expect(res.status).toBe(429);
+    const json = await res.json();
+    expect(json.error).toBe("Rate limit exceeded");
+  });
+
   it("POST: 正常なリクエストで audio/mpeg を返す", async () => {
     const audioData = new ArrayBuffer(16);
     mockFetch.mockResolvedValueOnce({

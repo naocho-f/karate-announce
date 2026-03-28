@@ -25,10 +25,69 @@ vi.mock("@/lib/ensure-fighter", () => ({
   ensureFighterFromEntry: vi.fn().mockResolvedValue("fighter-new"),
 }));
 
+/** FormData 付きの管理者リクエストを生成 */
+function createAdminFormDataRequest(method: string, url: string, formData: FormData) {
+  const { NextRequest } = require("next/server");
+  const crypto = require("crypto");
+  const token = crypto.createHash("sha256").update("test-password" + "karate-announce-v1").digest("hex");
+  const req = new NextRequest(new URL(url, "http://localhost:3000"), { method, body: formData });
+  req.cookies.set("admin_auth", token);
+  return req;
+}
+
+/** テスト用の File オブジェクトを生成 */
+function createMockFile(name: string, type: string, sizeBytes: number = 100): File {
+  const buffer = new ArrayBuffer(sizeBytes);
+  return new File([buffer], name, { type });
+}
+
 // ── /api/admin/events/[id]/banner ──
 
 describe("/api/admin/events/[id]/banner", () => {
   beforeEach(() => resetAll());
+
+  it("POST: バナー画像をアップロードできる", async () => {
+    mockResult("events", "select", { data: { banner_image_path: null } });
+    const { POST } = await import("@/app/api/admin/events/[id]/banner/route");
+    const formData = new FormData();
+    formData.append("file", createMockFile("banner.jpg", "image/jpeg"));
+    const req = createAdminFormDataRequest("POST", "/api/admin/events/ev1/banner", formData);
+    const res = await POST(req, createParams({ id: "ev1" }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.path).toContain("event-banners/ev1/");
+    expect(json.public_url).toContain("mock.supabase.co");
+  });
+
+  it("POST: ファイル未指定で400", async () => {
+    const { POST } = await import("@/app/api/admin/events/[id]/banner/route");
+    const formData = new FormData();
+    const req = createAdminFormDataRequest("POST", "/api/admin/events/ev1/banner", formData);
+    const res = await POST(req, createParams({ id: "ev1" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("POST: 許可されていないファイル形式で400", async () => {
+    const { POST } = await import("@/app/api/admin/events/[id]/banner/route");
+    const formData = new FormData();
+    formData.append("file", createMockFile("banner.gif", "image/gif"));
+    const req = createAdminFormDataRequest("POST", "/api/admin/events/ev1/banner", formData);
+    const res = await POST(req, createParams({ id: "ev1" }));
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toContain("JPEG");
+  });
+
+  it("POST: 5MB超過で400", async () => {
+    const { POST } = await import("@/app/api/admin/events/[id]/banner/route");
+    const formData = new FormData();
+    formData.append("file", createMockFile("big.jpg", "image/jpeg", 6 * 1024 * 1024));
+    const req = createAdminFormDataRequest("POST", "/api/admin/events/ev1/banner", formData);
+    const res = await POST(req, createParams({ id: "ev1" }));
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toContain("5MB");
+  });
 
   it("DELETE: バナーを削除できる", async () => {
     mockResult("events", "select", { data: { banner_image_path: "event-banners/ev1/123.jpg" } });
@@ -54,6 +113,28 @@ describe("/api/admin/events/[id]/banner", () => {
 describe("/api/admin/events/[id]/ogp", () => {
   beforeEach(() => resetAll());
 
+  it("POST: OGP画像をアップロードできる", async () => {
+    mockResult("events", "select", { data: { ogp_image_path: null } });
+    const { POST } = await import("@/app/api/admin/events/[id]/ogp/route");
+    const formData = new FormData();
+    formData.append("file", createMockFile("ogp.png", "image/png"));
+    const req = createAdminFormDataRequest("POST", "/api/admin/events/ev1/ogp", formData);
+    const res = await POST(req, createParams({ id: "ev1" }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.path).toContain("event-ogp/ev1/");
+    expect(json.public_url).toContain("mock.supabase.co");
+  });
+
+  it("POST: 許可されていないファイル形式で400", async () => {
+    const { POST } = await import("@/app/api/admin/events/[id]/ogp/route");
+    const formData = new FormData();
+    formData.append("file", createMockFile("ogp.bmp", "image/bmp"));
+    const req = createAdminFormDataRequest("POST", "/api/admin/events/ev1/ogp", formData);
+    const res = await POST(req, createParams({ id: "ev1" }));
+    expect(res.status).toBe(400);
+  });
+
   it("DELETE: OGP画像を削除できる", async () => {
     mockResult("events", "select", { data: { ogp_image_path: "event-ogp/ev1/123.jpg" } });
     const { DELETE } = await import("@/app/api/admin/events/[id]/ogp/route");
@@ -78,6 +159,35 @@ describe("/api/admin/events/[id]/ogp", () => {
 describe("/api/admin/timer-presets/[id]/buzzer", () => {
   beforeEach(() => resetAll());
 
+  it("POST: カスタムブザー音源をアップロードできる", async () => {
+    const { POST } = await import("@/app/api/admin/timer-presets/[id]/buzzer/route");
+    const formData = new FormData();
+    formData.append("file", createMockFile("buzzer.mp3", "audio/mpeg"));
+    const req = createAdminFormDataRequest("POST", "/api/admin/timer-presets/p1/buzzer", formData);
+    const res = await POST(req, createParams({ id: "p1" }));
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.url).toContain("mock.supabase.co");
+  });
+
+  it("POST: 許可されていないファイル形式で400", async () => {
+    const { POST } = await import("@/app/api/admin/timer-presets/[id]/buzzer/route");
+    const formData = new FormData();
+    formData.append("file", createMockFile("buzzer.flac", "audio/flac"));
+    const req = createAdminFormDataRequest("POST", "/api/admin/timer-presets/p1/buzzer", formData);
+    const res = await POST(req, createParams({ id: "p1" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("POST: 2MB超過で400", async () => {
+    const { POST } = await import("@/app/api/admin/timer-presets/[id]/buzzer/route");
+    const formData = new FormData();
+    formData.append("file", createMockFile("big.mp3", "audio/mpeg", 3 * 1024 * 1024));
+    const req = createAdminFormDataRequest("POST", "/api/admin/timer-presets/p1/buzzer", formData);
+    const res = await POST(req, createParams({ id: "p1" }));
+    expect(res.status).toBe(400);
+  });
+
   it("DELETE: カスタムブザー音源を削除できる", async () => {
     mockResult("timer_presets", "select", {
       data: { buzzer_custom_path: "https://mock.supabase.co/storage/v1/object/public/form-notice-images/timer-buzzer/p1/buzz.mp3" },
@@ -96,6 +206,71 @@ describe("/api/admin/timer-presets/[id]/buzzer", () => {
     const req = createAdminRequest("DELETE", "/api/admin/timer-presets/p1/buzzer");
     const res = await DELETE(req, createParams({ id: "p1" }));
     expect(res.status).toBe(200);
+  });
+});
+
+// ── /api/admin/form-config/image-upload ──
+
+describe("/api/admin/form-config/image-upload", () => {
+  beforeEach(() => resetAll());
+
+  it("POST: 注意書き画像をアップロードできる", async () => {
+    mockResult("form_notice_images", "insert", {
+      data: { id: "img-1", notice_id: "n1", storage_path: "n1/123.jpg", sort_order: 0 },
+    });
+    const { POST } = await import("@/app/api/admin/form-config/image-upload/route");
+    const formData = new FormData();
+    formData.append("file", createMockFile("notice.jpg", "image/jpeg"));
+    formData.append("notice_id", "n1");
+    const req = createAdminFormDataRequest("POST", "/api/admin/form-config/image-upload", formData);
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.public_url).toContain("mock.supabase.co");
+  });
+
+  it("POST: ファイルまたはnotice_id未指定で400", async () => {
+    const { POST } = await import("@/app/api/admin/form-config/image-upload/route");
+    const formData = new FormData();
+    formData.append("file", createMockFile("notice.jpg", "image/jpeg"));
+    // notice_id なし
+    const req = createAdminFormDataRequest("POST", "/api/admin/form-config/image-upload", formData);
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it("POST: 許可されていないファイル形式で400", async () => {
+    const { POST } = await import("@/app/api/admin/form-config/image-upload/route");
+    const formData = new FormData();
+    formData.append("file", createMockFile("notice.svg", "image/svg+xml"));
+    formData.append("notice_id", "n1");
+    const req = createAdminFormDataRequest("POST", "/api/admin/form-config/image-upload", formData);
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it("POST: 5MB超過で400", async () => {
+    const { POST } = await import("@/app/api/admin/form-config/image-upload/route");
+    const formData = new FormData();
+    formData.append("file", createMockFile("big.jpg", "image/jpeg", 6 * 1024 * 1024));
+    formData.append("notice_id", "n1");
+    const req = createAdminFormDataRequest("POST", "/api/admin/form-config/image-upload", formData);
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it("DELETE: 注意書き画像を削除できる", async () => {
+    mockResult("form_notice_images", "select", {
+      data: { id: "img-1", storage_path: "n1/123.jpg" },
+    });
+    const { DELETE } = await import("@/app/api/admin/form-config/image-upload/route");
+    const req = createAdminRequest("DELETE", "/api/admin/form-config/image-upload", {
+      body: { image_id: "img-1" },
+    });
+    const res = await DELETE(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.ok).toBe(true);
   });
 });
 
