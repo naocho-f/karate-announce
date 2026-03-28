@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DEFAULT_SUBJECT, DEFAULT_BODY } from "@/lib/email-template";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Entry, Event, Fighter, Match, Tournament, Rule, CustomFieldDef } from "@/lib/types";
@@ -401,31 +402,45 @@ export default function EventDetailPage({ params }: Props) {
         {/* ① 参加者管理 */}
         {step === 1 && (
           <div className="space-y-4">
-            {/* サブタブ: 参加者管理 / フォーム設定 */}
-            <div className="grid grid-cols-3 gap-1 bg-gray-800 rounded-lg p-1">
-              {([["entries", "参加者管理"], ["form", "フォーム設定"], ["email", "メール設定"]] as const).map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setEntrySubTab(key)}
-                  className={`flex-1 py-2 text-sm font-medium rounded-md transition ${
-                    entrySubTab === key ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+            {/* フォーム設定カード */}
+            <div className="bg-gray-800 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setEntrySubTab(entrySubTab === "form" ? "entries" : "form")}
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-700/50 transition"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-200">フォーム設定</span>
+                  <FormConfigStatusBadge eventId={id} />
+                </div>
+                <span className={`text-gray-500 text-xs transition-transform ${entrySubTab === "form" ? "rotate-180" : ""}`}>▼</span>
+              </button>
+              {entrySubTab === "form" && (
+                <div className="border-t border-gray-700">
+                  <FormConfigPanel eventId={id} />
+                </div>
+              )}
             </div>
 
-            {/* フォーム設定タブ */}
-            {entrySubTab === "form" && <FormConfigPanel eventId={id} />}
+            {/* メール設定カード */}
+            <div className="bg-gray-800 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setEntrySubTab(entrySubTab === "email" ? "entries" : "email")}
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-700/50 transition"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-200">メール設定</span>
+                  <EmailStatusBadge event={event} />
+                </div>
+                <span className={`text-gray-500 text-xs transition-transform ${entrySubTab === "email" ? "rotate-180" : ""}`}>▼</span>
+              </button>
+              {entrySubTab === "email" && (
+                <div className="border-t border-gray-700">
+                  <EmailSettingsPanel event={event} onUpdate={(updates) => setEvent((prev) => prev ? { ...prev, ...updates } : prev)} />
+                </div>
+              )}
+            </div>
 
-            {/* メール設定タブ */}
-            {entrySubTab === "email" && (
-              <EmailSettingsPanel event={event} onUpdate={(updates) => setEvent((prev) => prev ? { ...prev, ...updates } : prev)} />
-            )}
-
-            {/* 参加者管理タブ */}
-            {entrySubTab === "entries" && (<>
+            {/* 参加受付（常時表示） */}
             <div className="bg-gray-800 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <h2 className="font-semibold text-gray-200">参加受付</h2>
@@ -533,7 +548,6 @@ export default function EventDetailPage({ params }: Props) {
               onDelete={deleteEntry}
               onAdded={load}
             />
-          </>)}
           </div>
         )}
 
@@ -909,9 +923,42 @@ function DashboardCard({ label, total, unassigned, tournamentCount, oneMatchCoun
 
 // ── メール設定パネル ─────────────────────────────────────────────────────
 
+// ── ステータスバッジ ───────────────────────────────────────────────────────
+
+function FormConfigStatusBadge({ eventId }: { eventId: string }) {
+  const [status, setStatus] = useState<"loading" | "ready" | "draft" | "none">("loading");
+  useEffect(() => {
+    supabase.from("form_configs").select("is_ready").eq("event_id", eventId).maybeSingle()
+      .then(({ data }) => {
+        if (!data) setStatus("none");
+        else setStatus(data.is_ready ? "ready" : "draft");
+      });
+  }, [eventId]);
+
+  if (status === "loading") return null;
+  const styles = {
+    ready: "bg-green-900 text-green-300",
+    draft: "bg-yellow-900 text-yellow-300",
+    none: "bg-gray-700 text-gray-400",
+  };
+  const labels = { ready: "公開中", draft: "準備中", none: "未設定" };
+  return <span className={`text-xs px-2 py-0.5 rounded ${styles[status]}`}>{labels[status]}</span>;
+}
+
+function EmailStatusBadge({ event }: { event: Event }) {
+  const hasTemplate = !!(event.email_subject_template || event.email_body_template);
+  return (
+    <span className={`text-xs px-2 py-0.5 rounded ${hasTemplate ? "bg-green-900 text-green-300" : "bg-gray-700 text-gray-400"}`}>
+      {hasTemplate ? "設定済み" : "デフォルト"}
+    </span>
+  );
+}
+
+// ── メール設定 ─────────────────────────────────────────────────────────────
+
 function EmailSettingsPanel({ event, onUpdate }: { event: Event; onUpdate: (u: Partial<Event>) => void }) {
-  const [subjectTemplate, setSubjectTemplate] = useState(event.email_subject_template ?? "");
-  const [bodyTemplate, setBodyTemplate] = useState(event.email_body_template ?? "");
+  const [subjectTemplate, setSubjectTemplate] = useState(event.email_subject_template ?? DEFAULT_SUBJECT);
+  const [bodyTemplate, setBodyTemplate] = useState(event.email_body_template ?? DEFAULT_BODY);
   const [venueInfo, setVenueInfo] = useState(event.venue_info ?? "");
   const [notificationEmails, setNotificationEmails] = useState((event.notification_emails ?? []).join("\n"));
   const [saving, setSaving] = useState(false);
