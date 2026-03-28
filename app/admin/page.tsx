@@ -1137,6 +1137,7 @@ function EventPanel() {
               <input
                 type="date"
                 value={copyEventDate}
+                min={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setCopyEventDate(e.target.value)}
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
               />

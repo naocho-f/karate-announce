@@ -365,7 +365,7 @@ export default function EventDetailPage({ params }: Props) {
             <div className="space-y-3">
               <div className="flex items-center gap-3 flex-wrap">
                 <label className="text-xs text-gray-400 shrink-0">開催日</label>
-                <input type="date" value={metaDate} onChange={e => setMetaDate(e.target.value)}
+                <input type="date" value={metaDate} min={new Date().toISOString().slice(0, 10)} onChange={e => setMetaDate(e.target.value)}
                   className="bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-blue-500" />
               </div>
               <div className="space-y-1">
