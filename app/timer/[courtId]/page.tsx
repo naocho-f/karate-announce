@@ -68,6 +68,22 @@ function resultDisplayText(state: TimerState): string {
   }
 }
 
+// ── コロン位置調整コンポーネント ──────────────────────────────
+
+function TimerDigits({ text, style }: { text: string; style: React.CSSProperties }) {
+  const colonIdx = text.indexOf(":");
+  if (colonIdx === -1) return <span style={style}>{text}</span>;
+  const before = text.slice(0, colonIdx);
+  const after = text.slice(colonIdx + 1);
+  return (
+    <span className="font-bold leading-none tabular-nums" style={style}>
+      {before}
+      <span style={{ position: "relative", bottom: "0.06em" }}>:</span>
+      {after}
+    </span>
+  );
+}
+
 // ── メインコンポーネント ──────────────────────────────────────
 
 export default function TimerDisplayPage() {
@@ -186,12 +202,10 @@ export default function TimerDisplayPage() {
       case "timer":
         return (
           <div key={idx} style={baseStyle}>
-            <span
-              className="font-bold leading-none tabular-nums"
+            <TimerDigits
+              text={formatTime(displayMs, showDecimals)}
               style={{ fontSize: `${row.fontSize}vh`, color: currentTimerColor }}
-            >
-              {formatTime(displayMs, showDecimals)}
-            </span>
+            />
           </div>
         );
 

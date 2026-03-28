@@ -14,6 +14,7 @@ import {
   MATCH_VARS, WINNER_VARS, SAMPLE_MATCH_VARS, SAMPLE_WINNER_VARS, type AnnounceTemplates,
 } from "@/lib/speech";
 import Link from "next/link";
+import { TimerPresetsPanel } from "@/components/timer-presets-panel";
 
 
 type Tab = "home" | "events" | "settings" | "guide";
@@ -1223,14 +1224,30 @@ function RulesPanel() {
   const [description, setDescription] = useState("");
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [presets, setPresets] = useState<{id: string; name: string; rule_id: string | null}[]>([]);
+
+  async function loadPresets() {
+    const presetsRes = await fetch("/api/admin/timer-presets");
+    if (presetsRes.ok) setPresets(await presetsRes.json());
+  }
 
   async function load() {
     const { data } = await supabase.from("rules").select("*").order("name");
     setRules(data ?? []);
     setLoading(false);
+    await loadPresets();
   }
 
   useEffect(() => { load(); }, []);
+
+  async function linkPreset(presetId: string, ruleId: string | null) {
+    await fetch(`/api/admin/timer-presets/${presetId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rule_id: ruleId }),
+    });
+    await loadPresets();
+  }
 
   async function add() {
     if (!name.trim()) return;
@@ -1309,13 +1326,46 @@ function RulesPanel() {
         <p className="text-sm text-gray-500">読み込み中...</p>
       ) : (
         <ul className="space-y-2">
-          {rules.map((r) => (
+          {rules.map((r) => {
+            const linkedPresets = presets.filter((p) => p.rule_id === r.id);
+            return (
             <li key={r.id} className="bg-gray-800 rounded-lg px-4 py-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="font-medium">{r.name}</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium">{r.name}</span>
+                  {linkedPresets.length > 0 ? (
+                    linkedPresets.map((lp) => (
+                      <span key={lp.id} className="bg-orange-900 text-orange-300 text-xs px-2 py-0.5 rounded inline-flex items-center">
+                        プリセット: {lp.name}
+                        <button
+                          onClick={() => linkPreset(lp.id, null)}
+                          className="text-orange-400 hover:text-orange-200 text-xs ml-1"
+                        >✕</button>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-gray-600">タイマー未設定</span>
+                  )}
+                </div>
                 <button onClick={() => remove(r.id)} disabled={removingId === r.id} className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50">
                   {removingId === r.id ? "削除中..." : "削除"}
                 </button>
+              </div>
+              <div className="mb-1">
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) linkPreset(e.target.value, r.id);
+                  }}
+                  className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300"
+                >
+                  <option value="">-- プリセットを選択 --</option>
+                  {presets.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}{p.rule_id ? ` (${rules.find((ru) => ru.id === p.rule_id)?.name ?? "他ルール"}に紐付)` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
               <ReadingInput
                 value={r.name_reading ?? ""}
@@ -1327,7 +1377,8 @@ function RulesPanel() {
                 onSave={(v) => updateDescription(r.id, v)}
               />
             </li>
-          ))}
+            );
+          })}
           {rules.length === 0 && <li className="text-gray-500 text-sm">ルールが登録されていません</li>}
         </ul>
       )}
@@ -1352,14 +1403,10 @@ function SettingsPanel() {
   const [subTab, setSubTab] = useState<SettingsSubTab>(() => {
     if (typeof window === "undefined") return "announce";
     const sub = new URLSearchParams(window.location.search).get("sub") as SettingsSubTab | null;
-    return sub && sub in SETTINGS_SUBTAB_LABELS && sub !== "timer" ? sub : "announce";
+    return sub && sub in SETTINGS_SUBTAB_LABELS ? sub : "announce";
   });
 
   function handleSubTab(t: SettingsSubTab) {
-    if (t === "timer") {
-      router.push("/admin/timer-presets");
-      return;
-    }
     setSubTab(t);
     router.replace(`/admin?tab=settings&sub=${t}`, { scroll: false });
   }
@@ -1376,10 +1423,10 @@ function SettingsPanel() {
             key={t}
             onClick={() => handleSubTab(t)}
             className={`py-1.5 rounded-lg text-sm font-medium transition text-center ${
-              subTab === t && t !== "timer" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+              subTab === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
             }`}
           >
-            {SETTINGS_SUBTAB_LABELS[t]}{t === "timer" ? " →" : ""}
+            {SETTINGS_SUBTAB_LABELS[t]}
           </button>
         ))}
       </div>
@@ -1387,6 +1434,7 @@ function SettingsPanel() {
       {subTab === "announce"    && <AnnounceSettingsPanel />}
       {subTab === "rules"       && <RulesPanel />}
       {subTab === "dojos"       && <DojoPanel />}
+      {subTab === "timer"       && <TimerPresetsPanel />}
       {subTab === "bug_reports" && <BugReportsPanel />}
     </div>
   );

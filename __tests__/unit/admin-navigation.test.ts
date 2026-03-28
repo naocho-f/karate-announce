@@ -33,8 +33,10 @@ describe("管理画面ナビゲーション", () => {
     expect(ADMIN_PAGE).toContain('"announce" | "rules" | "dojos" | "timer"');
   });
 
-  it("タイマーサブタブが /admin/timer-presets に遷移する", () => {
-    expect(ADMIN_PAGE).toContain('router.push("/admin/timer-presets")');
+  it("タイマーサブタブが設定タブ内にインライン表示される", () => {
+    // リダイレクトではなくインライン表示に変更済み
+    expect(ADMIN_PAGE).toContain("TimerPresetsPanel");
+    expect(ADMIN_PAGE).not.toContain('router.push("/admin/timer-presets")');
   });
 
   it("仕様書ページ（/admin/spec）へのリンクがヘッダーにある", () => {
@@ -46,16 +48,22 @@ describe("管理画面ナビゲーション", () => {
     expect(adminPages.length).toBeGreaterThan(0);
 
     for (const page of adminPages) {
-      // /admin/timer-presets → "timer-presets" or "/admin/timer-presets"
+      // /admin/timer-presets はインライン化されたのでリンクではなくコンポーネントインポートで確認
+      if (page.includes("timer-presets")) {
+        expect(ADMIN_PAGE).toContain("TimerPresetsPanel");
+        continue;
+      }
       const pagePath = `/${page.replace("app/", "")}`;
       const hasLink = ADMIN_PAGE.includes(`href="${pagePath}"`) || ADMIN_PAGE.includes(`"${pagePath}"`);
       expect(hasLink, `${pagePath} へのリンクが /admin/page.tsx に見つかりません`).toBe(true);
     }
   });
 
-  it("タイマープリセットページに設定タブへの戻るリンクがある", () => {
+  it("タイマープリセットが設定タブ内にインライン表示される", () => {
+    expect(ADMIN_PAGE).toContain("TimerPresetsPanel");
+    // timer-presets/page.tsx は TimerPresetsPanel をインポートするラッパー
     const timerPage = readFileSync(join(ROOT, "app/admin/timer-presets/page.tsx"), "utf-8");
-    expect(timerPage).toContain("/admin?tab=settings");
+    expect(timerPage).toContain("TimerPresetsPanel");
   });
 
   it("イベント詳細ページに試合タブへの戻るリンクがある", () => {
