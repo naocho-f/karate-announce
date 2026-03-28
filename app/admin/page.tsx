@@ -1359,7 +1359,7 @@ function RulesPanel() {
                   }}
                   className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300"
                 >
-                  <option value="">-- プリセットを選択 --</option>
+                  <option value="">-- タイマー未設定 --</option>
                   {presets.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}{p.rule_id ? ` (${rules.find((ru) => ru.id === p.rule_id)?.name ?? "他ルール"}に紐付)` : ""}
