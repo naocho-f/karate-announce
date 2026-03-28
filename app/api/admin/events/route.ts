@@ -7,6 +7,14 @@ export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { name, event_date, court_count, court_names, rule_ids, copy_from_event_id, copy_entries } = await request.json();
 
+  // 過去日付のバリデーション（新規作成時のみ）
+  if (event_date && !copy_from_event_id) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (event_date < today) {
+      return NextResponse.json({ error: "過去の日付では作成できません" }, { status: 400 });
+    }
+  }
+
   // ── 通常の新規作成 ──
   if (!copy_from_event_id) {
     const { data: e, error } = await supabaseAdmin

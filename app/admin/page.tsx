@@ -809,6 +809,8 @@ function EventPanel() {
   const [showForm, setShowForm] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [finishingId, setFinishingId] = useState<string | null>(null);
+  const [showPast, setShowPast] = useState(false);
   // 複製用
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [copySourceId, setCopySourceId] = useState<string>("");
@@ -865,6 +867,29 @@ function EventPanel() {
     load();
   }
 
+  async function finishEvent(id: string) {
+    if (!confirm("この試合を完了にしますか？\nアクティブ状態も解除されます。")) return;
+    setFinishingId(id);
+    const res = await fetch(`/api/admin/events/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "finished", is_active: false }),
+    });
+    setFinishingId(null);
+    if (!res.ok) { alert("状態の変更に失敗しました"); return; }
+    load();
+  }
+
+  async function reopenEvent(id: string) {
+    const res = await fetch(`/api/admin/events/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "preparing" }),
+    });
+    if (!res.ok) { alert("状態の変更に失敗しました"); return; }
+    load();
+  }
+
   function openCopyModal(sourceId: string) {
     const source = events.find((e) => e.id === sourceId);
     setCopySourceId(sourceId);
@@ -901,69 +926,85 @@ function EventPanel() {
     router.push(`/admin/events/${id}`);
   }
 
+  // 過去/完了の判定
+  const today = new Date().toISOString().slice(0, 10);
+  const isPast = (e: Event) => e.status === "finished" || (e.event_date != null && e.event_date < today);
+  const activeEvents = events.filter((e) => !isPast(e));
+  const pastEvents = events.filter((e) => isPast(e));
+
+  const renderEventCard = (e: Event, isPastSection: boolean) => (
+    <li key={e.id} className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active ? "ring-2 ring-green-500" : ""}`}>
+      <div className="flex items-center gap-2 min-w-0">
+        {e.is_active && (
+          <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold shrink-0">● 進行中</span>
+        )}
+        {e.status === "finished" && (
+          <span className="text-xs bg-gray-600 text-gray-300 px-2 py-0.5 rounded-full shrink-0">完了</span>
+        )}
+        <span className="font-medium truncate">{e.name}</span>
+        {e.event_date && (
+          <span className="text-xs text-gray-400 shrink-0">{e.event_date.replace(/-/g, "/")}</span>
+        )}
+        <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded shrink-0">{e.court_count}コート</span>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        {e.status === "finished" ? (
+          <button
+            onClick={() => reopenEvent(e.id)}
+            className="text-xs px-3 py-1.5 rounded-lg font-medium bg-gray-700 hover:bg-gray-600 text-gray-300 transition"
+          >
+            再開する
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={() => setActive(e.id, !e.is_active)}
+              disabled={activatingId === e.id}
+              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition disabled:opacity-50 ${
+                e.is_active
+                  ? "bg-green-700 hover:bg-green-800 text-green-100"
+                  : "bg-amber-500 hover:bg-amber-400 text-white"
+              }`}
+            >
+              {activatingId === e.id ? "処理中..." : e.is_active ? "進行中（クリックで停止）" : "▶ アクティブに設定"}
+            </button>
+            <button
+              onClick={() => finishEvent(e.id)}
+              disabled={finishingId === e.id}
+              className="text-xs px-3 py-1.5 rounded-lg font-medium bg-gray-600 hover:bg-gray-500 text-gray-200 transition disabled:opacity-50"
+            >
+              {finishingId === e.id ? "処理中..." : "✓ 完了にする"}
+            </button>
+          </>
+        )}
+        <Link
+          href={`/admin/events/${e.id}`}
+          className="text-xs px-3 py-1.5 rounded-lg font-medium bg-blue-700 hover:bg-blue-600 text-white transition"
+        >
+          管理画面を開く →
+        </Link>
+        {e.is_active && (
+          <Link
+            href="/"
+            target="_blank"
+            className="text-xs px-3 py-1.5 rounded-lg font-medium bg-green-700 hover:bg-green-600 text-white transition"
+          >
+            アナウンス画面 ↗
+          </Link>
+        )}
+        <button onClick={() => openCopyModal(e.id)} className="text-xs text-gray-400 hover:text-blue-400 transition">
+          複製
+        </button>
+        <button onClick={() => remove(e.id)} disabled={removingId === e.id} className="text-xs text-red-500 hover:text-red-400 ml-auto transition disabled:opacity-50">
+          {removingId === e.id ? "削除中..." : "削除"}
+        </button>
+      </div>
+    </li>
+  );
+
   return (
     <div className="space-y-4">
-      {/* 試合一覧 */}
-      <p className="text-xs text-gray-600">開催日の降順</p>
-      {loading ? (
-        <p className="text-sm text-gray-500">読み込み中...</p>
-      ) : (
-        <ul className="space-y-2">
-          {events.map((e) => (
-            <li key={e.id} className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active ? "ring-2 ring-green-500" : ""}`}>
-              {/* 試合名 + コート数 */}
-              <div className="flex items-center gap-2 min-w-0">
-                {e.is_active && (
-                  <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold shrink-0">● 進行中</span>
-                )}
-                <span className="font-medium truncate">{e.name}</span>
-                {e.event_date && (
-                  <span className="text-xs text-gray-400 shrink-0">{e.event_date.replace(/-/g, "/")}</span>
-                )}
-                <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded shrink-0">{e.court_count}コート</span>
-              </div>
-              {/* アクション行 */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  onClick={() => setActive(e.id, !e.is_active)}
-                  disabled={activatingId === e.id}
-                  className={`text-xs px-3 py-1.5 rounded-lg font-medium transition disabled:opacity-50 ${
-                    e.is_active
-                      ? "bg-green-700 hover:bg-green-800 text-green-100"
-                      : "bg-amber-500 hover:bg-amber-400 text-white"
-                  }`}
-                >
-                  {activatingId === e.id ? "処理中..." : e.is_active ? "進行中（クリックで停止）" : "▶ アクティブに設定"}
-                </button>
-                <Link
-                  href={`/admin/events/${e.id}`}
-                  className="text-xs px-3 py-1.5 rounded-lg font-medium bg-blue-700 hover:bg-blue-600 text-white transition"
-                >
-                  管理画面を開く →
-                </Link>
-                {e.is_active && (
-                  <Link
-                    href="/"
-                    target="_blank"
-                    className="text-xs px-3 py-1.5 rounded-lg font-medium bg-green-700 hover:bg-green-600 text-white transition"
-                  >
-                    アナウンス画面 ↗
-                  </Link>
-                )}
-                <button onClick={() => openCopyModal(e.id)} className="text-xs text-gray-400 hover:text-blue-400 transition">
-                  複製
-                </button>
-                <button onClick={() => remove(e.id)} disabled={removingId === e.id} className="text-xs text-red-500 hover:text-red-400 ml-auto transition disabled:opacity-50">
-                  {removingId === e.id ? "削除中..." : "削除"}
-                </button>
-              </div>
-            </li>
-          ))}
-          {events.length === 0 && <li className="text-gray-500 text-sm">試合が登録されていません</li>}
-        </ul>
-      )}
-
-      {/* 新規作成フォーム（トグル） */}
+      {/* 新規作成フォーム（トグル） — 一覧の上 */}
       <div className="bg-gray-800 rounded-xl overflow-hidden">
         <button
           onClick={() => setShowForm((v) => !v)}
@@ -987,6 +1028,7 @@ function EventPanel() {
               <input
                 type="date"
                 value={eventDate}
+                min={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setEventDate(e.target.value)}
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
               />
@@ -1038,6 +1080,36 @@ function EventPanel() {
           </div>
         )}
       </div>
+
+      {/* 進行中・予定の試合 */}
+      {loading ? (
+        <p className="text-sm text-gray-500">読み込み中...</p>
+      ) : (
+        <>
+          <ul className="space-y-2">
+            {activeEvents.map((e) => renderEventCard(e, false))}
+            {activeEvents.length === 0 && <li className="text-gray-500 text-sm">進行中・予定の試合はありません</li>}
+          </ul>
+
+          {/* 過去・完了の試合（折り畳み） */}
+          {pastEvents.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowPast((v) => !v)}
+                className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-300 transition"
+              >
+                <span className={`transition-transform ${showPast ? "rotate-90" : ""}`}>▶</span>
+                過去・完了の試合（{pastEvents.length}件）
+              </button>
+              {showPast && (
+                <ul className="space-y-2 mt-2">
+                  {pastEvents.map((e) => renderEventCard(e, true))}
+                </ul>
+              )}
+            </div>
+          )}
+        </>
+      )}
 
       {/* 複製モーダル */}
       {showCopyModal && (
