@@ -9,12 +9,12 @@ tools: Read, Edit, Write, Bash, Glob, Grep, Agent, NotebookEdit
 
 ## 動作手順
 
-1. `.claude/plan.md` を読み、計画内容を把握する
+1. `/tmp/claude-plan.md` を読み、計画内容を把握する
 2. CLAUDE.md を読み、プロジェクトのルール・完了フローを把握する
 3. 計画に沿って実装する
 4. CLAUDE.md の「実装完了フロー」に従い、テスト・ビルド・SPEC.md更新・コミットまで完了する
-5. 不具合報告に紐づく場合はステータスを更新する
-6. 完了後、`.claude/plan.md` を削除する
+5. 不具合報告に紐づく場合はステータスを更新する（修正開始時に in_progress、完了時に resolved）
+6. 完了後、`/tmp/claude-plan.md` を削除する
 7. `/tmp/claude-implementer-running` を削除し、完了通知を鳴らす:
    `rm -f /tmp/claude-implementer-running && osascript -e 'display notification "implementer: 実装が完了しました" with title "Claude Code" sound name "Glass"'`
 8. 実施内容のサマリーを返す

@@ -7,7 +7,7 @@
  * - 残り選手が体格近似でペアリングされる
  */
 import { describe, it, expect } from "vitest";
-import { pairsFromEntries, entryCompatScore, nextPowerOf2 } from "@/lib/pairing";
+import { pairsFromEntries, entryCompatScore, nextPowerOf2, filterDuplicatePairs } from "@/lib/pairing";
 import type { Entry } from "@/lib/types";
 
 function makeEntry(id: string, overrides?: Partial<Entry>): Entry {
@@ -215,5 +215,52 @@ describe("pairsFromEntries", () => {
       const expectedPairs = nextPowerOf2(n) / 2;
       expect(pairs).toHaveLength(expectedPairs);
     }
+  });
+});
+
+describe("filterDuplicatePairs", () => {
+  it("既存ペアと重複する対戦を除外する", () => {
+    const eA = makeEntry("A", { weight: 50 });
+    const eB = makeEntry("B", { weight: 55 });
+    const eC = makeEntry("C", { weight: 60 });
+    const pairs = [
+      { id: "p1", e1: eA, e2: eB, matchLabel: "", ruleId: "" },
+      { id: "p2", e1: eA, e2: eC, matchLabel: "", ruleId: "" },
+    ];
+    const existing = [{ e1Id: "A", e2Id: "B" }];
+    const result = filterDuplicatePairs(pairs, existing);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("p2");
+  });
+
+  it("逆順のペアも重複として除外する", () => {
+    const eA = makeEntry("A", { weight: 50 });
+    const eB = makeEntry("B", { weight: 55 });
+    const pairs = [
+      { id: "p1", e1: eA, e2: eB, matchLabel: "", ruleId: "" },
+    ];
+    const existing = [{ e1Id: "B", e2Id: "A" }];
+    const result = filterDuplicatePairs(pairs, existing);
+    expect(result).toHaveLength(0);
+  });
+
+  it("不戦勝ペアは除外しない", () => {
+    const eA = makeEntry("A", { weight: 50 });
+    const pairs = [
+      { id: "p1", e1: eA, e2: null, matchLabel: "", ruleId: "" },
+    ];
+    const existing = [{ e1Id: "A", e2Id: "X" }];
+    const result = filterDuplicatePairs(pairs, existing);
+    expect(result).toHaveLength(1);
+  });
+
+  it("既存ペアが空の場合はそのまま返す", () => {
+    const eA = makeEntry("A", { weight: 50 });
+    const eB = makeEntry("B", { weight: 55 });
+    const pairs = [
+      { id: "p1", e1: eA, e2: eB, matchLabel: "", ruleId: "" },
+    ];
+    const result = filterDuplicatePairs(pairs, []);
+    expect(result).toHaveLength(1);
   });
 });

@@ -1,26 +1,44 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { Entry } from "@/lib/types";
+import type { Entry, Rule } from "@/lib/types";
 import { entryFullName } from "@/lib/types";
 import { computeSuggestions, type SplitSuggestion } from "@/lib/suggestions";
-import { pairsFromEntries, type PairEntry } from "@/lib/pairing";
+import { pairsFromEntries, filterDuplicatePairs as filterDupPairs, type PairEntry } from "@/lib/pairing";
 
 type GroupResult = {
   name: string;
   entries: Entry[];
   pairs: PairEntry[];
+  ruleId?: string;
+};
+
+export type ExistingPair = {
+  e1Id: string;
+  e2Id: string;
+  ruleId: string;
 };
 
 type Props = {
   entries: Entry[];
   courtCount: number;
+  rules?: Rule[];
+  entryRuleIds?: Record<string, Set<string>>;
+  existingPairs?: ExistingPair[];
   onExecute: (groups: GroupResult[]) => void;
   onClose: () => void;
 };
 
-export function SuggestCreateDialog({ entries, courtCount, onExecute, onClose }: Props) {
-  const suggestions = useMemo(() => computeSuggestions(entries), [entries]);
+export function SuggestCreateDialog({ entries, courtCount, rules, entryRuleIds, existingPairs, onExecute, onClose }: Props) {
+  const [selectedRuleId, setSelectedRuleId] = useState("");
+
+  // ルール選択に応じて対象選手をフィルタ
+  const targetEntries = useMemo(() => {
+    if (!selectedRuleId || !entryRuleIds) return entries;
+    return entries.filter((e) => entryRuleIds[e.id]?.has(selectedRuleId));
+  }, [entries, selectedRuleId, entryRuleIds]);
+
+  const suggestions = useMemo(() => computeSuggestions(targetEntries), [targetEntries]);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
     () => new Set(suggestions.length > 0 ? [0] : [])
   );
@@ -38,11 +56,16 @@ export function SuggestCreateDialog({ entries, courtCount, onExecute, onClose }:
     setPreview(null);
   }
 
+  function filterDuplicatePairs(pairs: PairEntry[]): PairEntry[] {
+    if (!existingPairs || existingPairs.length === 0) return pairs;
+    return filterDupPairs(pairs, existingPairs);
+  }
+
   function buildGroups(): GroupResult[] {
     const selected = suggestions.filter((_, i) => selectedIndices.has(i));
     if (selected.length === 0) return [];
 
-    const active = entries.filter(e => !e.is_withdrawn);
+    const active = targetEntries.filter(e => !e.is_withdrawn);
     const assigned = new Set<string>();
     const groups: GroupResult[] = [];
 
@@ -50,13 +73,13 @@ export function SuggestCreateDialog({ entries, courtCount, onExecute, onClose }:
       const [below, above] = splitEntries(active, s, assigned);
 
       if (below.length > 0) {
-        const pairs = pairsFromEntries(below);
-        groups.push({ name: s.belowLabel, entries: below, pairs });
+        const pairs = filterDuplicatePairs(pairsFromEntries(below));
+        groups.push({ name: s.belowLabel, entries: below, pairs, ruleId: selectedRuleId || undefined });
         below.forEach(e => assigned.add(e.id));
       }
       if (above.length > 0) {
-        const pairs = pairsFromEntries(above);
-        groups.push({ name: s.aboveLabel, entries: above, pairs });
+        const pairs = filterDuplicatePairs(pairsFromEntries(above));
+        groups.push({ name: s.aboveLabel, entries: above, pairs, ruleId: selectedRuleId || undefined });
         above.forEach(e => assigned.add(e.id));
       }
     }
@@ -64,8 +87,8 @@ export function SuggestCreateDialog({ entries, courtCount, onExecute, onClose }:
     // 未割当選手がいたらまとめる
     const remaining = active.filter(e => !assigned.has(e.id));
     if (remaining.length > 0) {
-      const pairs = pairsFromEntries(remaining);
-      groups.push({ name: "未分類", entries: remaining, pairs });
+      const pairs = filterDuplicatePairs(pairsFromEntries(remaining));
+      groups.push({ name: "未分類", entries: remaining, pairs, ruleId: selectedRuleId || undefined });
     }
 
     return groups;
@@ -138,6 +161,24 @@ export function SuggestCreateDialog({ entries, courtCount, onExecute, onClose }:
             <h2 className="text-lg font-bold text-white">おすすめ振り分けで対戦表作成</h2>
             <button onClick={onClose} className="text-gray-400 hover:text-white text-xl transition">&times;</button>
           </div>
+
+          {/* ルール選択ドロップダウン */}
+          {rules && rules.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-400 shrink-0">ルール絞込:</label>
+              <select
+                value={selectedRuleId}
+                onChange={(e) => { setSelectedRuleId(e.target.value); setPreview(null); }}
+                className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
+              >
+                <option value="">全ルール</option>
+                {rules.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+              <span className="text-xs text-gray-500">対象: {targetEntries.length}名</span>
+            </div>
+          )}
 
           {suggestions.length === 0 ? (
             <p className="text-sm text-gray-400">

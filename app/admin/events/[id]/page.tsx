@@ -2546,6 +2546,21 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
         <SuggestCreateDialog
           entries={filteredEntries}
           courtCount={1}
+          rules={eventRules.length > 0 ? eventRules : rules}
+          entryRuleIds={entryRuleIds}
+          existingPairs={[
+            ...groups.flatMap((g) =>
+              g.pairs.filter((p) => p.e1 && p.e2).map((p) => ({
+                e1Id: p.e1.id, e2Id: p.e2!.id, ruleId: p.ruleId,
+              }))
+            ),
+            ...savedMatchPairs.map((m) => {
+              const e1 = entries.find((e) => e.fighter_id === m.f1);
+              const e2 = entries.find((e) => e.fighter_id === m.f2);
+              const rule = rules.find((r) => r.name === m.rules);
+              return e1 && e2 ? { e1Id: e1.id, e2Id: e2.id, ruleId: rule?.id ?? "" } : null;
+            }).filter((p): p is NonNullable<typeof p> => p !== null),
+          ]}
           onExecute={(suggestGroups) => {
             setShowSuggestDialog(false);
             const newGroups: Group[] = suggestGroups.map(g => ({
