@@ -1830,7 +1830,7 @@ type BugReport = {
   user_agent: string | null;
   viewport: string | null;
   app_version: string | null;
-  status: "open" | "resolved" | "wontfix";
+  status: "open" | "in_progress" | "resolved" | "wontfix";
   resolution: string | null;
   fixed_in_version: string | null;
   created_at: string;
@@ -1849,6 +1849,7 @@ function relativeTime(dateStr: string): string {
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   open: { label: "未対応", cls: "bg-red-900 text-red-300" },
+  in_progress: { label: "修正中", cls: "bg-yellow-900 text-yellow-300" },
   resolved: { label: "対応済み", cls: "bg-green-900 text-green-300" },
   wontfix: { label: "対応しない", cls: "bg-gray-700 text-gray-400" },
 };
@@ -1856,7 +1857,7 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 function BugReportsPanel() {
   const [reports, setReports] = useState<BugReport[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "open" | "resolved" | "wontfix">("all");
+  const [filter, setFilter] = useState<"all" | "open" | "in_progress" | "resolved" | "wontfix">("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editStatus, setEditStatus] = useState("");
   const [editResolution, setEditResolution] = useState("");
@@ -1924,6 +1925,7 @@ function BugReportsPanel() {
   const FILTER_BUTTONS: { key: typeof filter; label: string }[] = [
     { key: "all", label: "全件" },
     { key: "open", label: "未対応" },
+    { key: "in_progress", label: "修正中" },
     { key: "resolved", label: "対応済み" },
     { key: "wontfix", label: "対応しない" },
   ];

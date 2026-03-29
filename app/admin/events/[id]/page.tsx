@@ -19,7 +19,9 @@ import { BracketView, roundLabel } from "@/lib/bracket-view";
 import { MatchLabelEditor } from "@/components/match-label-editor";
 import { BracketRulesPanel } from "@/components/bracket-rules-panel";
 import { AutoCreateDialog } from "@/components/auto-create-dialog";
+import { SuggestCreateDialog } from "@/components/suggest-create-dialog";
 import type { AutoGroup } from "@/lib/auto-bracket";
+import { computeSuggestions, type SplitSuggestion } from "@/lib/suggestions";
 import Link from "next/link";
 import { FormConfigPanel } from "./form-config-panel";
 
@@ -61,15 +63,7 @@ type Group = {
   filters?: GroupFilters;
 };
 
-type SplitSuggestion = {
-  axis: "age" | "weight" | "sex" | "experience" | "height";
-  threshold: number | string;
-  belowLabel: string;
-  aboveLabel: string;
-  belowCount: number;
-  aboveCount: number;
-  balance: "◎" | "△" | "✕";
-};
+// SplitSuggestion は lib/suggestions.ts からインポート
 
 // entryCompatScore は lib/pairing.ts からインポート
 
@@ -89,6 +83,7 @@ export default function EventDetailPage({ params }: Props) {
   const [entrySubTab, setEntrySubTab] = useState<"entries" | "form" | "email">("entries");
   const [showClosedGuide, setShowClosedGuide] = useState(false);
   const [showAutoDialog, setShowAutoDialog] = useState(false);
+  const [bracketRuleCount, setBracketRuleCount] = useState(0);
   const [bracketSubTab, setBracketSubTab] = useState<"courts" | "bracket-rules">("courts");
   const initialStepSetRef = useRef(false);
 
@@ -180,6 +175,13 @@ export default function EventDetailPage({ params }: Props) {
     });
     setTournamentMatchFighterIds(fidsMap);
     setSavedMatchPairs(pairs);
+
+    // 振り分けルール件数を取得
+    const { count: brCount } = await supabase
+      .from("bracket_rules")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", id);
+    setBracketRuleCount(brCount ?? 0);
   }, [id]);
 
   async function saveEventMeta() {
@@ -716,8 +718,10 @@ export default function EventDetailPage({ params }: Props) {
                       rules={rules}
                       mismatchSettings={mismatchSettings}
                       savedMatchPairs={savedMatchPairs}
+                      bracketRuleCount={bracketRuleCount}
                       onCreated={load}
                       onAutoCreate={() => setShowAutoDialog(true)}
+                      onNavigateToBracketRules={() => setBracketSubTab("bracket-rules")}
                     />
                   ))}
                 </div>
@@ -794,86 +798,7 @@ function StepNav({ step, tournaments, onStepChange }: { step: 1 | 2 | 3; tournam
 
 // ── ダッシュボードパネル ──────────────────────────────────────────────────
 
-function computeBalance(below: number, above: number): "◎" | "△" | "✕" {
-  const diff = Math.abs(below - above);
-  const total = below + above;
-  return diff <= 1 ? "◎" : diff <= Math.max(2, Math.floor(total * 0.25)) ? "△" : "✕";
-}
-
-function computeSuggestions(ents: Entry[]): SplitSuggestion[] {
-  const active = ents.filter(e => !e.is_withdrawn);
-  const results: SplitSuggestion[] = [];
-
-  // 体重（メイン分割軸）
-  const weightEntries = active.filter(e => e.weight != null);
-  if (weightEntries.length >= 2) {
-    for (const t of [45, 50, 55, 60, 65, 70, 75, 80]) {
-      const below = weightEntries.filter(e => e.weight! < t).length;
-      const above = weightEntries.filter(e => e.weight! >= t).length;
-      if (below === 0 || above === 0) continue;
-      results.push({ axis: "weight", threshold: t, belowLabel: `${t}kg未満`, aboveLabel: `${t}kg以上`, belowCount: below, aboveCount: above, balance: computeBalance(below, above) });
-    }
-  }
-
-  // 年齢
-  const ageEntries = active.filter(e => e.age != null);
-  if (ageEntries.length >= 2) {
-    for (const t of [15, 18, 20, 25, 30, 31, 35, 40, 45]) {
-      const below = ageEntries.filter(e => e.age! < t).length;
-      const above = ageEntries.filter(e => e.age! >= t).length;
-      if (below === 0 || above === 0) continue;
-      results.push({ axis: "age", threshold: t, belowLabel: `${t}歳未満`, aboveLabel: `${t}歳以上`, belowCount: below, aboveCount: above, balance: computeBalance(below, above) });
-    }
-  }
-
-  // 性別
-  const sexEntries = active.filter(e => e.sex === "male" || e.sex === "female");
-  if (sexEntries.length >= 2) {
-    const males = sexEntries.filter(e => e.sex === "male").length;
-    const females = sexEntries.filter(e => e.sex === "female").length;
-    if (males > 0 && females > 0) {
-      results.push({ axis: "sex", threshold: "sex", belowLabel: "男子", aboveLabel: "女子", belowCount: males, aboveCount: females, balance: computeBalance(males, females) });
-    }
-  }
-
-  // 身長
-  const heightEntries = active.filter(e => e.height != null);
-  if (heightEntries.length >= 2) {
-    for (const t of [155, 160, 165, 170, 175, 180]) {
-      const below = heightEntries.filter(e => e.height! < t).length;
-      const above = heightEntries.filter(e => e.height! >= t).length;
-      if (below === 0 || above === 0) continue;
-      results.push({ axis: "height", threshold: t, belowLabel: `${t}cm未満`, aboveLabel: `${t}cm以上`, belowCount: below, aboveCount: above, balance: computeBalance(below, above) });
-    }
-  }
-
-  // 経験（年数パターンを抽出して分割）
-  const expEntries = active.filter(e => e.experience != null);
-  if (expEntries.length >= 2) {
-    const parseExpYears = (exp: string): number | null => {
-      const m = exp.match(/(\d+)\s*年/);
-      return m ? parseInt(m[1], 10) : null;
-    };
-    const withYears = expEntries.map(e => ({ entry: e, years: parseExpYears(e.experience!) })).filter(x => x.years != null) as { entry: Entry; years: number }[];
-    if (withYears.length >= 2) {
-      for (const t of [3, 5, 7, 10]) {
-        const below = withYears.filter(x => x.years < t).length;
-        const above = withYears.filter(x => x.years >= t).length;
-        if (below === 0 || above === 0) continue;
-        results.push({ axis: "experience", threshold: t, belowLabel: `${t}年未満`, aboveLabel: `${t}年以上`, belowCount: below, aboveCount: above, balance: computeBalance(below, above) });
-      }
-    }
-  }
-
-  const nonPoor = results.filter(r => r.balance !== "✕");
-  return (nonPoor.length > 0 ? nonPoor : results)
-    .sort((a, b) => {
-      const order = { "◎": 0, "△": 1, "✕": 2 };
-      if (order[a.balance] !== order[b.balance]) return order[a.balance] - order[b.balance];
-      return Math.abs(a.belowCount - a.aboveCount) - Math.abs(b.belowCount - b.aboveCount);
-    })
-    .slice(0, 8);
-}
+// computeBalance / computeSuggestions は lib/suggestions.ts からインポート
 
 function DashboardPanel({ entries, tournaments, eventRules, entryRuleIds, tournamentMatchFighterIds }: {
   entries: Entry[];
@@ -2018,7 +1943,7 @@ function entryOptionLabel(e: Entry, prefix = ""): string {
 
 // pairsFromEntries は lib/pairing.ts からインポート（不戦勝自動挿入対応済み）
 
-function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, eventRules, tournaments, tournamentMatchFighterIds, rules, mismatchSettings, savedMatchPairs, onCreated, onAutoCreate }: {
+function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, eventRules, tournaments, tournamentMatchFighterIds, rules, mismatchSettings, savedMatchPairs, bracketRuleCount, onCreated, onAutoCreate, onNavigateToBracketRules }: {
   courtNum: number;
   courtLabel: string;
   eventId: string;
@@ -2030,8 +1955,10 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
   rules: Rule[];
   mismatchSettings: MismatchSettings;
   savedMatchPairs: Array<{ f1: string; f2: string; rules: string | null }>;
+  bracketRuleCount: number;
   onCreated: () => void;
   onAutoCreate: () => void;
+  onNavigateToBracketRules: () => void;
 }) {
   const [groups, setGroups] = useState<Group[]>([
     { id: crypto.randomUUID(), name: "トーナメント1", type: "tournament", pairs: [], maxWeightDiff: mismatchSettings.maxWeightDiff, maxHeightDiff: mismatchSettings.maxHeightDiff },
@@ -2043,6 +1970,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
   const [editingSortOrder, setEditingSortOrder] = useState<number | null>(null);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
   const [reorderingId, setReorderingId] = useState<string | null>(null);
+  const [showSuggestDialog, setShowSuggestDialog] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
   const newlyCreatedIdRef = useRef<string | null>(null);
 
@@ -2303,6 +2231,44 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
     }
     const created = await Promise.all(responses.map((r) => r.json()));
     if (!editingTournamentId && created[0]?.id) newlyCreatedIdRef.current = created[0].id;
+
+    // 手動絞り込み条件を振り分けルールとして登録するか確認
+    for (const g of activeGroups) {
+      const f = g.filters;
+      if (!f) continue;
+      const hasFilter = !!(f.minWeight || f.maxWeight || f.minAge || f.maxAge || f.sexFilter || f.gradeFilter || f.minHeight || f.maxHeight);
+      if (!hasFilter) continue;
+      // 同名ルールが存在するか確認
+      const existRes = await fetch(`/api/admin/bracket-rules?event_id=${eventId}`);
+      if (existRes.ok) {
+        const existingRules: Array<{ name: string }> = await existRes.json();
+        if (existingRules.some(r => r.name === g.name)) continue;
+      }
+      const shouldSave = window.confirm(`この絞り込み条件を振り分けルールとして登録しますか？\n\n「${g.name}」`);
+      if (shouldSave) {
+        const gradeDiff = f.gradeFilter ? parseInt(f.gradeFilter) : null;
+        await fetch("/api/admin/bracket-rules", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event_id: eventId,
+            name: g.name,
+            rule_id: defaultRuleId || null,
+            min_weight: f.minWeight ? parseFloat(f.minWeight) : null,
+            max_weight: f.maxWeight ? parseFloat(f.maxWeight) : null,
+            min_age: f.minAge ? parseInt(f.minAge) : null,
+            max_age: f.maxAge ? parseInt(f.maxAge) : null,
+            sex_filter: f.sexFilter || null,
+            max_grade_diff: !isNaN(gradeDiff as number) ? gradeDiff : null,
+            min_height: f.minHeight ? parseFloat(f.minHeight) : null,
+            max_height: f.maxHeight ? parseFloat(f.maxHeight) : null,
+            max_weight_diff: g.maxWeightDiff,
+            max_height_diff: g.maxHeightDiff,
+          }),
+        });
+      }
+    }
+
     setConfirming(false);
     setShowCreateForm(false);
     setEditingTournamentId(null);
@@ -2501,13 +2467,52 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
         );
       })}
 
-      {/* 全自動対戦表作成ボタン: 未割当選手がいて、作成フォームが閉じている時に表示 */}
+      {/* 振り分けルール/おすすめ振り分けボタン: 未割当選手がいて、作成フォームが閉じている時に表示 */}
       {!editingTournamentId && !showCreateForm && filteredEntries.length > 0 && (
-        <button
-          onClick={onAutoCreate}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-medium text-white transition shadow-lg">
-          全自動で対戦表を作成（{filteredEntries.length}名）
-        </button>
+        <div className="flex gap-2">
+          {bracketRuleCount > 0 ? (
+            <button
+              onClick={onAutoCreate}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-medium text-white transition shadow-lg">
+              振り分けルールで対戦表を作成（{filteredEntries.length}名）
+            </button>
+          ) : (
+            <button
+              onClick={onNavigateToBracketRules}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-medium text-white transition shadow-lg">
+              振り分けルールを登録して対戦表を作成
+            </button>
+          )}
+          <button
+            onClick={() => setShowSuggestDialog(true)}
+            className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 rounded-xl py-3 px-4 text-sm font-medium text-white transition shadow-lg whitespace-nowrap">
+            おすすめ振り分けで作成
+          </button>
+        </div>
+      )}
+
+      {/* おすすめ振り分けダイアログ */}
+      {showSuggestDialog && (
+        <SuggestCreateDialog
+          entries={filteredEntries}
+          courtCount={1}
+          onExecute={(suggestGroups) => {
+            setShowSuggestDialog(false);
+            const newGroups: Group[] = suggestGroups.map(g => ({
+              id: crypto.randomUUID(),
+              name: g.name,
+              type: "tournament" as const,
+              pairs: g.pairs,
+              maxWeightDiff: mismatchSettings.maxWeightDiff,
+              maxHeightDiff: mismatchSettings.maxHeightDiff,
+            }));
+            if (newGroups.length > 0) {
+              setGroups(newGroups);
+              setShowCreateForm(true);
+            }
+          }}
+          onClose={() => setShowSuggestDialog(false)}
+        />
       )}
 
       {!editingTournamentId && (showCreateForm || tournaments.length === 0) ? (
