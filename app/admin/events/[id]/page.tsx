@@ -2417,18 +2417,19 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
         );
       })}
 
+      {/* 全自動対戦表作成ボタン: 未割当選手がいて、作成フォームが閉じている時に表示 */}
+      {!editingTournamentId && !showCreateForm && filteredEntries.length > 0 && (
+        <button
+          onClick={autoCreateAll}
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-medium text-white transition shadow-lg">
+          全自動で対戦表を作成（{filteredEntries.length}名）
+        </button>
+      )}
+
       {!editingTournamentId && (showCreateForm || tournaments.length === 0) ? (
         editForm
       ) : !editingTournamentId && (
         <div className="space-y-2">
-          {/* 全自動対戦表作成ボタン: 未割当選手がいる場合のみ表示 */}
-          {filteredEntries.length > 0 && (
-            <button
-              onClick={autoCreateAll}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-medium text-white transition shadow-lg">
-              全自動で対戦表を作成（{filteredEntries.length}名）
-            </button>
-          )}
           <div className="flex gap-2">
             <button
               onClick={() => {
