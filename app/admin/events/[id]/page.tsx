@@ -21,7 +21,6 @@ import { BracketRulesPanel } from "@/components/bracket-rules-panel";
 import { AutoCreateDialog } from "@/components/auto-create-dialog";
 import { SuggestCreateDialog } from "@/components/suggest-create-dialog";
 import type { AutoGroup } from "@/lib/auto-bracket";
-import { computeSuggestions, type SplitSuggestion } from "@/lib/suggestions";
 import Link from "next/link";
 import { FormConfigPanel } from "./form-config-panel";
 import { estimateMatchMinutes, formatTimeEstimate, countActualMatches, roundedNowHHMM } from "@/lib/time-estimate";
@@ -63,8 +62,6 @@ type Group = {
   maxHeightDiff: number | null;
   filters?: GroupFilters;
 };
-
-// SplitSuggestion は lib/suggestions.ts からインポート
 
 // entryCompatScore は lib/pairing.ts からインポート
 
@@ -806,8 +803,6 @@ function StepNav({ step, tournaments, onStepChange }: { step: 1 | 2 | 3; tournam
 
 // ── ダッシュボードパネル ──────────────────────────────────────────────────
 
-// computeBalance / computeSuggestions は lib/suggestions.ts からインポート
-
 function DashboardPanel({ entries, tournaments, eventRules, entryRuleIds, tournamentMatchFighterIds }: {
   entries: Entry[];
   tournaments: Tournament[];
@@ -888,7 +883,6 @@ function DashboardPanel({ entries, tournaments, eventRules, entryRuleIds, tourna
           unassigned={stats.unassigned}
           tournamentCount={tournamentTypeCount}
           oneMatchCount={oneMatchTypeCount}
-          suggestions={computeSuggestions(activeEntries)}
         />
       </div>
     );
@@ -896,14 +890,12 @@ function DashboardPanel({ entries, tournaments, eventRules, entryRuleIds, tourna
 
   const cards = eventRules.map(rule => {
     const stats = buildStats(rule.id);
-    const ruleEntries = activeEntries.filter(e => entryRuleIds[e.id]?.has(rule.id));
     return {
       key: rule.id,
       label: rule.name,
       total: stats.total,
       unassigned: stats.unassigned,
       tournamentCount: tournamentCountByRuleName[rule.name] ?? 0,
-      suggestions: computeSuggestions(ruleEntries),
     };
   });
 
@@ -914,22 +906,19 @@ function DashboardPanel({ entries, tournaments, eventRules, entryRuleIds, tourna
       {matchCountInfo}
       {cards.map(c => (
         <DashboardCard key={c.key} label={c.label} total={c.total} unassigned={c.unassigned}
-          tournamentCount={c.tournamentCount} suggestions={c.suggestions} />
+          tournamentCount={c.tournamentCount} />
       ))}
     </div>
   );
 }
 
-function DashboardCard({ label, total, unassigned, tournamentCount, oneMatchCount, suggestions }: {
+function DashboardCard({ label, total, unassigned, tournamentCount, oneMatchCount }: {
   label: string;
   total: number;
   unassigned: number;
   tournamentCount: number;
   oneMatchCount?: number;
-  suggestions: SplitSuggestion[];
 }) {
-  const [expanded, setExpanded] = useState(false);
-
   if (total === 0) return null;
 
   return (
@@ -954,34 +943,7 @@ function DashboardCard({ label, total, unassigned, tournamentCount, oneMatchCoun
             <span className="text-xs text-gray-600">トーナメント未作成</span>
           )}
         </div>
-        {suggestions.length > 0 && (
-          <button onClick={() => setExpanded(v => !v)}
-            className="text-xs text-blue-400 hover:text-blue-300 transition">
-            💡 階級分けおすすめ {expanded ? "▲" : "▼"}
-          </button>
-        )}
       </div>
-
-      {expanded && suggestions.length > 0 && (
-        <div className="border-t border-gray-700 pt-3 space-y-2">
-          <p className="text-xs text-gray-400">体重をメインに、年齢・性別・経歴・体格で分割した場合の人数バランス（参考）</p>
-          <div className="flex flex-wrap gap-2">
-            {suggestions.map((s, i) => (
-              <div key={i} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border ${
-                s.balance === "◎" ? "bg-green-900/40 border-green-700 text-green-200" :
-                s.balance === "△" ? "bg-yellow-900/40 border-yellow-700 text-yellow-200" :
-                "bg-gray-700 border-gray-600 text-gray-400"
-              }`}>
-                <span className="font-bold">{s.balance}</span>
-                <span>{s.belowLabel} {s.belowCount}名</span>
-                <span className="text-gray-500">/</span>
-                <span>{s.aboveLabel} {s.aboveCount}名</span>
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-gray-600">※ 体重をメインとし、年齢・性別・経歴・体格・段級で階級分けします</p>
-        </div>
-      )}
     </div>
   );
 }
@@ -2574,7 +2536,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
           <button
             onClick={() => setShowSuggestDialog(true)}
             className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 rounded-xl py-3 px-4 text-sm font-medium text-white transition shadow-lg whitespace-nowrap">
-            おすすめ振り分けで作成
+            💡 おすすめ振り分けで作成
           </button>
         </div>
       )}
