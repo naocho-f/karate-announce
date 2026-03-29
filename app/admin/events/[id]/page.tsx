@@ -7,7 +7,7 @@ import { DEFAULT_SUBJECT, DEFAULT_BODY } from "@/lib/email-template";
 import { isDev } from "@/lib/app-mode";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import type { Entry, Event, Fighter, Match, Tournament, Rule, CustomFieldDef } from "@/lib/types";
+import type { Entry, Event, Fighter, Match, Tournament, Rule, CustomFieldDef, TimerPreset } from "@/lib/types";
 import { entryFullName } from "@/lib/types";
 import { getFieldDef, isCustomField } from "@/lib/form-fields";
 import {
@@ -24,6 +24,7 @@ import type { AutoGroup } from "@/lib/auto-bracket";
 import { computeSuggestions, type SplitSuggestion } from "@/lib/suggestions";
 import Link from "next/link";
 import { FormConfigPanel } from "./form-config-panel";
+import { estimateMatchMinutes, formatTimeEstimate, countActualMatches, roundedNowHHMM } from "@/lib/time-estimate";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 function supabaseStorageUrl(path: string): string {
@@ -79,6 +80,8 @@ export default function EventDetailPage({ params }: Props) {
   const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: null, maxHeightDiff: null });
   const [tournamentMatchFighterIds, setTournamentMatchFighterIds] = useState<Record<string, Set<string>>>({});
   const [savedMatchPairs, setSavedMatchPairs] = useState<Array<{ f1: string; f2: string; rules: string | null }>>([]);
+  const [allMatchRows, setAllMatchRows] = useState<Array<{ tournament_id: string; fighter1_id: string | null; fighter2_id: string | null }>>([]);
+  const [timerPresets, setTimerPresets] = useState<TimerPreset[]>([]);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [entrySubTab, setEntrySubTab] = useState<"entries" | "form" | "email">("entries");
   const [showClosedGuide, setShowClosedGuide] = useState(false);
@@ -142,7 +145,7 @@ export default function EventDetailPage({ params }: Props) {
 
     const entryIds = entryList.map((en) => en.id);
     const tournamentIds = tournamentList.map((t) => t.id);
-    const [{ data: rs }, { data: erul }, { data: matchRows }] = await Promise.all([
+    const [{ data: rs }, { data: erul }, { data: matchRows }, { data: tp }] = await Promise.all([
       ruleIds.length > 0
         ? supabase.from("rules").select("*").in("id", ruleIds).order("name")
         : Promise.resolve({ data: [] as Rule[] }),
@@ -152,9 +155,12 @@ export default function EventDetailPage({ params }: Props) {
       tournamentIds.length > 0
         ? supabase.from("matches").select("tournament_id, fighter1_id, fighter2_id, round, rules").in("tournament_id", tournamentIds)
         : Promise.resolve({ data: [] as Array<{ tournament_id: string; fighter1_id: string | null; fighter2_id: string | null; round: number; rules: string | null }> }),
+      supabase.from("timer_presets").select("*").order("created_at", { ascending: false }),
     ]);
 
     setRules(rs ?? []);
+    setTimerPresets((tp ?? []) as TimerPreset[]);
+    setAllMatchRows((matchRows ?? []).map((m) => ({ tournament_id: m.tournament_id, fighter1_id: m.fighter1_id, fighter2_id: m.fighter2_id })));
     const map: Record<string, Set<string>> = {};
     (erul ?? []).forEach((r) => {
       if (!map[r.entry_id]) map[r.entry_id] = new Set();
@@ -719,6 +725,8 @@ export default function EventDetailPage({ params }: Props) {
                       mismatchSettings={mismatchSettings}
                       savedMatchPairs={savedMatchPairs}
                       bracketRuleCount={bracketRuleCount}
+                      allMatchRows={allMatchRows}
+                      timerPresets={timerPresets}
                       onCreated={load}
                       onAutoCreate={() => setShowAutoDialog(true)}
                       onNavigateToBracketRules={() => setBracketSubTab("bracket-rules")}
@@ -1943,7 +1951,7 @@ function entryOptionLabel(e: Entry, prefix = ""): string {
 
 // pairsFromEntries は lib/pairing.ts からインポート（不戦勝自動挿入対応済み）
 
-function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, eventRules, tournaments, tournamentMatchFighterIds, rules, mismatchSettings, savedMatchPairs, bracketRuleCount, onCreated, onAutoCreate, onNavigateToBracketRules }: {
+function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, eventRules, tournaments, tournamentMatchFighterIds, rules, mismatchSettings, savedMatchPairs, bracketRuleCount, allMatchRows, timerPresets, onCreated, onAutoCreate, onNavigateToBracketRules }: {
   courtNum: number;
   courtLabel: string;
   eventId: string;
@@ -1956,6 +1964,8 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
   mismatchSettings: MismatchSettings;
   savedMatchPairs: Array<{ f1: string; f2: string; rules: string | null }>;
   bracketRuleCount: number;
+  allMatchRows: Array<{ tournament_id: string; fighter1_id: string | null; fighter2_id: string | null }>;
+  timerPresets: TimerPreset[];
   onCreated: () => void;
   onAutoCreate: () => void;
   onNavigateToBracketRules: () => void;
@@ -1971,6 +1981,8 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
   const [reorderingId, setReorderingId] = useState<string | null>(null);
   const [showSuggestDialog, setShowSuggestDialog] = useState(false);
+  const [startTime, setStartTime] = useState(() => roundedNowHHMM());
+  const [intervalMin, setIntervalMin] = useState(1);
   const sectionRef = useRef<HTMLDivElement>(null);
   const newlyCreatedIdRef = useRef<string | null>(null);
 
@@ -2394,11 +2406,87 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
     </div>
   );
 
+  // 時間見積もり計算
+  const courtMatchCount = useMemo(() => {
+    const tids = tournaments.map((t) => t.id);
+    return countActualMatches(allMatchRows, tids);
+  }, [tournaments, allMatchRows]);
+
+  const timeEstimate = useMemo(() => {
+    if (courtMatchCount === 0) return null;
+    // トーナメントの default_rules からタイマープリセットを解決
+    // 全トーナメントのうち最初に見つかったルールのプリセットを使う
+    let matchDurationSec = 120; // デフォルト2分
+    let hasExtension = false;
+    let extensionDurationSec = 0;
+
+    for (const t of tournaments) {
+      if (!t.default_rules) continue;
+      const rule = rules.find((r) => r.name === t.default_rules);
+      if (!rule) continue;
+      const preset = timerPresets.find((p) => p.rule_id === rule.id);
+      if (preset) {
+        matchDurationSec = preset.match_duration;
+        hasExtension = preset.has_extension;
+        extensionDurationSec = preset.extension_duration;
+        break;
+      }
+    }
+
+    const minutes = estimateMatchMinutes({
+      matchCount: courtMatchCount,
+      matchDurationSec,
+      hasExtension,
+      extensionDurationSec,
+      intervalSec: intervalMin * 60,
+    });
+
+    return formatTimeEstimate({ minutes, startTime });
+  }, [courtMatchCount, tournaments, rules, timerPresets, intervalMin, startTime]);
+
   return (
     <div ref={sectionRef} className="space-y-4">
       <div className="flex items-center gap-2">
         <h3 className="text-base font-semibold text-gray-200">{courtLabel}</h3>
       </div>
+
+      {/* 時間見積もりパネル */}
+      {courtMatchCount > 0 && timeEstimate && (
+        <div className="bg-gray-800/60 border border-gray-700 rounded-lg px-4 py-3 space-y-2">
+          <div className="text-sm text-gray-200">
+            全{courtMatchCount}試合 &mdash; 推定 <span className="font-medium text-white">{timeEstimate.duration}</span>
+            {timeEstimate.endTime && (
+              <span className="text-gray-400">（{startTime}開始 → <span className="text-white font-medium">{timeEstimate.endTime}</span>終了予定）</span>
+            )}
+          </div>
+          <div className="flex items-center gap-4 text-xs">
+            <label className="flex items-center gap-1.5 text-gray-400">
+              開始時刻:
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs outline-none focus:border-blue-500 w-24"
+              />
+            </label>
+            <label className="flex items-center gap-1.5 text-gray-400">
+              試合間:
+              <select
+                value={intervalMin}
+                onChange={(e) => setIntervalMin(Number(e.target.value))}
+                className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs outline-none focus:border-blue-500"
+              >
+                <option value={0}>0分</option>
+                <option value={0.5}>30秒</option>
+                <option value={1}>1分</option>
+                <option value={2}>2分</option>
+                <option value={3}>3分</option>
+                <option value={5}>5分</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      )}
 
       {(localOrder ? localOrder.map((id) => tournaments.find((t) => t.id === id)!).filter(Boolean) : tournaments).map((t, idx, arr) => {
         if (t.id === editingTournamentId) {
