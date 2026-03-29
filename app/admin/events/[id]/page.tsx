@@ -19,7 +19,7 @@ import { BracketView, roundLabel } from "@/lib/bracket-view";
 import { MatchLabelEditor } from "@/components/match-label-editor";
 import { BracketRulesPanel } from "@/components/bracket-rules-panel";
 import { AutoCreateDialog } from "@/components/auto-create-dialog";
-import { SuggestCreateDialog } from "@/components/suggest-create-dialog";
+import { computeSuggestions } from "@/lib/suggestions";
 import type { AutoGroup } from "@/lib/auto-bracket";
 import Link from "next/link";
 import { FormConfigPanel } from "./form-config-panel";
@@ -1913,6 +1913,60 @@ function entryOptionLabel(e: Entry, prefix = ""): string {
 
 // pairsFromEntries は lib/pairing.ts からインポート（不戦勝自動挿入対応済み）
 
+/** 参加者の体重・年齢・性別・身長の分布を折りたたみ式で表示するパネル */
+function DistributionPanel({ entries, isOpen, onToggle }: { entries: Entry[]; isOpen: boolean; onToggle: () => void }) {
+  const suggestions = useMemo(() => computeSuggestions(entries), [entries]);
+
+  if (suggestions.length === 0) return null;
+
+  // 軸ごとにグルーピング
+  const axisLabels: Record<string, string> = { weight: "体重", age: "年齢", sex: "性別", height: "身長", experience: "経験" };
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof suggestions>();
+    for (const s of suggestions) {
+      const list = map.get(s.axis) ?? [];
+      list.push(s);
+      map.set(s.axis, list);
+    }
+    return map;
+  }, [suggestions]);
+
+  return (
+    <div className="rounded-xl border border-gray-700 bg-gray-800/50 overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700/50 transition"
+      >
+        <span>{"💡"} 参加者の分布（{entries.filter(e => !e.is_withdrawn).length}名）</span>
+        <span className="text-xs text-gray-500">{isOpen ? "▲ 閉じる" : "▼ 開く"}</span>
+      </button>
+      {isOpen && (
+        <div className="px-4 pb-3 space-y-3 border-t border-gray-700">
+          {Array.from(grouped.entries()).map(([axis, items]) => (
+            <div key={axis} className="pt-2">
+              <p className="text-xs text-gray-500 mb-1.5">{axisLabels[axis] ?? axis}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {items.map((s, i) => (
+                  <span key={i} className="inline-flex items-center gap-1.5 bg-gray-700/60 rounded-full px-3 py-1 text-xs">
+                    <span className={
+                      s.balance === "◎" ? "text-green-400 font-bold" :
+                      s.balance === "△" ? "text-yellow-400 font-bold" : "text-gray-500 font-bold"
+                    }>{s.balance}</span>
+                    <span className="text-gray-300">{s.belowLabel} {s.belowCount}名</span>
+                    <span className="text-gray-600">/</span>
+                    <span className="text-gray-300">{s.aboveLabel} {s.aboveCount}名</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+          <p className="text-xs text-gray-600 pt-1">振り分けルール作成の参考にしてください</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, eventRules, tournaments, tournamentMatchFighterIds, rules, mismatchSettings, savedMatchPairs, bracketRuleCount, allMatchRows, timerPresets, onCreated, onAutoCreate, onNavigateToBracketRules }: {
   courtNum: number;
   courtLabel: string;
@@ -1942,7 +1996,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
   const [editingSortOrder, setEditingSortOrder] = useState<number | null>(null);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
   const [reorderingId, setReorderingId] = useState<string | null>(null);
-  const [showSuggestDialog, setShowSuggestDialog] = useState(false);
+  const [showDistribution, setShowDistribution] = useState(false);
   const [startTime, setStartTime] = useState(() => roundedNowHHMM());
   const [intervalMin, setIntervalMin] = useState(1);
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -2517,70 +2571,26 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
         );
       })}
 
-      {/* 振り分けルール/おすすめ振り分けボタン: 未割当選手がいて、作成フォームが閉じている時に表示 */}
+      {/* 参加者分布パネル + 振り分けルールボタン: 未割当選手がいて、作成フォームが閉じている時に表示 */}
       {!editingTournamentId && !showCreateForm && filteredEntries.length > 0 && (
-        <div className="flex gap-2">
+        <div className="space-y-2">
+          {/* 参加者分布パネル（折りたたみ式） */}
+          <DistributionPanel entries={filteredEntries} isOpen={showDistribution} onToggle={() => setShowDistribution(prev => !prev)} />
+
           {bracketRuleCount > 0 ? (
             <button
               onClick={onAutoCreate}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-medium text-white transition shadow-lg">
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-medium text-white transition shadow-lg">
               振り分けルールで対戦表を作成（{filteredEntries.length}名）
             </button>
           ) : (
             <button
               onClick={onNavigateToBracketRules}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-medium text-white transition shadow-lg">
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-medium text-white transition shadow-lg">
               振り分けルールを登録して対戦表を作成
             </button>
           )}
-          <button
-            onClick={() => setShowSuggestDialog(true)}
-            className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 rounded-xl py-3 px-4 text-sm font-medium text-white transition shadow-lg whitespace-nowrap">
-            💡 おすすめ振り分けで作成
-          </button>
         </div>
-      )}
-
-      {/* おすすめ振り分けダイアログ */}
-      {showSuggestDialog && (
-        <SuggestCreateDialog
-          entries={filteredEntries}
-          courtCount={1}
-          rules={eventRules.length > 0 ? eventRules : rules}
-          entryRuleIds={entryRuleIds}
-          existingPairs={[
-            ...groups.flatMap((g) =>
-              g.pairs.filter((p) => p.e1 && p.e2).map((p) => ({
-                e1Id: p.e1.id, e2Id: p.e2!.id, ruleId: p.ruleId,
-              }))
-            ),
-            ...savedMatchPairs.map((m) => {
-              const e1 = entries.find((e) => e.fighter_id === m.f1);
-              const e2 = entries.find((e) => e.fighter_id === m.f2);
-              const rule = rules.find((r) => r.name === m.rules);
-              return e1 && e2 ? { e1Id: e1.id, e2Id: e2.id, ruleId: rule?.id ?? "" } : null;
-            }).filter((p): p is NonNullable<typeof p> => p !== null),
-          ]}
-          onExecute={(suggestGroups) => {
-            setShowSuggestDialog(false);
-            const newGroups: Group[] = suggestGroups.map(g => ({
-              id: crypto.randomUUID(),
-              name: g.name,
-              type: "tournament" as const,
-              pairs: g.pairs.map(p => ({ ...p, ruleId: g.ruleId || p.ruleId || "" })),
-              maxWeightDiff: g.maxWeightDiff ?? mismatchSettings.maxWeightDiff,
-              maxHeightDiff: g.maxHeightDiff ?? mismatchSettings.maxHeightDiff,
-            }));
-            // ruleIdが設定されていれば defaultRuleId にも反映
-            const firstRuleId = suggestGroups[0]?.ruleId;
-            if (firstRuleId) setDefaultRuleId(firstRuleId);
-            if (newGroups.length > 0) {
-              setGroups(newGroups);
-              setShowCreateForm(true);
-            }
-          }}
-          onClose={() => setShowSuggestDialog(false)}
-        />
       )}
 
       {!editingTournamentId && (showCreateForm || tournaments.length === 0) ? (

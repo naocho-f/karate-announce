@@ -152,3 +152,56 @@ describe("computeSuggestions", () => {
     expect(expSuggestion).toBeDefined();
   });
 });
+
+describe("分布パネル用: 軸ごとのグルーピング", () => {
+  /** DistributionPanel で使用しているグルーピングロジックの再現 */
+  function groupByAxis(suggestions: SplitSuggestion[]): Map<string, SplitSuggestion[]> {
+    const map = new Map<string, SplitSuggestion[]>();
+    for (const s of suggestions) {
+      const list = map.get(s.axis) ?? [];
+      list.push(s);
+      map.set(s.axis, list);
+    }
+    return map;
+  }
+
+  it("複数軸の提案が軸ごとにグルーピングされる", () => {
+    const entries = [
+      makeEntry("1", { weight: 40, age: 10, sex: "male" }),
+      makeEntry("2", { weight: 60, age: 20, sex: "female" }),
+      makeEntry("3", { weight: 70, age: 25, sex: "male" }),
+      makeEntry("4", { weight: 50, age: 15, sex: "female" }),
+    ];
+    const suggestions = computeSuggestions(entries);
+    const grouped = groupByAxis(suggestions);
+
+    // 体重・年齢・性別の3軸が含まれる
+    expect(grouped.has("weight")).toBe(true);
+    expect(grouped.has("age")).toBe(true);
+    expect(grouped.has("sex")).toBe(true);
+
+    // 各軸の提案がそれぞれのグループに入っている
+    for (const [axis, items] of grouped) {
+      for (const item of items) {
+        expect(item.axis).toBe(axis);
+      }
+    }
+  });
+
+  it("単一軸のみの場合は1グループになる", () => {
+    const entries = [
+      makeEntry("1", { weight: 40 }),
+      makeEntry("2", { weight: 80 }),
+    ];
+    const suggestions = computeSuggestions(entries);
+    const grouped = groupByAxis(suggestions);
+
+    expect(grouped.size).toBe(1);
+    expect(grouped.has("weight")).toBe(true);
+  });
+
+  it("提案が空の場合はグループも空になる", () => {
+    const grouped = groupByAxis([]);
+    expect(grouped.size).toBe(0);
+  });
+});
