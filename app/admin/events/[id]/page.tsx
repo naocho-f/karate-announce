@@ -2228,6 +2228,11 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
             defaultRuleId={defaultRuleId}
             mismatchSettings={mismatchSettings}
             canRemove={groups.length > 1}
+            existingPairs={groups.flatMap((g) =>
+              g.pairs.filter((p) => p.e1 && p.e2).map((p) => ({
+                e1Id: p.e1.id, e2Id: p.e2!.id, ruleId: p.ruleId, pairId: p.id,
+              }))
+            )}
             getDesiredMatchCount={getDesiredMatchCount}
             getTotalMatchCount={getTotalMatchCount}
             onRename={(name) => renameGroup(group.id, name)}
@@ -2421,7 +2426,7 @@ function BracketQualityBadge({ pairCount }: { pairCount: number }) {
   );
 }
 
-function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRuleId, mismatchSettings, canRemove, getDesiredMatchCount, getTotalMatchCount, onRename, onRemove, onAutoAssign, onUpdateMismatch, onAddPair, onRemovePair, onMovePair, onUpdateE1, onUpdateE2, onUpdateField, onUpdateFilters }: {
+function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRuleId, mismatchSettings, canRemove, getDesiredMatchCount, getTotalMatchCount, existingPairs, onRename, onRemove, onAutoAssign, onUpdateMismatch, onAddPair, onRemovePair, onMovePair, onUpdateE1, onUpdateE2, onUpdateField, onUpdateFilters }: {
   group: Group;
   entries: Entry[];
   unassigned: Entry[];
@@ -2432,6 +2437,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
   canRemove: boolean;
   getDesiredMatchCount: (entry: Entry) => number;
   getTotalMatchCount: (entry: Entry) => number;
+  existingPairs: { e1Id: string; e2Id: string; ruleId: string; pairId: string }[];
   onRename: (name: string) => void;
   onRemove: () => void;
   onAutoAssign: (entries: Entry[]) => void;
@@ -2523,14 +2529,14 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
         <div className="flex items-center gap-1 shrink-0">
           <span className="text-xs text-gray-500">体重差</span>
           <input type="number" min="0" step="0.5" value={group.maxWeightDiff ?? ""}
-            onChange={(e) => onUpdateMismatch(e.target.value ? parseFloat(e.target.value) : null, group.maxHeightDiff)}
+            onChange={(e) => { const v = e.target.value.replace(/[０-９．]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)); onUpdateMismatch(v ? parseFloat(v) : null, group.maxHeightDiff); }}
             placeholder="無制限" className={`w-20 ${inpSm}`} />
           <span className="text-xs text-gray-500">kg以内</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <span className="text-xs text-gray-500">身長差</span>
           <input type="number" min="0" step="1" value={group.maxHeightDiff ?? ""}
-            onChange={(e) => onUpdateMismatch(group.maxWeightDiff, e.target.value ? parseFloat(e.target.value) : null)}
+            onChange={(e) => { const v = e.target.value.replace(/[０-９．]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)); onUpdateMismatch(group.maxWeightDiff, v ? parseFloat(v) : null); }}
             placeholder="無制限" className={`w-20 ${inpSm}`} />
           <span className="text-xs text-gray-500">cm以内</span>
         </div>
@@ -2677,7 +2683,15 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
                   : "unknown";
                 const defaultRule = rules.find((r) => r.id === defaultRuleId);
                 const e1Options = [pair.e1, ...unassigned];
-                const e2Options = [...(pair.e2 ? [pair.e2] : []), ...unassigned.filter((e) => e.id !== pair.e1.id)];
+                // 同じルール内で既に対戦が組まれている相手を除外（自分自身のペアは除く）
+                const isAlreadyPaired = (entryId: string) =>
+                  existingPairs.some((p) =>
+                    p.pairId !== pair.id &&
+                    p.ruleId === pair.ruleId &&
+                    ((p.e1Id === pair.e1.id && p.e2Id === entryId) ||
+                     (p.e2Id === pair.e1.id && p.e1Id === entryId))
+                  );
+                const e2Options = [...(pair.e2 ? [pair.e2] : []), ...unassigned.filter((e) => e.id !== pair.e1.id && !isAlreadyPaired(e.id))];
                 const e2Sorted = [...e2Options].sort((a, b) => entryCompatScore(a, pair.e1) - entryCompatScore(b, pair.e1));
 
                 const weightDiffText = pair.e2 && pair.e1.weight && pair.e2.weight
