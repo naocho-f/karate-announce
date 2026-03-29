@@ -85,6 +85,7 @@ export default function EventDetailPage({ params }: Props) {
   const [rules, setRules] = useState<Rule[]>([]);
   const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: null, maxHeightDiff: null });
   const [tournamentMatchFighterIds, setTournamentMatchFighterIds] = useState<Record<string, Set<string>>>({});
+  const [savedMatchPairs, setSavedMatchPairs] = useState<Array<{ f1: string; f2: string; rules: string | null }>>([]);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [entrySubTab, setEntrySubTab] = useState<"entries" | "form" | "email">("entries");
   const [showClosedGuide, setShowClosedGuide] = useState(false);
@@ -153,8 +154,8 @@ export default function EventDetailPage({ params }: Props) {
         ? supabase.from("entry_rules").select("entry_id, rule_id").in("entry_id", entryIds)
         : Promise.resolve({ data: [] as Array<{ entry_id: string; rule_id: string }> }),
       tournamentIds.length > 0
-        ? supabase.from("matches").select("tournament_id, fighter1_id, fighter2_id").in("tournament_id", tournamentIds)
-        : Promise.resolve({ data: [] as Array<{ tournament_id: string; fighter1_id: string | null; fighter2_id: string | null }> }),
+        ? supabase.from("matches").select("tournament_id, fighter1_id, fighter2_id, round, rules").in("tournament_id", tournamentIds)
+        : Promise.resolve({ data: [] as Array<{ tournament_id: string; fighter1_id: string | null; fighter2_id: string | null; round: number; rules: string | null }> }),
     ]);
 
     setRules(rs ?? []);
@@ -166,12 +167,18 @@ export default function EventDetailPage({ params }: Props) {
     setEntryRuleIds(entryIds.length > 0 ? map : {});
 
     const fidsMap: Record<string, Set<string>> = {};
+    const pairs: Array<{ f1: string; f2: string; rules: string | null }> = [];
     (matchRows ?? []).forEach((m) => {
       if (!fidsMap[m.tournament_id]) fidsMap[m.tournament_id] = new Set();
       if (m.fighter1_id) fidsMap[m.tournament_id].add(m.fighter1_id);
       if (m.fighter2_id) fidsMap[m.tournament_id].add(m.fighter2_id);
+      // round=1 のペアを保存（重複対戦チェック用）
+      if (m.round === 1 && m.fighter1_id && m.fighter2_id) {
+        pairs.push({ f1: m.fighter1_id, f2: m.fighter2_id, rules: m.rules });
+      }
     });
     setTournamentMatchFighterIds(fidsMap);
+    setSavedMatchPairs(pairs);
   }, [id]);
 
   async function saveEventMeta() {
@@ -660,6 +667,7 @@ export default function EventDetailPage({ params }: Props) {
                   tournamentMatchFighterIds={tournamentMatchFighterIds}
                   rules={rules}
                   mismatchSettings={mismatchSettings}
+                  savedMatchPairs={savedMatchPairs}
                   onCreated={load}
                 />
               ))}
@@ -1948,7 +1956,7 @@ function pairsFromEntries(chunk: Entry[]): Pair[] {
   return result;
 }
 
-function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, eventRules, tournaments, tournamentMatchFighterIds, rules, mismatchSettings, onCreated }: {
+function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, eventRules, tournaments, tournamentMatchFighterIds, rules, mismatchSettings, savedMatchPairs, onCreated }: {
   courtNum: number;
   courtLabel: string;
   eventId: string;
@@ -1959,6 +1967,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
   tournamentMatchFighterIds: Record<string, Set<string>>;
   rules: Rule[];
   mismatchSettings: MismatchSettings;
+  savedMatchPairs: Array<{ f1: string; f2: string; rules: string | null }>;
   onCreated: () => void;
 }) {
   const [groups, setGroups] = useState<Group[]>([
@@ -2228,11 +2237,21 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
             defaultRuleId={defaultRuleId}
             mismatchSettings={mismatchSettings}
             canRemove={groups.length > 1}
-            existingPairs={groups.flatMap((g) =>
-              g.pairs.filter((p) => p.e1 && p.e2).map((p) => ({
-                e1Id: p.e1.id, e2Id: p.e2!.id, ruleId: p.ruleId, pairId: p.id,
-              }))
-            )}
+            existingPairs={[
+              // 画面上の未保存ペア
+              ...groups.flatMap((g) =>
+                g.pairs.filter((p) => p.e1 && p.e2).map((p) => ({
+                  e1Id: p.e1.id, e2Id: p.e2!.id, ruleId: p.ruleId, pairId: p.id,
+                }))
+              ),
+              // DB保存済みペア（fighter_id → entry.id に変換）
+              ...savedMatchPairs.map((m) => {
+                const e1 = entries.find((e) => e.fighter_id === m.f1);
+                const e2 = entries.find((e) => e.fighter_id === m.f2);
+                const rule = rules.find((r) => r.name === m.rules);
+                return e1 && e2 ? { e1Id: e1.id, e2Id: e2.id, ruleId: rule?.id ?? "", pairId: "" } : null;
+              }).filter((p): p is NonNullable<typeof p> => p !== null),
+            ]}
             getDesiredMatchCount={getDesiredMatchCount}
             getTotalMatchCount={getTotalMatchCount}
             onRename={(name) => renameGroup(group.id, name)}

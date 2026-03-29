@@ -22,6 +22,13 @@
 ## 計画（大きな機能の場合）
 - 複数ファイルにまたがる変更や新機能追加の場合は、**先に計画を出してレビューを受けてから実装する**。
 - 小さなバグ修正や1ファイルの変更は直接実装してよい。
+- **計画→実装の自動フロー:**
+  1. 計画が承認されたら `.claude/plan.md` に最終計画を書き出す
+  2. `implementer` エージェントを起動して実装を委譲する（フレッシュなコンテキストで実行）
+  3. implementer が計画に沿って実装・テスト・コミットまで完了し、`.claude/plan.md` を削除する
+  4. 結果サマリーがメインセッションに返る
+- ユーザーが「プランして」→ 承認 → 自動で implementer 起動、が基本フロー。
+- セッション開始時に `.claude/plan.md` が残っていたら、前セッションの未実装計画として通知される。
 
 ## 実装完了フロー（この順序で実行）
 
@@ -99,6 +106,10 @@
 - 同じミスを2回繰り返したら、3回目が起きないよう仕組み（Hook・スクリプト・設定）で対処する。
 - 「次から気をつけます」だけで終わらせない。対策後は何をどう変えたか報告する。
 - **自分で宣言したことは必ず実行する。** 「今後は〜します」と言ったらそれはルールになる。守れないなら言わない。
+- **同じ修正を2回試しても改善しない場合**: 立ち止まって根本原因を分析する。3回目の同じアプローチは禁止。代わりに以下を行う:
+  1. 問題を再定義する（本当の原因は何か？）
+  2. 関連コードを広く読み直す（狭い範囲だけ見ていないか？）
+  3. 異なるアプローチを検討してユーザーに提示する
 
 ## あらゆる追記・変更時の確認
 - CLAUDE.md・settings.json・Memory 等、どのファイルへの追記・変更でも、既存内容との重複・矛盾・競合がないか毎回確認すること。
@@ -113,11 +124,14 @@
   3. テスト・ビルド確認 → コミット
   4. **コミット後、自動で** `PATCH /api/bug-reports/{id}` を実行し、全対応済み報告のステータス・対応内容・修正バージョンを更新する
   5. ユーザーに報告ではなく、管理画面（設定 → 不具合報告）で確認できる状態にする
-- API呼び出し方法:
+- API呼び出し方法（`$()`・パイプ+複数行スクリプト・`~`チルダ展開はClaude Codeで確認ダイアログが出るため使わない。curlとpython3は分けて実行、パスはフルパスで書く）:
   ```
-  AUTH="Cookie: admin_auth=$(echo -n 'jmma-jukukaikarate-announce-v1' | shasum -a 256 | cut -d' ' -f1)"
-  curl -s "https://karate.naocho.net/api/bug-reports/{id}" -X PATCH -H "$AUTH" -H "Content-Type: application/json" \
-    -d '{"status":"resolved","resolution":"対応内容","fixed_in_version":"コミットSHA先頭7桁"}'
+  # 取得（結果をファイルに保存してから処理）
+  curl -s "https://karate.naocho.net/api/bug-reports" -H "Cookie: admin_auth=184deae3cb5b227cfcca890a13f9b0d0321b3b0adba290e3d69b5d8e945935d6" -o /tmp/bug-reports.json
+  # → 別コマンドで python3 -c "..." で /tmp/bug-reports.json を読む
+
+  # 更新
+  curl -s "https://karate.naocho.net/api/bug-reports/{id}" -X PATCH -H "Cookie: admin_auth=184deae3cb5b227cfcca890a13f9b0d0321b3b0adba290e3d69b5d8e945935d6" -H "Content-Type: application/json" -d '{"status":"resolved","resolution":"対応内容","fixed_in_version":"コミットSHA先頭7桁"}'
   ```
 
 ## 全体レビュー
