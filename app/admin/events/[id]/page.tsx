@@ -2753,12 +2753,10 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
               })}
             </div>
           )}
-          {!isOneMatch && (
-            <button onClick={onAddPair} disabled={unassigned.length === 0}
-              className="w-full bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-1.5 rounded text-xs transition">
-              ＋ 手動で対戦を追加
-            </button>
-          )}
+          <button onClick={onAddPair} disabled={unassigned.length === 0 || (isOneMatch && group.pairs.length >= 1)}
+            className="w-full bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-1.5 rounded text-xs transition">
+            ＋ 手動で対戦を追加
+          </button>
         </>
       )}
     </div>
