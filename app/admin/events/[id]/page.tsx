@@ -2568,8 +2568,8 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
               name: g.name,
               type: "tournament" as const,
               pairs: g.pairs,
-              maxWeightDiff: mismatchSettings.maxWeightDiff,
-              maxHeightDiff: mismatchSettings.maxHeightDiff,
+              maxWeightDiff: g.maxWeightDiff ?? mismatchSettings.maxWeightDiff,
+              maxHeightDiff: g.maxHeightDiff ?? mismatchSettings.maxHeightDiff,
             }));
             if (newGroups.length > 0) {
               setGroups(newGroups);

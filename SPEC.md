@@ -358,6 +358,7 @@
 - **重複対戦防止**: 既存の対戦ペア（画面上の未保存ペア＋DB保存済みペア）を `existingPairs` props で受け取り、ペアリング結果から重複する組み合わせを除外（`filterDuplicatePairs` / `lib/pairing.ts`）。逆順のペアも重複として検出。不戦勝ペアは除外対象外
 - `computeSuggestions()` の結果をチェックボックス付きリストで表示
 - 各提案の選択/解除が可能。体重差上限・年齢上限のパラメータ調整UI
+- **パラメータ引き継ぎ**: ダイアログで設定した体重差上限（`maxWeightDiff`）は `GroupResult` に含めて返す。`onExecute` 側では `g.maxWeightDiff ?? mismatchSettings.maxWeightDiff` のフォールバックで、ダイアログ設定値を優先してグループに適用する。未設定（null）の場合はグローバル設定にフォールバック
 - 「プレビュー」ボタンで振り分け結果（グループ名・人数・対戦数・選手名）を表示
 - 「作成する」で選択した条件でグループ分けし、CourtSection の groups に反映して編集フォームを開く
 - 未割当選手は「未分類」グループにまとめる
@@ -1105,6 +1106,7 @@ __tests__/
     form-fields.test.ts      # フォームフィールド定義・カテゴリ・カスタムフィールド変換
     auto-bracket.test.ts     # 振り分けルールによるグループ分け・コート割り当てロジック
     suggestions.test.ts      # おすすめ振り分け提案（computeSuggestions / computeBalance）
+    suggest-group-params.test.ts # おすすめ振り分けパラメータ引き継ぎ（maxWeightDiff フォールバック）
   api/            # API ルートテスト（Vitest + Supabase モック）
     admin-login.test.ts          # ログイン/ログアウト
     admin-crud.test.ts           # 道場・選手・エントリー・ルール・設定 CRUD

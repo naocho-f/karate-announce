@@ -11,6 +11,8 @@ type GroupResult = {
   entries: Entry[];
   pairs: PairEntry[];
   ruleId?: string;
+  maxWeightDiff?: number | null;
+  maxHeightDiff?: number | null;
 };
 
 export type ExistingPair = {
@@ -68,18 +70,19 @@ export function SuggestCreateDialog({ entries, courtCount, rules, entryRuleIds, 
     const active = targetEntries.filter(e => !e.is_withdrawn);
     const assigned = new Set<string>();
     const groups: GroupResult[] = [];
+    const wDiff = maxWeightDiff ? parseFloat(maxWeightDiff) : null;
 
     for (const s of selected) {
       const [below, above] = splitEntries(active, s, assigned);
 
       if (below.length > 0) {
         const pairs = filterDuplicatePairs(pairsFromEntries(below));
-        groups.push({ name: s.belowLabel, entries: below, pairs, ruleId: selectedRuleId || undefined });
+        groups.push({ name: s.belowLabel, entries: below, pairs, ruleId: selectedRuleId || undefined, maxWeightDiff: wDiff });
         below.forEach(e => assigned.add(e.id));
       }
       if (above.length > 0) {
         const pairs = filterDuplicatePairs(pairsFromEntries(above));
-        groups.push({ name: s.aboveLabel, entries: above, pairs, ruleId: selectedRuleId || undefined });
+        groups.push({ name: s.aboveLabel, entries: above, pairs, ruleId: selectedRuleId || undefined, maxWeightDiff: wDiff });
         above.forEach(e => assigned.add(e.id));
       }
     }
@@ -88,7 +91,7 @@ export function SuggestCreateDialog({ entries, courtCount, rules, entryRuleIds, 
     const remaining = active.filter(e => !assigned.has(e.id));
     if (remaining.length > 0) {
       const pairs = filterDuplicatePairs(pairsFromEntries(remaining));
-      groups.push({ name: "未分類", entries: remaining, pairs, ruleId: selectedRuleId || undefined });
+      groups.push({ name: "未分類", entries: remaining, pairs, ruleId: selectedRuleId || undefined, maxWeightDiff: wDiff });
     }
 
     return groups;
