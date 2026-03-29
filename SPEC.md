@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-29（試合所要時間の見積もり表示を追加）
+> 最終更新: 2026-03-29（おすすめ振り分けのruleId・年齢差サブグループ分割を追加）
 
 ---
 
@@ -357,8 +357,10 @@
 - **ルール絞り込み**: ダイアログ上部にルール選択ドロップダウン（「全ルール」/各ルール名）。ルール選択時、そのルールに参加している選手のみを対象に `computeSuggestions` を実行。生成されるグループの `ruleId` にも選択したルールを設定
 - **重複対戦防止**: 既存の対戦ペア（画面上の未保存ペア＋DB保存済みペア）を `existingPairs` props で受け取り、ペアリング結果から重複する組み合わせを除外（`filterDuplicatePairs` / `lib/pairing.ts`）。逆順のペアも重複として検出。不戦勝ペアは除外対象外
 - `computeSuggestions()` の結果をチェックボックス付きリストで表示
-- 各提案の選択/解除が可能。体重差上限・年齢上限のパラメータ調整UI
-- **パラメータ引き継ぎ**: ダイアログで設定した体重差上限（`maxWeightDiff`）は `GroupResult` に含めて返す。`onExecute` 側では `g.maxWeightDiff ?? mismatchSettings.maxWeightDiff` のフォールバックで、ダイアログ設定値を優先してグループに適用する。未設定（null）の場合はグローバル設定にフォールバック
+- 各提案の選択/解除が可能。体重差上限・年齢差上限のパラメータ調整UI
+- **パラメータ引き継ぎ**: ダイアログで設定した体重差上限（`maxWeightDiff`）・年齢差上限（`maxAgeDiff`）は `GroupResult` に含めて返す。`onExecute` 側では `g.maxWeightDiff ?? mismatchSettings.maxWeightDiff` のフォールバックで、ダイアログ設定値を優先してグループに適用する。未設定（null）の場合はグローバル設定にフォールバック
+- **年齢差によるサブグループ分割**: `maxAgeDiff` が設定されている場合、各グループ内の選手を年齢順にソートし、グループ内の年齢差が `maxAgeDiff` を超える場合にサブグループに分割する（`splitByAgeDiff` 関数）。年齢なしの選手は最後のグループに配置。サブグループ名は「(1)」「(2)」のように連番を付与
+- **ruleId の引き継ぎ**: ルール選択時、`GroupResult.ruleId` が設定される。`onExecute` で生成される各ペアの `ruleId` に反映し、`defaultRuleId` にも設定する
 - 「プレビュー」ボタンで振り分け結果（グループ名・人数・対戦数・選手名）を表示
 - 「作成する」で選択した条件でグループ分けし、CourtSection の groups に反映して編集フォームを開く
 - 未割当選手は「未分類」グループにまとめる
@@ -1106,7 +1108,7 @@ __tests__/
     form-fields.test.ts      # フォームフィールド定義・カテゴリ・カスタムフィールド変換
     auto-bracket.test.ts     # 振り分けルールによるグループ分け・コート割り当てロジック
     suggestions.test.ts      # おすすめ振り分け提案（computeSuggestions / computeBalance）
-    suggest-group-params.test.ts # おすすめ振り分けパラメータ引き継ぎ（maxWeightDiff フォールバック）
+    suggest-group-params.test.ts # おすすめ振り分けパラメータ引き継ぎ（maxWeightDiff / maxAgeDiff / ruleId フォールバック、splitByAgeDiff 年齢サブグループ分割）
   api/            # API ルートテスト（Vitest + Supabase モック）
     admin-login.test.ts          # ログイン/ログアウト
     admin-crud.test.ts           # 道場・選手・エントリー・ルール・設定 CRUD

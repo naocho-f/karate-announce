@@ -2567,10 +2567,13 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
               id: crypto.randomUUID(),
               name: g.name,
               type: "tournament" as const,
-              pairs: g.pairs,
+              pairs: g.pairs.map(p => ({ ...p, ruleId: g.ruleId || p.ruleId || "" })),
               maxWeightDiff: g.maxWeightDiff ?? mismatchSettings.maxWeightDiff,
               maxHeightDiff: g.maxHeightDiff ?? mismatchSettings.maxHeightDiff,
             }));
+            // ruleIdが設定されていれば defaultRuleId にも反映
+            const firstRuleId = suggestGroups[0]?.ruleId;
+            if (firstRuleId) setDefaultRuleId(firstRuleId);
             if (newGroups.length > 0) {
               setGroups(newGroups);
               setShowCreateForm(true);

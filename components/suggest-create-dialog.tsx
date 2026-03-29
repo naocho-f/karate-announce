@@ -13,7 +13,43 @@ type GroupResult = {
   ruleId?: string;
   maxWeightDiff?: number | null;
   maxHeightDiff?: number | null;
+  maxAgeDiff?: number | null;
 };
+
+/**
+ * グループ内の年齢差が maxAgeDiff を超える場合、年齢順でサブグループに分割する。
+ * maxAgeDiff が null の場合は分割しない。
+ */
+export function splitByAgeDiff(entries: Entry[], maxAgeDiff: number | null): Entry[][] {
+  if (!maxAgeDiff || entries.length <= 1) return [entries];
+
+  // 年齢があるエントリーを年齢順にソート、年齢なしは最後のグループに入れる
+  const withAge = entries.filter(e => e.age != null).sort((a, b) => a.age! - b.age!);
+  const withoutAge = entries.filter(e => e.age == null);
+
+  if (withAge.length === 0) return [entries];
+
+  const subGroups: Entry[][] = [];
+  let current: Entry[] = [withAge[0]];
+  let groupMinAge = withAge[0].age!;
+
+  for (let i = 1; i < withAge.length; i++) {
+    const e = withAge[i];
+    if (e.age! - groupMinAge > maxAgeDiff) {
+      // 新しいサブグループを開始
+      subGroups.push(current);
+      current = [e];
+      groupMinAge = e.age!;
+    } else {
+      current.push(e);
+    }
+  }
+  // 年齢なしの選手は最後のグループに追加
+  current.push(...withoutAge);
+  subGroups.push(current);
+
+  return subGroups;
+}
 
 export type ExistingPair = {
   e1Id: string;
@@ -71,27 +107,37 @@ export function SuggestCreateDialog({ entries, courtCount, rules, entryRuleIds, 
     const assigned = new Set<string>();
     const groups: GroupResult[] = [];
     const wDiff = maxWeightDiff ? parseFloat(maxWeightDiff) : null;
+    const aDiff = maxAgeDiff ? parseInt(maxAgeDiff) : null;
 
     for (const s of selected) {
       const [below, above] = splitEntries(active, s, assigned);
 
-      if (below.length > 0) {
-        const pairs = filterDuplicatePairs(pairsFromEntries(below));
-        groups.push({ name: s.belowLabel, entries: below, pairs, ruleId: selectedRuleId || undefined, maxWeightDiff: wDiff });
-        below.forEach(e => assigned.add(e.id));
-      }
-      if (above.length > 0) {
-        const pairs = filterDuplicatePairs(pairsFromEntries(above));
-        groups.push({ name: s.aboveLabel, entries: above, pairs, ruleId: selectedRuleId || undefined, maxWeightDiff: wDiff });
-        above.forEach(e => assigned.add(e.id));
+      for (const { label, chunk } of [
+        { label: s.belowLabel, chunk: below },
+        { label: s.aboveLabel, chunk: above },
+      ]) {
+        if (chunk.length === 0) continue;
+        const subGroups = splitByAgeDiff(chunk, aDiff);
+        for (let si = 0; si < subGroups.length; si++) {
+          const sub = subGroups[si];
+          const pairs = filterDuplicatePairs(pairsFromEntries(sub));
+          const groupName = subGroups.length > 1 ? `${label}(${si + 1})` : label;
+          groups.push({ name: groupName, entries: sub, pairs, ruleId: selectedRuleId || undefined, maxWeightDiff: wDiff, maxAgeDiff: aDiff });
+          sub.forEach(e => assigned.add(e.id));
+        }
       }
     }
 
     // 未割当選手がいたらまとめる
     const remaining = active.filter(e => !assigned.has(e.id));
     if (remaining.length > 0) {
-      const pairs = filterDuplicatePairs(pairsFromEntries(remaining));
-      groups.push({ name: "未分類", entries: remaining, pairs, ruleId: selectedRuleId || undefined, maxWeightDiff: wDiff });
+      const subGroups = splitByAgeDiff(remaining, aDiff);
+      for (let si = 0; si < subGroups.length; si++) {
+        const sub = subGroups[si];
+        const pairs = filterDuplicatePairs(pairsFromEntries(sub));
+        const groupName = subGroups.length > 1 ? `未分類(${si + 1})` : "未分類";
+        groups.push({ name: groupName, entries: sub, pairs, ruleId: selectedRuleId || undefined, maxWeightDiff: wDiff, maxAgeDiff: aDiff });
+      }
     }
 
     return groups;
@@ -132,16 +178,7 @@ export function SuggestCreateDialog({ entries, courtCount, rules, entryRuleIds, 
       }
     }
 
-    // maxWeightDiff / maxAgeDiff パラメータによる追加フィルタ
-    const wDiff = maxWeightDiff ? parseFloat(maxWeightDiff) : null;
-    const aDiff = maxAgeDiff ? parseInt(maxAgeDiff) : null;
-    const filterGroup = (group: Entry[]): Entry[] => {
-      if (!wDiff && !aDiff) return group;
-      // パラメータはプレビュー参考として表示するだけで、グループ分け自体には影響しない
-      return group;
-    };
-
-    return [filterGroup(below), filterGroup(above)];
+    return [below, above];
   }
 
   function handlePreview() {
@@ -232,7 +269,7 @@ export function SuggestCreateDialog({ entries, courtCount, rules, entryRuleIds, 
                   <span className="text-xs text-gray-500">kg</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-400">年齢上限</label>
+                  <label className="text-xs text-gray-400">年齢差上限</label>
                   <input
                     type="number"
                     min="0"
@@ -261,6 +298,7 @@ export function SuggestCreateDialog({ entries, courtCount, rules, entryRuleIds, 
                           <span key={e.id} className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">
                             {entryFullName(e)}
                             {e.weight != null && <span className="text-gray-500 ml-1">{e.weight}kg</span>}
+                            {e.age != null && <span className="text-gray-500 ml-1">{e.age}歳</span>}
                           </span>
                         ))}
                       </div>
