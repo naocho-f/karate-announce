@@ -42,7 +42,7 @@ const emptyForm: FormState = {
   court_num: "",
 };
 
-function toFormState(r: BracketRule): FormState {
+export function toFormState(r: BracketRule): FormState {
   return {
     name: r.name,
     rule_id: r.rule_id ?? "",
@@ -115,6 +115,12 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames }: Pr
   function startEdit(rule: BracketRule) {
     setEditingId(rule.id);
     setForm(toFormState(rule));
+    setShowForm(true);
+  }
+
+  function startDuplicate(rule: BracketRule) {
+    setEditingId(null);
+    setForm({ ...toFormState(rule), name: rule.name + "（コピー）" });
     setShowForm(true);
   }
 
@@ -264,6 +270,12 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames }: Pr
                 )}
               </div>
             </div>
+            <button
+              onClick={() => startDuplicate(rule)}
+              className="text-xs text-green-400 hover:text-green-300"
+            >
+              複製
+            </button>
             <button
               onClick={() => startEdit(rule)}
               className="text-xs text-blue-400 hover:text-blue-300"

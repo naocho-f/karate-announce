@@ -69,10 +69,26 @@ export default function AdminPage() {
         {tab === "settings" && <SettingsPanel />}
         {tab === "guide"    && <GuidePanel onNavigate={navigateTab} />}
 
-        {/* バージョン表示 */}
-        <p className="text-center text-[10px] text-gray-700 mt-8">v{getAppVersion()}{isDev() && " (dev)"}</p>
+        {/* バージョン表示（タブコンテンツが描画された後に遅延表示） */}
+        <DelayedVersion />
       </div>
     </main>
+  );
+}
+
+// ── バージョン表示（遅延） ─────────────────────────────────────────────────
+
+function DelayedVersion() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+  if (!visible) return null;
+  return (
+    <p className="text-center text-[10px] text-gray-800 mt-8">
+      v{getAppVersion()}{isDev() && " (dev)"}
+    </p>
   );
 }
 
