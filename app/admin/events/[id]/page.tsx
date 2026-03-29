@@ -14,6 +14,7 @@ import {
   checkCompatibility,
   COMPAT_COLORS, COMPAT_LABEL, type CompatibilityLevel, type MismatchSettings,
 } from "@/lib/compatibility";
+import { pairsFromEntries, entryCompatScore, type PairEntry } from "@/lib/pairing";
 import { BracketView, roundLabel } from "@/lib/bracket-view";
 import { MatchLabelEditor } from "@/components/match-label-editor";
 import Link from "next/link";
@@ -67,12 +68,7 @@ type SplitSuggestion = {
   balance: "◎" | "△" | "✕";
 };
 
-function entryCompatScore(e1: Entry, e2: Entry): number {
-  let s = 0;
-  if (e1.weight && e2.weight) s += Math.abs(e1.weight - e2.weight) * 2;
-  if (e1.height && e2.height) s += Math.abs(e1.height - e2.height) * 0.3;
-  return s;
-}
+// entryCompatScore は lib/pairing.ts からインポート
 
 export default function EventDetailPage({ params }: Props) {
   const { id } = use(params);
@@ -1937,24 +1933,7 @@ function entryOptionLabel(e: Entry, prefix = ""): string {
   return [prefix + name, aff, body, exp].filter(Boolean).join("  ");
 }
 
-function pairsFromEntries(chunk: Entry[]): Pair[] {
-  const pool = [...chunk].sort((a, b) => (a.weight ?? 999) - (b.weight ?? 999));
-  const result: Pair[] = [];
-  if (pool.length % 2 === 1) {
-    result.push({ id: crypto.randomUUID(), e1: pool.shift()!, e2: null, matchLabel: "", ruleId: "" });
-  }
-  while (pool.length >= 2) {
-    const e1 = pool.shift()!;
-    let bestIdx = 0, best = Infinity;
-    for (let i = 0; i < pool.length; i++) {
-      const s = entryCompatScore(e1, pool[i]);
-      if (s < best) { best = s; bestIdx = i; }
-    }
-    const e2 = pool.splice(bestIdx, 1)[0];
-    result.push({ id: crypto.randomUUID(), e1, e2, matchLabel: "", ruleId: "" });
-  }
-  return result;
-}
+// pairsFromEntries は lib/pairing.ts からインポート（不戦勝自動挿入対応済み）
 
 function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, eventRules, tournaments, tournamentMatchFighterIds, rules, mismatchSettings, savedMatchPairs, onCreated }: {
   courtNum: number;
@@ -2054,6 +2033,71 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
   function autoAssignGroup(groupId: string, entriesToAssign: Entry[]) {
     const newPairs = pairsFromEntries(entriesToAssign);
     setGroups((prev) => prev.map((g) => g.id !== groupId ? g : { ...g, pairs: [...g.pairs, ...newPairs] }));
+  }
+
+  /** 全自動対戦表作成: ルールごとにトーナメントを作成しペアリング */
+  function autoCreateAll() {
+    const displayRules = eventRules.length > 0 ? eventRules : [];
+    // 未割当選手を取得（filteredEntries のうち、ルール絞込なしで全員）
+    const allUnassigned = entries.filter((e) => {
+      if (e.is_withdrawn) return false;
+      if (!e.fighter_id) return true;
+      const desired = getDesiredMatchCount(e);
+      const current = fighterMatchCounts[e.fighter_id] ?? 0;
+      return current < desired;
+    });
+
+    if (allUnassigned.length === 0) return;
+
+    const newGroups: Group[] = [];
+
+    if (displayRules.length > 0) {
+      for (const rule of displayRules) {
+        const ruleEntries = allUnassigned.filter((e) => entryRuleIds[e.id]?.has(rule.id));
+        if (ruleEntries.length === 0) continue;
+        const pairs = pairsFromEntries(ruleEntries);
+        newGroups.push({
+          id: crypto.randomUUID(),
+          name: rule.name,
+          type: "tournament",
+          pairs,
+          maxWeightDiff: mismatchSettings.maxWeightDiff,
+          maxHeightDiff: mismatchSettings.maxHeightDiff,
+        });
+      }
+      // ルールに属さない選手
+      const noRuleEntries = allUnassigned.filter((e) => {
+        const rids = entryRuleIds[e.id];
+        return !rids || rids.size === 0 || !displayRules.some((r) => rids.has(r.id));
+      });
+      if (noRuleEntries.length > 0) {
+        const pairs = pairsFromEntries(noRuleEntries);
+        newGroups.push({
+          id: crypto.randomUUID(),
+          name: "ルール未設定",
+          type: "tournament",
+          pairs,
+          maxWeightDiff: mismatchSettings.maxWeightDiff,
+          maxHeightDiff: mismatchSettings.maxHeightDiff,
+        });
+      }
+    } else {
+      // ルールが設定されていない場合、全員で1つのトーナメント
+      const pairs = pairsFromEntries(allUnassigned);
+      newGroups.push({
+        id: crypto.randomUUID(),
+        name: "トーナメント1",
+        type: "tournament",
+        pairs,
+        maxWeightDiff: mismatchSettings.maxWeightDiff,
+        maxHeightDiff: mismatchSettings.maxHeightDiff,
+      });
+    }
+
+    if (newGroups.length > 0) {
+      setGroups(newGroups);
+      setShowCreateForm(true);
+    }
   }
 
   function addGroup(type: "tournament" | "one_match" = "tournament") {
@@ -2234,6 +2278,8 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
             unassigned={unassigned}
             allEntries={entries}
             rules={rules}
+            eventRules={eventRules}
+            entryRuleIds={entryRuleIds}
             defaultRuleId={defaultRuleId}
             mismatchSettings={mismatchSettings}
             canRemove={groups.length > 1}
@@ -2271,7 +2317,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
         ))}
       </div>
 
-      {unassigned.length > 0 && !groups.every((g) => g.type === "one_match") && (
+      {unassigned.length > 0 && !groups.every((g) => g.type === "one_match") && groups.every((g) => g.pairs.length > 0) && (
         <div className="flex gap-2">
           <button onClick={() => addGroup("tournament")}
             className="flex-1 border border-dashed border-gray-600 hover:border-blue-500 rounded-lg py-2 text-xs text-gray-400 hover:text-blue-400 transition">
@@ -2374,25 +2420,35 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
       {!editingTournamentId && (showCreateForm || tournaments.length === 0) ? (
         editForm
       ) : !editingTournamentId && (
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              const n = tournaments.filter((t) => t.type !== "one_match").length + 1;
-              setGroups([{ id: crypto.randomUUID(), name: `トーナメント${n}`, type: "tournament", pairs: [], maxWeightDiff: mismatchSettings.maxWeightDiff, maxHeightDiff: mismatchSettings.maxHeightDiff }]);
-              setShowCreateForm(true);
-            }}
-            className="flex-1 border border-dashed border-gray-600 hover:border-blue-500 rounded-xl py-3 text-sm text-gray-400 hover:text-blue-400 transition">
-            ＋ トーナメントを追加
-          </button>
-          <button
-            onClick={() => {
-              const n = tournaments.filter((t) => t.type === "one_match").length + 1;
-              setGroups([{ id: crypto.randomUUID(), name: `ワンマッチ${n}`, type: "one_match", pairs: [], maxWeightDiff: mismatchSettings.maxWeightDiff, maxHeightDiff: mismatchSettings.maxHeightDiff }]);
-              setShowCreateForm(true);
-            }}
-            className="flex-1 border border-dashed border-gray-600 hover:border-green-500 rounded-xl py-3 text-sm text-gray-400 hover:text-green-400 transition">
-            ＋ ワンマッチを追加
-          </button>
+        <div className="space-y-2">
+          {/* 全自動対戦表作成ボタン: 未割当選手がいる場合のみ表示 */}
+          {filteredEntries.length > 0 && (
+            <button
+              onClick={autoCreateAll}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-medium text-white transition shadow-lg">
+              全自動で対戦表を作成（{filteredEntries.length}名）
+            </button>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                const n = tournaments.filter((t) => t.type !== "one_match").length + 1;
+                setGroups([{ id: crypto.randomUUID(), name: `トーナメント${n}`, type: "tournament", pairs: [], maxWeightDiff: mismatchSettings.maxWeightDiff, maxHeightDiff: mismatchSettings.maxHeightDiff }]);
+                setShowCreateForm(true);
+              }}
+              className="flex-1 border border-dashed border-gray-600 hover:border-blue-500 rounded-xl py-3 text-sm text-gray-400 hover:text-blue-400 transition">
+              ＋ トーナメントを追加
+            </button>
+            <button
+              onClick={() => {
+                const n = tournaments.filter((t) => t.type === "one_match").length + 1;
+                setGroups([{ id: crypto.randomUUID(), name: `ワンマッチ${n}`, type: "one_match", pairs: [], maxWeightDiff: mismatchSettings.maxWeightDiff, maxHeightDiff: mismatchSettings.maxHeightDiff }]);
+                setShowCreateForm(true);
+              }}
+              className="flex-1 border border-dashed border-gray-600 hover:border-green-500 rounded-xl py-3 text-sm text-gray-400 hover:text-green-400 transition">
+              ＋ ワンマッチを追加
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -2445,12 +2501,14 @@ function BracketQualityBadge({ pairCount }: { pairCount: number }) {
   );
 }
 
-function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRuleId, mismatchSettings, canRemove, getDesiredMatchCount, getTotalMatchCount, existingPairs, onRename, onRemove, onAutoAssign, onUpdateMismatch, onAddPair, onRemovePair, onMovePair, onUpdateE1, onUpdateE2, onUpdateField, onUpdateFilters }: {
+function GroupSection({ group, entries, unassigned, allEntries, rules, eventRules, entryRuleIds, defaultRuleId, mismatchSettings, canRemove, getDesiredMatchCount, getTotalMatchCount, existingPairs, onRename, onRemove, onAutoAssign, onUpdateMismatch, onAddPair, onRemovePair, onMovePair, onUpdateE1, onUpdateE2, onUpdateField, onUpdateFilters }: {
   group: Group;
   entries: Entry[];
   unassigned: Entry[];
   allEntries: Entry[];
   rules: Rule[];
+  eventRules: Rule[];
+  entryRuleIds: Record<string, Set<string>>;
   defaultRuleId: string;
   mismatchSettings: MismatchSettings;
   canRemove: boolean;
@@ -2630,8 +2688,38 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
 
         {filteredUnassigned.length > 0 ? (
           <>
-            <div className="flex flex-wrap gap-1">
-              {filteredUnassigned.map((e) => {
+            {(() => {
+              // ルールごとにグループ化
+              const displayRules = eventRules.length > 0 ? eventRules : [];
+              const ruleGroups: { rule: Rule | null; entries: Entry[]; totalDesired: number }[] = [];
+
+              if (displayRules.length > 0) {
+                for (const rule of displayRules) {
+                  const ruleEntries = filteredUnassigned.filter((e) => entryRuleIds[e.id]?.has(rule.id));
+                  if (ruleEntries.length > 0) {
+                    const totalDesired = ruleEntries.reduce((sum, e) => sum + getDesiredMatchCount(e), 0);
+                    ruleGroups.push({ rule, entries: ruleEntries, totalDesired });
+                  }
+                }
+                // ルールに属さない選手
+                const noRuleEntries = filteredUnassigned.filter((e) => {
+                  const rids = entryRuleIds[e.id];
+                  return !rids || rids.size === 0 || !displayRules.some((r) => rids.has(r.id));
+                });
+                if (noRuleEntries.length > 0) {
+                  const totalDesired = noRuleEntries.reduce((sum, e) => sum + getDesiredMatchCount(e), 0);
+                  ruleGroups.push({ rule: null, entries: noRuleEntries, totalDesired });
+                }
+              }
+
+              // ルールが1つ以下の場合はフラット表示
+              if (ruleGroups.length <= 1) {
+                ruleGroups.length = 0;
+                const totalDesired = filteredUnassigned.reduce((sum, e) => sum + getDesiredMatchCount(e), 0);
+                ruleGroups.push({ rule: null, entries: filteredUnassigned, totalDesired });
+              }
+
+              const renderEntryChip = (e: Entry) => {
                 const desired = getDesiredMatchCount(e);
                 const current = getTotalMatchCount(e);
                 const tooltip = [
@@ -2653,8 +2741,26 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, defaultRu
                     {e.memo && !e.admin_memo && <span className="ml-1 opacity-50">📝</span>}
                   </span>
                 );
-              })}
-            </div>
+              };
+
+              return (
+                <div className="space-y-2">
+                  {ruleGroups.map((rg, rgi) => (
+                    <div key={rg.rule?.id ?? `no-rule-${rgi}`} className="space-y-1">
+                      {(ruleGroups.length > 1 || rg.rule) && (
+                        <p className="text-xs text-gray-400 font-medium">
+                          {rg.rule?.name ?? "ルール未設定"}（{rg.entries.length}名）
+                          <span className="text-gray-500 ml-1">— 合計希望試合数: {rg.totalDesired}</span>
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {rg.entries.map(renderEntryChip)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
             {!isOneMatch && (() => {
               const totalEntries = group.pairs.reduce((s, p) => s + 1 + (p.e2 ? 1 : 0), 0) + filteredUnassigned.length;
               const totalPairs = Math.ceil(totalEntries / 2);
