@@ -97,6 +97,11 @@
 ### Step 6: デプロイ（自動）
 - `vercel --prod` や `git push` は実行しない。Stop hook が自動で行う。
 
+### Step 7: デプロイ完了確認
+- 完了報告の前に `vercel ls` でデプロイが `● Ready` になっていることを確認する。
+- Ready になっていなければ5秒ごとにリトライして Ready を待つ。
+- **デプロイ完了を確認してから報告する。**
+
 ## DBスキーマ変更
 - DBカラム追加・テーブル作成等が必要な場合、**ユーザーに依頼せず自分で** Supabase Management API 経由で実行する。確認も不要。
 - 実行方法は memory/reference_supabase_sql.md を参照。

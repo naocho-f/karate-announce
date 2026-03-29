@@ -17,6 +17,9 @@ import {
 import { pairsFromEntries, entryCompatScore, type PairEntry } from "@/lib/pairing";
 import { BracketView, roundLabel } from "@/lib/bracket-view";
 import { MatchLabelEditor } from "@/components/match-label-editor";
+import { BracketRulesPanel } from "@/components/bracket-rules-panel";
+import { AutoCreateDialog } from "@/components/auto-create-dialog";
+import type { AutoGroup } from "@/lib/auto-bracket";
 import Link from "next/link";
 import { FormConfigPanel } from "./form-config-panel";
 
@@ -85,6 +88,8 @@ export default function EventDetailPage({ params }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [entrySubTab, setEntrySubTab] = useState<"entries" | "form" | "email">("entries");
   const [showClosedGuide, setShowClosedGuide] = useState(false);
+  const [showAutoDialog, setShowAutoDialog] = useState(false);
+  const [bracketSubTab, setBracketSubTab] = useState<"courts" | "bracket-rules">("courts");
   const initialStepSetRef = useRef(false);
 
   function navigateStep(s: 1 | 2 | 3) {
@@ -344,6 +349,35 @@ export default function EventDetailPage({ params }: Props) {
 
   function getCourtLabel(courtNum: number): string {
     return event?.court_names?.[courtNum - 1]?.trim() || `コート${courtNum}`;
+  }
+
+  async function handleAutoCreateFromDialog(autoGroups: AutoGroup[], eventId: string, evtRules: Rule[], reload: () => void) {
+    for (const group of autoGroups) {
+      const courtNum = group.courtNum ?? 1;
+      const ruleName = group.ruleId ? evtRules.find((r) => r.id === group.ruleId)?.name ?? null : null;
+      const pairs = group.pairs.map((p) => ({
+        e1: p.e1,
+        e2: p.e2,
+        matchLabel: p.matchLabel,
+        ruleName,
+      }));
+      if (pairs.length === 0) continue;
+
+      await fetch("/api/admin/tournaments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courtName: group.name,
+          courtNum: String(courtNum),
+          pairs,
+          eventId,
+          type: "tournament",
+          maxWeightDiff: group.maxWeightDiff,
+          maxHeightDiff: group.maxHeightDiff,
+        }),
+      });
+    }
+    reload();
   }
 
   return (
@@ -639,35 +673,84 @@ export default function EventDetailPage({ params }: Props) {
               </div>
             )}
 
-            {/* ダッシュボード */}
-            <DashboardPanel
-              entries={entries}
-              tournaments={tournaments}
-              eventRules={eventRules}
-              entryRuleIds={entryRuleIds}
-              tournamentMatchFighterIds={tournamentMatchFighterIds}
-            />
-
-            {/* コート別対戦表 */}
-            <div className="space-y-6">
-              {Array.from({ length: event.court_count }, (_, i) => i + 1).map((courtNum) => (
-                <CourtSection
-                  key={courtNum}
-                  courtNum={courtNum}
-                  courtLabel={getCourtLabel(courtNum)}
-                  eventId={id}
-                  entries={entries}
-                  entryRuleIds={entryRuleIds}
-                  eventRules={eventRules}
-                  tournaments={tournaments.filter((t) => t.court === String(courtNum))}
-                  tournamentMatchFighterIds={tournamentMatchFighterIds}
-                  rules={rules}
-                  mismatchSettings={mismatchSettings}
-                  savedMatchPairs={savedMatchPairs}
-                  onCreated={load}
-                />
+            {/* サブタブ */}
+            <div className="grid grid-cols-2 rounded-xl overflow-hidden border border-gray-700">
+              {([
+                { key: "courts" as const, label: "コート別対戦表" },
+                { key: "bracket-rules" as const, label: "振り分けルール" },
+              ]).map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setBracketSubTab(tab.key)}
+                  className={`py-2 text-sm font-medium transition ${bracketSubTab === tab.key ? "bg-blue-700 text-white" : "bg-gray-800 hover:bg-gray-750 text-gray-400 hover:text-gray-200"}`}
+                >
+                  {tab.label}
+                </button>
               ))}
             </div>
+
+            {bracketSubTab === "courts" && (
+              <>
+                {/* ダッシュボード */}
+                <DashboardPanel
+                  entries={entries}
+                  tournaments={tournaments}
+                  eventRules={eventRules}
+                  entryRuleIds={entryRuleIds}
+                  tournamentMatchFighterIds={tournamentMatchFighterIds}
+                />
+
+                {/* コート別対戦表 */}
+                <div className="space-y-6">
+                  {Array.from({ length: event.court_count }, (_, i) => i + 1).map((courtNum) => (
+                    <CourtSection
+                      key={courtNum}
+                      courtNum={courtNum}
+                      courtLabel={getCourtLabel(courtNum)}
+                      eventId={id}
+                      entries={entries}
+                      entryRuleIds={entryRuleIds}
+                      eventRules={eventRules}
+                      tournaments={tournaments.filter((t) => t.court === String(courtNum))}
+                      tournamentMatchFighterIds={tournamentMatchFighterIds}
+                      rules={rules}
+                      mismatchSettings={mismatchSettings}
+                      savedMatchPairs={savedMatchPairs}
+                      onCreated={load}
+                      onAutoCreate={() => setShowAutoDialog(true)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {bracketSubTab === "bracket-rules" && (
+              <BracketRulesPanel
+                eventId={id}
+                rules={rules}
+                courtCount={event.court_count}
+                courtNames={event.court_names}
+              />
+            )}
+
+            {/* 全自動作成ダイアログ */}
+            {showAutoDialog && (
+              <AutoCreateDialog
+                eventId={id}
+                entries={entries.filter((e) => !e.is_withdrawn)}
+                entryRuleIds={entryRuleIds}
+                rules={rules}
+                courtCount={event.court_count}
+                courtNames={event.court_names}
+                onExecute={(autoGroups) => {
+                  setShowAutoDialog(false);
+                  // ダイアログの結果をCourtSectionで使えるようトリガーする
+                  // autoGroupsのcourtNum別にトーナメントを作成する
+                  handleAutoCreateFromDialog(autoGroups, id, eventRules, load);
+                }}
+                onClose={() => setShowAutoDialog(false)}
+              />
+            )}
 
           </div>
         )}
@@ -1935,7 +2018,7 @@ function entryOptionLabel(e: Entry, prefix = ""): string {
 
 // pairsFromEntries は lib/pairing.ts からインポート（不戦勝自動挿入対応済み）
 
-function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, eventRules, tournaments, tournamentMatchFighterIds, rules, mismatchSettings, savedMatchPairs, onCreated }: {
+function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, eventRules, tournaments, tournamentMatchFighterIds, rules, mismatchSettings, savedMatchPairs, onCreated, onAutoCreate }: {
   courtNum: number;
   courtLabel: string;
   eventId: string;
@@ -1948,6 +2031,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
   mismatchSettings: MismatchSettings;
   savedMatchPairs: Array<{ f1: string; f2: string; rules: string | null }>;
   onCreated: () => void;
+  onAutoCreate: () => void;
 }) {
   const [groups, setGroups] = useState<Group[]>([
     { id: crypto.randomUUID(), name: "トーナメント1", type: "tournament", pairs: [], maxWeightDiff: mismatchSettings.maxWeightDiff, maxHeightDiff: mismatchSettings.maxHeightDiff },
@@ -2420,7 +2504,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
       {/* 全自動対戦表作成ボタン: 未割当選手がいて、作成フォームが閉じている時に表示 */}
       {!editingTournamentId && !showCreateForm && filteredEntries.length > 0 && (
         <button
-          onClick={autoCreateAll}
+          onClick={onAutoCreate}
           className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-medium text-white transition shadow-lg">
           全自動で対戦表を作成（{filteredEntries.length}名）
         </button>

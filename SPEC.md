@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-29（全自動対戦表作成ボタンの表示条件修正）
+> 最終更新: 2026-03-28（振り分けルールによる全自動対戦表作成の高度化）
 
 ---
 
@@ -335,9 +335,29 @@
   - 人数 2 名未満のグループが含まれる提案は除外
   - ルールごとに展開可能なカード表示（`DashboardCard`）
 
+**サブタブ**: 「コート別対戦表」と「振り分けルール」の2タブ。均等幅レイアウト。
+
+**振り分けルール（`BracketRulesPanel`）**
+- 振り分けルール（`bracket_rules` テーブル）の CRUD 管理
+- 各ルールに名前、対象競技ルール、年齢範囲、体重範囲、身長範囲、最大学年差、最大体重差・身長差、性別、割り当てコートを設定
+- ▲/▼ ボタンで優先順序（`sort_order`）を変更。先に処理されたルールが優先して選手を取る
+- API: `GET/POST /api/admin/bracket-rules`, `PUT/DELETE /api/admin/bracket-rules/[id]`
+
+**全自動対戦表作成ダイアログ（`AutoCreateDialog`）**
+- 「全自動で対戦表を作成」ボタン押下でモーダルダイアログ表示
+- 登録済みの振り分けルール一覧をチェックボックスで表示、有効/無効切替可能
+- 「振り分けプレビュー」ボタンで選手のグループ分け結果とコート別試合数を表示
+- 「この内容で対戦表を作成する」で各グループをトーナメントとしてAPI経由で一括作成
+- 振り分けルール未設定の場合は案内メッセージを表示
+
+**振り分けロジック（`lib/auto-bracket.ts`）**
+- `groupEntriesByRules()`: 振り分けルールを `sort_order` 順に処理。各ルールの条件（年齢・体重・身長・性別・競技ルール）に合致する未割当選手をグループ化。`max_grade_diff` がある場合は学年差でサブグループに分割。どのルールにも合致しない選手は「未分類」グループに
+- `assignCourts()`: `court_num` 指定のグループは固定コート、未指定は試合数が最小のコートに自動割り当て
+- 学年の数値変換: 小1=1, 小2=2, ..., 小6=6, 中1=7, ..., 中3=9, 高1=10, ...
+
 **コートごとの対戦表作成（`CourtSection`）**
 - コート数に応じてコートタブを表示
-- **全自動対戦表作成**: 「全自動で対戦表を作成（N名）」ボタン。未割当選手がいる場合のみ表示。ルールごとに未割当選手をグループ化し、各ルールグループでトーナメントを自動作成。トーナメント名はルール名を使用。体格差制限は `mismatchSettings` を適用。結果はフォームに設定され、ユーザーが内容を確認して「確定する」で保存
+- **全自動対戦表作成**: 「全自動で対戦表を作成（N名）」ボタン。未割当選手がいる場合のみ表示。クリックで `AutoCreateDialog` を開く
 - **トーナメントとワンマッチの2種類**: 「＋ トーナメントを追加」と「＋ ワンマッチを追加」の2ボタン
   - **トーナメント**: 複数ペアのトーナメント形式。ブラケット品質バッジ・ブラケットプレビュー・自動ペアリング・フィルターあり
   - **ワンマッチ**: 1試合のみ。ペア上限1。ブラケット品質バッジ・ブラケットプレビュー・フィルター・自動ペアリング非表示。デフォルト名「ワンマッチN」
@@ -573,6 +593,27 @@ timer_logs (
   created_at TIMESTAMPTZ
 )
 
+-- 振り分けルール（全自動対戦表作成用）
+bracket_rules (
+  id UUID PK,
+  event_id UUID → events ON DELETE CASCADE,
+  name TEXT NOT NULL,           -- 例: "小学生軽量級", "大人無差別"
+  rule_id UUID → rules,        -- 対象の競技ルール（NULL=全ルール）
+  min_age INT,                  -- 年齢下限（NULL=制限なし）
+  max_age INT,                  -- 年齢上限
+  min_weight NUMERIC,           -- 体重下限
+  max_weight NUMERIC,           -- 体重上限
+  min_height REAL,              -- 身長下限
+  max_height REAL,              -- 身長上限
+  max_grade_diff INT,           -- 最大学年差（小学生用、NULL=制限なし）
+  max_weight_diff NUMERIC,      -- トーナメント内の最大体重差
+  max_height_diff NUMERIC,      -- トーナメント内の最大身長差
+  sex_filter TEXT,              -- "male" | "female" | NULL(両方)
+  court_num INT,                -- 基本割り当てコート（NULL=自動）
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ
+)
+
 -- エントリー（参加申し込み）
 entries (
   id UUID PK,
@@ -714,6 +755,8 @@ form_notice_images (
 | PATCH | `/api/admin/entries/[id]` | エントリー更新 |
 | DELETE | `/api/admin/entries/[id]` | エントリー削除 |
 | POST/DELETE | `/api/admin/entry-rules` | ルール紐付け管理 |
+| GET/POST | `/api/admin/bracket-rules` | 振り分けルール一覧取得・作成 |
+| PUT/DELETE | `/api/admin/bracket-rules/[id]` | 振り分けルール更新・削除 |
 | POST | `/api/admin/tournaments` | トーナメント作成・対戦表生成 |
 | DELETE | `/api/admin/tournaments/[id]` | トーナメント削除 |
 | PATCH | `/api/admin/matches/[id]` | マッチ更新（管理者） |
@@ -989,6 +1032,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - デモエントリー年齢分布改善: 小学生30%・中高生25%・成人25%・中高年20%の年齢分布。年齢に応じた体重・身長レンジ。小中高の学年（grade）を自動設定
 - 対戦表確定判定修正: `allEntriesAssigned` で `fighter_id` 未設定のエントリーも未割当として正しくカウント
 - パンくずナビゲーション: 全管理画面ページの「← 戻る」をパンくず形式（`管理画面 / 試合 / {イベント名}`）に変更。`/admin/timer-presets` に戻るリンク追加。参加者詳細は4階層パンくず
+- 振り分けルールによる全自動対戦表作成の高度化: `bracket_rules` テーブル追加。年齢・体重・身長・性別・学年差等の条件で選手を自動グループ分け。ダイアログでプレビュー確認後、コート割り当て付きで一括トーナメント作成。`lib/auto-bracket.ts` で振り分けロジック、`components/bracket-rules-panel.tsx` で設定UI、`components/auto-create-dialog.tsx` で確認ダイアログを実装
 
 ---
 
@@ -1035,6 +1079,7 @@ __tests__/
     bracket.test.ts          # トーナメントブラケット生成（ペア・バイ・ラウンド計算）
     ensure-fighter.test.ts   # エントリーからの選手自動作成（道場検索・新規作成）
     form-fields.test.ts      # フォームフィールド定義・カテゴリ・カスタムフィールド変換
+    auto-bracket.test.ts     # 振り分けルールによるグループ分け・コート割り当てロジック
   api/            # API ルートテスト（Vitest + Supabase モック）
     admin-login.test.ts          # ログイン/ログアウト
     admin-crud.test.ts           # 道場・選手・エントリー・ルール・設定 CRUD
@@ -1078,6 +1123,6 @@ __tests__/
 
 ### 13.6 テスト統計
 
-- 単体テスト: 329 テスト（13 ファイル）
+- 単体テスト: 348 テスト（14 ファイル）
 - API ルートテスト: 119 テスト（10 ファイル）
-- **合計: 379 テスト**（実行時間 ~900ms）
+- **合計: 507 テスト**（実行時間 ~1.3s）

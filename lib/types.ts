@@ -347,6 +347,30 @@ export type FormNoticeImage = {
   created_at: string;
 };
 
+// ──────────────────────────────────────────────
+// 振り分けルール（全自動対戦表作成用）
+// ──────────────────────────────────────────────
+
+export type BracketRule = {
+  id: string;
+  event_id: string;
+  name: string;
+  rule_id: string | null;
+  min_age: number | null;
+  max_age: number | null;
+  min_weight: number | null;
+  max_weight: number | null;
+  min_height: number | null;
+  max_height: number | null;
+  max_grade_diff: number | null;
+  max_weight_diff: number | null;
+  max_height_diff: number | null;
+  sex_filter: string | null;       // "male" | "female" | null
+  court_num: number | null;
+  sort_order: number;
+  created_at: string;
+};
+
 export type CustomFieldDef = {
   id: string;
   form_config_id: string;
