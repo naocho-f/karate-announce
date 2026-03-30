@@ -134,6 +134,13 @@ body {
   --default-transition-timing-function: cubic-bezier(.4, 0, .2, 1);
 }
 
+/* Prevent iOS auto-zoom on input focus (font-size < 16px triggers zoom) */
+@media (max-width: 1024px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Chrome/Safari autofill background override */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
