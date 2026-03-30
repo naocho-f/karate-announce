@@ -360,7 +360,7 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 （参加者一覧・受付制御・バナー/OGP・QR は ENTRY_FORM_SPEC.md と FORM_CONFIG_SPEC.md で詳述）
 
 **受付制御**:
-- トグルボタン: 「受付中」↔「受付終了」
+- 3段階表示: フォーム未公開時は「準備中」（灰色バッジ、ボタン disabled）→ 公開後「受付中」（緑）→ 締切後「受付終了」（赤）
 - 自動締切: `datetime-local` 入力で `entry_close_at` を設定。JST → UTC 変換（`new Date(localValue + '+09:00').toISOString()`）
 - クリアボタンで自動締切を解除
 

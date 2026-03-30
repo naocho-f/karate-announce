@@ -280,6 +280,8 @@ create table tournaments (
   type text not null default 'tournament'::text,
   filter_experience text,
   filter_grade text,
+  filter_min_grade text,
+  filter_max_grade text,
   filter_min_height real,
   filter_max_height real
 );

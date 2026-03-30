@@ -46,7 +46,9 @@
 | filter_max_age | integer | NULL | フィルタ: 最大年齢 |
 | filter_sex | text | NULL | フィルタ: 性別 |
 | filter_experience | text | NULL | フィルタ: 経験 |
-| filter_grade | text | NULL | フィルタ: 段級 |
+| filter_grade | text | NULL | フィルタ: 段級（レガシー） |
+| filter_min_grade | text | NULL | フィルタ: 年代区分下限 |
+| filter_max_grade | text | NULL | フィルタ: 年代区分上限 |
 | filter_min_height | numeric | NULL | フィルタ: 最小身長 |
 | filter_max_height | numeric | NULL | フィルタ: 最大身長 |
 | created_at | timestamptz | now() | |

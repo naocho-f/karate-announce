@@ -21,7 +21,7 @@ import { BracketRulesPanel } from "@/components/bracket-rules-panel";
 import { AutoCreateDialog } from "@/components/auto-create-dialog";
 import { computeSuggestions } from "@/lib/suggestions";
 import type { AutoGroup } from "@/lib/auto-bracket";
-import { getGradeOptions } from "@/lib/grade-options";
+import { getGradeOptions, gradeToNumber } from "@/lib/grade-options";
 import Link from "next/link";
 import { FormConfigPanel } from "./form-config-panel";
 import { estimateMatchMinutes, formatTimeEstimate, countActualMatches, roundedNowHHMM } from "@/lib/time-estimate";
@@ -47,7 +47,8 @@ type GroupFilters = {
   minAge: string;
   maxAge: string;
   sexFilter: string;
-  gradeFilter: string;
+  minGrade: string;
+  maxGrade: string;
   experienceFilter: string;
   minHeight: string;
   maxHeight: string;
@@ -400,6 +401,8 @@ export default function EventDetailPage({ params }: Props) {
           <h1 className="text-2xl font-bold">{event.name}</h1>
           {event.entry_closed || (event.entry_close_at && new Date(event.entry_close_at) <= new Date()) ? (
             <span className="text-xs bg-red-900 text-red-300 px-2 py-0.5 rounded">受付終了</span>
+          ) : !formConfigReady ? (
+            <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded">準備中</span>
           ) : (
             <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">受付中</span>
           )}
@@ -528,7 +531,7 @@ export default function EventDetailPage({ params }: Props) {
                       }`}
                     >
                       {togglingClosed && <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />}
-                      {togglingClosed ? "処理中..." : event.entry_closed ? "🔒 受付終了（クリックで再開）" : isEffectivelyClosed ? "🔒 受付終了（自動）" : "🔓 受付中（クリックで締め切り）"}
+                      {togglingClosed ? "処理中..." : event.entry_closed ? "🔒 受付終了（クリックで再開）" : isEffectivelyClosed ? "🔒 受付終了（自動）" : !formConfigReady ? "📋 準備中（フォーム設定を公開してください）" : "🔓 受付中（クリックで締め切り）"}
                     </button>
                   );
                 })()}
@@ -1188,12 +1191,24 @@ function generateDemoEntries(eventId: string, count: number, ruleIds: string[], 
   const r = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
   const rulePool: string[][] = Array.from({ length: count }, () => []);
   if (ruleIds.length > 0) {
+    // 全参加者にまず1つのルールを割り当て
     const pool = Array.from({ length: count }, (_, i) => ruleIds[i % ruleIds.length]);
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
     pool.forEach((rid, i) => { rulePool[i] = [rid]; });
+    // 約30%の参加者にダブルエントリー（2つ目のルールを追加）
+    if (ruleIds.length >= 2) {
+      for (let i = 0; i < count; i++) {
+        if (Math.random() < 0.3) {
+          const otherRules = ruleIds.filter((rid) => !rulePool[i].includes(rid));
+          if (otherRules.length > 0) {
+            rulePool[i].push(r(otherRules));
+          }
+        }
+      }
+    }
   }
   return Array.from({ length: count }, (_, i) => {
     const fi = Math.floor(Math.random() * DEMO_FAMILY_NAMES.length);
@@ -2259,7 +2274,8 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
             filterMaxAge: f?.maxAge ? parseInt(f.maxAge) : null,
             filterSex: f?.sexFilter || null,
             filterExperience: f?.experienceFilter || null,
-            filterGrade: f?.gradeFilter || null,
+            filterMinGrade: f?.minGrade || null,
+            filterMaxGrade: f?.maxGrade || null,
             filterMinHeight: f?.minHeight ? parseFloat(f.minHeight) : null,
             filterMaxHeight: f?.maxHeight ? parseFloat(f.maxHeight) : null,
           }),
@@ -2281,7 +2297,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
     for (const g of activeGroups) {
       const f = g.filters;
       if (!f) continue;
-      const hasFilter = !!(f.minWeight || f.maxWeight || f.minAge || f.maxAge || f.sexFilter || f.gradeFilter || f.minHeight || f.maxHeight);
+      const hasFilter = !!(f.minWeight || f.maxWeight || f.minAge || f.maxAge || f.sexFilter || f.minGrade || f.maxGrade || f.minHeight || f.maxHeight);
       if (!hasFilter) continue;
       // 同名ルールが存在するか確認
       const existRes = await fetch(`/api/admin/bracket-rules?event_id=${eventId}`);
@@ -2291,7 +2307,10 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
       }
       const shouldSave = window.confirm(`この絞り込み条件を振り分けルールとして登録しますか？\n\n「${g.name}」`);
       if (shouldSave) {
-        const gradeDiff = f.gradeFilter ? parseInt(f.gradeFilter) : null;
+        // minGrade/maxGrade から max_grade_diff を推定（範囲のサイズ）
+        const minGradeNum = f.minGrade ? gradeToNumber(f.minGrade) : null;
+        const maxGradeNum = f.maxGrade ? gradeToNumber(f.maxGrade) : null;
+        const gradeDiff = (minGradeNum != null && maxGradeNum != null) ? Math.abs(maxGradeNum - minGradeNum) : null;
         await fetch("/api/admin/bracket-rules", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2304,7 +2323,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
             min_age: f.minAge ? parseInt(f.minAge) : null,
             max_age: f.maxAge ? parseInt(f.maxAge) : null,
             sex_filter: f.sexFilter || null,
-            max_grade_diff: !isNaN(gradeDiff as number) ? gradeDiff : null,
+            max_grade_diff: gradeDiff,
             min_height: f.minHeight ? parseFloat(f.minHeight) : null,
             max_height: f.maxHeight ? parseFloat(f.maxHeight) : null,
             max_weight_diff: g.maxWeightDiff,
@@ -2719,16 +2738,23 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
   const [minAge, setMinAge] = useState(group.filters?.minAge ?? "");
   const [maxAge, setMaxAge] = useState(group.filters?.maxAge ?? "");
   const [sexFilter, setSexFilter] = useState(group.filters?.sexFilter ?? "");
-  const [gradeFilter, setGradeFilter] = useState(group.filters?.gradeFilter ?? "");
+  const [minGrade, setMinGrade] = useState(group.filters?.minGrade ?? "");
+  const [maxGrade, setMaxGrade] = useState(group.filters?.maxGrade ?? "");
   const [experienceFilter, setExperienceFilter] = useState(group.filters?.experienceFilter ?? "");
   const [minHeight, setMinHeight] = useState(group.filters?.minHeight ?? "");
   const [maxHeight, setMaxHeight] = useState(group.filters?.maxHeight ?? "");
   const [nameFilter, setNameFilter] = useState(group.filters?.nameFilter ?? "");
 
-  // フィルター条件からトーナメント名を自動生成
+  // フィルター条件からトーナメント名を自動生成（年代・年齢・体重・身長・性別のみ反映）
   useEffect(() => {
     if (manualName) return;
     const parts: string[] = [];
+    if (minGrade || maxGrade) {
+      if (minGrade && maxGrade && minGrade !== maxGrade) parts.push(`${minGrade}〜${maxGrade}`);
+      else if (minGrade && maxGrade) parts.push(minGrade);
+      else if (minGrade) parts.push(`${minGrade}以上`);
+      else parts.push(`${maxGrade}以下`);
+    }
     if (sexFilter === "male") parts.push("男子");
     else if (sexFilter === "female") parts.push("女子");
     if (minAge || maxAge) {
@@ -2746,19 +2772,17 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
       else if (minHeight) parts.push(`${minHeight}cm以上`);
       else parts.push(`${maxHeight}cm以下`);
     }
-    if (gradeFilter) parts.push(gradeFilter);
-    if (experienceFilter) parts.push(experienceFilter);
     if (parts.length > 0) {
       const autoName = parts.join(" ");
       onRename(autoName);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sexFilter, minAge, maxAge, minWeight, maxWeight, minHeight, maxHeight, gradeFilter, experienceFilter, manualName]);
+  }, [sexFilter, minAge, maxAge, minWeight, maxWeight, minHeight, maxHeight, minGrade, maxGrade, manualName]);
 
   useEffect(() => {
-    onUpdateFilters({ minWeight, maxWeight, minAge, maxAge, sexFilter, gradeFilter, experienceFilter, minHeight, maxHeight, nameFilter });
+    onUpdateFilters({ minWeight, maxWeight, minAge, maxAge, sexFilter, minGrade, maxGrade, experienceFilter, minHeight, maxHeight, nameFilter });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [minWeight, maxWeight, minAge, maxAge, sexFilter, gradeFilter, experienceFilter, minHeight, maxHeight, nameFilter]);
+  }, [minWeight, maxWeight, minAge, maxAge, sexFilter, minGrade, maxGrade, experienceFilter, minHeight, maxHeight, nameFilter]);
 
   const filteredUnassigned = unassigned.filter((e) => {
     if (minWeight !== "" && (e.weight == null || e.weight < parseFloat(minWeight))) return false;
@@ -2768,7 +2792,12 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
     if (minHeight !== "" && (e.height == null || e.height < parseFloat(minHeight))) return false;
     if (maxHeight !== "" && (e.height == null || e.height > parseFloat(maxHeight))) return false;
     if (sexFilter && e.sex !== sexFilter) return false;
-    if (gradeFilter && e.grade !== gradeFilter) return false;
+    if (minGrade || maxGrade) {
+      const eNum = gradeToNumber(e.grade ?? null);
+      if (eNum == null) return false;
+      if (minGrade) { const minNum = gradeToNumber(minGrade); if (minNum != null && eNum < minNum) return false; }
+      if (maxGrade) { const maxNum = gradeToNumber(maxGrade); if (maxNum != null && eNum > maxNum) return false; }
+    }
     if (experienceFilter && !e.experience?.includes(experienceFilter)) return false;
     if (nameFilter && !entryFullName(e).toLowerCase().includes(nameFilter.toLowerCase())) return false;
     return true;
@@ -2829,11 +2858,20 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
         {!isOneMatch && (<>
         <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-center">
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">体重</span>
-            <input value={minWeight} onChange={(e) => setMinWeight(e.target.value)} placeholder="下限" type="number" min="0" step="0.5" className={`w-14 ${inpSm}`} />
+            <span className="text-xs text-gray-500">年代</span>
+            <select value={minGrade} onChange={(e) => setMinGrade(e.target.value)} className={`w-20 ${inpSm}`}>
+              <option value="">下限</option>
+              {getGradeOptions().map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
             <span className="text-xs text-gray-500">〜</span>
-            <input value={maxWeight} onChange={(e) => setMaxWeight(e.target.value)} placeholder="上限" type="number" min="0" step="0.5" className={`w-14 ${inpSm}`} />
-            <span className="text-xs text-gray-500">kg</span>
+            <select value={maxGrade} onChange={(e) => setMaxGrade(e.target.value)} className={`w-20 ${inpSm}`}>
+              <option value="">上限</option>
+              {getGradeOptions().map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">年齢</span>
@@ -2842,12 +2880,11 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
             <input value={maxAge} onChange={(e) => setMaxAge(e.target.value)} placeholder="上限" type="number" min="0" max="99" className={`w-14 ${inpSm}`} />
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">性別</span>
-            <select value={sexFilter} onChange={(e) => setSexFilter(e.target.value)} className={`${inpSm} w-16`}>
-              <option value="">全て</option>
-              <option value="male">男性</option>
-              <option value="female">女性</option>
-            </select>
+            <span className="text-xs text-gray-500">体重</span>
+            <input value={minWeight} onChange={(e) => setMinWeight(e.target.value)} placeholder="下限" type="number" min="0" step="0.5" className={`w-14 ${inpSm}`} />
+            <span className="text-xs text-gray-500">〜</span>
+            <input value={maxWeight} onChange={(e) => setMaxWeight(e.target.value)} placeholder="上限" type="number" min="0" step="0.5" className={`w-14 ${inpSm}`} />
+            <span className="text-xs text-gray-500">kg</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">身長</span>
@@ -2857,12 +2894,11 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
             <span className="text-xs text-gray-500">cm</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">年代</span>
-            <select value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)} className={`w-24 ${inpSm}`}>
+            <span className="text-xs text-gray-500">性別</span>
+            <select value={sexFilter} onChange={(e) => setSexFilter(e.target.value)} className={`${inpSm} w-16`}>
               <option value="">全て</option>
-              {getGradeOptions().map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
+              <option value="male">男性</option>
+              <option value="female">女性</option>
             </select>
           </div>
           <div className="flex items-center gap-1">
@@ -3230,7 +3266,8 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
                 minAge: tournament.filter_min_age != null ? String(tournament.filter_min_age) : "",
                 maxAge: tournament.filter_max_age != null ? String(tournament.filter_max_age) : "",
                 sexFilter: tournament.filter_sex ?? "",
-                gradeFilter: tournament.filter_grade ?? "",
+                minGrade: tournament.filter_min_grade ?? "",
+                maxGrade: tournament.filter_max_grade ?? "",
                 experienceFilter: tournament.filter_experience ?? "",
                 minHeight: tournament.filter_min_height != null ? String(tournament.filter_min_height) : "",
                 maxHeight: tournament.filter_max_height != null ? String(tournament.filter_max_height) : "",

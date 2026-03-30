@@ -20,7 +20,7 @@ function roundsFromPairCount(n: number): number {
 export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
 
-  const { courtName, courtNum, pairs, eventId, sortOrder, defaultRuleName, maxWeightDiff, maxHeightDiff, filterMinWeight, filterMaxWeight, filterMinAge, filterMaxAge, filterSex, filterExperience, filterGrade, filterMinHeight, filterMaxHeight, type } = await request.json() as {
+  const { courtName, courtNum, pairs, eventId, sortOrder, defaultRuleName, maxWeightDiff, maxHeightDiff, filterMinWeight, filterMaxWeight, filterMinAge, filterMaxAge, filterSex, filterExperience, filterGrade, filterMinGrade, filterMaxGrade, filterMinHeight, filterMaxHeight, type } = await request.json() as {
     courtName: string;
     courtNum: string;
     pairs: PairInput[];
@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
     filterSex?: string | null;
     filterExperience?: string | null;
     filterGrade?: string | null;
+    filterMinGrade?: string | null;
+    filterMaxGrade?: string | null;
     filterMinHeight?: number | null;
     filterMaxHeight?: number | null;
     type?: "tournament" | "one_match";
@@ -96,6 +98,8 @@ export async function POST(request: NextRequest) {
       filter_sex: filterSex ?? null,
       filter_experience: filterExperience ?? null,
       filter_grade: filterGrade ?? null,
+      filter_min_grade: filterMinGrade ?? null,
+      filter_max_grade: filterMaxGrade ?? null,
       filter_min_height: filterMinHeight ?? null,
       filter_max_height: filterMaxHeight ?? null,
       ...(eventId ? { event_id: eventId } : {}),

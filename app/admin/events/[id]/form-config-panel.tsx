@@ -136,6 +136,18 @@ export function FormConfigPanel({ eventId }: Props) {
   async function toggleReady() {
     if (!config) return;
     if (!config.is_ready) {
+      // 未保存の変更がある場合は先に保存してから公開する
+      if (dirty) {
+        setSaving(true);
+        const saveRes = await fetch("/api/admin/form-config", {
+          method: "PUT", credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ config_id: config.id, fields }),
+        });
+        setSaving(false);
+        if (!saveRes.ok) { alert("保存に失敗しました"); return; }
+        setDirty(false);
+      }
       await fetch("/api/admin/form-config", {
         method: "PATCH", credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -351,27 +363,23 @@ export function FormConfigPanel({ eventId }: Props) {
     <div className="space-y-4">
       {/* ヘッダー */}
       <div className="bg-gray-800 rounded-xl p-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setShowCopyModal(true)} className="px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 rounded-lg transition">
-              過去の大会から読み込む
-            </button>
-            <button onClick={save} disabled={saving}
-              className={`px-4 py-1.5 text-sm rounded-lg transition font-medium ${dirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}>
-              {saving ? <><Spinner className="inline-block mr-1" />保存中...</> : "保存"}
-            </button>
-            {saveMessage && (
-              <span className={`text-xs animate-pulse ${saveMessage === "保存しました" ? "text-green-400" : "text-gray-400"}`}>
-                {saveMessage}
-              </span>
-            )}
-            <button onClick={toggleReady}
-              className={`px-4 py-1.5 text-sm rounded-lg transition font-medium ${config.is_ready ? "bg-yellow-700 hover:bg-yellow-600 text-white" : "bg-green-700 hover:bg-green-600 text-white"}`}>
-              {config.is_ready ? "公開を取り消す" : "公開する"}
-            </button>
-          </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={() => setShowCopyModal(true)} className="px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 rounded-lg transition">
+            過去の大会から読み込む
+          </button>
+          <button onClick={save} disabled={saving}
+            className={`px-4 py-1.5 text-sm rounded-lg transition font-medium ${dirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}>
+            {saving ? <><Spinner className="inline-block mr-1" />保存中...</> : "保存"}
+          </button>
+          {saveMessage && (
+            <span className={`text-xs animate-pulse ${saveMessage === "保存しました" ? "text-green-400" : "text-gray-400"}`}>
+              {saveMessage}
+            </span>
+          )}
+          <button onClick={toggleReady}
+            className={`px-4 py-1.5 text-sm rounded-lg transition font-medium ${config.is_ready ? "bg-yellow-700 hover:bg-yellow-600 text-white" : "bg-green-700 hover:bg-green-600 text-white"}`}>
+            {config.is_ready ? "公開を取り消す" : "公開する"}
+          </button>
         </div>
       </div>
 

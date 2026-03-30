@@ -144,6 +144,8 @@ export type Tournament = {
   filter_sex: string | null;
   filter_experience: string | null;
   filter_grade: string | null;
+  filter_min_grade: string | null;
+  filter_max_grade: string | null;
   filter_min_height: number | null;
   filter_max_height: number | null;
   created_at: string;
