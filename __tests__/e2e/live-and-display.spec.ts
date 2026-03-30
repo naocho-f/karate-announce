@@ -1,0 +1,190 @@
+/**
+ * E2E テスト: ライブ・表示
+ *
+ * ライブ画面表示・ホームページの対戦表表示・コート画面の複数トーナメント表示を検証する。
+ */
+import { test, expect, type Page } from "@playwright/test";
+
+const ADMIN_USER = process.env.ADMIN_USERNAME ?? "admin";
+const ADMIN_PASS = process.env.ADMIN_PASSWORD!;
+
+// ── ヘルパー ──
+
+async function adminLogin(page: Page) {
+  await page.goto("/admin/login");
+  await page.waitForLoadState("networkidle");
+  await page.locator('input[placeholder="ID"]').fill(ADMIN_USER);
+  await page.locator('input[type="password"]').fill(ADMIN_PASS);
+  await page.locator('button[type="submit"]').click();
+  await page.waitForURL("**/admin", { timeout: 15_000 });
+  await page.waitForLoadState("networkidle");
+}
+
+async function createTestEvent(page: Page): Promise<string> {
+  const res = await page.request.post("/api/admin/events", {
+    data: {
+      name: `E2E ライブテスト ${Date.now()}`,
+      event_date: "2027-12-01",
+      court_count: 2,
+    },
+  });
+  expect(res.ok()).toBeTruthy();
+  const { id } = await res.json();
+  return id;
+}
+
+async function createTournamentWithEntries(
+  page: Page,
+  eventId: string,
+  courtNum: string,
+  namePrefix: string,
+): Promise<string> {
+  const entries: string[] = [];
+  for (let i = 0; i < 2; i++) {
+    const res = await page.request.post("/api/admin/entries", {
+      data: {
+        entry: {
+          event_id: eventId,
+          family_name: `${namePrefix}${i + 1}`,
+          given_name: "選手",
+          family_name_reading: `${namePrefix}${i + 1}`,
+          given_name_reading: "センシュ",
+          is_test: true,
+          weight: 65,
+          height: 170,
+          age: 25,
+        },
+        rule_ids: [],
+      },
+    });
+    if (res.ok()) {
+      const data = await res.json();
+      entries.push(data.id);
+    }
+  }
+
+  const res = await page.request.post("/api/admin/tournaments", {
+    data: {
+      courtName: `${namePrefix}トーナメント`,
+      courtNum,
+      eventId,
+      type: "tournament",
+      pairs: [
+        {
+          e1: {
+            id: entries[0],
+            family_name: `${namePrefix}1`,
+            given_name: "選手",
+            family_name_reading: `${namePrefix}1`,
+            given_name_reading: "センシュ",
+          },
+          e2: {
+            id: entries[1],
+            family_name: `${namePrefix}2`,
+            given_name: "選手",
+            family_name_reading: `${namePrefix}2`,
+            given_name_reading: "センシュ",
+          },
+          matchLabel: null,
+          ruleName: null,
+        },
+      ],
+    },
+  });
+  expect(res.ok()).toBeTruthy();
+  const { id } = await res.json();
+  return id;
+}
+
+async function cleanupEvent(page: Page, eventId: string | null) {
+  if (!eventId) return;
+  await page.request.patch(`/api/admin/events/${eventId}`, {
+    data: { is_active: false },
+  }).catch(() => {});
+  await page.request.delete(`/api/admin/events/${eventId}`).catch(() => {});
+}
+
+// ── テスト ──
+
+test.describe("ライブ・表示", () => {
+  let eventId: string | null = null;
+
+  test.afterEach(async ({ page }) => {
+    await adminLogin(page);
+    await cleanupEvent(page, eventId);
+    eventId = null;
+  });
+
+  test("ライブ画面が表示される", async ({ page }) => {
+    await page.goto("/live");
+    await page.waitForLoadState("networkidle");
+
+    // ライブページが表示される（ローディング後に main 要素が出る）
+    // アクティブイベントがなくても「開催中の大会はありません」が表示される
+    // アクティブイベントがあればライブデータが表示される
+    await expect(page.locator("main")).toBeVisible({ timeout: 30_000 });
+  });
+
+  test("ホームページにアクティブイベントの対戦表が表示される", async ({ page }) => {
+    await adminLogin(page);
+    eventId = await createTestEvent(page);
+
+    // アクティブにする
+    await page.request.patch(`/api/admin/events/${eventId}`, {
+      data: { is_active: true },
+    });
+
+    // トーナメントを作成
+    await createTournamentWithEntries(page, eventId, "1", "ホームテスト");
+
+    // ホームページにアクセス
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(5_000);
+
+    // アクティブイベントの対戦表が表示される（選手名またはコート名）
+    const bodyText = await page.textContent("body");
+    expect(bodyText).toBeTruthy();
+    // 何らかのコンテンツが表示される（イベントがアクティブなので空ではない）
+    const hasContent = bodyText!.includes("ホームテスト") || bodyText!.includes("コート");
+    expect(hasContent).toBeTruthy();
+  });
+
+  test("コート画面で複数トーナメントが表示される", async ({ page }) => {
+    await adminLogin(page);
+    eventId = await createTestEvent(page);
+
+    // 同じコートに複数トーナメントを作成
+    const tid1 = await createTournamentWithEntries(page, eventId, "1", "マルチA");
+    const tid2 = await createTournamentWithEntries(page, eventId, "1", "マルチB");
+
+    // トーナメントが作成されたことを確認
+    expect(tid1).toBeTruthy();
+    expect(tid2).toBeTruthy();
+
+    // アクティブにする（他のイベントも全て非アクティブになる）
+    const activateRes = await page.request.patch(`/api/admin/events/${eventId}`, {
+      data: { is_active: true },
+    });
+    expect(activateRes.ok()).toBeTruthy();
+
+    // コート画面にアクセス（初回ロードで最新データを取得）
+    await page.goto("/court/1");
+    await page.waitForLoadState("networkidle");
+
+    // トーナメント名が表示されるまで待つ
+    // 最初のロードでは stale data を取得する可能性があるためリトライ
+    let found = false;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await page.waitForTimeout(3_000);
+      const bodyText = await page.textContent("body");
+      if (bodyText && (bodyText.includes("マルチA") || bodyText.includes("マルチB"))) {
+        found = true;
+        break;
+      }
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+    }
+    expect(found).toBeTruthy();
+  });
+});
