@@ -353,11 +353,6 @@ export function FormConfigPanel({ eventId }: Props) {
       <div className="bg-gray-800 rounded-xl p-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <h2 className="font-semibold text-gray-200">フォーム設定</h2>
-            <span className={`text-xs px-2 py-0.5 rounded ${config.is_ready ? "bg-green-900 text-green-300" : "bg-yellow-900 text-yellow-300"}`}>
-              {config.is_ready ? "公開中" : "準備中"}
-            </span>
-            <span className="text-xs text-gray-500">v{config.version}</span>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setShowCopyModal(true)} className="px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 rounded-lg transition">

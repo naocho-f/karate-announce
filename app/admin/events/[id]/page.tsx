@@ -955,11 +955,15 @@ function DashboardCard({ label, total, unassigned, tournamentCount, oneMatchCoun
 
 function FormConfigStatusBadge({ eventId }: { eventId: string }) {
   const [status, setStatus] = useState<"loading" | "ready" | "draft" | "none">("loading");
+  const [version, setVersion] = useState<number>(0);
   useEffect(() => {
-    supabase.from("form_configs").select("is_ready").eq("event_id", eventId).maybeSingle()
+    supabase.from("form_configs").select("is_ready, version").eq("event_id", eventId).maybeSingle()
       .then(({ data }) => {
         if (!data) setStatus("none");
-        else setStatus(data.is_ready ? "ready" : "draft");
+        else {
+          setStatus(data.is_ready ? "ready" : "draft");
+          setVersion(data.version ?? 0);
+        }
       });
   }, [eventId]);
 
@@ -970,7 +974,8 @@ function FormConfigStatusBadge({ eventId }: { eventId: string }) {
     none: "bg-gray-700 text-gray-400",
   };
   const labels = { ready: "公開中", draft: "準備中", none: "未設定" };
-  return <span className={`text-xs px-2 py-0.5 rounded ${styles[status]}`}>{labels[status]}</span>;
+  const versionLabel = status !== "none" && version > 0 ? ` v${version}` : status !== "none" && version === 0 ? " 未公開" : "";
+  return <span className={`text-xs px-2 py-0.5 rounded ${styles[status]}`}>{labels[status]}{versionLabel}</span>;
 }
 
 function EmailStatusBadge({ event }: { event: Event }) {
