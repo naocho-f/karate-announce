@@ -784,7 +784,7 @@ function DojoPanel() {
   }
 
   async function remove(id: string) {
-    if (!confirm("削除しますか？所属選手も削除されます。")) return;
+    if (!confirm("この道場を削除しますか？所属選手も削除されます。")) return;
     setRemovingId(id);
     const res = await fetch(`/api/admin/dojos/${id}`, { method: "DELETE" });
     setRemovingId(null);
@@ -894,7 +894,7 @@ function EventPanel() {
   }
 
   async function remove(id: string) {
-    if (!confirm("削除しますか？")) return;
+    if (!confirm("この大会を削除しますか？")) return;
     setRemovingId(id);
     const res = await fetch(`/api/admin/events/${id}`, { method: "DELETE" });
     setRemovingId(null);
@@ -1121,7 +1121,7 @@ function EventPanel() {
               </div>
             )}
             <button onClick={create} disabled={creating || !name.trim()}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition">
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2 rounded-lg text-sm font-medium transition">
               {creating ? "作成中..." : "試合を作成"}
             </button>
           </div>
@@ -1219,7 +1219,7 @@ function EventPanel() {
               <button
                 onClick={executeCopy}
                 disabled={copying || !copyName.trim()}
-                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition"
+                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2 rounded-lg text-sm font-medium transition"
               >
                 {copying ? "複製中..." : "複製する"}
               </button>
@@ -1301,7 +1301,7 @@ function RulesPanel() {
   }
 
   async function remove(id: string) {
-    if (!confirm("削除しますか？")) return;
+    if (!confirm("このルールを削除しますか？")) return;
     setRemovingId(id);
     const res = await fetch(`/api/admin/rules/${id}`, { method: "DELETE" });
     setRemovingId(null);
@@ -1540,7 +1540,7 @@ function AnnounceSettingsPanel() {
           <button
             onClick={preview}
             disabled={playing}
-            className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-2.5 rounded-lg text-sm font-medium transition"
+            className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition"
           >
             {playing ? "再生中..." : "試し聞き"}
           </button>
@@ -1548,7 +1548,7 @@ function AnnounceSettingsPanel() {
             onClick={save}
             className="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-medium transition"
           >
-            {saved ? "保存しました ✓" : "保存"}
+            {saved ? "保存しました" : "保存"}
           </button>
         </div>
         <p className="text-xs text-gray-500">※ 設定はこのブラウザに保存されます</p>
@@ -1704,7 +1704,7 @@ function TemplateEditor() {
         <button
           onClick={playPreview}
           disabled={playing}
-          className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-2.5 rounded-lg text-sm font-medium transition"
+          className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition"
         >
           {playing ? "再生中..." : "試し聞き"}
         </button>
@@ -1714,7 +1714,7 @@ function TemplateEditor() {
           className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
         >
           {saving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
-          {saving ? "保存中..." : saved ? "保存しました ✓" : "保存"}
+          {saving ? "保存中..." : saved ? "保存しました" : "保存"}
         </button>
       </div>
 
@@ -2003,7 +2003,7 @@ function AgeCategoriesPanel() {
       <button
         onClick={save}
         disabled={saving}
-        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white px-4 py-2 rounded text-sm font-medium transition"
+        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-4 py-2 rounded text-sm font-medium transition"
       >
         {saving ? "保存中..." : saved ? "保存しました" : "保存"}
       </button>

@@ -58,7 +58,7 @@ function OneMatchNumberCard({ match, nameMap, assignedNumber, onClick, onSwapFig
           <button
             onClick={(e) => { e.stopPropagation(); onSwapFighters(); }}
             disabled={isSwapping}
-            className="ml-auto text-xs text-gray-500 hover:text-gray-300 disabled:opacity-40 px-2 py-1 rounded border border-gray-700 hover:border-gray-500 transition shrink-0"
+            className="ml-auto text-xs text-gray-500 hover:text-gray-300 disabled:opacity-50 px-2 py-1 rounded border border-gray-700 hover:border-gray-500 transition shrink-0"
           >
             {isSwapping ? "…" : "⇅赤白"}
           </button>

@@ -222,7 +222,7 @@ export default function EntryDetailPage({ params }: Props) {
 
         <div className="mt-4 flex items-center gap-3">
           <h1 className="text-xl font-bold">{entryFullName(entry)}</h1>
-          {entry.is_withdrawn && <span className="text-xs bg-orange-900 text-orange-300 px-2 py-0.5 rounded">欠場</span>}
+          {entry.is_withdrawn && <span className="text-xs bg-red-900 text-red-300 px-2 py-0.5 rounded">欠場</span>}
           {entry.is_test && <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded">テスト</span>}
         </div>
         <p className="text-xs text-gray-500 mt-1">

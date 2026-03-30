@@ -1210,7 +1210,7 @@ export default function EntryPage({ params }: Props) {
               canSubmit
                 ? "bg-blue-600 hover:bg-blue-500 text-white"
                 : "bg-blue-600/60 text-white/80"
-            } disabled:opacity-40`}
+            } disabled:opacity-50`}
           >
             {submitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
             {submitting ? "送信中..." : "申し込む"}

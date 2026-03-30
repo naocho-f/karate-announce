@@ -509,7 +509,7 @@ export default function EventDetailPage({ params }: Props) {
             <div className="bg-gray-800 rounded-xl p-4 space-y-3">
               {!formConfigReady && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-yellow-900/30 border border-yellow-700/50 rounded-lg">
-                  <span className="text-sm text-yellow-400">⚠ フォーム設定が未完了です。設定完了後に受付を開始してください</span>
+                  <span className="text-sm text-yellow-400">⚠ フォーム設定が未完了です。公開後に受付を開始してください</span>
                 </div>
               )}
               <div className="flex items-center justify-between flex-wrap gap-3">
@@ -1536,23 +1536,23 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
           {isDev() && (
             <button onClick={addDemoEntries} disabled={generating}
               title="テスト用のダミー参加者32名を一括登録します（開発環境のみ）"
-              className="text-xs text-yellow-400 hover:text-yellow-200 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-yellow-700 hover:border-yellow-500 bg-yellow-900/30 hover:bg-yellow-900/50 transition font-medium">
+              className="text-xs text-yellow-400 hover:text-yellow-200 disabled:opacity-50 px-2 py-1.5 rounded-lg border border-yellow-700 hover:border-yellow-500 bg-yellow-900/30 hover:bg-yellow-900/50 transition font-medium">
               {generating ? "処理中..." : "🧪 テスト参加者を追加"}
             </button>
           )}
           {isDev() && entries.some((e) => e.is_test) && (
             <button onClick={deleteTestEntries} disabled={generating}
               title="テスト用に登録したダミー参加者をすべて削除します"
-              className="text-xs text-red-500 hover:text-red-300 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-red-900 hover:border-red-700 transition">
+              className="text-xs text-red-500 hover:text-red-300 disabled:opacity-50 px-2 py-1.5 rounded-lg border border-red-900 hover:border-red-700 transition">
               🗑 テスト参加者を削除
             </button>
           )}
           <button onClick={downloadCsv} disabled={downloading || entries.length === 0}
-            className="text-xs text-green-400 hover:text-green-200 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-green-800 hover:border-green-600 transition">
+            className="text-xs text-green-400 hover:text-green-200 disabled:opacity-50 px-2 py-1.5 rounded-lg border border-green-800 hover:border-green-600 transition">
             {downloading ? "出力中..." : "CSV出力"}
           </button>
           <button onClick={refresh} disabled={refreshing}
-            className="text-xs text-gray-400 hover:text-gray-200 disabled:opacity-40 px-2 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition">
+            className="text-xs text-gray-400 hover:text-gray-200 disabled:opacity-50 px-2 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition">
             {refreshing ? "更新中..." : "↻ 最新に更新"}
           </button>
           <button onClick={() => setShowForm((v) => !v)}
@@ -1598,7 +1598,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
                             <td className="px-2 py-1.5 text-xs text-gray-600 text-right w-7">{i + 1}</td>
                             <td className="px-2 py-1.5 whitespace-nowrap">
                               <a href={`/admin/events/${eventId}/entries/${e.id}`} className={`text-sm font-medium hover:underline ${e.is_withdrawn ? "line-through text-gray-500" : "text-white"}`}>{entryFullName(e)}</a>
-                              {e.is_withdrawn && <span className="ml-1.5 text-xs bg-orange-900 text-orange-300 px-1.5 py-0.5 rounded">欠場</span>}
+                              {e.is_withdrawn && <span className="ml-1.5 text-xs bg-red-900 text-red-300 px-1.5 py-0.5 rounded">欠場</span>}
                               {currentFormVersion != null && e.form_version != null && e.form_version < currentFormVersion && (
                                 <span className="ml-1.5 text-xs bg-purple-900 text-purple-300 px-1.5 py-0.5 rounded" title={`フォームv${e.form_version}で入力（現在v${currentFormVersion}）`}>旧ver</span>
                               )}
@@ -1838,7 +1838,7 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
         </div>
       )}
       <button type="submit" disabled={saving || !familyName.trim()}
-        className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-1.5 rounded text-sm font-medium transition flex items-center justify-center gap-1.5">
+        className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-1.5 rounded text-sm font-medium transition flex items-center justify-center gap-1.5">
         {saving && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
         {saving ? "追加中..." : "追加"}
       </button>
@@ -2431,7 +2431,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
           キャンセル
         </button>
         <button onClick={confirm} disabled={confirming || totalPairs === 0}
-          className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2">
+          className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2">
           {confirming && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
           {confirming ? "保存中..." : confirmLabel}
         </button>
@@ -2549,7 +2549,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
                         fetch(`/api/admin/tournaments/${prev.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: visibleIdx }) }),
                       ]).then(() => { setReorderingId(null); onCreated(); });
                     }}
-                    className="text-gray-400 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed leading-none">▲</button>
+                    className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed leading-none">▲</button>
                   <button disabled={visibleIdx === visibleArr.length - 1 || !!reorderingId}
                     onClick={() => {
                       const next = visibleArr[visibleIdx + 1];
@@ -2562,7 +2562,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
                         fetch(`/api/admin/tournaments/${next.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: visibleIdx }) }),
                       ]).then(() => { setReorderingId(null); onCreated(); });
                     }}
-                    className="text-gray-400 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed leading-none">▼</button>
+                    className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed leading-none">▼</button>
                 </>
               )}
             </div>
@@ -2679,7 +2679,7 @@ function BracketQualityBadge({ pairCount }: { pairCount: number }) {
             </p>
             <p className="text-xs text-yellow-300">{hint}</p>
           </div>
-          <button onClick={() => setOpen(false)} className="text-xs text-gray-500 hover:text-gray-300 pt-0.5">閉じる</button>
+          <button onClick={() => setOpen(false)} className="text-xs text-gray-500 hover:text-gray-300 pt-0.5">キャンセル</button>
         </div>
       )}
     </span>
@@ -3039,9 +3039,9 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
                           </select>
                           <div className="flex flex-col shrink-0">
                             <button onClick={() => onMovePair(pair.id, "up")} disabled={idx === 0}
-                              className="text-gray-500 hover:text-gray-200 disabled:opacity-20 text-xs leading-none px-1 py-0.5 transition">▲</button>
+                              className="text-gray-500 hover:text-gray-200 disabled:opacity-50 text-xs leading-none px-1 py-0.5 transition">▲</button>
                             <button onClick={() => onMovePair(pair.id, "down")} disabled={idx === group.pairs.length - 1}
-                              className="text-gray-500 hover:text-gray-200 disabled:opacity-20 text-xs leading-none px-1 py-0.5 transition">▼</button>
+                              className="text-gray-500 hover:text-gray-200 disabled:opacity-50 text-xs leading-none px-1 py-0.5 transition">▼</button>
                           </div>
                           <button onClick={() => onRemovePair(pair.id)}
                             className="text-xs text-red-400 hover:text-red-300 shrink-0 transition">削除</button>
@@ -3083,7 +3083,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
             </div>
           )}
           <button onClick={onAddPair} disabled={unassigned.length === 0 || (isOneMatch && group.pairs.length >= 1)}
-            className="w-full bg-gray-700 hover:bg-gray-600 disabled:opacity-40 py-1.5 rounded text-xs transition">
+            className="w-full bg-gray-700 hover:bg-gray-600 disabled:opacity-50 py-1.5 rounded text-xs transition">
             ＋ 手動で対戦を追加
           </button>
         </>
@@ -3250,7 +3250,7 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
             ← 確定前に戻る
           </button>
           <button onClick={handleDelete} disabled={deleting}
-            className="text-xs text-red-400 hover:text-red-300 disabled:opacity-40 transition">
+            className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 transition">
             {deleting ? "削除中..." : "削除"}
           </button>
         </div>

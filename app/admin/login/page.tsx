@@ -69,7 +69,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading || !username || !password}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-3 rounded-xl font-semibold transition"
+            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-3 rounded-xl font-semibold transition"
           >
             {loading ? "ログイン中..." : "ログイン"}
           </button>

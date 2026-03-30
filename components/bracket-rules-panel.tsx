@@ -226,14 +226,14 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames }: Pr
               <button
                 onClick={() => moveOrder(rule.id, "up")}
                 disabled={idx === 0}
-                className="text-gray-400 hover:text-white disabled:opacity-20 text-xs leading-none"
+                className="text-gray-400 hover:text-white disabled:opacity-50 text-xs leading-none"
               >
                 ▲
               </button>
               <button
                 onClick={() => moveOrder(rule.id, "down")}
                 disabled={idx === bracketRules.length - 1}
-                className="text-gray-400 hover:text-white disabled:opacity-20 text-xs leading-none"
+                className="text-gray-400 hover:text-white disabled:opacity-50 text-xs leading-none"
               >
                 ▼
               </button>

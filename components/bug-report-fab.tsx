@@ -94,7 +94,7 @@ export function BugReportFab() {
             <button
               onClick={submit}
               disabled={sending || !whatDid.trim() || !whatHappened.trim()}
-              className="w-full py-2 text-xs font-medium bg-red-700 hover:bg-red-600 text-white rounded-lg transition disabled:opacity-40"
+              className="w-full py-2 text-xs font-medium bg-red-700 hover:bg-red-600 text-white rounded-lg transition disabled:opacity-50"
             >
               {sending ? "送信中..." : "送信"}
             </button>

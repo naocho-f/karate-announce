@@ -360,7 +360,7 @@ export function FormConfigPanel({ eventId }: Props) {
             </button>
             <button onClick={save} disabled={saving}
               className={`px-4 py-1.5 text-sm rounded-lg transition font-medium ${dirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}>
-              {saving ? <><Spinner className="inline-block mr-1" />保存中...</> : dirty ? "一時保存" : "一時保存"}
+              {saving ? <><Spinner className="inline-block mr-1" />保存中...</> : "保存"}
             </button>
             {saveMessage && (
               <span className={`text-xs animate-pulse ${saveMessage === "保存しました" ? "text-green-400" : "text-gray-400"}`}>
@@ -369,7 +369,7 @@ export function FormConfigPanel({ eventId }: Props) {
             )}
             <button onClick={toggleReady}
               className={`px-4 py-1.5 text-sm rounded-lg transition font-medium ${config.is_ready ? "bg-yellow-700 hover:bg-yellow-600 text-white" : "bg-green-700 hover:bg-green-600 text-white"}`}>
-              {config.is_ready ? "設定を取り消す" : "設定完了"}
+              {config.is_ready ? "公開を取り消す" : "公開する"}
             </button>
           </div>
         </div>
@@ -525,9 +525,9 @@ function FieldPreviewCard({
                 <span className="text-[10px] text-gray-500 tabular-nums min-w-[2ch] text-right">{index + 1}</span>
                 <div className="flex items-center gap-0.5">
                   <button onClick={() => onMove(key, -1)} disabled={index === 0}
-                    className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition">▲</button>
+                    className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-50 transition">▲</button>
                   <button onClick={() => onMove(key, 1)} disabled={index === total - 1}
-                    className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-30 transition">▼</button>
+                    className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-50 transition">▼</button>
                   <span className="text-[10px] text-gray-500 ml-0.5">順序</span>
                 </div>
                 <span className="w-px h-3 bg-gray-600 mx-1" />
@@ -904,7 +904,7 @@ function FieldDetailEditor({ field, def, allFields, onUpdate, onClose }: {
     <div className="bg-gray-900/40 rounded-lg p-2.5 mt-1 space-y-2 border border-gray-700/50">
       <div className="flex items-center justify-between">
         <p className="text-xs text-gray-500 font-medium">詳細設定</p>
-        <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-300">閉じる</button>
+        <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-300">キャンセル</button>
       </div>
 
       {/* その他オプション */}
@@ -1027,7 +1027,7 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
         <span className="text-xs text-blue-400 font-medium">注意書き編集</span>
         <div className="flex gap-2">
           <button onClick={saveAll} className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded">保存</button>
-          <button onClick={() => setEditing(false)} className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded">閉じる</button>
+          <button onClick={() => setEditing(false)} className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded">キャンセル</button>
         </div>
       </div>
 
@@ -1131,7 +1131,7 @@ function AddCustomFieldForm({ onAdd }: { onAdd: (label: string, fieldType: strin
     <div className="border border-purple-600/40 rounded-xl p-4 space-y-3 bg-purple-900/10">
       <div className="flex items-center justify-between">
         <span className="text-sm text-purple-300 font-medium">自由設問を追加</span>
-        <button onClick={() => setOpen(false)} className="text-xs text-gray-500 hover:text-gray-300">閉じる</button>
+        <button onClick={() => setOpen(false)} className="text-xs text-gray-500 hover:text-gray-300">キャンセル</button>
       </div>
       <div>
         <label className="text-xs text-gray-400 block mb-1">ラベル（質問文）</label>
@@ -1191,7 +1191,7 @@ function CopyModal({ events, onCopy, onClose }: {
             ))}
           </div>
         )}
-        <button onClick={onClose} className="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition">閉じる</button>
+        <button onClick={onClose} className="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition">キャンセル</button>
       </div>
     </div>
   );
