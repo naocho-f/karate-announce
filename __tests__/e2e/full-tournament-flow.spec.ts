@@ -36,7 +36,8 @@ async function adminLogin(page: Page) {
     await page.locator('button[type="submit"]').click();
     await page.waitForURL("**/admin**", { timeout: 10_000 });
   }
-  // 既にログイン済みの場合はそのまま進む
+  // ページの描画完了を待つ
+  await page.waitForLoadState("networkidle");
 }
 
 /** テスト用イベントを API 経由で作成 */
@@ -101,8 +102,8 @@ test.describe("大会フル進行フロー", () => {
     eventId = await createTestEvent(page);
     expect(eventId).toBeTruthy();
 
-    // 管理画面をリロードしてイベントが表示されることを確認
-    await page.goto("/admin");
+    // 管理画面の試合タブでイベントが表示されることを確認
+    await page.goto("/admin?tab=events");
     await expect(page.locator(`text=E2E テスト大会`)).toBeVisible({ timeout: 10_000 });
   });
 
@@ -141,7 +142,8 @@ test.describe("大会フル進行フロー", () => {
 
     // Q キーで赤ポイント追加
     await page.keyboard.press("KeyQ");
-    await expect(page.locator("text=1pt")).toBeVisible({ timeout: 3_000 });
+    // スコア表示に 1pt が含まれることを確認（ボタンやショートカット表示と区別）
+    await expect(page.locator("text=1pt / 技")).toBeVisible({ timeout: 3_000 });
 
     // Space キーで一時停止
     await page.keyboard.press("Space");
@@ -191,7 +193,7 @@ test.describe("大会フル進行フロー", () => {
 test.describe("タイマープリセット CRUD", () => {
   test("プリセット作成 → 一覧に表示 → 削除", async ({ page }) => {
     await adminLogin(page);
-    await page.goto("/admin/timer-presets");
+    await page.goto("/admin/timer-presets", { waitUntil: "networkidle" });
 
     // 新規作成ボタン
     await page.locator("text=新規作成").click();

@@ -35,25 +35,25 @@ test.describe("管理画面ナビゲーション", () => {
 
   test("メインタブ4つが表示され、クリックで切り替わる", async ({ page }) => {
     // ホームタブがデフォルト表示
-    await expect(page.getByRole("button", { name: "ホーム" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "試合" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "設定" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "操作説明" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "ホーム", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "試合", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "設定", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "操作説明", exact: true })).toBeVisible();
 
     // 試合タブをクリック
-    await page.getByRole("button", { name: "試合" }).click();
+    await page.getByRole("button", { name: "試合", exact: true }).click();
     await expect(page).toHaveURL(/tab=events/);
 
     // 設定タブをクリック
-    await page.getByRole("button", { name: "設定" }).click();
+    await page.getByRole("button", { name: "設定", exact: true }).click();
     await expect(page).toHaveURL(/tab=settings/);
 
     // 操作説明タブをクリック
-    await page.getByRole("button", { name: "操作説明" }).click();
+    await page.getByRole("button", { name: "操作説明", exact: true }).click();
     await expect(page).toHaveURL(/tab=guide/);
 
     // ホームに戻る
-    await page.getByRole("button", { name: "ホーム" }).click();
+    await page.getByRole("button", { name: "ホーム", exact: true }).click();
     await expect(page).toHaveURL(/tab=home/);
   });
 
@@ -67,14 +67,14 @@ test.describe("管理画面ナビゲーション", () => {
     await expect(page.getByRole("button", { name: /^タイマー/ })).toBeVisible();
   });
 
-  test("設定タブのタイマーサブタブクリックで /admin/timer-presets に遷移する", async ({ page }) => {
-    await page.getByRole("button", { name: "設定" }).click();
+  test("設定タブのタイマーサブタブクリックでタイマープリセット管理がインライン表示される", async ({ page }) => {
+    await page.getByRole("button", { name: "設定", exact: true }).click();
     await expect(page).toHaveURL(/tab=settings/);
 
-    await page.getByRole("button", { name: /タイマー/ }).click();
-    await expect(page).toHaveURL(/\/admin\/timer-presets/);
+    await page.getByRole("button", { name: /^タイマー/ }).click();
+    await expect(page).toHaveURL(/tab=settings/);
 
-    // タイマープリセット管理ページが表示される
+    // タイマープリセット管理がインライン表示される
     await expect(page.locator("h1", { hasText: "タイマープリセット管理" })).toBeVisible();
   });
 
@@ -84,8 +84,8 @@ test.describe("管理画面ナビゲーション", () => {
 
     await expect(page.locator("h1", { hasText: "タイマープリセット管理" })).toBeVisible();
 
-    // 「設定に戻る」ボタンをクリック
-    await page.getByRole("button", { name: "設定に戻る" }).click();
+    // パンくずナビの「設定」リンクをクリック
+    await page.getByRole("link", { name: "設定" }).click();
     await expect(page).toHaveURL(/\/admin\?tab=settings/);
   });
 
@@ -112,7 +112,7 @@ test.describe("管理画面ナビゲーション", () => {
   });
 
   test("操作説明タブにセットアップガイドが表示される", async ({ page }) => {
-    await page.getByRole("button", { name: "操作説明" }).click();
+    await page.getByRole("button", { name: "操作説明", exact: true }).click();
     await expect(page).toHaveURL(/tab=guide/);
 
     // ステップ1のタイトルが表示される
