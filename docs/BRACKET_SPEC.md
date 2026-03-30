@@ -1,7 +1,7 @@
 # 対戦表作成 仕様書
 
 > **ステータス**: ドラフト
-> **最終更新**: 2026-03-27
+> **最終更新**: 2026-03-28
 > **対象プロジェクト**: karate-announce
 > **対象範囲**: 対戦表作成のビジネスロジック（フィルタリング・ペアリング・確定・欠場処理）
 
@@ -358,7 +358,90 @@ score = |weight1 - weight2| × 2 + |height1 - height2| × 0.3
 
 ---
 
-## 13. 決定済み事項
+## 13. 振り分けルール（bracket_rules）
+
+### 13.1 `bracket_rules` テーブルスキーマ
+
+| カラム | 型 | デフォルト | 説明 |
+|--------|-----|---------|------|
+| id | uuid | gen_random_uuid() | PK |
+| event_id | uuid | NOT NULL | FK → events ON DELETE CASCADE |
+| name | text | NOT NULL | ルール名（例: "小学生軽量級", "大人無差別"） |
+| rule_id | uuid | NULL | FK → rules（対象の競技ルール。NULL=全ルール） |
+| min_age | integer | NULL | 年齢下限（NULL=制限なし） |
+| max_age | integer | NULL | 年齢上限 |
+| min_weight | numeric | NULL | 体重下限 |
+| max_weight | numeric | NULL | 体重上限 |
+| min_height | real | NULL | 身長下限 |
+| max_height | real | NULL | 身長上限 |
+| max_grade_diff | integer | NULL | 最大学年差（小学生用、NULL=制限なし） |
+| max_weight_diff | numeric | NULL | トーナメント内の最大体重差 |
+| max_height_diff | numeric | NULL | トーナメント内の最大身長差 |
+| sex_filter | text | NULL | "male" / "female" / NULL（両方） |
+| court_num | integer | NULL | 基本割り当てコート（NULL=自動） |
+| sort_order | integer | 0 | 処理優先順序（小さいほど先） |
+| created_at | timestamptz | now() | |
+
+### 13.2 振り分けルール API
+
+| メソッド | パス | 説明 |
+|---------|------|------|
+| GET | `/api/admin/bracket-rules?event_id=xxx` | 振り分けルール一覧取得（sort_order 昇順） |
+| POST | `/api/admin/bracket-rules` | 振り分けルール新規作成。`event_id` と `name` 必須 |
+| PUT | `/api/admin/bracket-rules/[id]` | 振り分けルール更新。body のフィールドのみ更新 |
+| DELETE | `/api/admin/bracket-rules/[id]` | 振り分けルール削除 |
+
+**認証**: 全エンドポイントで `verifyAdminAuth` による認証が必要（未認証は 401）。
+
+### 13.3 AutoCreateDialog（振り分けルールで対戦表作成）
+
+**UIフロー**:
+1. 「振り分けルールで対戦表を作成（N名）」ボタン押下でモーダルダイアログ表示
+2. 登録済みの振り分けルール一覧をチェックボックスで表示、有効/無効切替可能
+3. 「振り分けプレビュー」ボタンで選手のグループ分け結果とコート別試合数を表示
+4. 「この内容で対戦表を作成する」で各グループをトーナメントとして一括作成
+
+**振り分けルールが0件の場合**: 「振り分けルールを登録して対戦表を作成」ボタンを表示し、押下で振り分けルールサブタブに遷移。
+
+### 13.4 振り分けロジック（`lib/auto-bracket.ts`）
+
+**`groupEntriesByRules(entries, bracketRules, entryRuleIds)`**:
+1. `sort_order` 順にルールを処理
+2. 各ルールの条件（年齢・体重・身長・性別・競技ルール）に合致する未割当選手をグループ化
+3. `max_grade_diff` がある場合は学年差でサブグループに分割（学年の数値変換: 小1=1, ..., 小6=6, 中1=7, ..., 中3=9, 高1=10, ...）
+4. どのルールにも合致しない選手は「未分類」グループに追加
+
+**`assignCourts(groups, courtCount)`**:
+- `courtNum` 指定のグループは固定コート
+- `courtNum` が null のグループは試合数が最小のコートに自動割り当て
+
+### 13.5 時間見積もり（`lib/time-estimate.ts`）
+
+**計算式**:
+```
+perMatchSec = matchDurationSec + (hasExtension ? extensionDurationSec × 0.5 : 0) + intervalSec
+totalMinutes = ceil(matchCount × perMatchSec / 60)
+```
+- 延長時間: 全試合が延長するわけではないため50%分を加算
+- 端数は切り上げ
+
+**表示仕様**:
+- `formatTimeEstimate()`: 分数を「約N時間M分」形式にフォーマット。開始時刻（`startTime`）指定時は終了予定時刻も算出
+- `roundedNowHHMM()`: 現在時刻（JST）を30分刻みに丸めてデフォルト開始時刻として使用
+- `countActualMatches()`: 両選手が揃っている実試合数を算出（不戦勝を除外）
+- 表示例: 「全16試合 — 推定 約45分（10:00開始 → 10:45終了予定）」
+
+### 13.6 参加者分布パネル（DistributionPanel）
+
+- CourtSection 内の「振り分けルールで対戦表を作成」ボタンの上に配置。未割当選手がいる場合のみ表示
+- 「💡 参加者の分布（N名）」ボタンで折りたたみ/展開を切り替え
+- `computeSuggestions()`（`lib/suggestions.ts`）の結果を軸（体重・年齢・性別・身長・経験）ごとにグルーピングして表示
+- 各提案をピル形式で表示: バランス指標（◎/△/✕）＋分割ラベル＋人数
+- 表示のみ（対戦表作成のアクションなし）。振り分けルール作成の参考情報として利用
+
+---
+
+## 14. 決定済み事項
 
 - [x] ペアリング: 体重順ソート → 互換性スコアによる貪欲マッチング
 - [x] 互換性スコア: `|Δweight| × 2 + |Δheight| × 0.3`
@@ -369,6 +452,6 @@ score = |weight1 - weight2| × 2 + |height1 - height2| × 0.3
 - [x] フィルタ保存: トーナメントレコードに全フィルタ値を永続化（復元可能）
 - [x] 表示順序: sort_order による手動並替え（▲▼ボタン）
 
-## 14. 未決事項
+## 15. 未決事項
 
 （現時点でなし）

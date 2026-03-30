@@ -1109,6 +1109,7 @@ __tests__/
     admin-crud.test.ts           # 道場・選手・エントリー・ルール・設定 CRUD
     admin-events.test.ts         # イベント作成・更新・削除・複製
     admin-matches.test.ts        # 試合更新・入替・一括・選手差替・トーナメント更新削除
+    admin-bracket-rules.test.ts # 振り分けルール CRUD・バリデーション・認証
     admin-timer-presets.test.ts  # タイマープリセット CRUD・複製
     admin-form-config.test.ts    # フォーム設定 GET/PUT/PATCH・コピー・注意書き・カスタムフィールド・画像
     admin-media-tournaments.test.ts  # バナー・OGP・ブザー・トーナメント作成
