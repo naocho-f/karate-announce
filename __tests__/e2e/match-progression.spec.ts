@@ -173,23 +173,22 @@ test.describe("試合進行", () => {
     const entryIds = await createTestEntries(page, eventId, 4);
     await createTournament(page, eventId, entryIds);
 
-    // アクティブ化がDBに反映されるのを待つ
-    await page.waitForTimeout(2_000);
-
-    // コート画面にアクセス
+    // コート画面にアクセスし、ポーリングでデータが反映されるまで待つ
     await page.goto("/court/1");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3_000);
 
-    // ローディング完了を待ってリロード
-    await page.reload();
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3_000);
-
-    // 対戦表が表示されることを確認（選手名が見える）
-    const bodyText = await page.textContent("body");
-    const hasContent = bodyText!.includes("進行テスト") || bodyText!.includes("試合開始");
-    expect(hasContent).toBeTruthy();
+    // 対戦表が表示されることを確認（並列テストでアクティブ状態が上書きされる可能性を考慮）
+    await expect(async () => {
+      // 並列テストで上書きされている可能性があるため毎回再アクティブ化
+      await page.request.patch(`/api/admin/events/${eventId}`, {
+        data: { is_active: true },
+      });
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+      const bodyText = await page.textContent("body");
+      const hasContent = bodyText!.includes("進行テスト") || bodyText!.includes("試合開始");
+      expect(hasContent).toBeTruthy();
+    }).toPass({ timeout: 20_000, intervals: [2_000, 3_000, 4_000] });
   });
 
   test("勝者を訂正できる", async ({ page }) => {

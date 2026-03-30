@@ -140,14 +140,19 @@ test.describe("ライブ・表示", () => {
     // ホームページにアクセス
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(5_000);
 
-    // アクティブイベントの対戦表が表示される（選手名またはコート名）
-    const bodyText = await page.textContent("body");
-    expect(bodyText).toBeTruthy();
-    // 何らかのコンテンツが表示される（イベントがアクティブなので空ではない）
-    const hasContent = bodyText!.includes("ホームテスト") || bodyText!.includes("コート");
-    expect(hasContent).toBeTruthy();
+    // アクティブイベントの対戦表が表示される（並列テストでアクティブ状態が上書きされる可能性を考慮）
+    await expect(async () => {
+      await page.request.patch(`/api/admin/events/${eventId}`, {
+        data: { is_active: true },
+      });
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+      const bodyText = await page.textContent("body");
+      expect(bodyText).toBeTruthy();
+      const hasContent = bodyText!.includes("ホームテスト") || bodyText!.includes("コート");
+      expect(hasContent).toBeTruthy();
+    }).toPass({ timeout: 20_000, intervals: [2_000, 3_000, 4_000] });
   });
 
   test("コート画面で複数トーナメントが表示される", async ({ page }) => {
@@ -168,23 +173,25 @@ test.describe("ライブ・表示", () => {
     });
     expect(activateRes.ok()).toBeTruthy();
 
-    // コート画面にアクセス（初回ロードで最新データを取得）
+    // コート画面にアクセス（並列テストで他イベントがアクティブになる可能性があるため、直前に再アクティブ化）
+    await page.request.patch(`/api/admin/events/${eventId}`, {
+      data: { is_active: true },
+    });
+
     await page.goto("/court/1");
     await page.waitForLoadState("networkidle");
 
-    // トーナメント名が表示されるまで待つ
-    // 最初のロードでは stale data を取得する可能性があるためリトライ
-    let found = false;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      await page.waitForTimeout(3_000);
-      const bodyText = await page.textContent("body");
-      if (bodyText && (bodyText.includes("マルチA") || bodyText.includes("マルチB"))) {
-        found = true;
-        break;
-      }
+    // トーナメント名が表示されるまで待つ（ポーリング3秒 + データ反映を考慮してリトライ）
+    await expect(async () => {
+      // 並列テストで上書きされている可能性があるため毎回再アクティブ化
+      await page.request.patch(`/api/admin/events/${eventId}`, {
+        data: { is_active: true },
+      });
       await page.reload();
       await page.waitForLoadState("networkidle");
-    }
-    expect(found).toBeTruthy();
+      const bodyText = await page.textContent("body");
+      const hasContent = bodyText && (bodyText.includes("マルチA") || bodyText.includes("マルチB"));
+      expect(hasContent).toBeTruthy();
+    }).toPass({ timeout: 20_000, intervals: [2_000, 3_000, 4_000] });
   });
 });
