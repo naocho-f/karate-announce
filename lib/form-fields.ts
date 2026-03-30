@@ -5,6 +5,8 @@
  * 後から項目を追加しても、既存データに影響しない設計。
  */
 
+import { getGradeOptions } from "@/lib/grade-options";
+
 export type FieldType = "text" | "textarea" | "number" | "tel" | "email" | "date" | "radio" | "checkbox" | "select";
 
 export type FieldChoice = {
@@ -195,6 +197,16 @@ export const FIELD_POOL: FieldPoolItem[] = [
     placeholder: "要望やアピールポイント等あればご記入ください",
   },
 
+  {
+    key: "grade",
+    label: "年代区分",
+    type: "select",
+    category: "basic",
+    dbColumn: "grade",
+    defaultRequired: false,
+    fixedChoices: getGradeOptions(),
+  },
+
   // ═══ C. 競技 ═══
   {
     key: "rule_preference",
@@ -276,6 +288,7 @@ const FIXED_FIELD_KEYS = new Set([
   "martial_arts_experience", "memo",
   "prefecture", "phone", "email",
   "organization", "organization_kana", "rule_preference",
+  "grade",
 ]);
 
 /** field_key が自由設問（削除可・バッジ表示）かどうかを判定 */

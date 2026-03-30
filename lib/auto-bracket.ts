@@ -6,6 +6,7 @@
  */
 import type { Entry, BracketRule } from "./types";
 import { pairsFromEntries, type PairEntry } from "./pairing";
+import { gradeToNumber } from "./grade-options";
 
 export type AutoGroup = {
   id: string;
@@ -32,21 +33,7 @@ function getAge(entry: Entry, referenceDate?: Date): number | null {
   return age;
 }
 
-/** 学年を数値に変換する（小1=1, 小2=2, ..., 小6=6, 中1=7, 中2=8, 中3=9, 高1=10...） */
-function gradeToNumber(grade: string | null): number | null {
-  if (!grade) return null;
-  const match = grade.match(/^(小|中|高)(\d)$/);
-  if (!match) {
-    const num = parseInt(grade, 10);
-    return isNaN(num) ? null : num;
-  }
-  const [, prefix, num] = match;
-  const n = parseInt(num, 10);
-  if (prefix === "小") return n;
-  if (prefix === "中") return 6 + n;
-  if (prefix === "高") return 9 + n;
-  return null;
-}
+// gradeToNumber は lib/grade-options.ts からインポート
 
 /** エントリーが振り分けルールの条件に合致するか判定 */
 function matchesRule(

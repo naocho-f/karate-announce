@@ -21,6 +21,7 @@ import { BracketRulesPanel } from "@/components/bracket-rules-panel";
 import { AutoCreateDialog } from "@/components/auto-create-dialog";
 import { computeSuggestions } from "@/lib/suggestions";
 import type { AutoGroup } from "@/lib/auto-bracket";
+import { getGradeOptions } from "@/lib/grade-options";
 import Link from "next/link";
 import { FormConfigPanel } from "./form-config-panel";
 import { estimateMatchMinutes, formatTimeEstimate, countActualMatches, roundedNowHHMM } from "@/lib/time-estimate";
@@ -1209,8 +1210,14 @@ function generateDemoEntries(eventId: string, count: number, ruleIds: string[], 
     // 年齢に応じた体重・身長
     const [baseWeight, weightRange] = age < 10 ? [20, 15] : age < 13 ? [30, 20] : age < 18 ? [40, 30] : [50, 50];
     const [baseHeight, heightRange] = age < 10 ? [110, 30] : age < 13 ? [130, 25] : age < 18 ? [145, 30] : [150, 40];
-    // 小学生は学年を設定
-    const grade = age >= 6 && age <= 12 ? `小${Math.min(age - 5, 6)}` : age >= 13 && age <= 15 ? `中${age - 12}` : age >= 16 && age <= 18 ? `高${age - 15}` : null;
+    // 年代区分を設定
+    const grade = age >= 3 && age <= 5 ? ["年少", "年中", "年長"][age - 3]
+      : age >= 6 && age <= 11 ? `小${age - 5}`
+      : age >= 12 && age <= 14 ? `中${age - 11}`
+      : age >= 16 && age <= 17 ? "18歳未満"
+      : age >= 18 && age <= 59 ? "一般"
+      : age >= 60 ? "シニア"
+      : null;
 
     return {
       rule_ids: rulePool[i],
@@ -1804,7 +1811,12 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
         <input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="体重 kg" type="number" step="0.1" className={`w-24 ${inp}`} />
         <input value={height} onChange={(e) => setHeight(e.target.value)} placeholder="身長 cm" type="number" step="0.1" className={`w-24 ${inp}`} />
         <input value={age} onChange={(e) => setAge(e.target.value)} placeholder="年齢" type="number" min="1" max="99" className={`w-20 ${inp}`} />
-        <input value={grade} onChange={(e) => setGrade(e.target.value)} placeholder="学年（任意）" className={`w-28 ${inp}`} />
+        <select value={grade} onChange={(e) => setGrade(e.target.value)} className={`w-28 ${inp}`}>
+          <option value="">年代区分</option>
+          {getGradeOptions().map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
         <input value={experience} onChange={(e) => setExperience(e.target.value)} placeholder="格闘技経験" className={`flex-1 min-w-32 ${inp}`} />
       </div>
       {eventRules.length > 0 && (
@@ -2751,7 +2763,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
     if (minHeight !== "" && (e.height == null || e.height < parseFloat(minHeight))) return false;
     if (maxHeight !== "" && (e.height == null || e.height > parseFloat(maxHeight))) return false;
     if (sexFilter && e.sex !== sexFilter) return false;
-    if (gradeFilter && !e.grade?.includes(gradeFilter)) return false;
+    if (gradeFilter && e.grade !== gradeFilter) return false;
     if (experienceFilter && !e.experience?.includes(experienceFilter)) return false;
     if (nameFilter && !entryFullName(e).toLowerCase().includes(nameFilter.toLowerCase())) return false;
     return true;
@@ -2840,8 +2852,13 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
             <span className="text-xs text-gray-500">cm</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">学年</span>
-            <input value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)} placeholder="小4" className={`w-16 ${inpSm}`} />
+            <span className="text-xs text-gray-500">年代</span>
+            <select value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)} className={`w-24 ${inpSm}`}>
+              <option value="">全て</option>
+              {getGradeOptions().map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">経験</span>

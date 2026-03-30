@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabaseAdmin
     .from("settings")
     .select("key, value")
-    .in("key", ["announce_templates"]);
+    .in("key", ["announce_templates", "age_categories"]);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   const result: Record<string, unknown> = {};
   for (const row of data ?? []) result[row.key] = row.value;

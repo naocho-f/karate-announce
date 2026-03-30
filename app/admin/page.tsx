@@ -15,6 +15,7 @@ import {
 } from "@/lib/speech";
 import Link from "next/link";
 import { TimerPresetsPanel } from "@/components/timer-presets-panel";
+import { FIXED_GRADE_OPTIONS, DEFAULT_AGE_CATEGORIES, type AgeCategory } from "@/lib/grade-options";
 
 
 type Tab = "home" | "events" | "settings" | "guide";
@@ -1404,13 +1405,14 @@ function RulesPanel() {
 
 // ── 設定（サブタブ: アナウンス設定・ルール・流派） ──────────────────────────────
 
-type SettingsSubTab = "announce" | "rules" | "dojos" | "timer" | "bug_reports";
+type SettingsSubTab = "announce" | "rules" | "dojos" | "timer" | "age_categories" | "bug_reports";
 
 const SETTINGS_SUBTAB_LABELS: Record<SettingsSubTab, string> = {
   announce: "アナウンス設定",
   rules: "ルール",
   dojos: "流派",
   timer: "タイマー",
+  age_categories: "年代区分",
   bug_reports: "不具合報告",
 };
 
@@ -1428,12 +1430,12 @@ function SettingsPanel() {
   }
 
   const subTabs = isDev()
-    ? (["announce", "rules", "dojos", "timer", "bug_reports"] as const)
-    : (["announce", "rules", "dojos", "timer"] as const);
+    ? (["announce", "rules", "dojos", "timer", "age_categories", "bug_reports"] as const)
+    : (["announce", "rules", "dojos", "timer", "age_categories"] as const);
 
   return (
     <div className="space-y-4">
-      <div className={`grid gap-2 ${subTabs.length === 5 ? "grid-cols-5" : "grid-cols-4"}`}>
+      <div className={`grid gap-2 ${subTabs.length === 6 ? "grid-cols-6" : "grid-cols-5"}`}>
         {subTabs.map((t) => (
           <button
             key={t}
@@ -1447,11 +1449,12 @@ function SettingsPanel() {
         ))}
       </div>
 
-      {subTab === "announce"    && <AnnounceSettingsPanel />}
-      {subTab === "rules"       && <RulesPanel />}
-      {subTab === "dojos"       && <DojoPanel />}
-      {subTab === "timer"       && <TimerPresetsPanel />}
-      {subTab === "bug_reports" && <BugReportsPanel />}
+      {subTab === "announce"       && <AnnounceSettingsPanel />}
+      {subTab === "rules"          && <RulesPanel />}
+      {subTab === "dojos"          && <DojoPanel />}
+      {subTab === "timer"          && <TimerPresetsPanel />}
+      {subTab === "age_categories" && <AgeCategoriesPanel />}
+      {subTab === "bug_reports"    && <BugReportsPanel />}
     </div>
   );
 }
@@ -1853,6 +1856,162 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   resolved: { label: "対応済み", cls: "bg-green-900 text-green-300" },
   wontfix: { label: "対応しない", cls: "bg-gray-700 text-gray-400" },
 };
+
+// ── 年代区分設定 ─────────────────────────────────────────────────────────────
+
+function AgeCategoriesPanel() {
+  const [categories, setCategories] = useState<AgeCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/settings");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.age_categories && Array.isArray(data.age_categories)) {
+            setCategories(data.age_categories);
+          } else {
+            setCategories(DEFAULT_AGE_CATEGORIES);
+          }
+        } else {
+          setCategories(DEFAULT_AGE_CATEGORIES);
+        }
+      } catch {
+        setCategories(DEFAULT_AGE_CATEGORIES);
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  function addCategory() {
+    setCategories((prev) => [...prev, { label: "", minAge: 0, maxAge: null }]);
+  }
+
+  function removeCategory(idx: number) {
+    setCategories((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function updateCategory(idx: number, field: keyof AgeCategory, value: string) {
+    setCategories((prev) => prev.map((cat, i) => {
+      if (i !== idx) return cat;
+      if (field === "label") return { ...cat, label: value };
+      if (field === "minAge") return { ...cat, minAge: value === "" ? 0 : parseInt(value, 10) };
+      if (field === "maxAge") return { ...cat, maxAge: value === "" ? null : parseInt(value, 10) };
+      return cat;
+    }));
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "age_categories", value: categories }),
+      });
+      if (!res.ok) {
+        alert("保存に失敗しました");
+      } else {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch {
+      alert("保存に失敗しました");
+    }
+    setSaving(false);
+  }
+
+  function resetToDefaults() {
+    setCategories(DEFAULT_AGE_CATEGORIES);
+  }
+
+  const inp = "bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500";
+
+  if (loading) return <div className="text-center text-gray-400 py-8">読み込み中...</div>;
+
+  return (
+    <div className="space-y-6">
+      {/* 固定区分（表示のみ） */}
+      <div>
+        <h3 className="text-sm font-medium text-gray-300 mb-2">固定区分（幼稚園〜中学）</h3>
+        <div className="flex flex-wrap gap-2">
+          {FIXED_GRADE_OPTIONS.map((opt) => (
+            <span key={opt.value} className="px-2 py-1 bg-gray-700 rounded text-xs text-gray-300">
+              {opt.label}
+            </span>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500 mt-1">これらの区分は固定です。エントリーフォームと対戦表フィルタで使用されます。</p>
+      </div>
+
+      {/* 年齢ベース区分（編集可能） */}
+      <div>
+        <h3 className="text-sm font-medium text-gray-300 mb-2">年齢ベース区分</h3>
+        <p className="text-xs text-gray-500 mb-3">高校生以上の年齢区分を設定します。ラベル・最小年齢・最大年齢を指定してください。</p>
+
+        <div className="space-y-2">
+          {categories.map((cat, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <input
+                value={cat.label}
+                onChange={(e) => updateCategory(idx, "label", e.target.value)}
+                placeholder="ラベル（例: 一般）"
+                className={`w-32 ${inp}`}
+              />
+              <input
+                type="number"
+                value={cat.minAge}
+                onChange={(e) => updateCategory(idx, "minAge", e.target.value)}
+                placeholder="最小年齢"
+                min="0"
+                className={`w-20 ${inp}`}
+              />
+              <span className="text-xs text-gray-500">〜</span>
+              <input
+                type="number"
+                value={cat.maxAge ?? ""}
+                onChange={(e) => updateCategory(idx, "maxAge", e.target.value)}
+                placeholder="上限なし"
+                min="0"
+                className={`w-20 ${inp}`}
+              />
+              <span className="text-xs text-gray-500">歳</span>
+              <button
+                onClick={() => removeCategory(idx)}
+                className="text-red-400 hover:text-red-300 text-sm px-1"
+                title="削除"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-2 mt-3">
+          <button onClick={addCategory} className="text-sm text-blue-400 hover:text-blue-300">
+            + 区分を追加
+          </button>
+          <button onClick={resetToDefaults} className="text-sm text-gray-400 hover:text-gray-300">
+            デフォルトに戻す
+          </button>
+        </div>
+      </div>
+
+      <button
+        onClick={save}
+        disabled={saving}
+        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white px-4 py-2 rounded text-sm font-medium transition"
+      >
+        {saving ? "保存中..." : saved ? "保存しました" : "保存"}
+      </button>
+    </div>
+  );
+}
+
+// ── 不具合報告 ───────────────────────────────────────────────────────────────
 
 function BugReportsPanel() {
   const [reports, setReports] = useState<BugReport[]>([]);

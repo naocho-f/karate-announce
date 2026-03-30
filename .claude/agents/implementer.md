@@ -12,7 +12,10 @@ tools: Read, Edit, Write, Bash, Glob, Grep, Agent, NotebookEdit
 1. `/tmp/claude-plan.md` を読み、計画内容を把握する
 2. CLAUDE.md を読み、プロジェクトのルール・完了フローを把握する
 3. 計画に沿って実装する
-4. CLAUDE.md の「実装完了フロー」に従い、テスト・ビルド・SPEC.md更新・コミットまで完了する
+4. CLAUDE.md の「実装完了フロー」に従い、テスト（ユニット + E2E）・ビルド・SPEC.md更新・コミットまで完了する
+   - UIを変更した場合は関連する E2E テスト（`__tests__/e2e/`）も追加・更新する
+   - `npx vitest run` と `npx playwright test` の両方で全通過を確認してからコミットする
+   - E2E テストが壊れた場合は実装とテストのどちらが正しいか調査・判断する
 5. 不具合報告に紐づく場合はステータスを更新する（修正開始時に in_progress、完了時に resolved）
 6. 完了後、`/tmp/claude-plan.md` を削除する
 7. `/tmp/claude-implementer-running` を削除し、完了通知を鳴らす:

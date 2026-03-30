@@ -39,6 +39,7 @@ describe("FIELD_POOL", () => {
     expect(keys).toContain("rule_preference");
     expect(keys).toContain("height");
     expect(keys).toContain("weight");
+    expect(keys).toContain("grade");
   });
 
   it("should have unique keys", () => {
@@ -102,6 +103,22 @@ describe("FIELD_POOL", () => {
   it("martial_arts_experience should have maxLength", () => {
     const exp = FIELD_POOL.find((f) => f.key === "martial_arts_experience");
     expect(exp!.maxLength).toBe(150);
+  });
+
+  it("grade field should be select type with fixedChoices", () => {
+    const grade = FIELD_POOL.find((f) => f.key === "grade");
+    expect(grade).toBeDefined();
+    expect(grade!.type).toBe("select");
+    expect(grade!.dbColumn).toBe("grade");
+    expect(grade!.label).toBe("年代区分");
+    expect(grade!.fixedChoices).toBeDefined();
+    expect(grade!.fixedChoices!.length).toBeGreaterThan(0);
+    // Should include kindergarten, elementary, middle school, and age-based categories
+    const values = grade!.fixedChoices!.map((c) => c.value);
+    expect(values).toContain("年少");
+    expect(values).toContain("小1");
+    expect(values).toContain("中3");
+    expect(values).toContain("一般");
   });
 });
 
@@ -206,6 +223,7 @@ describe("DB_COLUMN_FIELDS", () => {
     expect(DB_COLUMN_FIELDS).toContain("sex");
     expect(DB_COLUMN_FIELDS).toContain("height");
     expect(DB_COLUMN_FIELDS).toContain("weight");
+    expect(DB_COLUMN_FIELDS).toContain("grade");
   });
 
   it("should not include fields without dbColumn", () => {
