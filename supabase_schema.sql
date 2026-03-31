@@ -192,7 +192,8 @@ create table rules (
   name text not null,
   created_at timestamptz default now(),
   name_reading text,
-  description text
+  description text,
+  timer_preset_id uuid
 );
 
 create table settings (
@@ -256,6 +257,7 @@ create table timer_presets (
   buzzer_on_newaza text default 'auto'::text,
   buzzer_sound text default 'default'::text,
   buzzer_custom_path text,
+  swap_sides boolean default false,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   layout jsonb

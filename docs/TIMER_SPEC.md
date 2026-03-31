@@ -779,7 +779,8 @@ type LayoutRow = {
 | id | uuid | gen_random_uuid() | PK |
 | name | text | NOT NULL | プリセット名 |
 | event_id | uuid | NULL | FK → events。NULL = グローバル |
-| rule_id | uuid | NULL | FK → rules（ON DELETE SET NULL）。紐付けルール |
+| rule_id | uuid | NULL | レガシー（廃止予定。`rules.timer_preset_id` に移行済み） |
+| swap_sides | boolean | false | 赤白の左右入れ替え（表示画面のみ。操作パネルのラベルは変更しない） |
 | match_duration | integer | 120 | 試合時間（秒） |
 | timer_direction | text | 'countdown' | `countdown` / `countup` |
 | has_extension | boolean | false | 延長戦の有無 |
@@ -843,8 +844,10 @@ type LayoutRow = {
 | result_method | text | NULL | 勝利方法（point/wazaari/combined_ippon/ippon/foul/decision/sudden_death/draw/withdraw/injury） |
 | result_detail | jsonb | NULL | 詳細（ポイント数、反則数等） |
 
-#### `rules` テーブル
-- 変更なし。`timer_presets.rule_id` で紐付け。カーディナリティ: **N:1**（複数プリセットが同じルールを参照可能。1つのルールに対して有効なプリセットは最新の1つを使用）
+#### `rules` テーブル（カラム追加）
+| カラム | 型 | デフォルト | 説明 |
+|--------|-----|---------|------|
+| timer_preset_id | uuid | NULL | FK → timer_presets。紐付けタイマー。カーディナリティ: **N:1**（複数ルールが同じプリセットを参照可能） |
 
 ---
 

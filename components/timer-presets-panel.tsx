@@ -51,6 +51,7 @@ const EMPTY_PRESET: EditablePreset = {
   buzzer_on_time_up: "auto",
   buzzer_on_newaza: "auto",
   buzzer_sound: "default",
+  swap_sides: false,
   layout: { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) },
 };
 
@@ -91,6 +92,8 @@ export function TimerPresetsPanel() {
   const [editing, setEditing] = useState<EditablePreset | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [addRowOpen, setAddRowOpen] = useState(false);
@@ -186,13 +189,19 @@ export function TimerPresetsPanel() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("このタイマーを削除しますか？")) return;
+    setDeletingId(id);
     const res = await fetch(`/api/admin/timer-presets/${id}`, { method: "DELETE" });
-    if (res.ok) load();
+    if (res.ok) await load();
+    else alert("削除に失敗しました");
+    setDeletingId(null);
   };
 
   const handleDuplicate = async (id: string) => {
+    setDuplicatingId(id);
     const res = await fetch(`/api/admin/timer-presets/${id}/duplicate`, { method: "POST" });
-    if (res.ok) load();
+    if (res.ok) await load();
+    else alert("複製に失敗しました");
+    setDuplicatingId(null);
   };
 
   const field = (key: keyof EditablePreset, label: string, type: "text" | "number" | "checkbox" | "select" | "color", opts?: { options?: { value: string; label: string }[] }) => {
@@ -474,12 +483,14 @@ export function TimerPresetsPanel() {
                   編集
                 </button>
                 <button onClick={() => handleDuplicate(p.id)}
-                  className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs text-gray-300 transition">
-                  複製
+                  disabled={duplicatingId === p.id}
+                  className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs text-gray-300 transition disabled:opacity-50">
+                  {duplicatingId === p.id ? "複製中..." : "複製"}
                 </button>
                 <button onClick={() => handleDelete(p.id)}
-                  className="px-2 py-1 rounded bg-red-900/50 hover:bg-red-800/60 text-xs text-red-300 transition">
-                  削除
+                  disabled={deletingId === p.id}
+                  className="px-2 py-1 rounded bg-red-900/50 hover:bg-red-800/60 text-xs text-red-300 transition disabled:opacity-50">
+                  {deletingId === p.id ? "削除中..." : "削除"}
                 </button>
               </div>
             </div>
@@ -564,6 +575,7 @@ export function TimerPresetsPanel() {
               <div className="space-y-2">
                 {field("show_player_names", "選手名表示", "checkbox")}
                 {field("show_match_number", "試合番号表示", "checkbox")}
+                {field("swap_sides", "赤白の左右を入れ替え（赤を右・白を左に表示）", "checkbox")}
               </div>
 
               <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">カラー・フォント</h3>

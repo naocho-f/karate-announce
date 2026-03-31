@@ -1248,8 +1248,9 @@ function RulesPanel() {
   const [description, setDescription] = useState("");
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [presets, setPresets] = useState<{id: string; name: string; rule_id: string | null}[]>([]);
-  const [linkingPresetId, setLinkingPresetId] = useState<string | null>(null);
+  const [presets, setPresets] = useState<{id: string; name: string}[]>([]);
+  const [linkingRuleId, setLinkingRuleId] = useState<string | null>(null);
+  const [selectingRuleId, setSelectingRuleId] = useState<string | null>(null);
 
   async function loadPresets() {
     const presetsRes = await fetch("/api/admin/timer-presets");
@@ -1265,15 +1266,17 @@ function RulesPanel() {
 
   useEffect(() => { load(); }, []);
 
-  async function linkPreset(presetId: string, ruleId: string | null) {
-    setLinkingPresetId(presetId);
-    await fetch(`/api/admin/timer-presets/${presetId}`, {
+  async function linkPreset(ruleId: string, presetId: string | null) {
+    setLinkingRuleId(ruleId);
+    const res = await fetch(`/api/admin/rules/${ruleId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rule_id: ruleId }),
+      body: JSON.stringify({ timer_preset_id: presetId }),
     });
-    await loadPresets();
-    setLinkingPresetId(null);
+    if (!res.ok) { alert("タイマーの設定に失敗しました"); }
+    await load();
+    setLinkingRuleId(null);
+    setSelectingRuleId(null);
   }
 
   async function add() {
@@ -1354,52 +1357,67 @@ function RulesPanel() {
       ) : (
         <ul className="space-y-2">
           {rules.map((r) => {
-            const linkedPresets = presets.filter((p) => p.rule_id === r.id);
+            const linkedPreset = r.timer_preset_id ? presets.find((p) => p.id === r.timer_preset_id) : null;
+            const isLinking = linkingRuleId === r.id;
+            const isSelecting = selectingRuleId === r.id;
             return (
             <li key={r.id} className="bg-gray-800 rounded-lg px-4 py-3">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium">{r.name}</span>
-                  {linkedPresets.length > 0 ? (
-                    linkedPresets.map((lp) => (
-                      <span key={lp.id} className="bg-orange-900 text-orange-300 text-xs px-2 py-0.5 rounded inline-flex items-center">
-                        タイマー: {lp.name}
-                        <button
-                          onClick={() => linkPreset(lp.id, null)}
-                          disabled={linkingPresetId === lp.id}
-                          className="text-orange-400 hover:text-orange-200 text-xs ml-1 disabled:opacity-50"
-                        >{linkingPresetId === lp.id ? "..." : "✕"}</button>
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-xs text-gray-600">タイマー未設定</span>
-                  )}
+                  {linkedPreset ? (
+                    <span className="bg-orange-900 text-orange-300 text-xs px-2 py-0.5 rounded inline-flex items-center gap-1.5">
+                      タイマー: {linkedPreset.name}
+                      <button
+                        onClick={() => setSelectingRuleId(r.id)}
+                        disabled={isLinking}
+                        className="text-orange-400 hover:text-orange-200 text-xs disabled:opacity-50"
+                      >変更</button>
+                      <button
+                        onClick={() => linkPreset(r.id, null)}
+                        disabled={isLinking}
+                        className="text-orange-400 hover:text-orange-200 text-xs disabled:opacity-50"
+                      >{isLinking ? "..." : "解除"}</button>
+                    </span>
+                  ) : !isSelecting ? (
+                    <button
+                      onClick={() => setSelectingRuleId(r.id)}
+                      disabled={isLinking}
+                      className="text-xs text-blue-400 hover:text-blue-300 bg-blue-900/30 hover:bg-blue-900/50 px-2 py-0.5 rounded transition disabled:opacity-50"
+                    >
+                      {isLinking ? "設定中..." : "タイマーを設定する"}
+                    </button>
+                  ) : null}
                 </div>
                 <button onClick={() => remove(r.id)} disabled={removingId === r.id} className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50">
                   {removingId === r.id ? "削除中..." : "削除"}
                 </button>
               </div>
-              <div className="mb-1">
-                <select
-                  value={linkedPresets.length > 0 ? linkedPresets[0].id : ""}
-                  disabled={linkingPresetId !== null}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      linkPreset(e.target.value, r.id);
-                    } else if (linkedPresets.length > 0) {
-                      linkPreset(linkedPresets[0].id, null);
-                    }
-                  }}
-                  className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 disabled:opacity-50"
-                >
-                  <option value="">-- タイマー未設定 --</option>
-                  {presets.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}{p.rule_id && p.rule_id !== r.id ? ` (${rules.find((ru) => ru.id === p.rule_id)?.name ?? "他ルール"}に紐付)` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {isSelecting && (
+                <div className="mb-1 flex items-center gap-2">
+                  <select
+                    value={r.timer_preset_id ?? ""}
+                    disabled={isLinking}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        linkPreset(r.id, e.target.value);
+                      } else {
+                        linkPreset(r.id, null);
+                      }
+                    }}
+                    className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 disabled:opacity-50"
+                  >
+                    <option value="">-- タイマー未設定 --</option>
+                    {presets.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => setSelectingRuleId(null)}
+                    className="text-xs text-gray-500 hover:text-gray-300"
+                  >キャンセル</button>
+                </div>
+              )}
               <ReadingInput
                 value={r.name_reading ?? ""}
                 placeholder="読み仮名（例: くみて3ぷんえんちょう1ぷん）"

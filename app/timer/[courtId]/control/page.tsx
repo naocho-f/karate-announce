@@ -92,6 +92,7 @@ const DEFAULT_PRESET: TimerPreset = {
   buzzer_on_newaza: "auto",
   buzzer_sound: "default",
   buzzer_custom_path: null,
+  swap_sides: false,
   created_at: "",
   updated_at: "",
 };
@@ -528,13 +529,29 @@ export default function TimerControlPage() {
     prefetchTts(ttsText);
   };
 
+  // ── ルール→タイマーマッピング（rules テーブルの timer_preset_id を使用）──
+  const [rulePresetMap, setRulePresetMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    supabase.from("rules").select("name, timer_preset_id").then(({ data }) => {
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((r) => { if (r.timer_preset_id) map[r.name] = r.timer_preset_id; });
+        setRulePresetMap(map);
+      }
+    });
+  }, []);
+
   // プリセット選択ロジック: ルールにマッチするプリセット → 選択中プリセット → デフォルト
   const getPresetForMatch = (candidate: MatchCandidate): TimerPreset => {
     const rules = candidate.match.rules ?? candidate.tournament.default_rules;
     if (rules && presets.length > 0) {
-      // rule_id が一致するプリセットを探す（ルール名マッチ）
-      const byRule = presets.find((p) => p.rule_id && p.name.includes(rules));
-      if (byRule) return byRule;
+      // ルール名から timer_preset_id を取得してプリセットを探す
+      const presetId = rulePresetMap[rules];
+      if (presetId) {
+        const byRule = presets.find((p) => p.id === presetId);
+        if (byRule) return byRule;
+      }
     }
     if (selectedPresetId) {
       const sel = presets.find((p) => p.id === selectedPresetId);

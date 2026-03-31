@@ -2580,7 +2580,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
       if (!t.default_rules) continue;
       const rule = rules.find((r) => r.name === t.default_rules);
       if (!rule) continue;
-      const preset = timerPresets.find((p) => p.rule_id === rule.id);
+      const preset = rule.timer_preset_id ? timerPresets.find((p) => p.id === rule.timer_preset_id) : timerPresets.find((p) => p.rule_id === rule.id);
       if (preset) {
         matchDurationSec = preset.match_duration;
         hasExtension = preset.has_extension;

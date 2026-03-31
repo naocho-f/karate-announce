@@ -70,6 +70,7 @@ function makePreset(overrides: Partial<TimerPreset> = {}): TimerPreset {
     layout: null,
     buzzer_on_time_up: "auto", buzzer_on_newaza: "auto",
     buzzer_sound: "default", buzzer_custom_path: null,
+    swap_sides: false,
     created_at: "", updated_at: "",
     ...overrides,
   };

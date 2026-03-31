@@ -84,6 +84,7 @@ const DEFAULT_PRESET: TimerPreset = {
   buzzer_on_newaza: "auto",
   buzzer_sound: "default",
   buzzer_custom_path: null,
+  swap_sides: false,
   created_at: "",
   updated_at: "",
 };

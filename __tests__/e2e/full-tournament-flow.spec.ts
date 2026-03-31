@@ -218,26 +218,38 @@ test.describe("大会フル進行フロー", () => {
 test.describe("タイマー CRUD", () => {
   test("タイマー作成 → 一覧に表示 → 削除", async ({ page }) => {
     await adminLogin(page);
+
+    // 確認ダイアログを自動承認（先にセットアップ）
+    page.on("dialog", (dialog) => dialog.accept());
+
     await page.goto("/admin/timer-presets", { waitUntil: "networkidle" });
+
+    // 既存のタイマー数を記録
+    await page.waitForTimeout(500);
+    const countInitial = await page.locator("p.font-bold").count();
 
     // 新規作成ボタン
     await page.locator("text=新規作成").click();
 
     // タイマー名を入力
     const nameInput = page.locator('input').first();
-    await nameInput.fill("E2Eテストタイマー");
+    await nameInput.fill("E2Eテスト_CRUD");
 
     // 保存
     await page.locator("text=保存").click();
 
     // 一覧に表示される
-    await expect(page.locator("text=E2Eテストタイマー")).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator("text=E2Eテスト_CRUD").first()).toBeVisible({ timeout: 5_000 });
 
-    // 削除
-    page.on("dialog", (dialog) => dialog.accept());
-    await page.locator("text=削除").first().click();
+    // 1つ増えていることを確認
+    const countAfterCreate = await page.locator("p.font-bold").count();
+    expect(countAfterCreate).toBe(countInitial + 1);
 
-    // 一覧から消える
-    await expect(page.locator("text=E2Eテストタイマー")).not.toBeVisible({ timeout: 5_000 });
+    // 最後の削除ボタンをクリック（末尾に追加された新しいタイマー）
+    const deleteButtons = page.getByRole("button", { name: "削除" });
+    await deleteButtons.last().click();
+
+    // 削除完了を待つ
+    await expect(page.locator("p.font-bold")).toHaveCount(countInitial, { timeout: 5_000 });
   });
 });

@@ -125,6 +125,7 @@ export type Rule = {
   name: string;
   name_reading: string | null;
   description: string | null;
+  timer_preset_id: string | null;
   created_at: string;
 };
 
@@ -286,6 +287,8 @@ export type TimerPreset = {
   buzzer_on_newaza: "auto" | "manual" | "off";
   buzzer_sound: "default" | "custom";
   buzzer_custom_path: string | null;
+  // 左右入れ替え
+  swap_sides: boolean;
   // メタ
   created_at: string;
   updated_at: string;

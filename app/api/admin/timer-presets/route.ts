@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
 
   const eventId = request.nextUrl.searchParams.get("event_id");
-  let query = supabaseAdmin.from("timer_presets").select("*").order("created_at", { ascending: false });
+  let query = supabaseAdmin.from("timer_presets").select("*").order("created_at", { ascending: true });
   if (eventId) {
     query = query.or(`event_id.eq.${eventId},event_id.is.null`);
   }

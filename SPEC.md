@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-28（タイマー操作パネル追加改善7件: 試合一覧カード形式・未確定時確認ダイアログ・音声再生中ボタン無効化・ブザーボタン縮小移動・反則ルール表示改善・TTS事前読込追加）
+> 最終更新: 2026-03-28（ルール・タイマー設定改善5件: ルール画面タイマーUI改善・タイマー1:ルールN関係・スピナー漏れ修正・タイマー複製末尾追加・赤白左右入れ替え機能）
 
 ---
 
@@ -384,7 +384,7 @@
 **コートごとの対戦表作成（`CourtSection`）**
 - **試合所要時間の見積もり表示**: 対戦表が作成済みのコートで、コートヘッダー下に推定所要時間パネルを表示
   - 計算: `試合数 × (試合時間 + 延長時間の50%) + (試合数 - 1) × 試合間インターバル`（インターバルは試合間にのみ適用）
-  - 試合時間: トーナメントの `default_rules` → `rules.name` → `timer_presets.rule_id` で解決。タイマー未紐づけ時はデフォルト2分（120秒）
+  - 試合時間: トーナメントの `default_rules` → `rules.name` → `rules.timer_preset_id` → `timer_presets` で解決。タイマー未紐づけ時はデフォルト2分（120秒）
   - 延長時間: `has_extension` が true の場合のみ `extension_duration` の50%を加算
   - 試合間インターバル: デフォルト1分。UI で 0分/30秒/1分/2分/3分/5分を選択可能
   - 開始時刻: デフォルトは現在時刻を30分刻みに丸め。time input で変更可能
@@ -487,6 +487,7 @@
 - **一本オーバーレイ**: 勝者サイド色でフラッシュ（背景色 `winnerColor + 88`、テキスト色 `winnerColor`、白い光のtext-shadow）。2秒後にフェードアウト。レスポンシブフォントサイズ（`min(20vw,8rem)`）で見切れ防止
 - **寝技カウントダウン表示**: `newaza_direction` が `countdown` の場合、寝技タイマーを残り時間として表示。`getNewazaDisplayMs()` で制御
 - **スコア項目間隔**: `layout.scoreItemGap` で技あり・反則の表示間隔を調整可能
+- **赤白左右入れ替え（`swap_sides`）**: タイマー設定の `swap_sides` が `true` の場合、表示画面で赤（左）と白（右）の位置を入れ替えて表示。色・選手名・スコアがすべて反転する。操作パネル側のボタンラベル（赤/白）は変更しない（内部ロジックは赤/白のまま）
 - 詳細仕様: `docs/TIMER_SPEC.md`
 
 ### 3.11 タイマー操作画面 (`/timer/[courtId]/control`)
@@ -506,7 +507,7 @@
 - **試合一覧に戻る**: ready/running/paused 状態で「← 試合一覧に戻る」ボタンを表示
 - **次の試合へ**: finished 状態で「次の試合へ」ボタンを押すと idle（試合一覧）に戻る。結果未確定（`resultWritten === false`）の場合は確認ダイアログ「試合結果が未確定です。戻りますか？」を表示
 - **ルール選択**: ラベル「ルール」。ルール名マッチ → 手動選択 → デフォルトの優先順で適用
-- **ルール画面のタイマー選択**: プルダウンの value をルールに紐付いたタイマーで保持（選択後にリセットされない）
+- **ルール→タイマー紐付け**: `rules.timer_preset_id` でルールごとにタイマーを紐付け。1つのタイマーを複数ルールで共有可能。操作画面では試合のルール名から `rules.timer_preset_id` を引いてプリセットを自動選択
 - **結果書き戻し**: 試合終了後に finish_timer API でDB更新（winner_id, result_method, result_detail）、次ラウンド進出も自動処理
 - **勝利方法選択**: `prompt()` ではなくボタンリストで選択（ポイント/技あり優勢/一本/合わせ一本/反則勝ち/判定/棄権勝ち/負傷勝ち）
 - **勝利確定後フロー**: 勝者と勝利方法を大きく表示。「確定する」ボタン（DB書き戻し）＋「訂正する」ボタン（time_upに戻る）
@@ -525,8 +526,9 @@
 - `@media print` 最適化
 
 ### 3.13 タイマー管理 (`/admin/timer-presets`)
-- タイマーの CRUD + 複製
+- タイマーの CRUD + 複製（複製は一覧の末尾に追加）
 - 基本設定（試合時間・方向・延長）、寝技（カウントアップ/カウントダウン切替）、ポイント・反則、表示テーマ、ブザーをフルカスタマイズ
+- **赤白左右入れ替え**: 表示設定セクションの「赤白の左右を入れ替え」チェックボックスで `swap_sides` を切替
 - カラー設定: ネイティブカラーピッカー（`type="color"`）で色選択、HEXコード自動表示
 - **レイアウトエディタ**: インライン表示（モーダル廃止）。行ベースのビジュアルエディタ。行の追加（目立つ破線ボタン）・削除・並べ替え（D&D、⠿ハンドル）、フォントサイズ（vh数値、上限なし）・高さ・配置を自由設定。▶/▼で展開/折りたたみ。表示ラベル設定はアコーディオン内。スコア項目間隔（`scoreItemGap`）スライダー付き
 - **プレビュー横並び**: フォーム（左、スクロール可能）とプレビュー（右、sticky固定）を `grid-cols-2` で横並び表示。モバイルでは縦並びフォールバック
@@ -595,6 +597,7 @@ rules (
   name TEXT NOT NULL,
   name_reading TEXT,            -- TTS 読み仮名
   description TEXT,             -- ルールの説明・詳細（フォーム設定の注意書きにデフォルト挿入される）
+  timer_preset_id UUID → timer_presets,  -- 紐付けタイマー（1タイマー:Nルール）
   created_at TIMESTAMPTZ
 )
 
@@ -647,10 +650,11 @@ timer_presets (
   id UUID PK,
   name TEXT NOT NULL,
   event_id UUID → events,     -- NULL = グローバル
-  rule_id UUID → rules,       -- 紐付けルール
+  rule_id UUID → rules,       -- レガシー（廃止予定。rules.timer_preset_id に移行済み）
   match_duration INT DEFAULT 120,
   timer_direction TEXT DEFAULT 'countdown',
   newaza_direction TEXT DEFAULT 'countup',  -- 寝技カウント方向
+  swap_sides BOOLEAN DEFAULT false,  -- 赤白の左右入れ替え
   -- 延長・寝技・ポイント・反則・表示・テーマ・ブザー（全46+カラム）
   -- 詳細は docs/TIMER_SPEC.md §9.1 参照
   created_at TIMESTAMPTZ,
@@ -1083,6 +1087,12 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 
 ### 過去の変更
 
+- ルール・タイマー設定の改善（5件）:
+  - ルール画面のタイマー設定UIデザイン改善: プルダウン常時表示を廃止。タイマー未設定時は「タイマーを設定する」ボタン、設定済みは「タイマー名 + 変更/解除ボタン」を表示
+  - タイマー1:ルールNの関係に修正: `rules.timer_preset_id` カラム追加。ルール側からタイマーを参照する形に変更し、1つのタイマーを複数ルールで共有可能に。操作画面の `getPresetForMatch` を `rulePresetMap` 方式に変更
+  - システム全体のスピナー漏れ再チェック: `timer-presets-panel.tsx` の削除（`deletingId`）・複製（`duplicatingId`）にローディング状態を追加
+  - タイマー複製が末尾に追加: 一覧のソート順を `created_at ASC` に変更し、複製・新規作成が末尾に表示されるよう修正
+  - 赤白の左右入れ替え機能: `timer_presets.swap_sides` カラム追加。設定UIにチェックボックス追加。タイマー表示画面で `swap_sides=true` の場合に赤白の色・選手名・スコアを左右反転して表示
 - `entries.is_seed` カラム削除済み（`supabase/migrations/0002_drop_is_seed.sql`）
 - `lib/entry-utils.ts` 削除済み（`ensureFighterFromEntry` は `lib/ensure-fighter.ts` に移動）
 - `/live` アクセス制御: アクティブな大会がない場合はゲート画面表示（認証不要）
@@ -1144,7 +1154,8 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 
 - 振り分けルールに年代範囲（min_grade/max_grade）を追加: `bracket_rules` テーブルに `min_grade`/`max_grade` カラムを追加。型定義・API POST/PUT・UIフォーム（セレクトボックス2つ）・一覧表示・auto-bracket の `matchesRule()` に年代フィルタを追加。`AutoCreateDialog` のルール詳細表示にも年代範囲を表示。トーナメント確定時の振り分けルール保存にも min_grade/max_grade を含める
 - 全ボタン・操作にローディング表示を統一追加: 非同期操作を行う全ボタンに `disabled` + テキスト変更（「処理中...」「削除中...」等）を追加。対象16箇所:
-  - `/admin` ページ: ログアウト（`loggingOut`）、流派読み仮名更新（ReadingInput の `saving`）、ルール読み仮名更新（ReadingInput の `saving`）、ルール説明更新（DescriptionInput の `saving`）、タイマー紐付け（`linkingPresetId`）、イベント再開（`reopeningId`）
+  - `/admin` ページ: ログアウト（`loggingOut`）、流派読み仮名更新（ReadingInput の `saving`）、ルール読み仮名更新（ReadingInput の `saving`）、ルール説明更新（DescriptionInput の `saving`）、タイマー紐付け（`linkingRuleId`）、イベント再開（`reopeningId`）
+  - `timer-presets-panel.tsx`: 削除（`deletingId`）、複製（`duplicatingId`）
   - `bracket-rules-panel.tsx`: 並び替え（`movingId`）、削除（`deletingId`）
   - `form-config-panel.tsx`: 公開/取消（`togglingReady`）、過去大会コピー（`copying`）、自由設問追加（既存 `adding`）、自由設問削除（`deletingCustomKey`）、自由設問複製（`duplicatingCustomKey`）
   - `/admin/events/[id]` ページ: バナー/OGP画像削除（`deletingImageType`）

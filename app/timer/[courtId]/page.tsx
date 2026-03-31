@@ -164,15 +164,27 @@ export default function TimerDisplayPage() {
   const fontFamily = FONT_FAMILY_MAP[p?.theme_font_family ?? "digital"];
   const dividerColor = p?.theme_divider_color ?? "#333333";
   const showDecimals = p?.theme_show_decimals ?? false;
-  const colorLeft = p?.color_left ?? "#DC2626";
-  const colorRight = p?.color_right ?? "#FFFFFF";
+  const swapSides = p?.swap_sides ?? false;
+  const colorLeft = swapSides ? (p?.color_right ?? "#FFFFFF") : (p?.color_left ?? "#DC2626");
+  const colorRight = swapSides ? (p?.color_left ?? "#DC2626") : (p?.color_right ?? "#FFFFFF");
 
   const isCountdown = (p?.timer_direction ?? "countdown") === "countdown";
   const isWarn = isCountdown && displayMs <= warnThreshold && state.phase === "running";
   const currentTimerColor = isWarn ? warnColor : timerColor;
 
+  // swap_sides 対応: 左右のデータを入れ替え
+  const leftName = swapSides ? state.white.name : state.red.name;
+  const rightName = swapSides ? state.red.name : state.white.name;
+  const leftColorName = swapSides ? (p?.color_right_name || "白") : (p?.color_left_name || "赤");
+  const rightColorName = swapSides ? (p?.color_left_name || "赤") : (p?.color_right_name || "白");
+  const leftScore = swapSides ? state.whiteScore : state.redScore;
+  const rightScore = swapSides ? state.redScore : state.whiteScore;
+
   const isFinished = state.phase === "finished";
   const isDraw = state.resultMethod === "draw";
+  const leftWins = isFinished && (swapSides ? state.winnerSide === "white" : state.winnerSide === "red");
+  const rightWins = isFinished && (swapSides ? state.winnerSide === "red" : state.winnerSide === "white");
+  // Keep legacy aliases for non-swap-aware code
   const redWins = isFinished && state.winnerSide === "red";
   const whiteWins = isFinished && state.winnerSide === "white";
 
@@ -253,10 +265,10 @@ export default function TimerDisplayPage() {
         return (
           <div key={idx} style={{ ...baseStyle, gap: `${layout.scoreGap}px` }}>
             <div className="flex-1 font-bold truncate px-2" style={{ color: colorLeft, fontSize: `${row.fontSize}vh`, textAlign: row.align }}>
-              {state.red.name || p?.color_left_name || "赤"}
+              {leftName || leftColorName}
             </div>
             <div className="flex-1 font-bold truncate px-2" style={{ color: colorRight, fontSize: `${row.fontSize}vh`, textAlign: row.align }}>
-              {state.white.name || p?.color_right_name || "白"}
+              {rightName || rightColorName}
             </div>
           </div>
         );
@@ -265,55 +277,55 @@ export default function TimerDisplayPage() {
         const subFs = row.subFontSize ?? row.fontSize * 0.3;
         return (
           <div key={idx} style={{ ...baseStyle, gap: `${layout.scoreGap}px` }}>
-            {/* 赤スコア */}
+            {/* 左側スコア */}
             <div
               className="flex-1 flex flex-col items-center justify-center relative"
-              style={{ backgroundColor: redWins ? `${colorLeft}33` : "transparent" }}
+              style={{ backgroundColor: leftWins ? `${colorLeft}33` : "transparent" }}
             >
               {p?.show_points && (
                 <span className="font-bold leading-none tabular-nums" style={{ fontSize: `${row.fontSize}vh`, color: colorLeft }}>
-                  {state.redScore.points}
+                  {leftScore.points}
                 </span>
               )}
               <div className="flex items-center mt-1" style={{ gap: `${layout.scoreItemGap ?? 8}px` }}>
                 {p?.show_wazaari && (
                   <span className="font-bold tabular-nums" style={{ fontSize: `${subFs}vh`, color: colorLeft }}>
-                    {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelWazaari}</span>}{state.redScore.wazaari}
+                    {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelWazaari}</span>}{leftScore.wazaari}
                   </span>
                 )}
                 {p?.show_fouls && (
                   <span className="font-bold tabular-nums text-yellow-400" style={{ fontSize: `${subFs}vh` }}>
-                    {layout.labelFoul && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelFoul}</span>}{state.redScore.fouls}
+                    {layout.labelFoul && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelFoul}</span>}{leftScore.fouls}
                   </span>
                 )}
               </div>
-              {redWins && (
+              {leftWins && (
                 <p className="text-green-400 font-bold" style={{ fontSize: `${Math.max(subFs * 0.6, 1)}vh` }}>{resultDisplayText(state)}</p>
               )}
             </div>
-            {/* 白スコア */}
+            {/* 右側スコア */}
             <div
               className="flex-1 flex flex-col items-center justify-center relative"
-              style={{ backgroundColor: whiteWins ? `${colorRight}33` : "transparent" }}
+              style={{ backgroundColor: rightWins ? `${colorRight}33` : "transparent" }}
             >
               {p?.show_points && (
                 <span className="font-bold leading-none tabular-nums" style={{ fontSize: `${row.fontSize}vh`, color: colorRight }}>
-                  {state.whiteScore.points}
+                  {rightScore.points}
                 </span>
               )}
               <div className="flex items-center mt-1" style={{ gap: `${layout.scoreItemGap ?? 8}px` }}>
                 {p?.show_wazaari && (
                   <span className="font-bold tabular-nums" style={{ fontSize: `${subFs}vh`, color: colorRight }}>
-                    {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelWazaari}</span>}{state.whiteScore.wazaari}
+                    {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelWazaari}</span>}{rightScore.wazaari}
                   </span>
                 )}
                 {p?.show_fouls && (
                   <span className="font-bold tabular-nums text-yellow-400" style={{ fontSize: `${subFs}vh` }}>
-                    {layout.labelFoul && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelFoul}</span>}{state.whiteScore.fouls}
+                    {layout.labelFoul && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelFoul}</span>}{rightScore.fouls}
                   </span>
                 )}
               </div>
-              {whiteWins && (
+              {rightWins && (
                 <p className="text-green-400 font-bold" style={{ fontSize: `${Math.max(subFs * 0.6, 1)}vh` }}>{resultDisplayText(state)}</p>
               )}
               {isDraw && (
@@ -341,7 +353,7 @@ export default function TimerDisplayPage() {
       {layout.rows.map(renderRow)}
 
       {isFinished && state.resultMethod === "ippon" && (
-        <IpponOverlay winnerColor={redWins ? colorLeft : colorRight} />
+        <IpponOverlay winnerColor={leftWins ? colorLeft : colorRight} />
       )}
     </div>
   );
