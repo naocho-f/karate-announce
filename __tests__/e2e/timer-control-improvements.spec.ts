@@ -218,4 +218,32 @@ test.describe("タイマー表示画面改善", () => {
     // idle 画面にフルスクリーン切替の説明テキストがある
     await expect(page.locator("text=クリックでフルスクリーン切替")).toBeVisible({ timeout: 5_000 });
   });
+
+  test("スコア行が3分割レイアウトで反則インジケータが表示される", async ({ page, context }) => {
+    // 操作画面と表示画面を同時に開く
+    const controlPage = await context.newPage();
+    await controlPage.goto("/timer/1/control");
+    await page.goto("/timer/1");
+
+    // 操作画面でクイック試合を開始
+    await controlPage.locator("text=クイック試合").click();
+    await expect(controlPage.locator("text=準備完了")).toBeVisible({ timeout: 5_000 });
+
+    // 表示画面でスコア行が表示されるのを待つ
+    await expect(page.locator("[data-testid='scores-row']")).toBeVisible({ timeout: 10_000 });
+
+    // 反則インジケータ（左・右）が表示される
+    await expect(page.locator("[data-testid='foul-indicator-left']")).toBeVisible();
+    await expect(page.locator("[data-testid='foul-indicator-right']")).toBeVisible();
+
+    // 反則セル（①〜④）が存在する
+    for (const side of ["left", "right"]) {
+      for (const n of [1, 2, 3, 4]) {
+        await expect(page.locator(`[data-testid='foul-cell-${side}-${n}']`)).toBeVisible();
+      }
+    }
+
+    // 操作画面を閉じる
+    await controlPage.close();
+  });
 });

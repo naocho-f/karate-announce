@@ -391,7 +391,9 @@ export function TimerPresetsPanel() {
             }
 
             if (row.type === "scores") {
-              const subFsPx = vhToPx(row.subFontSize ?? 6);
+              const foulCellH = Math.max(fsPx * 0.22, 4);
+              const foulCellW = Math.max(fsPx * 0.35, 6);
+              const foulFsPx = Math.max(fsPx * 0.13, 3);
               return (
                 <div
                   key={idx}
@@ -399,33 +401,63 @@ export function TimerPresetsPanel() {
                   style={{
                     height: `${rowVh}%`,
                     borderTop,
-                    gap: `${layout.scoreGap}px`,
                   }}
                 >
-                  {/* Left */}
-                  <div className="flex-1 flex flex-col items-center justify-center relative">
-                    <span className="font-bold tabular-nums leading-none" style={{ color: colorLeft, fontSize: `${fsPx}px`, ...alignStyle(row.align) }}>3</span>
-                    <div className="flex items-center" style={{ fontSize: `${subFsPx}px`, gap: `${(layout.scoreItemGap ?? 8) * 0.3}px` }}>
-                      <span className="font-bold tabular-nums" style={{ color: colorLeft }}>
-                        {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>{layout.labelWazaari}</span>}1
-                      </span>
-                      <span className="font-bold tabular-nums text-yellow-400">
-                        {layout.labelFoul && <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>{layout.labelFoul}</span>}1
-                      </span>
+                  {/* Left: foul indicator + point */}
+                  <div className="flex-1 flex">
+                    {/* Foul indicator (left edge) */}
+                    <div className="flex flex-col justify-center" style={{ padding: `0 ${fsPx * 0.05}px` }}>
+                      {[4, 3, 2, 1].map((n) => (
+                        <div
+                          key={n}
+                          style={{
+                            width: `${foulCellW}px`,
+                            height: `${foulCellH}px`,
+                            backgroundColor: n === 1 ? colorLeft : "#1a1a2e",
+                            border: "1px solid #333",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: `${foulFsPx}px`,
+                            color: n === 1 ? "#000" : "#555",
+                          }}
+                        />
+                      ))}
+                    </div>
+                    {/* Point */}
+                    <div className="flex-1 flex items-center justify-center">
+                      <span className="font-bold tabular-nums leading-none" style={{ color: colorLeft, fontSize: `${fsPx}px` }}>3</span>
                     </div>
                   </div>
-                  {/* Divider */}
-                  <div style={{ width: `${dividerThickness}px`, background: dividerColor }} />
-                  {/* Right */}
-                  <div className="flex-1 flex flex-col items-center justify-center relative">
-                    <span className="font-bold tabular-nums leading-none" style={{ color: colorRight, fontSize: `${fsPx}px` }}>1</span>
-                    <div className="flex items-center" style={{ fontSize: `${subFsPx}px`, gap: `${(layout.scoreItemGap ?? 8) * 0.3}px` }}>
-                      <span className="font-bold tabular-nums" style={{ color: colorRight }}>
-                        {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>{layout.labelWazaari}</span>}0
-                      </span>
-                      <span className="font-bold tabular-nums text-yellow-400">
-                        {layout.labelFoul && <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>{layout.labelFoul}</span>}0
-                      </span>
+                  {/* Center: newaza */}
+                  <div className="flex flex-col items-center justify-center" style={{ minWidth: `${fsPx * 1.2}px`, borderLeft: `${dividerThickness}px solid ${dividerColor}`, borderRight: `${dividerThickness}px solid ${dividerColor}` }}>
+                    <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.2}px` }}>{layout.labelNewaza || "寝技"}</span>
+                    <PreviewTimerDigits text="0:12" style={{ color: "rgb(34 211 238)", fontSize: `${fsPx * 0.45}px` }} />
+                  </div>
+                  {/* Right: point + foul indicator */}
+                  <div className="flex-1 flex">
+                    {/* Point */}
+                    <div className="flex-1 flex items-center justify-center">
+                      <span className="font-bold tabular-nums leading-none" style={{ color: colorRight, fontSize: `${fsPx}px` }}>1</span>
+                    </div>
+                    {/* Foul indicator (right edge) */}
+                    <div className="flex flex-col justify-center" style={{ padding: `0 ${fsPx * 0.05}px` }}>
+                      {[4, 3, 2, 1].map((n) => (
+                        <div
+                          key={n}
+                          style={{
+                            width: `${foulCellW}px`,
+                            height: `${foulCellH}px`,
+                            backgroundColor: "#1a1a2e",
+                            border: "1px solid #333",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: `${foulFsPx}px`,
+                            color: "#555",
+                          }}
+                        />
+                      ))}
                     </div>
                   </div>
                 </div>

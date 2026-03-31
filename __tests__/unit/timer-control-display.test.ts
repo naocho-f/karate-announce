@@ -4,6 +4,7 @@
  * #2: confirm()削除 — addIppon が直接呼ばれることを確認
  * #6: 勝利方法ボタン化 — ResultMethod の全値が定義済みであることを確認
  * #12: 半角→全角数字変換
+ * 反則インジケータ: 反則数に応じたセル塗りつぶしロジック
  */
 import { describe, it, expect } from "vitest";
 import type { ResultMethod } from "@/lib/timer-state";
@@ -142,6 +143,50 @@ describe("勝利方法ラベル (#6)", () => {
 
   it("null の場合は空文字を返す", () => {
     expect(resultMethodLabel(null)).toBe("");
+  });
+});
+
+describe("反則インジケータのセル塗りつぶしロジック", () => {
+  // 反則インジケータは①(下)〜④(上)の4セル。反則数以下のセルが選手色で塗りつぶし。
+  // ロジック: fouls >= n のとき、セル n が塗りつぶされる。
+
+  function isFoulCellFilled(fouls: number, cellNumber: number): boolean {
+    return fouls >= cellNumber;
+  }
+
+  it("反則0回: すべてのセルが暗い背景", () => {
+    expect(isFoulCellFilled(0, 1)).toBe(false);
+    expect(isFoulCellFilled(0, 2)).toBe(false);
+    expect(isFoulCellFilled(0, 3)).toBe(false);
+    expect(isFoulCellFilled(0, 4)).toBe(false);
+  });
+
+  it("反則1回: ①のみ塗りつぶし", () => {
+    expect(isFoulCellFilled(1, 1)).toBe(true);
+    expect(isFoulCellFilled(1, 2)).toBe(false);
+    expect(isFoulCellFilled(1, 3)).toBe(false);
+    expect(isFoulCellFilled(1, 4)).toBe(false);
+  });
+
+  it("反則2回: ①②が塗りつぶし", () => {
+    expect(isFoulCellFilled(2, 1)).toBe(true);
+    expect(isFoulCellFilled(2, 2)).toBe(true);
+    expect(isFoulCellFilled(2, 3)).toBe(false);
+    expect(isFoulCellFilled(2, 4)).toBe(false);
+  });
+
+  it("反則3回: ①②③が塗りつぶし", () => {
+    expect(isFoulCellFilled(3, 1)).toBe(true);
+    expect(isFoulCellFilled(3, 2)).toBe(true);
+    expect(isFoulCellFilled(3, 3)).toBe(true);
+    expect(isFoulCellFilled(3, 4)).toBe(false);
+  });
+
+  it("反則4回: ①②③④が全て塗りつぶし", () => {
+    expect(isFoulCellFilled(4, 1)).toBe(true);
+    expect(isFoulCellFilled(4, 2)).toBe(true);
+    expect(isFoulCellFilled(4, 3)).toBe(true);
+    expect(isFoulCellFilled(4, 4)).toBe(true);
   });
 });
 

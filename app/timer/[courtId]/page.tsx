@@ -274,62 +274,101 @@ export default function TimerDisplayPage() {
         );
 
       case "scores": {
-        const subFs = row.subFontSize ?? row.fontSize * 0.3;
+        const foulCellH = `${row.fontSize * 0.22}vh`;
+        const foulCellW = `${row.fontSize * 0.35}vh`;
+        const foulFs = `${row.fontSize * 0.13}vh`;
         return (
-          <div key={idx} style={{ ...baseStyle, gap: `${layout.scoreGap}px` }}>
-            {/* 左側スコア */}
-            <div
-              className="flex-1 flex flex-col items-center justify-center relative"
-              style={{ backgroundColor: leftWins ? `${colorLeft}33` : "transparent" }}
-            >
-              {p?.show_points && (
-                <span className="font-bold leading-none tabular-nums" style={{ fontSize: `${row.fontSize}vh`, color: colorLeft }}>
-                  {leftScore.points}
-                </span>
+          <div key={idx} style={{ ...baseStyle }} data-testid="scores-row">
+            {/* 左側: 反則インジケータ + ポイント */}
+            <div className="flex-1 flex relative" style={{ backgroundColor: leftWins ? `${colorLeft}33` : "transparent" }}>
+              {/* 反則インジケータ（左端） */}
+              {p?.show_fouls && (
+                <div className="flex flex-col justify-center" style={{ padding: `0 ${row.fontSize * 0.1}vh` }} data-testid="foul-indicator-left">
+                  {[4, 3, 2, 1].map((n) => (
+                    <div
+                      key={n}
+                      data-testid={`foul-cell-left-${n}`}
+                      style={{
+                        width: foulCellW,
+                        height: foulCellH,
+                        backgroundColor: leftScore.fouls >= n ? colorLeft : "#1a1a2e",
+                        border: "1px solid #333",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: foulFs,
+                        color: leftScore.fouls >= n ? "#000" : "#555",
+                      }}
+                    >
+                      {n === 1 ? "\u2460" : n === 2 ? "\u2461" : n === 3 ? "\u2462" : "\u2463"}
+                    </div>
+                  ))}
+                </div>
               )}
-              <div className="flex items-center mt-1" style={{ gap: `${layout.scoreItemGap ?? 8}px` }}>
-                {p?.show_wazaari && (
-                  <span className="font-bold tabular-nums" style={{ fontSize: `${subFs}vh`, color: colorLeft }}>
-                    {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelWazaari}</span>}{leftScore.wazaari}
+              {/* ポイント */}
+              <div className="flex-1 flex flex-col items-center justify-center">
+                {p?.show_points && (
+                  <span className="font-bold leading-none tabular-nums" style={{ fontSize: `${row.fontSize}vh`, color: colorLeft }}>
+                    {leftScore.points}
                   </span>
                 )}
-                {p?.show_fouls && (
-                  <span className="font-bold tabular-nums text-yellow-400" style={{ fontSize: `${subFs}vh` }}>
-                    {layout.labelFoul && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelFoul}</span>}{leftScore.fouls}
-                  </span>
+                {leftWins && (
+                  <p className="text-green-400 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.18, 1)}vh` }}>{resultDisplayText(state)}</p>
                 )}
               </div>
-              {leftWins && (
-                <p className="text-green-400 font-bold" style={{ fontSize: `${Math.max(subFs * 0.6, 1)}vh` }}>{resultDisplayText(state)}</p>
-              )}
             </div>
-            {/* 右側スコア */}
-            <div
-              className="flex-1 flex flex-col items-center justify-center relative"
-              style={{ backgroundColor: rightWins ? `${colorRight}33` : "transparent" }}
-            >
-              {p?.show_points && (
-                <span className="font-bold leading-none tabular-nums" style={{ fontSize: `${row.fontSize}vh`, color: colorRight }}>
-                  {rightScore.points}
-                </span>
-              )}
-              <div className="flex items-center mt-1" style={{ gap: `${layout.scoreItemGap ?? 8}px` }}>
-                {p?.show_wazaari && (
-                  <span className="font-bold tabular-nums" style={{ fontSize: `${subFs}vh`, color: colorRight }}>
-                    {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelWazaari}</span>}{rightScore.wazaari}
+            {/* 中央: 寝技 */}
+            <div className="flex flex-col items-center justify-center" style={{ minWidth: `${row.fontSize * 1.2}vh`, borderLeft: `${layout.dividerThickness}px solid ${dividerColor}`, borderRight: `${layout.dividerThickness}px solid ${dividerColor}` }}>
+              {showNewaza ? (
+                <>
+                  <span className="text-gray-500 font-bold" style={{ fontSize: `${row.fontSize * 0.2}vh` }}>{layout.labelNewaza || "寝技"}</span>
+                  <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${row.fontSize * 0.45}vh` }}>
+                    {formatTime(newazaDispMs)}
                   </span>
-                )}
-                {p?.show_fouls && (
-                  <span className="font-bold tabular-nums text-yellow-400" style={{ fontSize: `${subFs}vh` }}>
-                    {layout.labelFoul && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelFoul}</span>}{rightScore.fouls}
-                  </span>
-                )}
-              </div>
-              {rightWins && (
-                <p className="text-green-400 font-bold" style={{ fontSize: `${Math.max(subFs * 0.6, 1)}vh` }}>{resultDisplayText(state)}</p>
+                </>
+              ) : (
+                <span className="text-gray-500 font-bold" style={{ fontSize: `${row.fontSize * 0.2}vh` }}>{layout.labelNewaza || "寝技"}</span>
               )}
               {isDraw && (
-                <p className="absolute inset-0 flex items-center justify-center text-gray-400 font-bold" style={{ fontSize: `${Math.max(subFs, 2)}vh` }}>引き分け</p>
+                <p className="text-gray-400 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.2, 1.5)}vh` }}>引き分け</p>
+              )}
+            </div>
+            {/* 右側: ポイント + 反則インジケータ */}
+            <div className="flex-1 flex relative" style={{ backgroundColor: rightWins ? `${colorRight}33` : "transparent" }}>
+              {/* ポイント */}
+              <div className="flex-1 flex flex-col items-center justify-center">
+                {p?.show_points && (
+                  <span className="font-bold leading-none tabular-nums" style={{ fontSize: `${row.fontSize}vh`, color: colorRight }}>
+                    {rightScore.points}
+                  </span>
+                )}
+                {rightWins && (
+                  <p className="text-green-400 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.18, 1)}vh` }}>{resultDisplayText(state)}</p>
+                )}
+              </div>
+              {/* 反則インジケータ（右端） */}
+              {p?.show_fouls && (
+                <div className="flex flex-col justify-center" style={{ padding: `0 ${row.fontSize * 0.1}vh` }} data-testid="foul-indicator-right">
+                  {[4, 3, 2, 1].map((n) => (
+                    <div
+                      key={n}
+                      data-testid={`foul-cell-right-${n}`}
+                      style={{
+                        width: foulCellW,
+                        height: foulCellH,
+                        backgroundColor: rightScore.fouls >= n ? colorRight : "#1a1a2e",
+                        border: "1px solid #333",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: foulFs,
+                        color: rightScore.fouls >= n ? "#000" : "#555",
+                      }}
+                    >
+                      {n === 1 ? "\u2460" : n === 2 ? "\u2461" : n === 3 ? "\u2462" : "\u2463"}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
