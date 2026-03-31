@@ -58,6 +58,22 @@ export function getGradeOptions(ageCategories?: AgeCategory[]): GradeOption[] {
 }
 
 /**
+ * ラベルが年齢ベース区分かどうか判定する
+ */
+export function isAgeCategoryLabel(label: string, ageCategories?: AgeCategory[]): boolean {
+  const cats = ageCategories ?? DEFAULT_AGE_CATEGORIES;
+  return cats.some((cat) => cat.label === label);
+}
+
+/**
+ * ラベルから年齢ベース区分を検索して返す（見つからなければ null）
+ */
+export function findAgeCategory(label: string, ageCategories?: AgeCategory[]): AgeCategory | null {
+  const cats = ageCategories ?? DEFAULT_AGE_CATEGORIES;
+  return cats.find((cat) => cat.label === label) ?? null;
+}
+
+/**
  * 年代区分の文字列を数値に変換する（学年差比較に使用）
  *
  * 幼稚園: 年少=-2, 年中=-1, 年長=0

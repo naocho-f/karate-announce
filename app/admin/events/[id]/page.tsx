@@ -21,7 +21,7 @@ import { BracketRulesPanel } from "@/components/bracket-rules-panel";
 import { AutoCreateDialog } from "@/components/auto-create-dialog";
 import { computeSuggestions } from "@/lib/suggestions";
 import type { AutoGroup } from "@/lib/auto-bracket";
-import { getGradeOptions, gradeToNumber } from "@/lib/grade-options";
+import { getGradeOptions, gradeToNumber, findAgeCategory, type AgeCategory } from "@/lib/grade-options";
 import Link from "next/link";
 import { FormConfigPanel } from "./form-config-panel";
 import { estimateMatchMinutes, formatTimeEstimate, countActualMatches, roundedNowHHMM } from "@/lib/time-estimate";
@@ -110,6 +110,7 @@ export default function EventDetailPage({ params }: Props) {
   const [currentFormVersion, setCurrentFormVersion] = useState<number | null>(null);
   const [formConfigVersion, setFormConfigVersion] = useState(0);
   const [formConfigReady, setFormConfigReady] = useState(false);
+  const [ageCategories, setAgeCategories] = useState<AgeCategory[] | undefined>(undefined);
 
   const load = useCallback(async () => {
     const [{ data: e }, { data: er }, { data: ents }, { data: ts }, { data: fc }] = await Promise.all([
@@ -189,6 +190,16 @@ export default function EventDetailPage({ params }: Props) {
       .select("id", { count: "exact", head: true })
       .eq("event_id", id);
     setBracketRuleCount(brCount ?? 0);
+
+    // 年代区分設定を取得
+    const { data: settingsRows } = await supabase
+      .from("settings")
+      .select("key, value")
+      .eq("key", "age_categories")
+      .maybeSingle();
+    if (settingsRows?.value && Array.isArray(settingsRows.value)) {
+      setAgeCategories(settingsRows.value as AgeCategory[]);
+    }
   }, [id]);
 
   async function saveEventMeta() {
@@ -635,6 +646,7 @@ export default function EventDetailPage({ params }: Props) {
               processingEntryIds={processingEntryIds}
               processingRuleKeys={processingRuleKeys}
               currentFormVersion={currentFormVersion}
+              ageCategories={ageCategories}
               onToggleRule={toggleEntryRule}
               onToggleWithdrawn={toggleWithdrawn}
               onDelete={deleteEntry}
@@ -736,6 +748,7 @@ export default function EventDetailPage({ params }: Props) {
                       bracketRuleCount={bracketRuleCount}
                       allMatchRows={allMatchRows}
                       timerPresets={timerPresets}
+                      ageCategories={ageCategories}
                       onCreated={load}
                       onAutoCreate={() => setShowAutoDialog(true)}
                       onNavigateToBracketRules={() => setBracketSubTab("bracket-rules")}
@@ -751,6 +764,7 @@ export default function EventDetailPage({ params }: Props) {
                 rules={rules}
                 courtCount={event.court_count}
                 courtNames={event.court_names}
+                ageCategories={ageCategories}
               />
             )}
 
@@ -1305,7 +1319,7 @@ type FormFieldConfig = {
   custom_choices: { label: string; value: string }[] | null;
 };
 
-function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules, processingEntryIds, processingRuleKeys, currentFormVersion, onToggleRule, onToggleWithdrawn, onDelete, onAdded }: {
+function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules, processingEntryIds, processingRuleKeys, currentFormVersion, ageCategories, onToggleRule, onToggleWithdrawn, onDelete, onAdded }: {
   eventId: string;
   eventName: string;
   entries: Entry[];
@@ -1314,6 +1328,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
   processingEntryIds: Set<string>;
   processingRuleKeys: Set<string>;
   currentFormVersion: number | null;
+  ageCategories?: AgeCategory[];
   onToggleRule: (entryId: string, ruleId: string) => void;
   onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void;
   onDelete: (id: string) => void;
@@ -1589,7 +1604,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
       </div>
 
       {showForm && (
-        <AddEntryForm eventId={eventId} eventRules={eventRules} onAdded={() => { setShowForm(false); onAdded(); }} />
+        <AddEntryForm eventId={eventId} eventRules={eventRules} ageCategories={ageCategories} onAdded={() => { setShowForm(false); onAdded(); }} />
       )}
 
       {open && (
@@ -1757,9 +1772,10 @@ function InlineMemoEditor({ entryId, initialValue, onSaved }: {
   );
 }
 
-function AddEntryForm({ eventId, eventRules, onAdded }: {
+function AddEntryForm({ eventId, eventRules, ageCategories, onAdded }: {
   eventId: string;
   eventRules: Rule[];
+  ageCategories?: AgeCategory[];
   onAdded: () => void;
 }) {
   const [familyName, setFamilyName] = useState("");
@@ -1841,7 +1857,7 @@ function AddEntryForm({ eventId, eventRules, onAdded }: {
         <input value={age} onChange={(e) => setAge(e.target.value)} placeholder="年齢" type="number" min="1" max="99" className={`w-20 ${inp}`} />
         <select value={grade} onChange={(e) => setGrade(e.target.value)} className={`w-28 ${inp}`}>
           <option value="">年代区分</option>
-          {getGradeOptions().map((o) => (
+          {getGradeOptions(ageCategories).map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
@@ -2048,7 +2064,7 @@ function RuleDistributionPanel({ entries, eventRules, entryRuleIds }: {
   );
 }
 
-function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, eventRules, tournaments, tournamentMatchFighterIds, rules, mismatchSettings, savedMatchPairs, bracketRuleCount, allMatchRows, timerPresets, onCreated, onAutoCreate, onNavigateToBracketRules }: {
+function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, eventRules, tournaments, tournamentMatchFighterIds, rules, mismatchSettings, savedMatchPairs, bracketRuleCount, allMatchRows, timerPresets, ageCategories, onCreated, onAutoCreate, onNavigateToBracketRules }: {
   courtNum: number;
   courtLabel: string;
   eventId: string;
@@ -2063,6 +2079,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
   bracketRuleCount: number;
   allMatchRows: Array<{ tournament_id: string; fighter1_id: string | null; fighter2_id: string | null }>;
   timerPresets: TimerPreset[];
+  ageCategories?: AgeCategory[];
   onCreated: () => void;
   onAutoCreate: () => void;
   onNavigateToBracketRules: () => void;
@@ -2449,6 +2466,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
             entryRuleIds={entryRuleIds}
             defaultRuleId={defaultRuleId}
             mismatchSettings={mismatchSettings}
+            ageCategories={ageCategories}
             canRemove={groups.length > 1}
             existingPairs={[
               // 画面上の未保存ペア
@@ -2546,7 +2564,15 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
       intervalSec: intervalMin * 60,
     });
 
-    return formatTimeEstimate({ minutes, startTime });
+    const extensionSec = hasExtension ? extensionDurationSec * 0.5 : 0;
+    return formatTimeEstimate({
+      minutes,
+      startTime,
+      matchCount: courtMatchCount,
+      matchDurationSec,
+      extensionSec,
+      intervalSec: intervalMin * 60,
+    });
   }, [courtMatchCount, tournaments, rules, timerPresets, intervalMin, startTime]);
 
   return (
@@ -2564,6 +2590,9 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
               <span className="text-gray-400">（{startTime}開始 → <span className="text-white font-medium">{timeEstimate.endTime}</span>終了予定）</span>
             )}
           </div>
+          {timeEstimate.breakdown && (
+            <div className="text-xs text-gray-400">{timeEstimate.breakdown}</div>
+          )}
           <div className="flex items-center gap-4 text-xs">
             <label className="flex items-center gap-1.5 text-gray-400">
               開始時刻:
@@ -2755,7 +2784,7 @@ function BracketQualityBadge({ pairCount }: { pairCount: number }) {
   );
 }
 
-function GroupSection({ group, entries, unassigned, allEntries, rules, eventRules, entryRuleIds, defaultRuleId, mismatchSettings, canRemove, getDesiredMatchCount, getTotalMatchCount, existingPairs, onRename, onRemove, onAutoAssign, onUpdateMismatch, onAddPair, onRemovePair, onMovePair, onUpdateE1, onUpdateE2, onUpdateField, onUpdateFilters }: {
+function GroupSection({ group, entries, unassigned, allEntries, rules, eventRules, entryRuleIds, defaultRuleId, mismatchSettings, ageCategories, canRemove, getDesiredMatchCount, getTotalMatchCount, existingPairs, onRename, onRemove, onAutoAssign, onUpdateMismatch, onAddPair, onRemovePair, onMovePair, onUpdateE1, onUpdateE2, onUpdateField, onUpdateFilters }: {
   group: Group;
   entries: Entry[];
   unassigned: Entry[];
@@ -2765,6 +2794,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
   entryRuleIds: Record<string, Set<string>>;
   defaultRuleId: string;
   mismatchSettings: MismatchSettings;
+  ageCategories?: AgeCategory[];
   canRemove: boolean;
   getDesiredMatchCount: (entry: Entry) => number;
   getTotalMatchCount: (entry: Entry) => number;
@@ -2844,9 +2874,25 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
     if (sexFilter && e.sex !== sexFilter) return false;
     if (minGrade || maxGrade) {
       const eNum = gradeToNumber(e.grade ?? null);
-      if (eNum == null) return false;
-      if (minGrade) { const minNum = gradeToNumber(minGrade); if (minNum != null && eNum < minNum) return false; }
-      if (maxGrade) { const maxNum = gradeToNumber(maxGrade); if (maxNum != null && eNum > maxNum) return false; }
+      // 学年ベース区分: 数値で範囲比較
+      if (eNum != null) {
+        if (minGrade) { const minNum = gradeToNumber(minGrade); if (minNum != null && eNum < minNum) return false; }
+        if (maxGrade) { const maxNum = gradeToNumber(maxGrade); if (maxNum != null && eNum > maxNum) return false; }
+      } else {
+        // 年齢ベース区分: entry の grade が年齢ベース区分の場合、
+        // フィルタの minGrade/maxGrade も年齢ベース区分なら年齢で比較
+        const minCat = minGrade ? findAgeCategory(minGrade, ageCategories) : null;
+        const maxCat = maxGrade ? findAgeCategory(maxGrade, ageCategories) : null;
+        if (minCat || maxCat) {
+          // 年齢ベースフィルタ: entry の age でフィルタ
+          if (e.age == null) return false;
+          if (minCat && e.age < minCat.minAge) return false;
+          if (maxCat && maxCat.maxAge != null && e.age > maxCat.maxAge) return false;
+        } else {
+          // フィルタが学年ベースで entry が年齢ベース区分 → マッチしない
+          return false;
+        }
+      }
     }
     if (experienceFilter && !e.experience?.includes(experienceFilter)) return false;
     if (nameFilter && !entryFullName(e).toLowerCase().includes(nameFilter.toLowerCase())) return false;
@@ -2909,16 +2955,34 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
         <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-center">
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">年代</span>
-            <select value={minGrade} onChange={(e) => setMinGrade(e.target.value)} className={`w-20 ${inpSm}`}>
+            <select value={minGrade} onChange={(e) => {
+              const v = e.target.value;
+              setMinGrade(v);
+              // 年齢ベース区分選択時は minAge/maxAge を自動セット
+              const cat = v ? findAgeCategory(v, ageCategories) : null;
+              if (cat) {
+                setMinAge(String(cat.minAge));
+                setMaxAge(cat.maxAge != null ? String(cat.maxAge) : "");
+              }
+            }} className={`w-20 ${inpSm}`}>
               <option value="">下限</option>
-              {getGradeOptions().map((o) => (
+              {getGradeOptions(ageCategories).map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
             <span className="text-xs text-gray-500">〜</span>
-            <select value={maxGrade} onChange={(e) => setMaxGrade(e.target.value)} className={`w-20 ${inpSm}`}>
+            <select value={maxGrade} onChange={(e) => {
+              const v = e.target.value;
+              setMaxGrade(v);
+              // 年齢ベース区分選択時は minAge/maxAge を自動セット
+              const cat = v ? findAgeCategory(v, ageCategories) : null;
+              if (cat) {
+                setMinAge(String(cat.minAge));
+                setMaxAge(cat.maxAge != null ? String(cat.maxAge) : "");
+              }
+            }} className={`w-20 ${inpSm}`}>
               <option value="">上限</option>
-              {getGradeOptions().map((o) => (
+              {getGradeOptions(ageCategories).map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>

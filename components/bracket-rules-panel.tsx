@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { BracketRule, Rule } from "@/lib/types";
-import { getGradeOptions } from "@/lib/grade-options";
+import { getGradeOptions, type AgeCategory } from "@/lib/grade-options";
 
 type Props = {
   eventId: string;
   rules: Rule[];
   courtCount: number;
   courtNames: string[] | null;
+  ageCategories?: AgeCategory[];
 };
 
 type FormState = {
@@ -90,7 +91,7 @@ function toPayload(form: FormState, eventId: string, sortOrder: number) {
   };
 }
 
-export function BracketRulesPanel({ eventId, rules, courtCount, courtNames }: Props) {
+export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageCategories }: Props) {
   const [bracketRules, setBracketRules] = useState<BracketRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null); // null=新規作成モード
@@ -329,30 +330,45 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames }: Pr
             />
           </div>
 
+          <div>
+            <label className={labelCls}>対象ルール</label>
+            <select
+              className={inputCls}
+              value={form.rule_id}
+              onChange={(e) => setForm((f) => ({ ...f, rule_id: e.target.value }))}
+            >
+              <option value="">全ルール</option>
+              {rules.map((r) => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>対象ルール</label>
+              <label className={labelCls}>年代下限</label>
               <select
                 className={inputCls}
-                value={form.rule_id}
-                onChange={(e) => setForm((f) => ({ ...f, rule_id: e.target.value }))}
+                value={form.min_grade}
+                onChange={(e) => setForm((f) => ({ ...f, min_grade: e.target.value }))}
               >
-                <option value="">全ルール</option>
-                {rules.map((r) => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
+                <option value="">指定なし</option>
+                {getGradeOptions(ageCategories).map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className={labelCls}>性別</label>
+              <label className={labelCls}>年代上限</label>
               <select
                 className={inputCls}
-                value={form.sex_filter}
-                onChange={(e) => setForm((f) => ({ ...f, sex_filter: e.target.value }))}
+                value={form.max_grade}
+                onChange={(e) => setForm((f) => ({ ...f, max_grade: e.target.value }))}
               >
                 <option value="">指定なし</option>
-                <option value="male">男</option>
-                <option value="female">女</option>
+                {getGradeOptions(ageCategories).map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -390,33 +406,17 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames }: Pr
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>年代下限</label>
-              <select
-                className={inputCls}
-                value={form.min_grade}
-                onChange={(e) => setForm((f) => ({ ...f, min_grade: e.target.value }))}
-              >
-                <option value="">指定なし</option>
-                {getGradeOptions().map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>年代上限</label>
-              <select
-                className={inputCls}
-                value={form.max_grade}
-                onChange={(e) => setForm((f) => ({ ...f, max_grade: e.target.value }))}
-              >
-                <option value="">指定なし</option>
-                {getGradeOptions().map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label className={labelCls}>性別</label>
+            <select
+              className={inputCls}
+              value={form.sex_filter}
+              onChange={(e) => setForm((f) => ({ ...f, sex_filter: e.target.value }))}
+            >
+              <option value="">指定なし</option>
+              <option value="male">男</option>
+              <option value="female">女</option>
+            </select>
           </div>
 
           <div className="grid grid-cols-3 gap-3">

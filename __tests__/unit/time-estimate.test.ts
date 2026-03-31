@@ -16,37 +16,48 @@ describe("estimateMatchMinutes", () => {
     })).toBe(0);
   });
 
-  it("延長なし: 試合時間+インターバルで計算する", () => {
-    // 8試合 x (120秒 + 60秒) = 1440秒 = 24分
+  it("延長なし: 試合時間×試合数 + インターバル×(試合数-1)で計算する", () => {
+    // 8試合 x 120秒 + 7 x 60秒 = 960 + 420 = 1380秒 = 23分
     expect(estimateMatchMinutes({
       matchCount: 8,
       matchDurationSec: 120,
       hasExtension: false,
       extensionDurationSec: 0,
       intervalSec: 60,
-    })).toBe(24);
+    })).toBe(23);
   });
 
   it("延長あり: 延長時間の50%を加算する", () => {
-    // 8試合 x (120秒 + 60秒*0.5 + 60秒) = 8 x 210 = 1680秒 = 28分
+    // 8試合 x (120秒 + 30秒) + 7 x 60秒 = 1200 + 420 = 1620秒 = 27分
     expect(estimateMatchMinutes({
       matchCount: 8,
       matchDurationSec: 120,
       hasExtension: true,
       extensionDurationSec: 60,
       intervalSec: 60,
-    })).toBe(28);
+    })).toBe(27);
   });
 
   it("端数は切り上げる", () => {
-    // 3試合 x (90秒 + 60秒) = 450秒 = 7.5分 → 8分
+    // 3試合 x 90秒 + 2 x 60秒 = 270 + 120 = 390秒 = 6.5分 → 7分
     expect(estimateMatchMinutes({
       matchCount: 3,
       matchDurationSec: 90,
       hasExtension: false,
       extensionDurationSec: 0,
       intervalSec: 60,
-    })).toBe(8);
+    })).toBe(7);
+  });
+
+  it("1試合の場合インターバルは0", () => {
+    // 1試合 x 120秒 + 0 x 60秒 = 120秒 = 2分
+    expect(estimateMatchMinutes({
+      matchCount: 1,
+      matchDurationSec: 120,
+      hasExtension: false,
+      extensionDurationSec: 0,
+      intervalSec: 60,
+    })).toBe(2);
   });
 });
 
@@ -81,6 +92,34 @@ describe("formatTimeEstimate", () => {
   it("不正な開始時刻の場合はendTimeを返さない", () => {
     const result = formatTimeEstimate({ minutes: 45, startTime: "invalid" });
     expect(result.endTime).toBeUndefined();
+  });
+
+  it("内訳情報を返す（インターバルあり）", () => {
+    const result = formatTimeEstimate({
+      minutes: 23,
+      startTime: "10:00",
+      matchCount: 8,
+      matchDurationSec: 120,
+      extensionSec: 0,
+      intervalSec: 60,
+    });
+    expect(result.breakdown).toBe("8試合 × 2分 + 試合間1分 × 7 = 23分");
+  });
+
+  it("内訳情報を返す（インターバルなし）", () => {
+    const result = formatTimeEstimate({
+      minutes: 16,
+      matchCount: 8,
+      matchDurationSec: 120,
+      extensionSec: 0,
+      intervalSec: 0,
+    });
+    expect(result.breakdown).toBe("8試合 × 2分 = 16分");
+  });
+
+  it("内訳パラメータ未指定時はbreakdownなし", () => {
+    const result = formatTimeEstimate({ minutes: 45 });
+    expect(result.breakdown).toBeUndefined();
   });
 });
 

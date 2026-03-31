@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import type { Event, FormFieldConfig, FormNotice, CustomFieldDef } from "@/lib/types";
 import { FIELD_POOL, getFieldDef, getKanaFieldKey, isKanaField, isCustomField, customFieldToPoolItem } from "@/lib/form-fields";
 import type { FieldPoolItem } from "@/lib/form-fields";
+import { getGradeOptions, type AgeCategory } from "@/lib/grade-options";
 
 type Props = { params: Promise<{ eventId: string }> };
 
@@ -191,6 +192,9 @@ export default function EntryPage({ params }: Props) {
   // 流派・道場サジェストデータ
   const [dojoMaster, setDojoMaster] = useState<{ name: string; name_reading: string | null }[]>([]);
 
+  // 年代区分設定
+  const [ageCategories, setAgeCategories] = useState<AgeCategory[] | undefined>(undefined);
+
   const setValue = useCallback((key: string, val: string) => {
     setValues((prev) => ({ ...prev, [key]: val }));
     setFieldErrors((prev) => { if (!prev[key]) return prev; const next = { ...prev }; delete next[key]; return next; });
@@ -212,7 +216,13 @@ export default function EntryPage({ params }: Props) {
       const { data: e } = await supabase.from("events").select("*").eq("id", eventId).maybeSingle();
       setEvent(e ?? null);
       if (!e) return;
-      const { data: er } = await supabase.from("event_rules").select("rule_id").eq("event_id", eventId);
+      const [{ data: er }, { data: settingsRow }] = await Promise.all([
+        supabase.from("event_rules").select("rule_id").eq("event_id", eventId),
+        supabase.from("settings").select("key, value").eq("key", "age_categories").maybeSingle(),
+      ]);
+      if (settingsRow?.value && Array.isArray(settingsRow.value)) {
+        setAgeCategories(settingsRow.value as AgeCategory[]);
+      }
       const ruleIds = (er ?? []).map((r) => r.rule_id);
       if (ruleIds.length > 0) {
         const { data: rs } = await supabase.from("rules").select("*").in("id", ruleIds).order("name");
@@ -309,7 +319,11 @@ export default function EntryPage({ params }: Props) {
       // __single_select__ マーカーは選択肢ではないのでフィルタ
       return config.custom_choices.filter((c) => c.value !== "__single_select__");
     }
-    if (def.fixedChoices) return def.fixedChoices;
+    if (def.fixedChoices) {
+      // grade フィールドは年代区分設定を反映
+      if (def.key === "grade") return getGradeOptions(ageCategories);
+      return def.fixedChoices;
+    }
     return def.defaultChoices ?? [];
   }
 

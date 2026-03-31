@@ -6,7 +6,7 @@
  */
 import type { Entry, BracketRule } from "./types";
 import { pairsFromEntries, type PairEntry } from "./pairing";
-import { gradeToNumber } from "./grade-options";
+import { gradeToNumber, findAgeCategory } from "./grade-options";
 
 export type AutoGroup = {
   id: string;
@@ -63,14 +63,28 @@ function matchesRule(
   // 年代条件
   if (rule.min_grade != null || rule.max_grade != null) {
     const entryGradeNum = gradeToNumber(entry.grade);
-    if (entryGradeNum == null) return false;
-    if (rule.min_grade != null) {
-      const minNum = gradeToNumber(rule.min_grade);
-      if (minNum != null && entryGradeNum < minNum) return false;
-    }
-    if (rule.max_grade != null) {
-      const maxNum = gradeToNumber(rule.max_grade);
-      if (maxNum != null && entryGradeNum > maxNum) return false;
+    if (entryGradeNum != null) {
+      // 学年ベース: 数値で範囲比較
+      if (rule.min_grade != null) {
+        const minNum = gradeToNumber(rule.min_grade);
+        if (minNum != null && entryGradeNum < minNum) return false;
+      }
+      if (rule.max_grade != null) {
+        const maxNum = gradeToNumber(rule.max_grade);
+        if (maxNum != null && entryGradeNum > maxNum) return false;
+      }
+    } else {
+      // 年齢ベース区分: entry の age でフィルタ
+      const minCat = rule.min_grade ? findAgeCategory(rule.min_grade) : null;
+      const maxCat = rule.max_grade ? findAgeCategory(rule.max_grade) : null;
+      if (minCat || maxCat) {
+        const entryAge = getAge(entry);
+        if (entryAge == null) return false;
+        if (minCat && entryAge < minCat.minAge) return false;
+        if (maxCat && maxCat.maxAge != null && entryAge > maxCat.maxAge) return false;
+      } else {
+        return false;
+      }
     }
   }
 

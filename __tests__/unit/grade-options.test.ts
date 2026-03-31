@@ -7,6 +7,8 @@ import { describe, it, expect } from "vitest";
 import {
   getGradeOptions,
   gradeToNumber,
+  isAgeCategoryLabel,
+  findAgeCategory,
   FIXED_GRADE_OPTIONS,
   DEFAULT_AGE_CATEGORIES,
   type AgeCategory,
@@ -188,5 +190,61 @@ describe("gradeToNumber", () => {
     expect(gradeToNumber("小2")! >= minNum && gradeToNumber("小2")! <= maxNum).toBe(true);
     expect(gradeToNumber("年中")! >= minNum && gradeToNumber("年中")! <= maxNum).toBe(false);
     expect(gradeToNumber("小3")! >= minNum && gradeToNumber("小3")! <= maxNum).toBe(false);
+  });
+});
+
+// ──────────────────────────────────────────────
+// isAgeCategoryLabel
+// ──────────────────────────────────────────────
+
+describe("isAgeCategoryLabel", () => {
+  it("should return true for default age category labels", () => {
+    expect(isAgeCategoryLabel("18歳未満")).toBe(true);
+    expect(isAgeCategoryLabel("一般")).toBe(true);
+    expect(isAgeCategoryLabel("シニア")).toBe(true);
+  });
+
+  it("should return false for grade-based labels", () => {
+    expect(isAgeCategoryLabel("小1")).toBe(false);
+    expect(isAgeCategoryLabel("中3")).toBe(false);
+    expect(isAgeCategoryLabel("年少")).toBe(false);
+  });
+
+  it("should use custom age categories when provided", () => {
+    const custom: AgeCategory[] = [
+      { label: "ジュニア", minAge: 15, maxAge: 17 },
+    ];
+    expect(isAgeCategoryLabel("ジュニア", custom)).toBe(true);
+    expect(isAgeCategoryLabel("一般", custom)).toBe(false);
+  });
+});
+
+// ──────────────────────────────────────────────
+// findAgeCategory
+// ──────────────────────────────────────────────
+
+describe("findAgeCategory", () => {
+  it("should find default age category by label", () => {
+    const cat = findAgeCategory("一般");
+    expect(cat).toEqual({ label: "一般", minAge: 18, maxAge: 59 });
+  });
+
+  it("should return null for grade-based labels", () => {
+    expect(findAgeCategory("小1")).toBeNull();
+    expect(findAgeCategory("中3")).toBeNull();
+  });
+
+  it("should return null for unknown labels", () => {
+    expect(findAgeCategory("不明")).toBeNull();
+  });
+
+  it("should use custom age categories when provided", () => {
+    const custom: AgeCategory[] = [
+      { label: "ジュニア", minAge: 15, maxAge: 17 },
+      { label: "マスターズ", minAge: 40, maxAge: null },
+    ];
+    expect(findAgeCategory("ジュニア", custom)).toEqual({ label: "ジュニア", minAge: 15, maxAge: 17 });
+    expect(findAgeCategory("マスターズ", custom)).toEqual({ label: "マスターズ", minAge: 40, maxAge: null });
+    expect(findAgeCategory("一般", custom)).toBeNull();
   });
 });
