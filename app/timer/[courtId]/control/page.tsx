@@ -16,6 +16,8 @@ import {
 import { preloadDefaultBuzzer, playBuzzer } from "@/lib/timer-buzzer";
 import { fighterFullName, fighterFullReading } from "@/lib/types";
 import type { TimerPreset, Fighter, Match, Tournament } from "@/lib/types";
+import { announceMatchStart, announceWinner, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
+import { roundName } from "@/lib/tournament";
 
 // ── フォーマット ──────────────────────────────────────────────
 
@@ -126,6 +128,12 @@ export default function TimerControlPage() {
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [loadingTournament, setLoadingTournament] = useState(true);
   const [writingBack, setWritingBack] = useState(false);
+
+  // ── アナウンス関連 ──
+  const [announceTemplates, setAnnounceTemplates] = useState<AnnounceTemplates>(DEFAULT_TEMPLATES);
+  const [rulesReadingMap, setRulesReadingMap] = useState<Record<string, string>>({});
+  const [isMuted, setIsMuted] = useState(false);
+  const [currentRoundLabel, setCurrentRoundLabel] = useState("");
 
   // localStorage キー用の eventId（未ロード時は courtId をフォールバック）
   const storageEventId = eventId ?? "default";
@@ -239,6 +247,23 @@ export default function TimerControlPage() {
     const interval = setInterval(loadTournamentData, 10_000);
     return () => clearInterval(interval);
   }, [loadTournamentData]);
+
+  // ── アナウンステンプレート・ルール読み仮名の取得 ──
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.announce_templates) setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...d.announce_templates });
+      })
+      .catch(() => {});
+    supabase.from("rules").select("name, name_reading").then(({ data }) => {
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((r) => { if (r.name_reading) map[r.name] = r.name_reading; });
+        setRulesReadingMap(map);
+      }
+    });
+  }, []);
 
   // ── 初期化 ──
   useEffect(() => {
@@ -443,6 +468,9 @@ export default function TimerControlPage() {
     const f1 = candidate.fighter1;
     const f2 = candidate.fighter2;
 
+    // ラウンドラベルを保存（アナウンス用フォールバック）
+    setCurrentRoundLabel(roundName(candidate.match.round, candidate.totalRounds));
+
     const redInfo: FighterInfo = {
       id: f1.id,
       name: fighterFullName(f1),
@@ -562,6 +590,34 @@ export default function TimerControlPage() {
     setWritingBack(false);
   };
 
+  // ── アナウンス実行 ──
+  const handleAnnounceStart = () => {
+    const s = stateRef.current;
+    const rulesText = s.rules;
+    announceMatchStart(
+      s.red.name, s.red.affiliation,
+      s.white.name, s.white.affiliation,
+      currentRoundLabel,
+      s.red.nameReading, s.red.affiliationReading,
+      s.white.nameReading, s.white.affiliationReading,
+      s.matchLabel,
+      rulesText,
+      announceTemplates,
+      rulesText ? rulesReadingMap[rulesText] ?? null : null,
+    );
+  };
+
+  const handleAnnounceWinner = () => {
+    const s = stateRef.current;
+    if (!s.winnerId || !s.winnerSide) return;
+    const winner = s.winnerSide === "red" ? s.red : s.white;
+    announceWinner(
+      winner.name, winner.affiliation,
+      winner.nameReading, winner.affiliationReading,
+      announceTemplates,
+    );
+  };
+
   const phase = state.phase;
   const badge = PHASE_BADGE[phase] ?? PHASE_BADGE.idle;
   const p = state.preset;
@@ -578,7 +634,17 @@ export default function TimerControlPage() {
             {state.isExtension && <span className="text-yellow-400 text-xs font-bold">延長戦</span>}
             {state.matchLabel && <span className="text-gray-400 text-sm">{state.matchLabel}</span>}
           </div>
-          <span className="text-gray-500 text-xs">コート: {courtId}</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsMuted((prev) => !prev)}
+              className={`px-2 py-0.5 rounded text-xs font-bold transition ${
+                isMuted ? "bg-red-800 text-red-300" : "bg-gray-700 text-gray-400"
+              }`}
+            >
+              {isMuted ? "ミュート中" : "音声ON"}
+            </button>
+            <span className="text-gray-500 text-xs">コート: {courtId}</span>
+          </div>
         </div>
         <div className="flex items-center justify-center gap-8">
           <div className="text-center">
@@ -735,6 +801,36 @@ export default function TimerControlPage() {
               >
                 ブザー [B]
               </button>
+            </section>
+          )}
+
+          {/* アナウンス */}
+          {phase !== "idle" && (
+            <section>
+              <h3 className="text-sm font-bold text-gray-400 mb-2">アナウンス</h3>
+              <div className="flex gap-2">
+                {(phase === "ready" || phase === "running" || phase === "paused") && (
+                  <button
+                    onClick={handleAnnounceStart}
+                    disabled={isMuted}
+                    className="flex-1 py-2 rounded-lg bg-blue-700 hover:bg-blue-600 text-white font-bold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    試合開始アナウンス
+                  </button>
+                )}
+                {phase === "finished" && state.winnerId && (
+                  <button
+                    onClick={handleAnnounceWinner}
+                    disabled={isMuted}
+                    className="flex-1 py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-white font-bold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    勝利アナウンス
+                  </button>
+                )}
+              </div>
+              {isMuted && (
+                <p className="text-xs text-red-400 mt-1">ミュート中のため再生されません</p>
+              )}
             </section>
           )}
 
