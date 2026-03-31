@@ -32,6 +32,12 @@ const VALIGN_MAP: Record<LayoutVerticalAlign, string> = {
   top: "flex-start", middle: "center", bottom: "flex-end",
 };
 
+// ── 半角数字→全角変換 ────────────────────────────────────────
+
+function toFullWidthDigits(str: string): string {
+  return str.replace(/[0-9]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xFEE0));
+}
+
 // ── 勝利方法テキスト ──────────────────────────────────────────
 
 function resultMethodText(method: string | null): string {
@@ -213,8 +219,8 @@ export default function TimerDisplayPage() {
         if (!p?.show_match_number && !state.isExtension) return null;
         return (
           <div key={idx} className="text-gray-500" style={{ ...baseStyle, fontSize: `${row.fontSize}vh` }}>
-            {p?.show_match_number && state.matchLabel}
-            {p?.show_match_number && state.totalMatches > 0 && ` / 全${state.totalMatches}試合`}
+            {p?.show_match_number && toFullWidthDigits(state.matchLabel)}
+            {p?.show_match_number && state.totalMatches > 0 && toFullWidthDigits(` / 全${state.totalMatches}試合`)}
             {state.isExtension && <span className="ml-2 text-yellow-400 font-bold">延長戦</span>}
           </div>
         );
@@ -348,8 +354,8 @@ function IpponOverlay() {
   if (!visible) return null;
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/60 animate-fade-out pointer-events-none">
-      <span className="text-8xl font-black text-white tracking-widest">一本</span>
+    <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/60 animate-fade-out pointer-events-none overflow-hidden">
+      <span className="text-[min(20vw,8rem)] font-black text-white tracking-widest whitespace-nowrap">一本</span>
     </div>
   );
 }

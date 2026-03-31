@@ -128,6 +128,7 @@ export default function TimerControlPage() {
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [loadingTournament, setLoadingTournament] = useState(true);
   const [writingBack, setWritingBack] = useState(false);
+  const [selectingResultFor, setSelectingResultFor] = useState<FighterSide | null>(null);
 
   // ── アナウンス関連 ──
   const [announceTemplates, setAnnounceTemplates] = useState<AnnounceTemplates>(DEFAULT_TEMPLATES);
@@ -213,13 +214,13 @@ export default function TimerControlPage() {
       (fs ?? []).forEach((f) => { fighterMap[f.id] = f as Fighter; });
     }
 
-    // 試合候補を組み立て（ongoing + ready で両選手揃っている）
+    // 試合候補を組み立て（ongoing + ready + done で両選手揃っている）
     const candidates: MatchCandidate[] = [];
     for (const tourn of tourns) {
       const tMatches = allMatches.filter((m) => m.tournament_id === tourn.id);
       const maxRound = Math.max(...tMatches.map((m) => m.round), 1);
       for (const m of tMatches) {
-        if ((m.status === "ongoing" || m.status === "ready") && m.fighter1_id && m.fighter2_id) {
+        if ((m.status === "ongoing" || m.status === "ready" || m.status === "done") && m.fighter1_id && m.fighter2_id) {
           const f1 = fighterMap[m.fighter1_id];
           const f2 = fighterMap[m.fighter2_id];
           if (f1 && f2) {
@@ -228,10 +229,12 @@ export default function TimerControlPage() {
         }
       }
     }
-    // ongoing を先に、次に match_label のソート
+    // ongoing を先に、ready 次に、done を最後。各グループ内は match_label でソート
+    const statusOrder: Record<string, number> = { ongoing: 0, ready: 1, done: 2 };
     candidates.sort((a, b) => {
-      if (a.match.status === "ongoing" && b.match.status !== "ongoing") return -1;
-      if (a.match.status !== "ongoing" && b.match.status === "ongoing") return 1;
+      const orderA = statusOrder[a.match.status] ?? 1;
+      const orderB = statusOrder[b.match.status] ?? 1;
+      if (orderA !== orderB) return orderA - orderB;
       const nA = parseInt(a.match.match_label?.replace(/[^\d]/g, "") ?? "999", 10);
       const nB = parseInt(b.match.match_label?.replace(/[^\d]/g, "") ?? "999", 10);
       return nA - nB;
@@ -419,9 +422,7 @@ export default function TimerControlPage() {
           update((st) => addFoul(st, "red"));
           break;
         case "KeyR":
-          if (confirm("赤に一本を記録しますか？")) {
-            update((st) => addIppon(st, "red"));
-          }
+          update((st) => addIppon(st, "red"));
           break;
         case "KeyI":
           update((st) => addPoint(st, "white"));
@@ -433,9 +434,7 @@ export default function TimerControlPage() {
           update((st) => addFoul(st, "white"));
           break;
         case "KeyL":
-          if (confirm("白に一本を記録しますか？")) {
-            update((st) => addIppon(st, "white"));
-          }
+          update((st) => addIppon(st, "white"));
           break;
         case "ArrowLeft":
           e.preventDefault();
@@ -623,7 +622,7 @@ export default function TimerControlPage() {
   const p = state.preset;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col">
+    <div className="min-h-screen h-screen bg-gray-950 text-gray-100 flex flex-col">
       {/* ── ミニプレビュー ── */}
       <div className="bg-black border-b border-gray-800 p-3">
         <div className="flex items-center justify-between mb-2">
@@ -674,7 +673,7 @@ export default function TimerControlPage() {
               {/* プリセット選択 */}
               {presets.length > 0 && (
                 <div>
-                  <label className="text-xs text-gray-500">プリセット</label>
+                  <label className="text-xs text-gray-500">ルール</label>
                   <select
                     value={selectedPresetId ?? ""}
                     onChange={(e) => setSelectedPresetId(e.target.value || null)}
@@ -693,34 +692,47 @@ export default function TimerControlPage() {
               ) : matchCandidates.length > 0 ? (
                 <div className="space-y-1">
                   <p className="text-xs text-gray-500">試合を選択して開始</p>
-                  {matchCandidates.map((c) => (
-                    <button
-                      key={c.match.id}
-                      onClick={() => handleSelectMatch(c)}
-                      className={`w-full text-left p-3 rounded-lg border transition ${
-                        c.match.status === "ongoing"
-                          ? "border-yellow-700 bg-yellow-950/50 hover:bg-yellow-950/80"
-                          : "border-gray-700 bg-gray-900 hover:bg-gray-800"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold">
-                          {c.match.match_label ?? `R${c.match.round}-P${c.match.position}`}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          {c.match.status === "ongoing" && (
-                            <span className="text-xs text-yellow-400 font-bold">試合中</span>
-                          )}
-                          <span className="text-xs text-gray-600">{c.tournament.name}</span>
+                  {matchCandidates.map((c) => {
+                    const isDone = c.match.status === "done";
+                    const isReady = c.match.status === "ready";
+                    const isOngoing = c.match.status === "ongoing";
+                    return (
+                      <button
+                        key={c.match.id}
+                        onClick={() => !isDone && handleSelectMatch(c)}
+                        disabled={isDone}
+                        className={`w-full text-left p-3 rounded-lg border transition ${
+                          isDone
+                            ? "border-gray-800 bg-gray-900/50 opacity-50 cursor-not-allowed"
+                            : isOngoing
+                            ? "border-yellow-700 bg-yellow-950/50 hover:bg-yellow-950/80"
+                            : isReady
+                            ? "border-blue-600 bg-blue-950/30 hover:bg-blue-950/50"
+                            : "border-gray-700 bg-gray-900 hover:bg-gray-800"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`text-sm font-bold ${isDone ? "text-gray-600" : ""}`}>
+                            {c.match.match_label ?? `R${c.match.round}-P${c.match.position}`}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {isDone && (
+                              <span className="text-xs text-gray-500 bg-gray-700 px-1.5 py-0.5 rounded font-bold">終了</span>
+                            )}
+                            {isOngoing && (
+                              <span className="text-xs text-yellow-400 font-bold">試合中</span>
+                            )}
+                            <span className="text-xs text-gray-600">{c.tournament.name}</span>
+                          </div>
                         </div>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-1">
-                        <span className="text-red-400">{fighterFullName(c.fighter1)}</span>
-                        <span className="text-gray-600 mx-1">vs</span>
-                        <span className="text-gray-200">{fighterFullName(c.fighter2)}</span>
-                      </p>
-                    </button>
-                  ))}
+                        <p className={`text-xs mt-1 ${isDone ? "text-gray-600" : "text-gray-400"}`}>
+                          <span className={isDone ? "text-gray-600" : "text-red-400"}>{fighterFullName(c.fighter1)}</span>
+                          <span className="text-gray-600 mx-1">vs</span>
+                          <span className={isDone ? "text-gray-600" : "text-gray-200"}>{fighterFullName(c.fighter2)}</span>
+                        </p>
+                      </button>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-gray-600 text-sm">開始可能な試合がありません</p>
@@ -738,6 +750,19 @@ export default function TimerControlPage() {
             </section>
           )}
 
+          {/* 試合一覧に戻るボタン */}
+          {(phase === "ready" || phase === "running" || phase === "paused") && (
+            <button
+              onClick={() => {
+                update(resetToIdle);
+                loadTournamentData();
+              }}
+              className="text-sm text-gray-500 hover:text-gray-300 transition"
+            >
+              ← 試合一覧に戻る
+            </button>
+          )}
+
           {/* メイン操作ボタン */}
           {phase !== "idle" && (
             <section>
@@ -746,7 +771,7 @@ export default function TimerControlPage() {
                 {(phase === "ready" || phase === "extension") && (
                   <button
                     onClick={() => update(startTimer)}
-                    className="flex-1 py-4 rounded-lg bg-green-700 hover:bg-green-600 text-white font-bold text-xl transition"
+                    className="flex-1 py-6 rounded-lg bg-green-700 hover:bg-green-600 text-white font-bold text-xl transition"
                   >
                     ▶ 開始 [Space]
                   </button>
@@ -754,15 +779,15 @@ export default function TimerControlPage() {
                 {phase === "running" && (
                   <button
                     onClick={() => update(pauseTimer)}
-                    className="flex-1 py-4 rounded-lg bg-yellow-700 hover:bg-yellow-600 text-white font-bold text-xl transition"
+                    className="flex-1 py-6 rounded-lg bg-yellow-700 hover:bg-yellow-600 text-white font-bold text-xl transition"
                   >
-                    ⏸ 待て [Space]
+                    ⏸ ストップ [Space]
                   </button>
                 )}
                 {phase === "paused" && (
                   <button
                     onClick={() => update(resumeTimer)}
-                    className="flex-1 py-4 rounded-lg bg-green-700 hover:bg-green-600 text-white font-bold text-xl transition"
+                    className="flex-1 py-6 rounded-lg bg-green-700 hover:bg-green-600 text-white font-bold text-xl transition"
                   >
                     ▶ 再開 [Space]
                   </button>
@@ -845,26 +870,26 @@ export default function TimerControlPage() {
                   <div className="grid grid-cols-3 gap-1">
                     {p?.show_points && (
                       <button onClick={() => update((s) => addPoint(s, "red"))}
-                        className="py-2 rounded bg-red-900/50 hover:bg-red-800/60 text-red-300 text-sm font-bold transition">
+                        className="py-4 rounded bg-red-900/50 hover:bg-red-800/60 text-red-300 text-sm font-bold transition">
                         +1pt [Q]
                       </button>
                     )}
                     {p?.show_wazaari && (
                       <button onClick={() => update((s) => addWazaari(s, "red"))}
-                        className="py-2 rounded bg-red-900/50 hover:bg-red-800/60 text-red-300 text-sm font-bold transition">
+                        className="py-4 rounded bg-red-900/50 hover:bg-red-800/60 text-red-300 text-sm font-bold transition">
                         技あり [W]
                       </button>
                     )}
                     {p?.show_fouls && (
                       <button onClick={() => update((s) => addFoul(s, "red"))}
-                        className="py-2 rounded bg-red-900/50 hover:bg-red-800/60 text-red-300 text-sm font-bold transition">
+                        className="py-4 rounded bg-red-900/50 hover:bg-red-800/60 text-red-300 text-sm font-bold transition">
                         反則 [E]
                       </button>
                     )}
                   </div>
                   {p?.show_ippon && (
-                    <button onClick={() => { if (confirm("赤に一本を記録しますか？")) update((s) => addIppon(s, "red")); }}
-                      className="w-full py-2 rounded bg-red-900/50 hover:bg-red-800/60 text-red-300 text-sm font-bold transition">
+                    <button onClick={() => update((s) => addIppon(s, "red"))}
+                      className="w-full py-4 rounded bg-red-900/50 hover:bg-red-800/60 text-red-300 text-sm font-bold transition">
                       一本 [R]
                     </button>
                   )}
@@ -880,26 +905,26 @@ export default function TimerControlPage() {
                   <div className="grid grid-cols-3 gap-1">
                     {p?.show_points && (
                       <button onClick={() => update((s) => addPoint(s, "white"))}
-                        className="py-2 rounded bg-gray-700/50 hover:bg-gray-600/60 text-gray-200 text-sm font-bold transition">
+                        className="py-4 rounded bg-gray-700/50 hover:bg-gray-600/60 text-gray-200 text-sm font-bold transition">
                         +1pt [I]
                       </button>
                     )}
                     {p?.show_wazaari && (
                       <button onClick={() => update((s) => addWazaari(s, "white"))}
-                        className="py-2 rounded bg-gray-700/50 hover:bg-gray-600/60 text-gray-200 text-sm font-bold transition">
+                        className="py-4 rounded bg-gray-700/50 hover:bg-gray-600/60 text-gray-200 text-sm font-bold transition">
                         技あり [O]
                       </button>
                     )}
                     {p?.show_fouls && (
                       <button onClick={() => update((s) => addFoul(s, "white"))}
-                        className="py-2 rounded bg-gray-700/50 hover:bg-gray-600/60 text-gray-200 text-sm font-bold transition">
+                        className="py-4 rounded bg-gray-700/50 hover:bg-gray-600/60 text-gray-200 text-sm font-bold transition">
                         反則 [P]
                       </button>
                     )}
                   </div>
                   {p?.show_ippon && (
-                    <button onClick={() => { if (confirm("白に一本を記録しますか？")) update((s) => addIppon(s, "white")); }}
-                      className="w-full py-2 rounded bg-gray-700/50 hover:bg-gray-600/60 text-gray-200 text-sm font-bold transition">
+                    <button onClick={() => update((s) => addIppon(s, "white"))}
+                      className="w-full py-4 rounded bg-gray-700/50 hover:bg-gray-600/60 text-gray-200 text-sm font-bold transition">
                       一本 [L]
                     </button>
                   )}
@@ -909,6 +934,15 @@ export default function TimerControlPage() {
                   </div>
                 </div>
               </div>
+            </section>
+          )}
+
+          {/* ルール設定表示 (#9) */}
+          {(phase === "running" || phase === "paused" || phase === "time_up") && p && (
+            <section className="text-xs text-gray-600 space-y-0.5">
+              <p>反則→ポイント: {p.foul_to_point_start > 0 ? `${p.foul_to_point_start}回目から+${p.foul_point_value}pt` : "無効"}</p>
+              {p.foul_loss_count > 0 && <p>反則負け: {p.foul_loss_count}回</p>}
+              {p.point_win_threshold > 0 && <p>ポイント先取: {p.point_win_threshold}pt</p>}
             </section>
           )}
 
@@ -958,72 +992,91 @@ export default function TimerControlPage() {
           {(phase === "time_up" || phase === "finished") && (
             <section>
               <h3 className="text-sm font-bold text-gray-400 mb-2">試合結果</h3>
-              {phase === "time_up" && (
+              {phase === "time_up" && !selectingResultFor && (
                 <div className="space-y-2">
-                  <div className="grid grid-cols-3 gap-2">
-                    <ResultButton
-                      label={`赤 勝利 (${state.red.name || "赤"})`}
-                      color="bg-red-800 hover:bg-red-700"
-                      onClick={() => {
-                        const method = promptResultMethod();
-                        if (method) update((s) => finishManual(s, "red", method));
-                      }}
-                    />
-                    <ResultButton
-                      label={`白 勝利 (${state.white.name || "白"})`}
-                      color="bg-gray-700 hover:bg-gray-600"
-                      onClick={() => {
-                        const method = promptResultMethod();
-                        if (method) update((s) => finishManual(s, "white", method));
-                      }}
-                    />
+                  <div className={`grid gap-2 ${p?.allow_draw ? "grid-cols-3" : "grid-cols-2"}`}>
+                    <button
+                      onClick={() => setSelectingResultFor("red")}
+                      className="py-5 rounded-lg bg-red-800 hover:bg-red-700 text-white font-bold text-sm transition"
+                    >
+                      赤 勝利 ({state.red.name || "赤"})
+                    </button>
+                    <button
+                      onClick={() => setSelectingResultFor("white")}
+                      className="py-5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold text-sm transition"
+                    >
+                      白 勝利 ({state.white.name || "白"})
+                    </button>
                     {p?.allow_draw && (
-                      <ResultButton
-                        label="引き分け"
-                        color="bg-gray-600 hover:bg-gray-500"
-                        onClick={() => {
-                          if (confirm("引き分けにしますか？")) update((s) => finishManual(s, null, "draw"));
-                        }}
-                      />
+                      <button
+                        onClick={() => update((s) => finishManual(s, null, "draw"))}
+                        className="py-5 rounded-lg bg-gray-600 hover:bg-gray-500 text-white font-bold text-sm transition"
+                      >
+                        引き分け
+                      </button>
                     )}
                   </div>
                 </div>
               )}
-              {phase === "finished" && (
+              {phase === "time_up" && selectingResultFor && (
                 <div className="space-y-2">
-                  <div className="text-center p-3 rounded bg-gray-800">
-                    <p className="text-gray-400 text-sm">
-                      {state.winnerSide === "red" ? `赤 勝利: ${state.red.name}` :
-                       state.winnerSide === "white" ? `白 勝利: ${state.white.name}` :
-                       "引き分け"}
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-300 font-bold">
+                      {selectingResultFor === "red" ? `赤 (${state.red.name || "赤"})` : `白 (${state.white.name || "白"})`} の勝利方法を選択
                     </p>
-                    <p className="text-green-400 font-bold">{state.resultMethod}</p>
+                    <button onClick={() => setSelectingResultFor(null)} className="text-xs text-gray-500 hover:text-gray-300">← 戻る</button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {RESULT_METHODS.map((rm) => (
+                      <button
+                        key={rm.value}
+                        onClick={() => {
+                          update((s) => finishManual(s, selectingResultFor, rm.value));
+                          setSelectingResultFor(null);
+                        }}
+                        className="py-4 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold text-sm transition"
+                      >
+                        {rm.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {phase === "finished" && (
+                <div className="space-y-3">
+                  <div className="text-center p-4 rounded-lg bg-gray-800">
+                    <p className="text-2xl font-bold mb-1">
+                      {state.winnerSide === "red" ? (
+                        <span className="text-red-400">{state.red.name || "赤"} 勝利</span>
+                      ) : state.winnerSide === "white" ? (
+                        <span className="text-gray-200">{state.white.name || "白"} 勝利</span>
+                      ) : (
+                        <span className="text-gray-400">引き分け</span>
+                      )}
+                    </p>
+                    <p className="text-green-400 font-bold text-lg">{resultMethodLabel(state.resultMethod)}</p>
                   </div>
                   {!state.resultWritten && (
-                    <button onClick={handleWriteBack} disabled={writingBack}
-                      className="w-full py-2 rounded bg-green-700 hover:bg-green-600 text-white font-bold transition disabled:opacity-50">
-                      {writingBack ? "書き戻し中..." : state.matchId ? "結果を確定して書き戻し" : "結果を確定"}
-                    </button>
+                    <>
+                      <button onClick={handleWriteBack} disabled={writingBack}
+                        className="w-full py-5 rounded-lg bg-green-700 hover:bg-green-600 text-white font-bold text-lg transition disabled:opacity-50">
+                        {writingBack ? "書き戻し中..." : "確定する"}
+                      </button>
+                      <button onClick={() => update(cancelResult)}
+                        className="w-full py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
+                        訂正する
+                      </button>
+                    </>
                   )}
                   {state.resultWritten && (
                     <p className="text-center text-green-400 text-sm font-bold">結果を書き戻しました</p>
                   )}
-                  {!state.resultWritten && (
-                    <button onClick={() => {
-                      if (confirm("結果を取り消しますか？")) update(cancelResult);
-                    }}
-                      className="w-full py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
-                      結果取り消し
-                    </button>
-                  )}
                   <button onClick={() => {
-                    if (state.resultWritten || confirm("現在の試合データは破棄されます。よろしいですか？")) {
-                      update(resetToIdle);
-                      loadTournamentData();
-                    }
+                    update(resetToIdle);
+                    loadTournamentData();
                   }}
-                    className="w-full py-2 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 text-sm transition">
-                    次の試合へ（リセット）
+                    className="w-full py-5 rounded-lg bg-blue-700 hover:bg-blue-600 text-white font-bold text-sm transition">
+                    次の試合へ
                   </button>
                 </div>
               )}
@@ -1075,26 +1128,26 @@ export default function TimerControlPage() {
   );
 }
 
-// ── サブコンポーネント ──────────────────────────────────────────
+// ── 勝利方法リスト ──────────────────────────────────────────
 
-function ResultButton({ label, color, onClick }: { label: string; color: string; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className={`py-3 rounded-lg text-white font-bold text-sm transition ${color}`}>
-      {label}
-    </button>
-  );
-}
+const RESULT_METHODS: { value: ResultMethod; label: string }[] = [
+  { value: "point", label: "ポイント" },
+  { value: "wazaari", label: "技あり優勢" },
+  { value: "ippon", label: "一本" },
+  { value: "combined_ippon", label: "合わせ一本" },
+  { value: "foul", label: "反則勝ち" },
+  { value: "decision", label: "判定" },
+  { value: "withdraw", label: "棄権勝ち" },
+  { value: "injury", label: "負傷勝ち" },
+];
 
-function promptResultMethod(): ResultMethod | null {
-  const choice = prompt(
-    "勝利方法を選択（番号入力）:\n1: ポイント\n2: 技あり優勢\n3: 一本\n4: 合わせ一本\n5: 反則勝ち\n6: 判定\n7: 棄権勝ち\n8: 負傷勝ち",
-    "6"
-  );
-  const map: Record<string, ResultMethod> = {
-    "1": "point", "2": "wazaari", "3": "ippon", "4": "combined_ippon",
-    "5": "foul", "6": "decision", "7": "withdraw", "8": "injury",
-  };
-  return choice ? map[choice] ?? null : null;
+function resultMethodLabel(method: ResultMethod | null): string {
+  if (!method) return "";
+  const found = RESULT_METHODS.find((rm) => rm.value === method);
+  if (found) return found.label;
+  if (method === "draw") return "引き分け";
+  if (method === "sudden_death") return "延長戦";
+  return method;
 }
 
 const SHORTCUTS = [
