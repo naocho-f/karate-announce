@@ -40,6 +40,10 @@ export const FIXED_GRADE_OPTIONS: GradeOption[] = [
   { label: "中1", value: "中1" },
   { label: "中2", value: "中2" },
   { label: "中3", value: "中3" },
+  // 高校生
+  { label: "高1", value: "高1" },
+  { label: "高2", value: "高2" },
+  { label: "高3", value: "高3" },
 ];
 
 /**

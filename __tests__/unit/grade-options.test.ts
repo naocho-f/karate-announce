@@ -19,8 +19,8 @@ import {
 // ──────────────────────────────────────────────
 
 describe("FIXED_GRADE_OPTIONS", () => {
-  it("should contain 12 fixed grade options (kindergarten + elementary + middle school)", () => {
-    expect(FIXED_GRADE_OPTIONS).toHaveLength(12);
+  it("should contain 15 fixed grade options (kindergarten + elementary + middle + high school)", () => {
+    expect(FIXED_GRADE_OPTIONS).toHaveLength(15);
   });
 
   it("should start with kindergarten grades", () => {
@@ -49,6 +49,15 @@ describe("FIXED_GRADE_OPTIONS", () => {
       { label: "中3", value: "中3" },
     ]);
   });
+
+  it("should include all high school grades", () => {
+    const high = FIXED_GRADE_OPTIONS.slice(12, 15);
+    expect(high).toEqual([
+      { label: "高1", value: "高1" },
+      { label: "高2", value: "高2" },
+      { label: "高3", value: "高3" },
+    ]);
+  });
 });
 
 // ──────────────────────────────────────────────
@@ -74,12 +83,14 @@ describe("DEFAULT_AGE_CATEGORIES", () => {
 describe("getGradeOptions", () => {
   it("should return fixed + default age categories when called without arguments", () => {
     const options = getGradeOptions();
-    expect(options).toHaveLength(12 + 3); // 12 fixed + 3 default
+    expect(options).toHaveLength(15 + 3); // 15 fixed + 3 default
     expect(options[0].value).toBe("年少");
     expect(options[11].value).toBe("中3");
-    expect(options[12].value).toBe("18歳未満");
-    expect(options[13].value).toBe("一般");
-    expect(options[14].value).toBe("シニア");
+    expect(options[12].value).toBe("高1");
+    expect(options[14].value).toBe("高3");
+    expect(options[15].value).toBe("18歳未満");
+    expect(options[16].value).toBe("一般");
+    expect(options[17].value).toBe("シニア");
   });
 
   it("should use custom age categories when provided", () => {
@@ -88,16 +99,16 @@ describe("getGradeOptions", () => {
       { label: "アダルト", minAge: 18, maxAge: null },
     ];
     const options = getGradeOptions(custom);
-    expect(options).toHaveLength(12 + 2); // 12 fixed + 2 custom
-    expect(options[12].value).toBe("ジュニア");
-    expect(options[13].value).toBe("アダルト");
+    expect(options).toHaveLength(15 + 2); // 15 fixed + 2 custom
+    expect(options[15].value).toBe("ジュニア");
+    expect(options[16].value).toBe("アダルト");
   });
 
   it("should return only fixed options when empty age categories provided", () => {
     const options = getGradeOptions([]);
-    expect(options).toHaveLength(12);
+    expect(options).toHaveLength(15);
     expect(options[0].value).toBe("年少");
-    expect(options[11].value).toBe("中3");
+    expect(options[14].value).toBe("高3");
   });
 
   it("should have matching label and value for all options", () => {

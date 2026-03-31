@@ -21,7 +21,7 @@ import { BracketRulesPanel } from "@/components/bracket-rules-panel";
 import { AutoCreateDialog } from "@/components/auto-create-dialog";
 import { computeSuggestions } from "@/lib/suggestions";
 import type { AutoGroup } from "@/lib/auto-bracket";
-import { getGradeOptions, gradeToNumber, findAgeCategory, type AgeCategory } from "@/lib/grade-options";
+import { getGradeOptions, gradeToNumber, findAgeCategory, isAgeCategoryLabel, type AgeCategory } from "@/lib/grade-options";
 import { buildFilterSortComparator, matchCountFilterPredicate } from "@/lib/group-filter-sort";
 import Link from "next/link";
 import { FormConfigPanel } from "./form-config-panel";
@@ -2974,37 +2974,47 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
         <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-center">
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">年代</span>
-            <select value={minGrade} onChange={(e) => {
-              const v = e.target.value;
-              setMinGrade(v);
-              // 年齢ベース区分選択時は minAge/maxAge を自動セット
-              const cat = v ? findAgeCategory(v, ageCategories) : null;
-              if (cat) {
-                setMinAge(String(cat.minAge));
-                setMaxAge(cat.maxAge != null ? String(cat.maxAge) : "");
-              }
-            }} className={`w-20 ${inpSm}`}>
-              <option value="">下限</option>
-              {getGradeOptions(ageCategories).map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-            <span className="text-xs text-gray-500">〜</span>
-            <select value={maxGrade} onChange={(e) => {
-              const v = e.target.value;
-              setMaxGrade(v);
-              // 年齢ベース区分選択時は minAge/maxAge を自動セット
-              const cat = v ? findAgeCategory(v, ageCategories) : null;
-              if (cat) {
-                setMinAge(String(cat.minAge));
-                setMaxAge(cat.maxAge != null ? String(cat.maxAge) : "");
-              }
-            }} className={`w-20 ${inpSm}`}>
-              <option value="">上限</option>
-              {getGradeOptions(ageCategories).map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select value={minGrade} onChange={(e) => {
+                const v = e.target.value;
+                setMinGrade(v);
+                // 年齢ベース区分選択時は単一セレクト（上限も同じ値にセット）
+                if (v && isAgeCategoryLabel(v, ageCategories)) {
+                  setMaxGrade(v);
+                }
+              }} className={`w-20 pr-6 ${inpSm}`}>
+                <option value="">下限</option>
+                {getGradeOptions(ageCategories).map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+              {minGrade && (
+                <button type="button" onClick={() => { setMinGrade(""); }} className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs leading-none" aria-label="年代下限をクリア">×</button>
+              )}
+            </div>
+            {!(minGrade && isAgeCategoryLabel(minGrade, ageCategories)) && (
+              <>
+                <span className="text-xs text-gray-500">〜</span>
+                <div className="relative">
+                  <select value={maxGrade} onChange={(e) => {
+                    const v = e.target.value;
+                    setMaxGrade(v);
+                    // 年齢ベース区分選択時は単一セレクト（下限も同じ値にセット）
+                    if (v && isAgeCategoryLabel(v, ageCategories)) {
+                      setMinGrade(v);
+                    }
+                  }} className={`w-20 pr-6 ${inpSm}`}>
+                    <option value="">上限</option>
+                    {getGradeOptions(ageCategories).map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                  {maxGrade && (
+                    <button type="button" onClick={() => { setMaxGrade(""); }} className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs leading-none" aria-label="年代上限をクリア">×</button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">年齢</span>
@@ -3028,11 +3038,16 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
           </div>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">性別</span>
-            <select value={sexFilter} onChange={(e) => setSexFilter(e.target.value)} className={`${inpSm} w-16`}>
-              <option value="">全て</option>
-              <option value="male">男性</option>
-              <option value="female">女性</option>
-            </select>
+            <div className="relative">
+              <select value={sexFilter} onChange={(e) => setSexFilter(e.target.value)} className={`${inpSm} w-16 pr-6`}>
+                <option value="">全て</option>
+                <option value="male">男性</option>
+                <option value="female">女性</option>
+              </select>
+              {sexFilter && (
+                <button type="button" onClick={() => setSexFilter("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs leading-none" aria-label="性別をクリア">×</button>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">経験</span>
@@ -3044,13 +3059,18 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
           </div>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">試合数</span>
-            <select value={matchCountFilter} onChange={(e) => setMatchCountFilter(e.target.value)} className={`${inpSm} w-20`}>
-              <option value="">全て</option>
-              <option value="unmet">未達</option>
-              {[0,1,2,3,4,5,6,7,8,9].map((n) => (
-                <option key={n} value={String(n)}>{n}試合</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select value={matchCountFilter} onChange={(e) => setMatchCountFilter(e.target.value)} className={`${inpSm} w-20 pr-6`}>
+                <option value="">全て</option>
+                <option value="unmet">未達</option>
+                {[0,1,2,3,4,5,6,7,8,9].map((n) => (
+                  <option key={n} value={String(n)}>{n}試合</option>
+                ))}
+              </select>
+              {matchCountFilter && (
+                <button type="button" onClick={() => setMatchCountFilter("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs leading-none" aria-label="試合数をクリア">×</button>
+              )}
+            </div>
           </div>
         </div>
         </>)}
