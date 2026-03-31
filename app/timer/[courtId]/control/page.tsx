@@ -102,8 +102,8 @@ const DEFAULT_PRESET: TimerPreset = {
 type MatchCandidate = {
   match: Match;
   tournament: Tournament;
-  fighter1: Fighter;
-  fighter2: Fighter;
+  fighter1: Fighter | null;
+  fighter2: Fighter | null;
   totalRounds: number;
 };
 
@@ -218,27 +218,22 @@ export default function TimerControlPage() {
       (fs ?? []).forEach((f) => { fighterMap[f.id] = f as Fighter; });
     }
 
-    // 試合候補を組み立て（ongoing + ready + done で両選手揃っている）
+    // 試合候補を組み立て（ongoing + ready + waiting + done）
     const candidates: MatchCandidate[] = [];
+    const visibleStatuses = new Set(["ongoing", "ready", "waiting", "done"]);
     for (const tourn of tourns) {
       const tMatches = allMatches.filter((m) => m.tournament_id === tourn.id);
       const maxRound = Math.max(...tMatches.map((m) => m.round), 1);
       for (const m of tMatches) {
-        if ((m.status === "ongoing" || m.status === "ready" || m.status === "done") && m.fighter1_id && m.fighter2_id) {
-          const f1 = fighterMap[m.fighter1_id];
-          const f2 = fighterMap[m.fighter2_id];
-          if (f1 && f2) {
-            candidates.push({ match: m, tournament: tourn, fighter1: f1, fighter2: f2, totalRounds: maxRound });
-          }
+        if (visibleStatuses.has(m.status)) {
+          const f1 = m.fighter1_id ? (fighterMap[m.fighter1_id] ?? null) : null;
+          const f2 = m.fighter2_id ? (fighterMap[m.fighter2_id] ?? null) : null;
+          candidates.push({ match: m, tournament: tourn, fighter1: f1, fighter2: f2, totalRounds: maxRound });
         }
       }
     }
-    // ongoing を先に、ready 次に、done を最後。各グループ内は match_label でソート
-    const statusOrder: Record<string, number> = { ongoing: 0, ready: 1, done: 2 };
+    // match_label の数値順のみでソート
     candidates.sort((a, b) => {
-      const orderA = statusOrder[a.match.status] ?? 1;
-      const orderB = statusOrder[b.match.status] ?? 1;
-      if (orderA !== orderB) return orderA - orderB;
       const nA = parseInt(a.match.match_label?.replace(/[^\d]/g, "") ?? "999", 10);
       const nB = parseInt(b.match.match_label?.replace(/[^\d]/g, "") ?? "999", 10);
       return nA - nB;
@@ -473,6 +468,7 @@ export default function TimerControlPage() {
     const preset = getPresetForMatch(candidate);
     const f1 = candidate.fighter1;
     const f2 = candidate.fighter2;
+    if (!f1 || !f2) return; // waiting 試合は選択不可
 
     // ラウンドラベルを保存（アナウンス用フォールバック）
     setCurrentRoundLabel(roundName(candidate.match.round, candidate.totalRounds));
@@ -741,31 +737,38 @@ export default function TimerControlPage() {
               ) : matchCandidates.length > 0 ? (
                 <div className="space-y-2">
                   <p className="text-xs text-gray-500">試合を選択して開始</p>
-                  {matchCandidates.map((c) => {
+                  {(() => {
+                    const firstReadyId = matchCandidates.find((c) => c.match.status === "ready")?.match.id ?? null;
+                    return matchCandidates.map((c) => {
                     const isDone = c.match.status === "done";
+                    const isWaiting = c.match.status === "waiting";
                     const isReady = c.match.status === "ready";
+                    const isFirstReady = isReady && c.match.id === firstReadyId;
                     const isOngoing = c.match.status === "ongoing";
+                    const isDisabled = isDone || isWaiting;
                     const rulesLabel = c.match.rules ?? c.tournament.default_rules ?? null;
                     return (
                       <button
                         key={c.match.id}
-                        onClick={() => !isDone && handleSelectMatch(c)}
-                        disabled={isDone}
+                        onClick={() => !isDisabled && handleSelectMatch(c)}
+                        disabled={isDisabled}
                         className={`w-full text-left rounded-xl border-2 transition overflow-hidden ${
                           isDone
                             ? "border-gray-800 bg-gray-900/50 opacity-50 cursor-not-allowed"
                             : isOngoing
                             ? "border-yellow-600 bg-yellow-950/40 hover:bg-yellow-950/70"
-                            : isReady
+                            : isFirstReady
                             ? "border-blue-500 bg-blue-950/30 hover:bg-blue-950/50"
+                            : isWaiting
+                            ? "border-gray-800 bg-gray-900/70 cursor-not-allowed"
                             : "border-gray-700 bg-gray-900 hover:bg-gray-800"
                         }`}
                       >
                         {/* ヘッダー */}
                         <div className={`px-3 py-1.5 flex items-center justify-between ${
-                          isDone ? "bg-gray-800/50" : isOngoing ? "bg-yellow-900/40" : isReady ? "bg-blue-900/30" : "bg-gray-800/30"
+                          isDone ? "bg-gray-800/50" : isOngoing ? "bg-yellow-900/40" : isFirstReady ? "bg-blue-900/30" : "bg-gray-800/30"
                         }`}>
-                          <span className={`text-sm font-bold ${isDone ? "text-gray-600" : isOngoing ? "text-yellow-300" : isReady ? "text-blue-300" : "text-gray-300"}`}>
+                          <span className={`text-sm font-bold ${isDone ? "text-gray-600" : isOngoing ? "text-yellow-300" : isFirstReady ? "text-blue-300" : isWaiting ? "text-gray-500" : "text-gray-300"}`}>
                             {c.match.match_label ?? `R${c.match.round}-P${c.match.position}`}
                           </span>
                           <div className="flex items-center gap-2">
@@ -775,7 +778,7 @@ export default function TimerControlPage() {
                             {isOngoing && (
                               <span className="text-xs text-yellow-400 bg-yellow-900/60 px-1.5 py-0.5 rounded font-bold animate-pulse">試合中</span>
                             )}
-                            {isReady && (
+                            {isFirstReady && (
                               <span className="text-xs text-blue-400 bg-blue-900/60 px-1.5 py-0.5 rounded font-bold">次の試合</span>
                             )}
                           </div>
@@ -783,20 +786,20 @@ export default function TimerControlPage() {
                         {/* 選手情報 */}
                         <div className="px-3 py-2">
                           <div className="flex items-center gap-2">
-                            <span className={`w-2 h-5 rounded-sm shrink-0 ${isDone ? "bg-gray-700" : "bg-red-600"}`} />
+                            <span className={`w-2 h-5 rounded-sm shrink-0 ${isDone || isWaiting ? "bg-gray-700" : "bg-red-600"}`} />
                             <div className="min-w-0">
-                              <span className={`text-sm font-bold block truncate ${isDone ? "text-gray-600" : "text-red-400"}`}>{fighterFullName(c.fighter1)}</span>
-                              {!isDone && c.fighter1.affiliation && (
+                              <span className={`text-sm font-bold block truncate ${isDone || isWaiting ? "text-gray-600" : "text-red-400"}`}>{c.fighter1 ? fighterFullName(c.fighter1) : "未定"}</span>
+                              {!isDone && !isWaiting && c.fighter1?.affiliation && (
                                 <span className="text-[10px] text-gray-500 block truncate">{c.fighter1.affiliation}</span>
                               )}
                             </div>
                           </div>
                           <div className="text-center text-gray-600 text-xs my-0.5">vs</div>
                           <div className="flex items-center gap-2">
-                            <span className={`w-2 h-5 rounded-sm shrink-0 ${isDone ? "bg-gray-700" : "bg-white/80"}`} />
+                            <span className={`w-2 h-5 rounded-sm shrink-0 ${isDone || isWaiting ? "bg-gray-700" : "bg-white/80"}`} />
                             <div className="min-w-0">
-                              <span className={`text-sm font-bold block truncate ${isDone ? "text-gray-600" : "text-gray-200"}`}>{fighterFullName(c.fighter2)}</span>
-                              {!isDone && c.fighter2.affiliation && (
+                              <span className={`text-sm font-bold block truncate ${isDone || isWaiting ? "text-gray-600" : "text-gray-200"}`}>{c.fighter2 ? fighterFullName(c.fighter2) : "未定"}</span>
+                              {!isDone && !isWaiting && c.fighter2?.affiliation && (
                                 <span className="text-[10px] text-gray-500 block truncate">{c.fighter2.affiliation}</span>
                               )}
                             </div>
@@ -811,7 +814,8 @@ export default function TimerControlPage() {
                         </div>
                       </button>
                     );
-                  })}
+                    });
+                  })()}
                 </div>
               ) : (
                 <p className="text-gray-600 text-sm">開始可能な試合がありません</p>

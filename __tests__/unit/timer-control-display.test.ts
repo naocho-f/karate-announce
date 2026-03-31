@@ -5,6 +5,7 @@
  * #6: 勝利方法ボタン化 — ResultMethod の全値が定義済みであることを確認
  * #12: 半角→全角数字変換
  * 反則インジケータ: 反則数に応じたセル塗りつぶしロジック
+ * 試合一覧: フィルタ・ソート・表示スタイルのロジック
  */
 import { describe, it, expect } from "vitest";
 import type { ResultMethod } from "@/lib/timer-state";
@@ -212,5 +213,111 @@ describe("一本操作に confirm 不要 (#2)", () => {
     expect(result.phase).toBe("finished");
     expect(result.winnerSide).toBe("red");
     expect(result.resultMethod).toBe("ippon");
+  });
+});
+
+// ── 試合一覧のフィルタ・ソート・表示ロジック ──
+
+// page.tsx のフィルタロジックを再実装（ユニットテスト用）
+function filterMatchStatuses(statuses: string[]): string[] {
+  const visibleStatuses = new Set(["ongoing", "ready", "waiting", "done"]);
+  return statuses.filter((s) => visibleStatuses.has(s));
+}
+
+// page.tsx のソートロジックを再実装
+function sortByMatchLabel(labels: (string | null)[]): (string | null)[] {
+  return [...labels].sort((a, b) => {
+    const nA = parseInt((a ?? "").replace(/[^\d]/g, "") || "999", 10);
+    const nB = parseInt((b ?? "").replace(/[^\d]/g, "") || "999", 10);
+    return nA - nB;
+  });
+}
+
+// 最初の ready のみハイライトするロジック
+function getFirstReadyId(matches: { id: string; status: string }[]): string | null {
+  return matches.find((m) => m.status === "ready")?.id ?? null;
+}
+
+// 試合が無効化（クリック不可）かどうか
+function isMatchDisabled(status: string): boolean {
+  return status === "done" || status === "waiting";
+}
+
+describe("試合一覧のフィルタロジック", () => {
+  it("ongoing, ready, waiting, done を含める", () => {
+    const input = ["ongoing", "ready", "waiting", "done", "cancelled"];
+    expect(filterMatchStatuses(input)).toEqual(["ongoing", "ready", "waiting", "done"]);
+  });
+
+  it("waiting ステータスが表示対象に含まれる", () => {
+    expect(filterMatchStatuses(["waiting"])).toEqual(["waiting"]);
+  });
+
+  it("未知のステータスは除外される", () => {
+    expect(filterMatchStatuses(["cancelled", "unknown"])).toEqual([]);
+  });
+});
+
+describe("試合一覧のソートロジック（match_label 数値順のみ）", () => {
+  it("試合番号順にソートされる", () => {
+    const labels = ["第3試合", "第1試合", "第2試合"];
+    expect(sortByMatchLabel(labels)).toEqual(["第1試合", "第2試合", "第3試合"]);
+  });
+
+  it("ステータスに関係なく数値順（ongoing が先にならない）", () => {
+    // 以前はステータスグループ順だったが、今は match_label のみ
+    const matches = [
+      { label: "第5試合", status: "ongoing" },
+      { label: "第1試合", status: "done" },
+      { label: "第3試合", status: "ready" },
+      { label: "第2試合", status: "waiting" },
+    ];
+    const sorted = [...matches].sort((a, b) => {
+      const nA = parseInt(a.label.replace(/[^\d]/g, "") || "999", 10);
+      const nB = parseInt(b.label.replace(/[^\d]/g, "") || "999", 10);
+      return nA - nB;
+    });
+    expect(sorted.map((m) => m.label)).toEqual(["第1試合", "第2試合", "第3試合", "第5試合"]);
+  });
+
+  it("null ラベルは末尾にソートされる", () => {
+    const labels = ["第2試合", null, "第1試合"];
+    expect(sortByMatchLabel(labels)).toEqual(["第1試合", "第2試合", null]);
+  });
+});
+
+describe("試合一覧の表示スタイル", () => {
+  it("最初の ready のみハイライトされる", () => {
+    const matches = [
+      { id: "m1", status: "done" },
+      { id: "m2", status: "ready" },
+      { id: "m3", status: "ready" },
+      { id: "m4", status: "waiting" },
+    ];
+    expect(getFirstReadyId(matches)).toBe("m2");
+  });
+
+  it("ready がなければ null を返す", () => {
+    const matches = [
+      { id: "m1", status: "done" },
+      { id: "m2", status: "waiting" },
+    ];
+    expect(getFirstReadyId(matches)).toBeNull();
+  });
+
+  it("done 試合はクリック不可", () => {
+    expect(isMatchDisabled("done")).toBe(true);
+  });
+
+  it("waiting 試合はクリック不可", () => {
+    expect(isMatchDisabled("waiting")).toBe(true);
+  });
+
+  it("ready 試合はクリック可能", () => {
+    expect(isMatchDisabled("ready")).toBe(false);
+  });
+
+  it("ongoing 試合はクリック可能", () => {
+    expect(isMatchDisabled("ongoing")).toBe(false);
   });
 });

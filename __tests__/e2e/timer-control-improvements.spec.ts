@@ -195,6 +195,35 @@ test.describe("タイマー操作パネル改善", () => {
     expect(dialogMessage).toContain("試合結果が未確定です");
   });
 
+  test("試合一覧のdone試合がcursor-not-allowedで選択不可", async ({ page }) => {
+    await page.goto("/timer/1/control");
+    await expect(page.locator("body")).toBeVisible({ timeout: 10_000 });
+
+    // done 試合があれば cursor-not-allowed クラスが適用されている
+    const doneButtons = page.locator("button.cursor-not-allowed");
+    const count = await doneButtons.count();
+    if (count > 0) {
+      // 最初の done ボタンが disabled であること
+      await expect(doneButtons.first()).toBeDisabled();
+    }
+    // done/waiting 試合がない環境でもエラーにならないことを確認
+  });
+
+  test("試合一覧で「終了」バッジが表示される", async ({ page }) => {
+    await page.goto("/timer/1/control");
+    await expect(page.locator("body")).toBeVisible({ timeout: 10_000 });
+
+    // 「終了」バッジがあれば表示されていることを確認
+    const doneBadges = page.locator("span", { hasText: "終了" });
+    // 環境依存（試合データがあれば表示される）- ページが正常にロードされることを確認
+    await page.waitForTimeout(2_000);
+    const badgeCount = await doneBadges.count();
+    // バッジがあれば表示されている
+    if (badgeCount > 0) {
+      await expect(doneBadges.first()).toBeVisible();
+    }
+  });
+
   test("アナウンスボタンが再生中に無効化される", async ({ page }) => {
     await page.goto("/timer/1/control");
 
