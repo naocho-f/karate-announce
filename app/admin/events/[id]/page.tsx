@@ -707,6 +707,13 @@ export default function EventDetailPage({ params }: Props) {
                   tournamentMatchFighterIds={tournamentMatchFighterIds}
                 />
 
+                {/* 参加者分布パネル（ルール別） */}
+                <RuleDistributionPanel
+                  entries={entries.filter(e => !e.is_withdrawn)}
+                  eventRules={eventRules}
+                  entryRuleIds={entryRuleIds}
+                />
+
                 {/* コート別対戦表 */}
                 <div className="space-y-6">
                   {Array.from({ length: event.court_count }, (_, i) => i + 1).map((courtNum) => (
@@ -1943,67 +1950,90 @@ function entryOptionLabel(e: Entry, prefix = ""): string {
 
 // pairsFromEntries は lib/pairing.ts からインポート（不戦勝自動挿入対応済み）
 
-/** 参加者の体重・年齢・性別・身長の分布を折りたたみ式で表示するパネル */
-function DistributionPanel({ entries, isOpen, onToggle }: { entries: Entry[]; isOpen: boolean; onToggle: () => void }) {
-  const suggestions = useMemo(() => computeSuggestions(entries), [entries]);
+/** ルール別の参加者分布パネル（画面上部に1つ表示） */
+function RuleDistributionPanel({ entries, eventRules, entryRuleIds }: {
+  entries: Entry[];
+  eventRules: Rule[];
+  entryRuleIds: Record<string, Set<string>>;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
 
-  if (suggestions.length === 0) return null;
+  // ルールがある場合はルール別に分布を表示、ない場合は全体で表示
+  const sections = useMemo(() => {
+    if (eventRules.length === 0) {
+      const suggestions = computeSuggestions(entries);
+      if (suggestions.length === 0) return [];
+      return [{ label: "全参加者", count: entries.length, suggestions }];
+    }
+    return eventRules.map((rule) => {
+      // ダブルエントリーの選手は entryRuleIds で両方のルールに含まれる
+      const ruleEntries = entries.filter((e) => entryRuleIds[e.id]?.has(rule.id));
+      const suggestions = computeSuggestions(ruleEntries);
+      return { label: rule.name, count: ruleEntries.length, suggestions };
+    }).filter((s) => s.suggestions.length > 0);
+  }, [entries, eventRules, entryRuleIds]);
 
-  // 軸ごとにグルーピング（経験は「参考」として最後に表示）
+  if (sections.length === 0) return null;
+
   const axisLabels: Record<string, string> = { weight: "体重", age: "年齢", sex: "性別", height: "身長", experience: "経験" };
   const axisOrder = ["weight", "age", "sex", "height", "experience"];
-  const grouped = useMemo(() => {
-    const map = new Map<string, typeof suggestions>();
-    for (const s of suggestions) {
-      const list = map.get(s.axis) ?? [];
-      list.push(s);
-      map.set(s.axis, list);
-    }
-    // axisOrder 順に並べ替え
-    const sorted = new Map<string, typeof suggestions>();
-    for (const axis of axisOrder) {
-      const items = map.get(axis);
-      if (items) sorted.set(axis, items);
-    }
-    // axisOrder にない軸があれば末尾に追加
-    for (const [axis, items] of map) {
-      if (!sorted.has(axis)) sorted.set(axis, items);
-    }
-    return sorted;
-  }, [suggestions]);
 
   return (
     <div className="rounded-xl border border-gray-700 bg-gray-800/50 overflow-hidden">
       <button
-        onClick={onToggle}
+        onClick={() => setIsOpen((prev) => !prev)}
         className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700/50 transition"
       >
-        <span>{"💡"} 参加者の分布（{entries.filter(e => !e.is_withdrawn).length}名）</span>
+        <span>{"💡"} 参加者の分布（{entries.length}名）</span>
         <span className="text-xs text-gray-500">{isOpen ? "▲ 閉じる" : "▼ 開く"}</span>
       </button>
       {isOpen && (
-        <div className="px-4 pb-3 space-y-3 border-t border-gray-700">
-          {Array.from(grouped.entries()).map(([axis, items]) => {
-            const isReference = axis === "experience";
+        <div className="px-4 pb-3 space-y-4 border-t border-gray-700">
+          {sections.map((section) => {
+            const grouped = new Map<string, typeof section.suggestions>();
+            for (const s of section.suggestions) {
+              const list = grouped.get(s.axis) ?? [];
+              list.push(s);
+              grouped.set(s.axis, list);
+            }
+            const sorted = new Map<string, typeof section.suggestions>();
+            for (const axis of axisOrder) {
+              const items = grouped.get(axis);
+              if (items) sorted.set(axis, items);
+            }
+            for (const [axis, items] of grouped) {
+              if (!sorted.has(axis)) sorted.set(axis, items);
+            }
+
             return (
-              <div key={axis} className={`pt-2${isReference ? " border-t border-gray-700/50 mt-1" : ""}`}>
-                <p className="text-xs text-gray-500 mb-1.5">
-                  {axisLabels[axis] ?? axis}
-                  {isReference && <span className="ml-1.5 text-gray-600">（参考）</span>}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {items.map((s, i) => (
-                    <span key={i} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs ${isReference ? "bg-gray-700/30 opacity-60" : "bg-gray-700/60"}`}>
-                      <span className={
-                        isReference ? "text-gray-500 font-bold" :
-                        s.balance === "◎" ? "text-green-400 font-bold" :
-                        s.balance === "△" ? "text-yellow-400 font-bold" : "text-gray-500 font-bold"
-                      }>{s.balance}</span>
-                      <span className={isReference ? "text-gray-500" : "text-gray-300"}>{s.belowLabel} {s.belowCount}名</span>
-                      <span className="text-gray-600">/</span>
-                      <span className={isReference ? "text-gray-500" : "text-gray-300"}>{s.aboveLabel} {s.aboveCount}名</span>
-                    </span>
-                  ))}
+              <div key={section.label} className="pt-2">
+                <p className="text-xs font-medium text-gray-400 mb-2">{section.label}（{section.count}名）</p>
+                <div className="space-y-2">
+                  {Array.from(sorted.entries()).map(([axis, items]) => {
+                    const isReference = axis === "experience";
+                    return (
+                      <div key={axis} className={isReference ? "border-t border-gray-700/50 pt-2" : ""}>
+                        <p className="text-xs text-gray-500 mb-1">
+                          {axisLabels[axis] ?? axis}
+                          {isReference && <span className="ml-1.5 text-gray-600">（参考）</span>}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {items.map((s, i) => (
+                            <span key={i} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs ${isReference ? "bg-gray-700/30 opacity-60" : "bg-gray-700/60"}`}>
+                              <span className={
+                                isReference ? "text-gray-500 font-bold" :
+                                s.balance === "◎" ? "text-green-400 font-bold" :
+                                s.balance === "△" ? "text-yellow-400 font-bold" : "text-gray-500 font-bold"
+                              }>{s.balance}</span>
+                              <span className={isReference ? "text-gray-500" : "text-gray-300"}>{s.belowLabel} {s.belowCount}名</span>
+                              <span className="text-gray-600">/</span>
+                              <span className={isReference ? "text-gray-500" : "text-gray-300"}>{s.aboveLabel} {s.aboveCount}名</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -2044,7 +2074,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
   const [editingSortOrder, setEditingSortOrder] = useState<number | null>(null);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
   const [reorderingId, setReorderingId] = useState<string | null>(null);
-  const [showDistribution, setShowDistribution] = useState(false);
+
   const [startTime, setStartTime] = useState(() => roundedNowHHMM());
   const [intervalMin, setIntervalMin] = useState(1);
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -2264,15 +2294,17 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
     }
     const defaultRule = rules.find((r) => r.id === defaultRuleId);
     const responses = await Promise.all(
-      activeGroups.map((g) => {
+      activeGroups.map((g, groupIndex) => {
         const f = g.filters;
+        // 1ペアのトーナメントは自動でワンマッチ扱いにする
+        const effectiveType = g.type === "tournament" && g.pairs.length === 1 ? "one_match" : g.type;
         return fetch("/api/admin/tournaments", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             courtName: g.name || `コート${courtNum}`,
             courtNum: String(courtNum),
-            type: g.type,
+            type: effectiveType,
             pairs: g.pairs.map((p) => ({
               e1: p.e1,
               e2: p.e2,
@@ -2280,7 +2312,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
               ruleName: (p.ruleId ? rules.find((r) => r.id === p.ruleId)?.name : null) ?? defaultRule?.name ?? null,
             })),
             eventId,
-            sortOrder: editingSortOrder ?? undefined,
+            sortOrder: editingSortOrder ?? groupIndex,
             defaultRuleName: defaultRule?.name ?? null,
             maxWeightDiff: g.maxWeightDiff,
             maxHeightDiff: g.maxHeightDiff,
@@ -2366,7 +2398,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
     const parts: string[] = [];
     if (activeTournamentCount > 0) parts.push(`${activeTournamentCount}トーナメント`);
     if (activeOneMatchCount > 0) parts.push(`${activeOneMatchCount}ワンマッチ`);
-    return `確定する（${parts.join("・")}・計${totalPairs}対戦）`;
+    return `登録する（${parts.join("・")}・計${totalPairs}対戦）`;
   })();
 
   const editFormTitle = editingTournamentId
@@ -2623,23 +2655,20 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
         );
       })}
 
-      {/* 参加者分布パネル + 振り分けルールボタン: 未割当選手がいて、作成フォームが閉じている時に表示 */}
+      {/* 振り分けルールボタン: 未割当選手がいて、作成フォームが閉じている時に表示 */}
       {!editingTournamentId && !showCreateForm && filteredEntries.length > 0 && (
         <div className="space-y-2">
-          {/* 参加者分布パネル（折りたたみ式） */}
-          <DistributionPanel entries={filteredEntries} isOpen={showDistribution} onToggle={() => setShowDistribution(prev => !prev)} />
-
           {bracketRuleCount > 0 ? (
             <button
               onClick={onAutoCreate}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-medium text-white transition shadow-lg">
-              振り分けルールで対戦表を作成（{filteredEntries.length}名）
+              登録済み振り分けルールで対戦表を作成（{filteredEntries.length}名）
             </button>
           ) : (
             <button
               onClick={onNavigateToBracketRules}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-medium text-white transition shadow-lg">
-              振り分けルールを登録して対戦表を作成
+              振り分けルールを登録する
             </button>
           )}
         </div>
@@ -3049,7 +3078,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
                   ? checkCompatibility(pair.e1, pair.e2, groupMismatch)
                   : "unknown";
                 const defaultRule = rules.find((r) => r.id === defaultRuleId);
-                const e1Options = [pair.e1, ...unassigned];
+                const e1Options = [pair.e1, ...filteredUnassigned];
                 // 同じルール内で既に対戦が組まれている相手を除外（自分自身のペアは除く）
                 const isAlreadyPaired = (entryId: string) =>
                   existingPairs.some((p) =>
@@ -3058,7 +3087,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
                     ((p.e1Id === pair.e1.id && p.e2Id === entryId) ||
                      (p.e2Id === pair.e1.id && p.e1Id === entryId))
                   );
-                const e2Options = [...(pair.e2 ? [pair.e2] : []), ...unassigned.filter((e) => e.id !== pair.e1.id && !isAlreadyPaired(e.id))];
+                const e2Options = [...(pair.e2 ? [pair.e2] : []), ...filteredUnassigned.filter((e) => e.id !== pair.e1.id && !isAlreadyPaired(e.id))];
                 const e2Sorted = [...e2Options].sort((a, b) => entryCompatScore(a, pair.e1) - entryCompatScore(b, pair.e1));
 
                 const weightDiffText = pair.e2 && pair.e1.weight && pair.e2.weight
@@ -3300,7 +3329,7 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
               }], restoredDefaultRuleId, tournament.sort_order);
             }}
             className="text-xs text-blue-400 hover:text-blue-300 transition">
-            ← 確定前に戻る
+            ← 登録前に戻る
           </button>
           <button onClick={handleDelete} disabled={deleting}
             className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 transition">
@@ -3311,7 +3340,7 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
 
       {affectedMatches.length > 0 && (
         <div className="bg-orange-950 border border-orange-700 rounded-xl p-3 space-y-2">
-          <p className="text-sm font-semibold text-orange-200">⚠ 欠場選手がいます。必要に応じて「確定前に戻る」で組み直してください。</p>
+          <p className="text-sm font-semibold text-orange-200">⚠ 欠場選手がいます。必要に応じて「登録前に戻る」で組み直してください。</p>
           <div className="space-y-1">
             {affectedMatches.map((match) => {
               const f1Withdrawn = !!(match.fighter1_id && withdrawnFighterIds.has(match.fighter1_id));
