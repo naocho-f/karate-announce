@@ -22,6 +22,7 @@ import { AutoCreateDialog } from "@/components/auto-create-dialog";
 import { computeSuggestions } from "@/lib/suggestions";
 import type { AutoGroup } from "@/lib/auto-bracket";
 import { getGradeOptions, gradeToNumber, findAgeCategory, type AgeCategory } from "@/lib/grade-options";
+import { buildFilterSortComparator, matchCountFilterPredicate } from "@/lib/group-filter-sort";
 import Link from "next/link";
 import { FormConfigPanel } from "./form-config-panel";
 import { estimateMatchMinutes, formatTimeEstimate, countActualMatches, roundedNowHHMM } from "@/lib/time-estimate";
@@ -54,6 +55,7 @@ type GroupFilters = {
   minHeight: string;
   maxHeight: string;
   nameFilter: string;
+  matchCountFilter: string;
 };
 
 type Group = {
@@ -2824,6 +2826,8 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
   const [minHeight, setMinHeight] = useState(group.filters?.minHeight ?? "");
   const [maxHeight, setMaxHeight] = useState(group.filters?.maxHeight ?? "");
   const [nameFilter, setNameFilter] = useState(group.filters?.nameFilter ?? "");
+  const [matchCountFilter, setMatchCountFilter] = useState(group.filters?.matchCountFilter ?? "");
+  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set());
 
   // フィルター条件からトーナメント名を自動生成（年代・年齢・体重・身長・性別のみ反映）
   useEffect(() => {
@@ -2860,9 +2864,9 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
   }, [sexFilter, minAge, maxAge, minWeight, maxWeight, minHeight, maxHeight, minGrade, maxGrade, manualName]);
 
   useEffect(() => {
-    onUpdateFilters({ minWeight, maxWeight, minAge, maxAge, sexFilter, minGrade, maxGrade, experienceFilter, minHeight, maxHeight, nameFilter });
+    onUpdateFilters({ minWeight, maxWeight, minAge, maxAge, sexFilter, minGrade, maxGrade, experienceFilter, minHeight, maxHeight, nameFilter, matchCountFilter });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [minWeight, maxWeight, minAge, maxAge, sexFilter, minGrade, maxGrade, experienceFilter, minHeight, maxHeight, nameFilter]);
+  }, [minWeight, maxWeight, minAge, maxAge, sexFilter, minGrade, maxGrade, experienceFilter, minHeight, maxHeight, nameFilter, matchCountFilter]);
 
   const filteredUnassigned = unassigned.filter((e) => {
     if (minWeight !== "" && (e.weight == null || e.weight < parseFloat(minWeight))) return false;
@@ -2896,8 +2900,17 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
     }
     if (experienceFilter && !e.experience?.includes(experienceFilter)) return false;
     if (nameFilter && !entryFullName(e).toLowerCase().includes(nameFilter.toLowerCase())) return false;
+    const matchPred = matchCountFilterPredicate(matchCountFilter, getTotalMatchCount, getDesiredMatchCount);
+    if (!matchPred(e)) return false;
     return true;
   });
+
+  // フィルタに応じたソート
+  const sortComparator = buildFilterSortComparator({ minGrade, maxGrade, minAge, maxAge, minWeight, maxWeight, minHeight, maxHeight });
+  const sortedFilteredUnassigned = [...filteredUnassigned].sort(sortComparator);
+
+  // selectedEntryIds をフィルタ結果に合わせてクリーンアップ
+  const validSelectedIds = new Set([...selectedEntryIds].filter((id) => sortedFilteredUnassigned.some((e) => e.id === id)));
 
   const groupMismatch: MismatchSettings = {
     maxWeightDiff: group.maxWeightDiff,
@@ -3023,10 +3036,20 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
             <span className="text-xs text-gray-500">名前</span>
             <input value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} placeholder="山田" className={`w-20 ${inpSm}`} />
           </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">試合数</span>
+            <select value={matchCountFilter} onChange={(e) => setMatchCountFilter(e.target.value)} className={`${inpSm} w-20`}>
+              <option value="">全て</option>
+              <option value="unmet">未達</option>
+              {[0,1,2,3,4,5,6,7,8,9].map((n) => (
+                <option key={n} value={String(n)}>{n}試合</option>
+              ))}
+            </select>
+          </div>
         </div>
         </>)}
 
-        {filteredUnassigned.length > 0 ? (
+        {sortedFilteredUnassigned.length > 0 ? (
           <>
             {(() => {
               // ルールごとにグループ化
@@ -3035,14 +3058,14 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
 
               if (displayRules.length > 0) {
                 for (const rule of displayRules) {
-                  const ruleEntries = filteredUnassigned.filter((e) => entryRuleIds[e.id]?.has(rule.id));
+                  const ruleEntries = sortedFilteredUnassigned.filter((e) => entryRuleIds[e.id]?.has(rule.id));
                   if (ruleEntries.length > 0) {
                     const totalDesired = ruleEntries.reduce((sum, e) => sum + getDesiredMatchCount(e), 0);
                     ruleGroups.push({ rule, entries: ruleEntries, totalDesired });
                   }
                 }
                 // ルールに属さない選手
-                const noRuleEntries = filteredUnassigned.filter((e) => {
+                const noRuleEntries = sortedFilteredUnassigned.filter((e) => {
                   const rids = entryRuleIds[e.id];
                   return !rids || rids.size === 0 || !displayRules.some((r) => rids.has(r.id));
                 });
@@ -3055,8 +3078,8 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
               // ルールが1つ以下の場合はフラット表示
               if (ruleGroups.length <= 1) {
                 ruleGroups.length = 0;
-                const totalDesired = filteredUnassigned.reduce((sum, e) => sum + getDesiredMatchCount(e), 0);
-                ruleGroups.push({ rule: null, entries: filteredUnassigned, totalDesired });
+                const totalDesired = sortedFilteredUnassigned.reduce((sum, e) => sum + getDesiredMatchCount(e), 0);
+                ruleGroups.push({ rule: null, entries: sortedFilteredUnassigned, totalDesired });
               }
 
               const renderEntryChip = (e: Entry) => {
@@ -3068,10 +3091,21 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
                   e.admin_memo ? `📋 ${e.admin_memo}` : "",
                 ].filter(Boolean).join("\n");
                 const matchCountLabel = desired > 1 ? ` (${current}/${desired})` : "";
+                const isSelected = validSelectedIds.has(e.id);
                 return (
                   <span key={e.id} title={tooltip || undefined}
-                    className={`text-xs px-2 py-0.5 rounded-full cursor-default ${
-                      e.admin_memo ? "bg-yellow-900/50 text-yellow-200 ring-1 ring-yellow-700" : "bg-gray-700 text-gray-300"
+                    onClick={() => {
+                      setSelectedEntryIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(e.id)) next.delete(e.id);
+                        else next.add(e.id);
+                        return next;
+                      });
+                    }}
+                    className={`text-xs px-2 py-0.5 rounded-full cursor-pointer select-none transition ${
+                      isSelected
+                        ? "ring-2 ring-blue-500 bg-blue-900/50 text-blue-200"
+                        : e.admin_memo ? "bg-yellow-900/50 text-yellow-200 ring-1 ring-yellow-700" : "bg-gray-700 text-gray-300"
                     }`}>
                     {entryFullName(e)}{matchCountLabel}
                     {e.age != null ? ` ${e.age}才` : ""}
@@ -3101,8 +3135,17 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
                 </div>
               );
             })()}
+            {!isOneMatch && (
+              <div className="flex flex-wrap gap-1 items-center">
+                <button onClick={() => setSelectedEntryIds(new Set(sortedFilteredUnassigned.map((e) => e.id)))}
+                  className="text-xs text-blue-400 hover:text-blue-300 transition">全選択</button>
+                <button onClick={() => setSelectedEntryIds(new Set())}
+                  className="text-xs text-gray-400 hover:text-gray-300 transition">全解除</button>
+                <span className="text-xs text-gray-500">{validSelectedIds.size > 0 ? `${validSelectedIds.size}名選択中` : ""}</span>
+              </div>
+            )}
             {!isOneMatch && (() => {
-              const totalEntries = group.pairs.reduce((s, p) => s + 1 + (p.e2 ? 1 : 0), 0) + filteredUnassigned.length;
+              const totalEntries = group.pairs.reduce((s, p) => s + 1 + (p.e2 ? 1 : 0), 0) + sortedFilteredUnassigned.length;
               const totalPairs = Math.ceil(totalEntries / 2);
               const q = bracketQuality(totalPairs);
               if (!q.isClean && totalPairs > 1) {
@@ -3123,10 +3166,26 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
               return null;
             })()}
             {!isOneMatch && (
-              <button onClick={() => onAutoAssign(filteredUnassigned)}
-                className="w-full bg-blue-700 hover:bg-blue-600 py-1.5 rounded text-xs font-medium transition">
-                {filteredUnassigned.length}名を追加してペアリング
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => onAutoAssign(sortedFilteredUnassigned)}
+                  className="flex-1 bg-blue-700 hover:bg-blue-600 py-1.5 rounded text-xs font-medium transition">
+                  全員（{sortedFilteredUnassigned.length}名）を追加してペアリング
+                </button>
+                <button
+                  onClick={() => {
+                    const selected = sortedFilteredUnassigned.filter((e) => validSelectedIds.has(e.id));
+                    onAutoAssign(selected);
+                    setSelectedEntryIds(new Set());
+                  }}
+                  disabled={validSelectedIds.size === 0}
+                  className={`flex-1 py-1.5 rounded text-xs font-medium transition ${
+                    validSelectedIds.size > 0
+                      ? "bg-green-700 hover:bg-green-600"
+                      : "bg-gray-700 text-gray-500 cursor-not-allowed"
+                  }`}>
+                  選択した{validSelectedIds.size}名を追加してペアリング
+                </button>
+              </div>
             )}
           </>
         ) : (
@@ -3147,7 +3206,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
                   ? checkCompatibility(pair.e1, pair.e2, groupMismatch)
                   : "unknown";
                 const defaultRule = rules.find((r) => r.id === defaultRuleId);
-                const e1Options = [pair.e1, ...filteredUnassigned];
+                const e1Options = [pair.e1, ...sortedFilteredUnassigned];
                 // 同じルール内で既に対戦が組まれている相手を除外（自分自身のペアは除く）
                 const isAlreadyPaired = (entryId: string) =>
                   existingPairs.some((p) =>
@@ -3156,7 +3215,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
                     ((p.e1Id === pair.e1.id && p.e2Id === entryId) ||
                      (p.e2Id === pair.e1.id && p.e1Id === entryId))
                   );
-                const e2Options = [...(pair.e2 ? [pair.e2] : []), ...filteredUnassigned.filter((e) => e.id !== pair.e1.id && !isAlreadyPaired(e.id))];
+                const e2Options = [...(pair.e2 ? [pair.e2] : []), ...sortedFilteredUnassigned.filter((e) => e.id !== pair.e1.id && !isAlreadyPaired(e.id))];
                 const e2Sorted = [...e2Options].sort((a, b) => entryCompatScore(a, pair.e1) - entryCompatScore(b, pair.e1));
 
                 const weightDiffText = pair.e2 && pair.e1.weight && pair.e2.weight
@@ -3386,6 +3445,7 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
                 minHeight: tournament.filter_min_height != null ? String(tournament.filter_min_height) : "",
                 maxHeight: tournament.filter_max_height != null ? String(tournament.filter_max_height) : "",
                 nameFilter: "",
+                matchCountFilter: "",
               };
               onEdit(tournament.id, [{
                 id: crypto.randomUUID(),

@@ -231,4 +231,44 @@ test.describe("対戦表作成", () => {
     const delRes = await page.request.delete(`/api/admin/tournaments/${tournamentId}`);
     expect(delRes.ok()).toBeTruthy();
   });
+
+  test("試合決定数フィルタ・選手選択・ソートが対戦表作成画面に表示される", async ({ page }) => {
+    await adminLogin(page);
+    eventId = await createTestEvent(page);
+    await createTestEntries(page, eventId, 4);
+
+    // アクティブにする
+    await page.request.patch(`/api/admin/events/${eventId}`, {
+      data: { is_active: true },
+    });
+
+    // Step2（対戦表作成）を開く
+    await page.goto(`/admin/events/${eventId}?step=2`);
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("text=② 対戦表作成")).toBeVisible({ timeout: 15_000 });
+    await page.waitForTimeout(3_000);
+
+    // 試合数フィルタセレクトが存在することを確認
+    const matchCountLabel = page.locator("text=試合数");
+    await expect(matchCountLabel.first()).toBeVisible({ timeout: 10_000 });
+
+    // 「全選択」「全解除」ボタンが存在することを確認
+    await expect(page.locator("button:has-text('全選択')").first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("button:has-text('全解除')").first()).toBeVisible({ timeout: 10_000 });
+
+    // 「全員」ボタンと「選択した」ボタンの2つが存在することを確認
+    await expect(page.locator("button:has-text('全員')").first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("button:has-text('選択した')").first()).toBeVisible({ timeout: 10_000 });
+
+    // 選手チップをクリックして選択状態が切り替わることを確認
+    const chip = page.locator(".rounded-full").filter({ hasText: "対戦テスト1" }).first();
+    await expect(chip).toBeVisible({ timeout: 10_000 });
+    await chip.click();
+    // 選択後、ring-blue-500 クラスが付くことを確認
+    await expect(chip).toHaveClass(/ring-blue-500/, { timeout: 5_000 });
+
+    // もう一度クリックして解除
+    await chip.click();
+    await expect(chip).not.toHaveClass(/ring-blue-500/, { timeout: 5_000 });
+  });
 });
