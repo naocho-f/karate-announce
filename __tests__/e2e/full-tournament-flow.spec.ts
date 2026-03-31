@@ -216,11 +216,18 @@ test.describe("大会フル進行フロー", () => {
 });
 
 test.describe("タイマー CRUD", () => {
-  test("タイマー作成 → 一覧に表示 → 削除", async ({ page }) => {
-    await adminLogin(page);
+  let createdPresetId: string | null = null;
 
-    // 確認ダイアログを自動承認（先にセットアップ）
-    page.on("dialog", (dialog) => dialog.accept());
+  test.afterEach(async ({ page }) => {
+    // テストで作成したデータのみ API で直接削除（既存データには触れない）
+    if (createdPresetId) {
+      await page.request.delete(`/api/admin/timer-presets/${createdPresetId}`).catch(() => {});
+      createdPresetId = null;
+    }
+  });
+
+  test("タイマー作成 → 一覧に表示 → API で削除", async ({ page }) => {
+    await adminLogin(page);
 
     await page.goto("/admin/timer-presets", { waitUntil: "networkidle" });
 
@@ -245,11 +252,18 @@ test.describe("タイマー CRUD", () => {
     const countAfterCreate = await page.locator("p.font-bold").count();
     expect(countAfterCreate).toBe(countInitial + 1);
 
-    // 最後の削除ボタンをクリック（末尾に追加された新しいタイマー）
-    const deleteButtons = page.getByRole("button", { name: "削除" });
-    await deleteButtons.last().click();
+    // 作成したタイマーのIDを取得してAPI経由で削除（UI上の削除ボタンは使わない）
+    const presetsRes = await page.request.get("/api/admin/timer-presets");
+    const presets = await presetsRes.json();
+    const created = presets.find((p: { name: string }) => p.name === "E2Eテスト_CRUD");
+    if (created) {
+      createdPresetId = created.id;
+      await page.request.delete(`/api/admin/timer-presets/${created.id}`);
+    }
 
-    // 削除完了を待つ
+    // リロードして元の数に戻ったことを確認
+    await page.reload({ waitUntil: "networkidle" });
     await expect(page.locator("p.font-bold")).toHaveCount(countInitial, { timeout: 5_000 });
+    createdPresetId = null; // afterEach での二重削除防止
   });
 });
