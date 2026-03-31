@@ -801,6 +801,7 @@ form_notice_images (
 | GET/POST | `/api/admin/bracket-rules` | 振り分けルール一覧取得・作成 |
 | PUT/DELETE | `/api/admin/bracket-rules/[id]` | 振り分けルール更新・削除 |
 | POST | `/api/admin/tournaments` | トーナメント作成・対戦表生成 |
+| PUT | `/api/admin/tournaments/[id]` | トーナメント更新（matches 再作成、id/sort_order/created_at 保持） |
 | DELETE | `/api/admin/tournaments/[id]` | トーナメント削除 |
 | PATCH | `/api/admin/matches/[id]` | マッチ更新（管理者） |
 | POST | `/api/admin/matches/[id]/replace` | マッチの選手差し替え（`{ slot, entry_id }`） |
@@ -972,7 +973,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **欠場機能（2026-03-22 追加）**: `entries.is_withdrawn` フラグで欠場状態を管理。欠場登録した選手は対戦表作成から除外。確定済み対戦表に欠場選手が含まれる場合は警告バナーで「不戦勝にする」「別選手に差し替え」アクションを提供
 - **選手差し替えエンドポイント**: `/api/admin/matches/[id]/replace` を新設。差し替え先エントリーから fighter レコードを自動生成（`ensureFighterFromEntry` 共有関数）
 - **`lib/ensure-fighter.ts` 抽出**: `ensureFighterFromEntry` をトーナメント作成と選手差し替えで共用するため独立ファイル化
-- **確定済み対戦表の「← 登録前に戻る」**: 削除&再作成ではなく、round-1 マッチからペアを復元してフォームに戻す
+- **確定済み対戦表の「← 登録前に戻る」**: round-1 マッチからペアを復元してフォームに戻す。再登録時は `PUT /api/admin/tournaments/[id]` でトーナメントを更新（`id`・`sort_order`・`created_at` を保持し、matches のみ再作成）。DELETE+POST による並び順崩れを防止
 - **体重差・身長差の編集禁止（確定後）**: 確定後はテキスト表示のみ。編集不可
 - **コート画面への直接リンク削除**: 試合詳細の確定済み対戦表から「コート画面 →」リンクを廃止
 - **ブラケット確定後スクロール**: 「登録する」ボタン押下後、ブラケット表示の先頭に自動スクロール
@@ -1182,7 +1183,7 @@ __tests__/
     admin-login.test.ts          # ログイン/ログアウト
     admin-crud.test.ts           # 道場・選手・エントリー・ルール・設定 CRUD
     admin-events.test.ts         # イベント作成・更新・削除・複製
-    admin-matches.test.ts        # 試合更新・入替・一括・選手差替・トーナメント更新削除
+    admin-matches.test.ts        # 試合更新・入替・一括・選手差替・トーナメントPUT更新・PATCH・削除
     admin-bracket-rules.test.ts # 振り分けルール CRUD・バリデーション・認証
     admin-timer-presets.test.ts  # タイマープリセット CRUD・複製
     admin-form-config.test.ts    # フォーム設定 GET/PUT/PATCH・コピー・注意書き・カスタムフィールド・画像

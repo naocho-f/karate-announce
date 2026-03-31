@@ -2311,44 +2311,50 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
     const activeGroups = groups.filter((g) => g.pairs.length > 0);
     if (activeGroups.length === 0) return;
     setConfirming(true);
-    if (editingTournamentId) {
-      await fetch(`/api/admin/tournaments/${editingTournamentId}`, { method: "DELETE" });
-    }
     const defaultRule = rules.find((r) => r.id === defaultRuleId);
     const responses = await Promise.all(
       activeGroups.map((g, groupIndex) => {
         const f = g.filters;
         // 1ペアのトーナメントは自動でワンマッチ扱いにする
         const effectiveType = g.type === "tournament" && g.pairs.length === 1 ? "one_match" : g.type;
+        const payload = {
+          courtName: g.name || `コート${courtNum}`,
+          courtNum: String(courtNum),
+          type: effectiveType,
+          pairs: g.pairs.map((p) => ({
+            e1: p.e1,
+            e2: p.e2,
+            matchLabel: p.matchLabel || null,
+            ruleName: (p.ruleId ? rules.find((r) => r.id === p.ruleId)?.name : null) ?? defaultRule?.name ?? null,
+          })),
+          eventId,
+          sortOrder: editingSortOrder ?? groupIndex,
+          defaultRuleName: defaultRule?.name ?? null,
+          maxWeightDiff: g.maxWeightDiff,
+          maxHeightDiff: g.maxHeightDiff,
+          filterMinWeight: f?.minWeight ? parseFloat(f.minWeight) : null,
+          filterMaxWeight: f?.maxWeight ? parseFloat(f.maxWeight) : null,
+          filterMinAge: f?.minAge ? parseInt(f.minAge) : null,
+          filterMaxAge: f?.maxAge ? parseInt(f.maxAge) : null,
+          filterSex: f?.sexFilter || null,
+          filterExperience: f?.experienceFilter || null,
+          filterMinGrade: f?.minGrade || null,
+          filterMaxGrade: f?.maxGrade || null,
+          filterMinHeight: f?.minHeight ? parseFloat(f.minHeight) : null,
+          filterMaxHeight: f?.maxHeight ? parseFloat(f.maxHeight) : null,
+        };
+        // 編集中の場合は PUT（id, sort_order, created_at を保持）、新規の場合は POST
+        if (editingTournamentId && groupIndex === 0) {
+          return fetch(`/api/admin/tournaments/${editingTournamentId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        }
         return fetch("/api/admin/tournaments", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            courtName: g.name || `コート${courtNum}`,
-            courtNum: String(courtNum),
-            type: effectiveType,
-            pairs: g.pairs.map((p) => ({
-              e1: p.e1,
-              e2: p.e2,
-              matchLabel: p.matchLabel || null,
-              ruleName: (p.ruleId ? rules.find((r) => r.id === p.ruleId)?.name : null) ?? defaultRule?.name ?? null,
-            })),
-            eventId,
-            sortOrder: editingSortOrder ?? groupIndex,
-            defaultRuleName: defaultRule?.name ?? null,
-            maxWeightDiff: g.maxWeightDiff,
-            maxHeightDiff: g.maxHeightDiff,
-            filterMinWeight: f?.minWeight ? parseFloat(f.minWeight) : null,
-            filterMaxWeight: f?.maxWeight ? parseFloat(f.maxWeight) : null,
-            filterMinAge: f?.minAge ? parseInt(f.minAge) : null,
-            filterMaxAge: f?.maxAge ? parseInt(f.maxAge) : null,
-            filterSex: f?.sexFilter || null,
-            filterExperience: f?.experienceFilter || null,
-            filterMinGrade: f?.minGrade || null,
-            filterMaxGrade: f?.maxGrade || null,
-            filterMinHeight: f?.minHeight ? parseFloat(f.minHeight) : null,
-            filterMaxHeight: f?.maxHeight ? parseFloat(f.maxHeight) : null,
-          }),
+          body: JSON.stringify(payload),
         });
       })
     );

@@ -6,7 +6,7 @@
  * - /api/admin/matches/swap (POST)
  * - /api/admin/matches/batch (POST)
  * - /api/admin/matches/[id]/replace (POST)
- * - /api/admin/tournaments/[id] (PATCH, DELETE)
+ * - /api/admin/tournaments/[id] (PUT, PATCH, DELETE)
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
@@ -298,6 +298,61 @@ describe("POST /api/admin/tournaments", () => {
 
 describe("/api/admin/tournaments/[id]", () => {
   beforeEach(() => resetAll());
+
+  it("PUT: トーナメントを更新（matches 再作成）", async () => {
+    const { PUT } = await import("@/app/api/admin/tournaments/[id]/route");
+    const req = createAdminRequest("PUT", "/api/admin/tournaments/t1", {
+      body: {
+        courtName: "コートA更新",
+        courtNum: "A",
+        pairs: [
+          {
+            e1: { id: "e1", family_name: "田中", given_name: "太郎", event_id: "ev1" },
+            e2: { id: "e2", family_name: "鈴木", given_name: "次郎", event_id: "ev1" },
+            matchLabel: null,
+            ruleName: null,
+          },
+          {
+            e1: { id: "e3", family_name: "佐藤", given_name: "三郎", event_id: "ev1" },
+            e2: { id: "e4", family_name: "高橋", given_name: "四郎", event_id: "ev1" },
+            matchLabel: null,
+            ruleName: null,
+          },
+        ],
+        maxWeightDiff: 5,
+      },
+    });
+    const res = await PUT(req, createParams({ id: "t1" }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.id).toBe("t1");
+
+    // matches が先に削除されていること
+    const calls = getCalls();
+    const matchDelete = calls.find(
+      (c) => c.table === "matches" && c.method === "delete",
+    );
+    expect(matchDelete).toBeTruthy();
+
+    // tournaments が update されていること（insert ではない）
+    const tUpdate = calls.find(
+      (c) => c.table === "tournaments" && c.method === "update",
+    );
+    expect(tUpdate).toBeTruthy();
+  });
+
+  it("PUT: pairs が空の場合 400", async () => {
+    const { PUT } = await import("@/app/api/admin/tournaments/[id]/route");
+    const req = createAdminRequest("PUT", "/api/admin/tournaments/t1", {
+      body: {
+        courtName: "コートA",
+        courtNum: "A",
+        pairs: [],
+      },
+    });
+    const res = await PUT(req, createParams({ id: "t1" }));
+    expect(res.status).toBe(400);
+  });
 
   it("PATCH: トーナメント更新", async () => {
     const { PATCH } = await import("@/app/api/admin/tournaments/[id]/route");
