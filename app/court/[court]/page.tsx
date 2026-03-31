@@ -8,7 +8,7 @@ import { isTimerActive } from "@/lib/timer-broadcast";
 import type { Fighter, Match, Tournament } from "@/lib/types";
 import { fighterFullName, fighterFullReading } from "@/lib/types";
 import { roundName, totalRounds } from "@/lib/tournament";
-import { announceMatchStart, announceWinner, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
+import { announceMatchStart, announceWinner, buildMatchStartText, prefetchTts, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
 import { BracketView } from "@/lib/bracket-view";
 import { matchLabelNum } from "@/lib/match-utils";
 import Link from "next/link";
@@ -363,6 +363,24 @@ export default function CourtPage({ params }: Props) {
         <div className="flex items-center gap-3 mb-6">
           <Link href="/" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
           <h1 className="text-2xl font-bold">{courtDisplayName || `${court}コート`}</h1>
+          <div className="ml-auto flex gap-2">
+            <a
+              href={`/timer/${court}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded transition"
+            >
+              ⏱ タイマー表示
+            </a>
+            <a
+              href={`/timer/${court}/control`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded transition"
+            >
+              🎮 操作パネル
+            </a>
+          </div>
         </div>
 
         {isEventActive === null ? (
@@ -391,6 +409,8 @@ export default function CourtPage({ params }: Props) {
             processingMatchIds={processingMatchIds}
             mutedMatchIds={mutedMatchIds}
             timerControlActive={timerControlActive}
+            announceTemplates={announceTemplates}
+            rulesReadingMap={rulesReadingMap}
             onStartMatch={startMatch}
             onSetWinner={setWinner}
             onCorrectWinner={correctWinner}
@@ -409,6 +429,7 @@ export default function CourtPage({ params }: Props) {
 function CourtContent({
   tournaments, matchesMap, fighters, withdrawnFighterIds, fighterEntryMap,
   processingMatchIds, mutedMatchIds, timerControlActive,
+  announceTemplates, rulesReadingMap,
   onStartMatch, onSetWinner, onCorrectWinner, onReannounceStart, onReannounceWinner,
   onToggleWithdrawal, onSwapWithNext, onToggleMute,
 }: {
@@ -420,6 +441,8 @@ function CourtContent({
   processingMatchIds: Set<string>;
   mutedMatchIds: Set<string>;
   timerControlActive: boolean;
+  announceTemplates: AnnounceTemplates;
+  rulesReadingMap: Record<string, string>;
   onStartMatch: (tournamentId: string, matchId: string) => void;
   onSetWinner: (tournamentId: string, matchId: string, winnerId: string) => void;
   onCorrectWinner: (tournamentId: string, matchId: string, winnerId: string) => void;
@@ -455,6 +478,37 @@ function CourtContent({
   const courtAllDone = allMatches.length > 0 && allMatches.every(
     (m) => m.status === "done" || (m.round === 1 && m.fighter1_id && !m.fighter2_id)
   );
+
+  // 次の試合の TTS 音声を事前生成・キャッシュ
+  const prefetchedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!courtNextMatch) { prefetchedRef.current = null; return; }
+    if (prefetchedRef.current === courtNextMatch.id) return;
+    prefetchedRef.current = courtNextMatch.id;
+
+    const f1 = courtNextMatch.fighter1_id ? fighters[courtNextMatch.fighter1_id] : null;
+    const f2 = courtNextMatch.fighter2_id ? fighters[courtNextMatch.fighter2_id] : null;
+    if (!f1 || !f2) return;
+
+    const tournament = tournaments.find((t) =>
+      (matchesMap[t.id] ?? []).some((m) => m.id === courtNextMatch.id)
+    );
+    const matches = tournament ? (matchesMap[tournament.id] ?? []) : [];
+    const rounds = Math.max(...matches.map((m) => m.round), 1);
+    const rulesText = courtNextMatch.rules ?? tournament?.default_rules;
+    const text = buildMatchStartText(
+      fighterFullName(f1), f1.affiliation ?? f1.dojo?.name ?? "",
+      fighterFullName(f2), f2.affiliation ?? f2.dojo?.name ?? "",
+      roundName(courtNextMatch.round, rounds),
+      fighterFullReading(f1), f1.affiliation_reading ?? f1.dojo?.name_reading,
+      fighterFullReading(f2), f2.affiliation_reading ?? f2.dojo?.name_reading,
+      courtNextMatch.match_label,
+      rulesText,
+      announceTemplates,
+      rulesText ? rulesReadingMap[rulesText] ?? null : null,
+    );
+    prefetchTts(text);
+  }, [courtNextMatch, fighters, tournaments, matchesMap, announceTemplates, rulesReadingMap]);
 
   return (
     <div className="space-y-8">

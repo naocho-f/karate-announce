@@ -68,7 +68,7 @@ function OneMatchNumberCard({ match, nameMap, assignedNumber, onClick, onSwapFig
   );
 }
 
-export function MatchLabelEditor({ eventId, courtNames, courtCount, onChanged }: { eventId: string; courtNames: string[] | null; courtCount: number; onChanged?: () => void }) {
+export function MatchLabelEditor({ eventId, courtNames, courtCount, selectedCourt, onChanged }: { eventId: string; courtNames: string[] | null; courtCount: number; selectedCourt?: string; onChanged?: () => void }) {
   const [tournaments, setTournaments] = useState<TournamentData[]>([]);
   const [order, setOrder] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -359,7 +359,9 @@ export function MatchLabelEditor({ eventId, courtNames, courtCount, onChanged }:
           <p className="text-sm text-gray-600">確定済みのトーナメントがありません</p>
         ) : (
           <div className="space-y-6">
-            {Array.from({ length: courtCount }, (_, i) => i + 1).map((courtNum) => {
+            {Array.from({ length: courtCount }, (_, i) => i + 1)
+              .filter((courtNum) => !selectedCourt || String(courtNum) === selectedCourt)
+              .map((courtNum) => {
               const courtLabel = getCourtLabel(String(courtNum), courtNames);
               const courtTournaments = tournaments.filter((t) => t.court === String(courtNum));
               if (courtTournaments.length === 0) return null;

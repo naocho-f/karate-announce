@@ -90,6 +90,7 @@ export default function EventDetailPage({ params }: Props) {
   const [showAutoDialog, setShowAutoDialog] = useState(false);
   const [bracketRuleCount, setBracketRuleCount] = useState(0);
   const [bracketSubTab, setBracketSubTab] = useState<"courts" | "bracket-rules">("courts");
+  const [matchLabelCourt, setMatchLabelCourt] = useState<string>("all");
   const initialStepSetRef = useRef(false);
 
   function navigateStep(s: 1 | 2 | 3) {
@@ -795,7 +796,31 @@ export default function EventDetailPage({ params }: Props) {
         {/* ③ 試合番号設定 */}
         {step === 3 && (
           <div className="space-y-6">
-            <MatchLabelEditor eventId={id} courtNames={event.court_names} courtCount={event.court_count} onChanged={load} />
+            {/* コートタブ */}
+            {event.court_count > 1 && (
+              <div className="grid rounded-xl overflow-hidden border border-gray-700" style={{ gridTemplateColumns: `repeat(${event.court_count + 1}, minmax(0, 1fr))` }}>
+                <button
+                  onClick={() => setMatchLabelCourt("all")}
+                  className={`py-2 text-sm font-medium transition ${matchLabelCourt === "all" ? "bg-blue-700 text-white" : "bg-gray-800 hover:bg-gray-750 text-gray-400 hover:text-gray-200"}`}
+                >
+                  全コート
+                </button>
+                {Array.from({ length: event.court_count }, (_, i) => {
+                  const courtKey = String(i + 1);
+                  const courtLabel = event.court_names?.[i]?.trim() || `コート${i + 1}`;
+                  return (
+                    <button
+                      key={courtKey}
+                      onClick={() => setMatchLabelCourt(courtKey)}
+                      className={`py-2 text-sm font-medium transition ${matchLabelCourt === courtKey ? "bg-blue-700 text-white" : "bg-gray-800 hover:bg-gray-750 text-gray-400 hover:text-gray-200"}`}
+                    >
+                      {courtLabel}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <MatchLabelEditor eventId={id} courtNames={event.court_names} courtCount={event.court_count} selectedCourt={matchLabelCourt === "all" ? undefined : matchLabelCourt} onChanged={load} />
           </div>
         )}
       </div>

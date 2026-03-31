@@ -24,6 +24,8 @@ const {
   saveTtsSettings,
   buildAffiliationForTts,
   splitAffiliationParts,
+  buildMatchStartText,
+  prefetchTts,
   DEFAULT_TEMPLATES,
   TTS_VOICES,
   MATCH_VARS,
@@ -197,5 +199,87 @@ describe("splitAffiliationParts", () => {
       school: "",
       dojo: "",
     });
+  });
+});
+
+describe("buildMatchStartText", () => {
+  it("テンプレートに選手情報を埋め込んだテキストを返す", () => {
+    const text = buildMatchStartText(
+      "山田太郎", "極真会　本部道場",
+      "鈴木一郎", "正道会館",
+      "準決勝",
+    );
+    expect(text).toContain("じゅんけっしょう");
+    expect(text).toContain("山田太郎");
+    expect(text).toContain("鈴木一郎");
+    expect(text).toContain("極真会、本部道場");
+    expect(text).toContain("正道会館");
+  });
+
+  it("読み仮名がある場合は読み仮名を使う", () => {
+    const text = buildMatchStartText(
+      "山田太郎", "極真会",
+      "鈴木一郎", "正道会館",
+      "決勝",
+      "やまだたろう", "きょくしんかい",
+      "すずきいちろう", "せいどうかいかん",
+    );
+    expect(text).toContain("やまだたろう");
+    expect(text).toContain("きょくしんかい");
+    expect(text).toContain("すずきいちろう");
+    expect(text).toContain("せいどうかいかん");
+    // 漢字名は含まれない
+    expect(text).not.toContain("山田太郎");
+  });
+
+  it("matchLabel がある場合はそちらを使う", () => {
+    const text = buildMatchStartText(
+      "山田太郎", "極真会",
+      "鈴木一郎", "正道会館",
+      "準決勝",
+      null, null, null, null,
+      "第3試合",
+    );
+    expect(text).toContain("だいさんしあい");
+    expect(text).not.toContain("じゅんけっしょう");
+  });
+
+  it("カスタムテンプレートを使える", () => {
+    const templates = {
+      matchStart: "{{選手1名前}} 対 {{選手2名前}}",
+      winner: "{{勝者名前}}の勝ち",
+    };
+    const text = buildMatchStartText(
+      "山田太郎", "",
+      "鈴木一郎", "",
+      "決勝",
+      null, null, null, null,
+      null, null, templates,
+    );
+    expect(text).toBe("山田太郎 対 鈴木一郎");
+  });
+});
+
+describe("prefetchTts", () => {
+  it("空文字列の場合は fetch を呼ばない", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response());
+    await prefetchTts("");
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  it("テキストがある場合は /api/tts に POST する", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response());
+    await prefetchTts("テストテキスト");
+    expect(fetchSpy).toHaveBeenCalledWith("/api/tts", expect.objectContaining({
+      method: "POST",
+    }));
+    fetchSpy.mockRestore();
+  });
+
+  it("fetch が失敗してもエラーを投げない", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network error"));
+    await expect(prefetchTts("テスト")).resolves.toBeUndefined();
+    fetchSpy.mockRestore();
   });
 });

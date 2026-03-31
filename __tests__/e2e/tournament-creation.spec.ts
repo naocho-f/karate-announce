@@ -389,4 +389,80 @@ test.describe("対戦表作成", () => {
     await page.request.delete(`/api/admin/tournaments/${t1Id}`).catch(() => {});
     await page.request.delete(`/api/admin/tournaments/${t2Id}`).catch(() => {});
   });
+
+  test("Step③ 試合番号設定でコートタブが表示され切り替えできる", async ({ page }) => {
+    await adminLogin(page);
+    eventId = await createTestEvent(page);
+    const entryIds = await createTestEntries(page, eventId, 4);
+
+    // 2つのコートにそれぞれトーナメントを作成
+    const t1Res = await page.request.post("/api/admin/tournaments", {
+      data: {
+        courtName: "コート1トーナメント",
+        courtNum: "1",
+        eventId: eventId,
+        type: "tournament",
+        pairs: [
+          {
+            e1: { id: entryIds[0], family_name: "対戦テスト1", given_name: "選手", family_name_reading: "タイセンテスト1", given_name_reading: "センシュ" },
+            e2: { id: entryIds[1], family_name: "対戦テスト2", given_name: "選手", family_name_reading: "タイセンテスト2", given_name_reading: "センシュ" },
+            matchLabel: null,
+            ruleName: null,
+          },
+        ],
+      },
+    });
+    const t2Res = await page.request.post("/api/admin/tournaments", {
+      data: {
+        courtName: "コート2トーナメント",
+        courtNum: "2",
+        eventId: eventId,
+        type: "tournament",
+        pairs: [
+          {
+            e1: { id: entryIds[2], family_name: "対戦テスト3", given_name: "選手", family_name_reading: "タイセンテスト3", given_name_reading: "センシュ" },
+            e2: { id: entryIds[3], family_name: "対戦テスト4", given_name: "選手", family_name_reading: "タイセンテスト4", given_name_reading: "センシュ" },
+            matchLabel: null,
+            ruleName: null,
+          },
+        ],
+      },
+    });
+    const t1 = await t1Res.json();
+    const t2 = await t2Res.json();
+
+    // Step③を開く
+    await page.goto(`/admin/events/${eventId}?step=3`);
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("text=③ 試合番号設定")).toBeVisible({ timeout: 15_000 });
+    await page.waitForTimeout(2_000);
+
+    // コートタブが表示されている（court_count=2 なので3つのタブ: 全コート + コート1 + コート2）
+    const allTab = page.locator('button:has-text("全コート")');
+    await expect(allTab).toBeVisible({ timeout: 10_000 });
+    const court1Tab = page.locator('button:has-text("コート1")');
+    await expect(court1Tab).toBeVisible();
+    const court2Tab = page.locator('button:has-text("コート2")');
+    await expect(court2Tab).toBeVisible();
+
+    // 全コートタブ選択時は両方のトーナメントが表示される
+    await expect(page.locator("text=コート1トーナメント")).toBeVisible();
+    await expect(page.locator("text=コート2トーナメント")).toBeVisible();
+
+    // コート1タブをクリック→コート1のみ表示
+    await court1Tab.click();
+    await page.waitForTimeout(1_000);
+    await expect(page.locator("text=コート1トーナメント")).toBeVisible();
+    await expect(page.locator("text=コート2トーナメント")).not.toBeVisible();
+
+    // コート2タブをクリック→コート2のみ表示
+    await court2Tab.click();
+    await page.waitForTimeout(1_000);
+    await expect(page.locator("text=コート2トーナメント")).toBeVisible();
+    await expect(page.locator("text=コート1トーナメント")).not.toBeVisible();
+
+    // クリーンアップ
+    await page.request.delete(`/api/admin/tournaments/${t1.id}`).catch(() => {});
+    await page.request.delete(`/api/admin/tournaments/${t2.id}`).catch(() => {});
+  });
 });

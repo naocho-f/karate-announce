@@ -176,7 +176,13 @@ renderTemplate(template: string, vars: Record<string, string>): string
 - `templates?` — カスタムテンプレート
 - `rulesReading?` — ルールの読みがな
 
-**処理**: テンプレートに変数を展開 → `speak()` で音声再生
+**処理**: `buildMatchStartText()` でテンプレートに変数を展開してテキストを組み立て → `speak()` で音声再生
+
+### 6.1.1 buildMatchStartText
+`announceMatchStart` と同じパラメータで、発話テキストのみを組み立てて返す（音声再生はしない）。TTS prefetch で利用。
+
+### 6.1.2 prefetchTts
+次の試合のアナウンステキストを事前に `/api/tts` に POST して音声を生成・キャッシュする。再生はしない。空文字列の場合は何もしない。fetch エラーは無視する。
 
 ### 6.2 announceWinner
 勝者確定時のアナウンス。

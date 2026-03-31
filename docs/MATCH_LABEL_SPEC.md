@@ -62,6 +62,7 @@ matchLabelNum(label: string | null): number
 | `eventId` | `string` | イベントID |
 | `courtNames` | `string[] \| null` | コート名配列 |
 | `courtCount` | `number` | コート数 |
+| `selectedCourt` | `string \| undefined` | 選択中のコート番号（`"1"`, `"2"` 等）。未指定時は全コート表示 |
 | `onChanged` | `() => void` | 保存完了コールバック（省略可） |
 
 ### 3.2 内部状態
@@ -259,12 +260,15 @@ Supabase RPC `swap_match_positions` を使用。
 ### 11.2 完了チェック
 全試合（bye除く）にラベルが付与済みの場合、緑色の完了メッセージを表示。
 
-### 11.3 コート別セクション
-コートごとにトーナメント一覧を表示。各トーナメントは:
+### 11.3 コートタブ（Step③）
+コート数が2以上の場合、MatchLabelEditor の上部に「全コート」+ 各コート名のタブを表示（`grid` + `gridTemplateColumns` で均等割り）。タブ選択で `selectedCourt` を切り替え、表示するコートをフィルタリングする。デフォルトは「全コート」。
+
+### 11.4 コート別セクション
+コートごとにトーナメント一覧を表示。`selectedCourt` が指定されている場合はそのコートのみ表示。各トーナメントは:
 - **tournament 型** → `BracketView`（番号割当モード）
 - **one_match 型** → `OneMatchNumberCard`（水平カード）
 
-### 11.4 番号バッジ表示
+### 11.5 番号バッジ表示
 | 状態 | 表示 |
 |------|------|
 | 割当済み | 青丸 + 白数字 |

@@ -155,6 +155,43 @@ test.describe("ライブ・表示", () => {
     }).toPass({ timeout: 20_000, intervals: [2_000, 3_000, 4_000] });
   });
 
+  test("コート画面にタイマー表示・操作パネルリンクが表示される", async ({ page }) => {
+    await adminLogin(page);
+    eventId = await createTestEvent(page);
+
+    // トーナメントを作成してアクティブにする
+    await createTournamentWithEntries(page, eventId, "1", "リンクテスト");
+    await page.request.patch(`/api/admin/events/${eventId}`, {
+      data: { is_active: true },
+    });
+
+    await page.goto("/court/1");
+    await page.waitForLoadState("networkidle");
+
+    // リンクが表示されるまでリトライ
+    await expect(async () => {
+      await page.request.patch(`/api/admin/events/${eventId}`, {
+        data: { is_active: true },
+      });
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+      const timerLink = page.locator('a[href="/timer/1"]');
+      await expect(timerLink).toBeVisible();
+    }).toPass({ timeout: 20_000, intervals: [2_000, 3_000, 4_000] });
+
+    // タイマー表示リンク
+    const timerLink = page.locator('a[href="/timer/1"]');
+    await expect(timerLink).toBeVisible();
+    await expect(timerLink).toHaveAttribute("target", "_blank");
+    await expect(timerLink).toContainText("タイマー表示");
+
+    // 操作パネルリンク
+    const controlLink = page.locator('a[href="/timer/1/control"]');
+    await expect(controlLink).toBeVisible();
+    await expect(controlLink).toHaveAttribute("target", "_blank");
+    await expect(controlLink).toContainText("操作パネル");
+  });
+
   test("コート画面で複数トーナメントが表示される", async ({ page }) => {
     await adminLogin(page);
     eventId = await createTestEvent(page);

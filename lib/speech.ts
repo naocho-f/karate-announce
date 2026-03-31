@@ -166,6 +166,67 @@ async function speak(text: string) {
   }
 }
 
+/**
+ * TTS 音声を事前生成してブラウザにキャッシュする（再生はしない）。
+ * 次の試合のアナウンスを先にリクエストしておくことで、
+ * 試合開始時の音声再生を高速化する。
+ */
+export async function prefetchTts(text: string): Promise<void> {
+  if (!text) return;
+  const { voice, speed } = getTtsSettings();
+  try {
+    await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, voice, speed }),
+    });
+    // レスポンスは読み捨てる（サーバー側でキャッシュされるか、
+    // ブラウザの HTTP キャッシュに乗ることを期待）
+  } catch {
+    // prefetch の失敗は無視する
+  }
+}
+
+/** 試合開始アナウンスのテキストを組み立てる（発話せず文字列を返す） */
+export function buildMatchStartText(
+  fighter1Name: string,
+  fighter1Affiliation: string,
+  fighter2Name: string,
+  fighter2Affiliation: string,
+  roundLabel: string,
+  fighter1NameReading?: string | null,
+  fighter1AffiliationReading?: string | null,
+  fighter2NameReading?: string | null,
+  fighter2AffiliationReading?: string | null,
+  matchLabel?: string | null,
+  rules?: string | null,
+  templates?: AnnounceTemplates,
+  rulesReading?: string | null,
+): string {
+  const f1name = fighter1NameReading || fighter1Name;
+  const f1affRaw = fighter1AffiliationReading || fighter1Affiliation;
+  const f2name = fighter2NameReading || fighter2Name;
+  const f2affRaw = fighter2AffiliationReading || fighter2Affiliation;
+  const f1aff = buildAffiliationForTts(f1affRaw);
+  const f2aff = buildAffiliationForTts(f2affRaw);
+  const f1parts = splitAffiliationParts(f1affRaw);
+  const f2parts = splitAffiliationParts(f2affRaw);
+  const { matchStart } = templates ?? DEFAULT_TEMPLATES;
+  const rawLabel = matchLabel || roundLabel;
+  return renderTemplate(matchStart, {
+    "試合ラベル":    normalizeMatchLabelForTts(rawLabel),
+    "ルール":        rulesReading || (rules ?? ""),
+    "選手1名前":     f1name,
+    "選手1流派＋道場": f1aff,
+    "選手1流派":     f1parts.school,
+    "選手1道場":     f1parts.dojo,
+    "選手2名前":     f2name,
+    "選手2流派＋道場": f2aff,
+    "選手2流派":     f2parts.school,
+    "選手2道場":     f2parts.dojo,
+  });
+}
+
 export function announceMatchStart(
   fighter1Name: string,
   fighter1Affiliation: string,
@@ -181,28 +242,14 @@ export function announceMatchStart(
   templates?: AnnounceTemplates,
   rulesReading?: string | null,
 ) {
-  const f1name = fighter1NameReading || fighter1Name;
-  const f1affRaw = fighter1AffiliationReading || fighter1Affiliation;
-  const f2name = fighter2NameReading || fighter2Name;
-  const f2affRaw = fighter2AffiliationReading || fighter2Affiliation;
-  const f1aff = buildAffiliationForTts(f1affRaw);
-  const f2aff = buildAffiliationForTts(f2affRaw);
-  const f1parts = splitAffiliationParts(f1affRaw);
-  const f2parts = splitAffiliationParts(f2affRaw);
-  const { matchStart } = templates ?? DEFAULT_TEMPLATES;
-  const rawLabel = matchLabel || roundLabel;
-  const text = renderTemplate(matchStart, {
-    "試合ラベル":    normalizeMatchLabelForTts(rawLabel),
-    "ルール":        rulesReading || (rules ?? ""),
-    "選手1名前":     f1name,
-    "選手1流派＋道場": f1aff,
-    "選手1流派":     f1parts.school,
-    "選手1道場":     f1parts.dojo,
-    "選手2名前":     f2name,
-    "選手2流派＋道場": f2aff,
-    "選手2流派":     f2parts.school,
-    "選手2道場":     f2parts.dojo,
-  });
+  const text = buildMatchStartText(
+    fighter1Name, fighter1Affiliation,
+    fighter2Name, fighter2Affiliation,
+    roundLabel,
+    fighter1NameReading, fighter1AffiliationReading,
+    fighter2NameReading, fighter2AffiliationReading,
+    matchLabel, rules, templates, rulesReading,
+  );
   speak(text);
 }
 

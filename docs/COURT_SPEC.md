@@ -60,7 +60,7 @@ preparing → ongoing → finished
 ## 3. コート操作画面
 
 ### 3.1 ページ構成
-- **ヘッダー**: ← ホームへ戻るリンク + コート表示名
+- **ヘッダー**: ← ホームへ戻るリンク + コート表示名 + 右側に「⏱ タイマー表示」「🎮 操作パネル」リンク（別窓で `/timer/{court}` と `/timer/{court}/control` を開く）
 - **ステータスバナー**:
   - 全試合終了 → 緑バナー「全試合終了」
   - 試合中あり → 黄バナー「試合中」（該当試合へジャンプ）
@@ -252,6 +252,12 @@ Body: { is_withdrawn: boolean }
 ### 7.4 TTS 設定
 - `localStorage` の `tts_voice`、`tts_speed` で音声・速度を制御
 - TTS API: `POST /api/tts`
+
+### 7.5 TTS 事前読み込み（prefetch）
+- 次の試合（`courtNextMatch`）が確定した時点で、アナウンステキストを事前に `/api/tts` に POST して音声を生成
+- `buildMatchStartText` でテキストを組み立て、`prefetchTts` で送信（再生はしない）
+- 同じ試合の二重リクエストは `prefetchedRef` で防止
+- prefetch の失敗は無視する（本番のアナウンス時に再リクエストされるため）
 
 ---
 
