@@ -104,6 +104,7 @@ export default function EventDetailPage({ params }: Props) {
   const [savingCloseAt, setSavingCloseAt] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [uploadingOgp, setUploadingOgp] = useState(false);
+  const [deletingImageType, setDeletingImageType] = useState<"banner" | "ogp" | null>(null);
   const [processingEntryIds, setProcessingEntryIds] = useState<Set<string>>(new Set());
   const [processingRuleKeys, setProcessingRuleKeys] = useState<Set<string>>(new Set());
   const [currentFormVersion, setCurrentFormVersion] = useState<number | null>(null);
@@ -264,7 +265,9 @@ export default function EventDetailPage({ params }: Props) {
   }
 
   async function deleteEventImage(type: "banner" | "ogp") {
+    setDeletingImageType(type);
     const res = await fetch(`/api/admin/events/${id}/${type}`, { method: "DELETE" });
+    setDeletingImageType(null);
     if (!res.ok) { alert("削除に失敗しました"); return; }
     const key = type === "banner" ? "banner_image_path" : "ogp_image_path";
     setEvent((prev) => prev ? { ...prev, [key]: null } : prev);
@@ -594,7 +597,7 @@ export default function EventDetailPage({ params }: Props) {
                         alt="バナー"
                         className="h-16 rounded object-cover"
                       />
-                      <button onClick={() => deleteEventImage("banner")} className="text-xs text-red-400 hover:text-red-300">削除</button>
+                      <button onClick={() => deleteEventImage("banner")} disabled={deletingImageType === "banner"} className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50">{deletingImageType === "banner" ? "削除中..." : "削除"}</button>
                     </>
                   )}
                 </div>
@@ -615,7 +618,7 @@ export default function EventDetailPage({ params }: Props) {
                         alt="OGP"
                         className="h-16 rounded object-cover"
                       />
-                      <button onClick={() => deleteEventImage("ogp")} className="text-xs text-red-400 hover:text-red-300">削除</button>
+                      <button onClick={() => deleteEventImage("ogp")} disabled={deletingImageType === "ogp"} className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50">{deletingImageType === "ogp" ? "削除中..." : "削除"}</button>
                     </>
                   ) : event.banner_image_path ? (
                     <span className="text-xs text-gray-500">未設定（バナー画像を使用）</span>

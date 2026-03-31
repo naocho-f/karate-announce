@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-28（振り分けルールに年代範囲 min_grade/max_grade を追加）
+> 最終更新: 2026-03-28（全ボタン・操作にローディング表示を統一追加）
 
 ---
 
@@ -1104,6 +1104,13 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
   - 振り分けルールボタン文言変更: 「振り分けルールを登録して対戦表を作成」→「振り分けルールを登録する」、「振り分けルールで対戦表を作成」→「登録済み振り分けルールで対戦表を作成」
 
 - 振り分けルールに年代範囲（min_grade/max_grade）を追加: `bracket_rules` テーブルに `min_grade`/`max_grade` カラムを追加。型定義・API POST/PUT・UIフォーム（セレクトボックス2つ）・一覧表示・auto-bracket の `matchesRule()` に年代フィルタを追加。`AutoCreateDialog` のルール詳細表示にも年代範囲を表示。トーナメント確定時の振り分けルール保存にも min_grade/max_grade を含める
+- 全ボタン・操作にローディング表示を統一追加: 非同期操作を行う全ボタンに `disabled` + テキスト変更（「処理中...」「削除中...」等）を追加。対象16箇所:
+  - `/admin` ページ: ログアウト（`loggingOut`）、流派読み仮名更新（ReadingInput の `saving`）、ルール読み仮名更新（ReadingInput の `saving`）、ルール説明更新（DescriptionInput の `saving`）、タイマープリセット紐付け（`linkingPresetId`）、イベント再開（`reopeningId`）
+  - `bracket-rules-panel.tsx`: 並び替え（`movingId`）、削除（`deletingId`）
+  - `form-config-panel.tsx`: 公開/取消（`togglingReady`）、過去大会コピー（`copying`）、自由設問追加（既存 `adding`）、自由設問削除（`deletingCustomKey`）、自由設問複製（`duplicatingCustomKey`）
+  - `/admin/events/[id]` ページ: バナー/OGP画像削除（`deletingImageType`）
+  - `auto-create-dialog.tsx`: 対戦表作成実行（`executing`）
+  - ReadingInput / DescriptionInput コンポーネントを非同期対応化（`onSave` を `Promise<void> | void` に変更、保存中は入力欄とボタンを disabled 化）
 
 ---
 
@@ -1207,6 +1214,6 @@ __tests__/
 ### 13.6 テスト統計
 
 - 単体テスト: 378 テスト（16 ファイル）
-- API ルートテスト: 207 テスト（10 ファイル）
-- E2E テスト: 47 テスト（10 ファイル）
-- **合計: 585 単体/API + 47 E2E テスト**
+- API ルートテスト: 211 テスト（10 ファイル）
+- E2E テスト: 52 テスト（11 ファイル）
+- **合計: 589 単体/API + 52 E2E テスト**

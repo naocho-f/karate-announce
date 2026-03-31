@@ -97,6 +97,8 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames }: Pr
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [movingId, setMovingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -175,12 +177,15 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames }: Pr
 
   async function handleDelete(id: string) {
     if (!confirm("この振り分けルールを削除しますか？")) return;
+    setDeletingId(id);
     const res = await fetch(`/api/admin/bracket-rules/${id}`, { method: "DELETE" });
     if (!res.ok) {
       alert("削除に失敗しました");
+      setDeletingId(null);
       return;
     }
     await load();
+    setDeletingId(null);
   }
 
   async function moveOrder(id: string, direction: "up" | "down") {
@@ -189,6 +194,7 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames }: Pr
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= bracketRules.length) return;
 
+    setMovingId(id);
     await Promise.all([
       fetch(`/api/admin/bracket-rules/${bracketRules[idx].id}`, {
         method: "PUT",
@@ -202,6 +208,7 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames }: Pr
       }),
     ]);
     await load();
+    setMovingId(null);
   }
 
   const inputCls = "w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-white";
@@ -234,14 +241,14 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames }: Pr
             <div className="flex flex-col gap-0.5">
               <button
                 onClick={() => moveOrder(rule.id, "up")}
-                disabled={idx === 0}
+                disabled={idx === 0 || movingId === rule.id}
                 className="text-gray-400 hover:text-white disabled:opacity-50 text-xs leading-none"
               >
                 ▲
               </button>
               <button
                 onClick={() => moveOrder(rule.id, "down")}
-                disabled={idx === bracketRules.length - 1}
+                disabled={idx === bracketRules.length - 1 || movingId === rule.id}
                 className="text-gray-400 hover:text-white disabled:opacity-50 text-xs leading-none"
               >
                 ▼
@@ -296,9 +303,10 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames }: Pr
             </button>
             <button
               onClick={() => handleDelete(rule.id)}
-              className="text-xs text-red-400 hover:text-red-300"
+              disabled={deletingId === rule.id}
+              className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
             >
-              削除
+              {deletingId === rule.id ? "削除中..." : "削除"}
             </button>
           </div>
         </div>

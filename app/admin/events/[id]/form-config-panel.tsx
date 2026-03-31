@@ -85,6 +85,10 @@ export function FormConfigPanel({ eventId }: Props) {
   const [busyNotices, setBusyNotices] = useState<Set<string>>(new Set());
   const [rules, setRules] = useState<{ id: string; name: string }[]>([]);
   const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
+  const [togglingReady, setTogglingReady] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [deletingCustomKey, setDeletingCustomKey] = useState<string | null>(null);
+  const [duplicatingCustomKey, setDuplicatingCustomKey] = useState<string | null>(null);
 
   const addBusy = (id: string) => setBusyNotices((s) => new Set(s).add(id));
   const removeBusy = (id: string) => setBusyNotices((s) => { const n = new Set(s); n.delete(id); return n; });
@@ -135,36 +139,42 @@ export function FormConfigPanel({ eventId }: Props) {
 
   async function toggleReady() {
     if (!config) return;
-    if (!config.is_ready) {
-      // 未保存の変更がある場合は先に保存してから公開する
-      if (dirty) {
-        setSaving(true);
-        const saveRes = await fetch("/api/admin/form-config", {
+    setTogglingReady(true);
+    try {
+      if (!config.is_ready) {
+        // 未保存の変更がある場合は先に保存してから公開する
+        if (dirty) {
+          setSaving(true);
+          const saveRes = await fetch("/api/admin/form-config", {
+            method: "PUT", credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ config_id: config.id, fields }),
+          });
+          setSaving(false);
+          if (!saveRes.ok) { alert("保存に失敗しました"); return; }
+          setDirty(false);
+        }
+        await fetch("/api/admin/form-config", {
+          method: "PATCH", credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ config_id: config.id }),
+        });
+      } else {
+        await fetch("/api/admin/form-config", {
           method: "PUT", credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ config_id: config.id, fields }),
+          body: JSON.stringify({ config_id: config.id, is_ready: false }),
         });
-        setSaving(false);
-        if (!saveRes.ok) { alert("保存に失敗しました"); return; }
-        setDirty(false);
       }
-      await fetch("/api/admin/form-config", {
-        method: "PATCH", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config_id: config.id }),
-      });
-    } else {
-      await fetch("/api/admin/form-config", {
-        method: "PUT", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config_id: config.id, is_ready: false }),
-      });
+      await load();
+    } finally {
+      setTogglingReady(false);
     }
-    await load();
   }
 
   async function copyFromEvent(sourceEventId: string) {
     if (!config) return;
+    setCopying(true);
     const res = await fetch("/api/admin/form-config/copy", {
       method: "POST", credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -172,10 +182,12 @@ export function FormConfigPanel({ eventId }: Props) {
     });
     if (!res.ok) {
       alert("フォーム設定のコピーに失敗しました");
+      setCopying(false);
       return;
     }
     setShowCopyModal(false);
     await load();
+    setCopying(false);
   }
 
   function updateField(id: string, patch: Partial<FormFieldConfig>) {
@@ -301,28 +313,32 @@ export function FormConfigPanel({ eventId }: Props) {
 
   async function deleteCustomField(fieldKey: string) {
     if (!config) return;
+    setDeletingCustomKey(fieldKey);
     const res = await fetch("/api/admin/form-config/custom-fields", {
       method: "DELETE", credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ form_config_id: config.id, field_key: fieldKey }),
     });
-    if (!res.ok) { alert("自由設問の削除に失敗しました"); return; }
+    if (!res.ok) { alert("自由設問の削除に失敗しました"); setDeletingCustomKey(null); return; }
     setCustomFieldDefs((prev) => prev.filter((d) => d.field_key !== fieldKey));
     setFields((prev) => prev.filter((f) => f.field_key !== fieldKey));
     setNotices((prev) => prev.filter((n) => !(n.anchor_type === "field" && n.anchor_field_key === fieldKey)));
+    setDeletingCustomKey(null);
   }
 
   async function duplicateCustomField(fieldKey: string) {
     if (!config) return;
+    setDuplicatingCustomKey(fieldKey);
     const res = await fetch("/api/admin/form-config/custom-fields/duplicate", {
       method: "POST", credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ form_config_id: config.id, source_field_key: fieldKey }),
     });
-    if (!res.ok) { alert("自由設問の複製に失敗しました"); return; }
+    if (!res.ok) { alert("自由設問の複製に失敗しました"); setDuplicatingCustomKey(null); return; }
     const { def, fieldConfig } = await res.json();
     setCustomFieldDefs((prev) => [...prev, def]);
     setFields((prev) => [...prev, fieldConfig]);
+    setDuplicatingCustomKey(null);
   }
 
   async function uploadImage(noticeId: string, file: File) {
@@ -364,8 +380,8 @@ export function FormConfigPanel({ eventId }: Props) {
       {/* ヘッダー */}
       <div className="bg-gray-800 rounded-xl p-4">
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={() => setShowCopyModal(true)} className="px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 rounded-lg transition">
-            過去の大会から読み込む
+          <button onClick={() => setShowCopyModal(true)} disabled={copying} className="px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 rounded-lg transition disabled:opacity-50">
+            {copying ? "コピー中..." : "過去の大会から読み込む"}
           </button>
           <button onClick={save} disabled={saving}
             className={`px-4 py-1.5 text-sm rounded-lg transition font-medium ${dirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}>
@@ -376,9 +392,9 @@ export function FormConfigPanel({ eventId }: Props) {
               {saveMessage}
             </span>
           )}
-          <button onClick={toggleReady}
-            className={`px-4 py-1.5 text-sm rounded-lg transition font-medium ${config.is_ready ? "bg-yellow-700 hover:bg-yellow-600 text-white" : "bg-green-700 hover:bg-green-600 text-white"}`}>
-            {config.is_ready ? "公開を取り消す" : "公開する"}
+          <button onClick={toggleReady} disabled={togglingReady}
+            className={`px-4 py-1.5 text-sm rounded-lg transition font-medium disabled:opacity-50 ${config.is_ready ? "bg-yellow-700 hover:bg-yellow-600 text-white" : "bg-green-700 hover:bg-green-600 text-white"}`}>
+            {togglingReady ? "処理中..." : config.is_ready ? "公開を取り消す" : "公開する"}
           </button>
         </div>
       </div>
@@ -445,6 +461,8 @@ export function FormConfigPanel({ eventId }: Props) {
                 rules={rules}
                 onDeleteCustom={isCustomField(f.field_key) ? deleteCustomField : undefined}
                 onDuplicateCustom={isCustomField(f.field_key) ? duplicateCustomField : undefined}
+                deletingCustom={deletingCustomKey === f.field_key}
+                duplicatingCustom={duplicatingCustomKey === f.field_key}
               />
             );
           })}
@@ -471,7 +489,7 @@ export function FormConfigPanel({ eventId }: Props) {
 
       {/* コピーモーダル */}
       {showCopyModal && (
-        <CopyModal events={pastEvents} onCopy={copyFromEvent} onClose={() => setShowCopyModal(false)} />
+        <CopyModal events={pastEvents} onCopy={copyFromEvent} onClose={() => setShowCopyModal(false)} copying={copying} />
       )}
     </div>
   );
@@ -486,7 +504,7 @@ const inp = "w-full bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 t
 function FieldPreviewCard({
   field, def, kanaField, ageField, index, total, notices, allFields,
   onUpdate, onMove, onToggle, onAddNotice, onUpdateNotice, onDeleteNotice, onUploadImage, onDeleteImage, busyNotices, rules,
-  onDeleteCustom, onDuplicateCustom,
+  onDeleteCustom, onDuplicateCustom, deletingCustom, duplicatingCustom,
 }: {
   field: FormFieldConfig;
   def: FieldPoolItem;
@@ -508,6 +526,8 @@ function FieldPreviewCard({
   rules: { id: string; name: string }[];
   onDeleteCustom?: (fieldKey: string) => void;
   onDuplicateCustom?: (fieldKey: string) => void;
+  deletingCustom?: boolean;
+  duplicatingCustom?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const key = def.key;
@@ -568,10 +588,10 @@ function FieldPreviewCard({
               <>
                 <span className="text-[10px] bg-purple-600/30 text-purple-300 px-1.5 py-0.5 rounded font-medium">自由設問</span>
                 {onDuplicateCustom && (
-                  <button onClick={() => onDuplicateCustom(key)} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-600 text-gray-200 hover:bg-blue-600 hover:text-white transition font-medium" title="複製">複製</button>
+                  <button onClick={() => onDuplicateCustom(key)} disabled={duplicatingCustom} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-600 text-gray-200 hover:bg-blue-600 hover:text-white transition font-medium disabled:opacity-50" title="複製">{duplicatingCustom ? "複製中..." : "複製"}</button>
                 )}
                 {onDeleteCustom && (
-                  <button onClick={() => { if (confirm("この自由設問を削除しますか？")) onDeleteCustom(key); }} className="text-[10px] px-1.5 py-0.5 rounded bg-red-900/60 text-red-300 hover:bg-red-700 hover:text-white transition font-medium" title="削除">削除</button>
+                  <button onClick={() => { if (confirm("この自由設問を削除しますか？")) onDeleteCustom(key); }} disabled={deletingCustom} className="text-[10px] px-1.5 py-0.5 rounded bg-red-900/60 text-red-300 hover:bg-red-700 hover:text-white transition font-medium disabled:opacity-50" title="削除">{deletingCustom ? "削除中..." : "削除"}</button>
                 )}
                 <span className="w-px h-3 bg-gray-600" />
               </>
@@ -1178,28 +1198,32 @@ function AddCustomFieldForm({ onAdd }: { onAdd: (label: string, fieldType: strin
 // コピーモーダル
 // ══════════════════════════════════════════════════════════════
 
-function CopyModal({ events, onCopy, onClose }: {
+function CopyModal({ events, onCopy, onClose, copying }: {
   events: { id: string; name: string }[];
   onCopy: (eventId: string) => void;
   onClose: () => void;
+  copying?: boolean;
 }) {
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={copying ? undefined : onClose}>
       <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
         <h3 className="font-semibold text-lg">過去の大会から読み込む</h3>
         <p className="text-sm text-gray-400">フォーム設定をコピーします。現在の設定は上書きされます。</p>
-        {events.length === 0 ? (
+        {copying ? (
+          <p className="text-sm text-gray-400 animate-pulse">コピー中...</p>
+        ) : events.length === 0 ? (
           <p className="text-sm text-gray-500">他の大会がありません</p>
         ) : (
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {events.map((e) => (
               <button key={e.id}
                 onClick={() => { if (confirm(`「${e.name}」のフォーム設定をコピーしますか？\n現在の設定は上書きされます。`)) onCopy(e.id); }}
-                className="w-full text-left px-4 py-2.5 bg-gray-700/50 hover:bg-gray-700 rounded-lg text-sm transition">{e.name}</button>
+                disabled={copying}
+                className="w-full text-left px-4 py-2.5 bg-gray-700/50 hover:bg-gray-700 rounded-lg text-sm transition disabled:opacity-50">{e.name}</button>
             ))}
           </div>
         )}
-        <button onClick={onClose} className="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition">キャンセル</button>
+        <button onClick={onClose} disabled={copying} className="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition disabled:opacity-50">キャンセル</button>
       </div>
     </div>
   );

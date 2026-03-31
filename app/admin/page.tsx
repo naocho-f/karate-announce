@@ -97,8 +97,10 @@ function DelayedVersion() {
 
 function LogoutButton() {
   const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   async function logout() {
+    setLoggingOut(true);
     await fetch("/api/admin/login", { method: "DELETE" });
     router.push("/admin/login");
     router.refresh();
@@ -107,9 +109,10 @@ function LogoutButton() {
   return (
     <button
       onClick={logout}
-      className="ml-auto text-xs text-gray-500 hover:text-gray-300 transition"
+      disabled={loggingOut}
+      className="ml-auto text-xs text-gray-500 hover:text-gray-300 transition disabled:opacity-50"
     >
-      ログアウト
+      {loggingOut ? "ログアウト中..." : "ログアウト"}
     </button>
   );
 }
@@ -858,6 +861,7 @@ function EventPanel() {
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [finishingId, setFinishingId] = useState<string | null>(null);
   const [showPast, setShowPast] = useState(false);
+  const [reopeningId, setReopeningId] = useState<string | null>(null);
   // 複製用
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [copySourceId, setCopySourceId] = useState<string>("");
@@ -928,11 +932,13 @@ function EventPanel() {
   }
 
   async function reopenEvent(id: string) {
+    setReopeningId(id);
     const res = await fetch(`/api/admin/events/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "preparing" }),
     });
+    setReopeningId(null);
     if (!res.ok) { alert("状態の変更に失敗しました"); return; }
     load();
   }
@@ -998,9 +1004,10 @@ function EventPanel() {
         {e.status === "finished" ? (
           <button
             onClick={() => reopenEvent(e.id)}
-            className="text-xs px-3 py-1.5 rounded-lg font-medium bg-gray-700 hover:bg-gray-600 text-gray-300 transition"
+            disabled={reopeningId === e.id}
+            className="text-xs px-3 py-1.5 rounded-lg font-medium bg-gray-700 hover:bg-gray-600 text-gray-300 transition disabled:opacity-50"
           >
-            再開する
+            {reopeningId === e.id ? "再開中..." : "再開する"}
           </button>
         ) : (
           <>
@@ -1242,6 +1249,7 @@ function RulesPanel() {
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [presets, setPresets] = useState<{id: string; name: string; rule_id: string | null}[]>([]);
+  const [linkingPresetId, setLinkingPresetId] = useState<string | null>(null);
 
   async function loadPresets() {
     const presetsRes = await fetch("/api/admin/timer-presets");
@@ -1258,12 +1266,14 @@ function RulesPanel() {
   useEffect(() => { load(); }, []);
 
   async function linkPreset(presetId: string, ruleId: string | null) {
+    setLinkingPresetId(presetId);
     await fetch(`/api/admin/timer-presets/${presetId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rule_id: ruleId }),
     });
     await loadPresets();
+    setLinkingPresetId(null);
   }
 
   async function add() {
@@ -1356,8 +1366,9 @@ function RulesPanel() {
                         プリセット: {lp.name}
                         <button
                           onClick={() => linkPreset(lp.id, null)}
-                          className="text-orange-400 hover:text-orange-200 text-xs ml-1"
-                        >✕</button>
+                          disabled={linkingPresetId === lp.id}
+                          className="text-orange-400 hover:text-orange-200 text-xs ml-1 disabled:opacity-50"
+                        >{linkingPresetId === lp.id ? "..." : "✕"}</button>
                       </span>
                     ))
                   ) : (
@@ -1371,10 +1382,11 @@ function RulesPanel() {
               <div className="mb-1">
                 <select
                   value=""
+                  disabled={linkingPresetId !== null}
                   onChange={(e) => {
                     if (e.target.value) linkPreset(e.target.value, r.id);
                   }}
-                  className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300"
+                  className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 disabled:opacity-50"
                 >
                   <option value="">-- タイマー未設定 --</option>
                   {presets.map((p) => (
@@ -1745,13 +1757,16 @@ function TemplateEditor() {
 function ReadingInput({ value, placeholder, onSave }: {
   value: string;
   placeholder: string;
-  onSave: (v: string) => void;
+  onSave: (v: string) => Promise<void> | void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
 
-  function commit() {
-    onSave(draft);
+  async function commit() {
+    setSaving(true);
+    await onSave(draft);
+    setSaving(false);
     setEditing(false);
   }
 
@@ -1773,23 +1788,29 @@ function ReadingInput({ value, placeholder, onSave }: {
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none"
+        disabled={saving}
+        className="flex-1 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none disabled:opacity-50"
       />
-      <button type="submit" className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded">保存</button>
-      <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1">×</button>
+      <button type="submit" disabled={saving} className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded disabled:opacity-50">
+        {saving ? "保存中..." : "保存"}
+      </button>
+      <button type="button" onClick={() => setEditing(false)} disabled={saving} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1 disabled:opacity-50">×</button>
     </form>
   );
 }
 
 function DescriptionInput({ value, onSave }: {
   value: string;
-  onSave: (v: string) => void;
+  onSave: (v: string) => Promise<void> | void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
 
-  function commit() {
-    onSave(draft);
+  async function commit() {
+    setSaving(true);
+    await onSave(draft);
+    setSaving(false);
     setEditing(false);
   }
 
@@ -1812,11 +1833,14 @@ function DescriptionInput({ value, onSave }: {
         onChange={(e) => setDraft(e.target.value)}
         placeholder="説明・詳細（参加申込フォームの注意書きにデフォルト挿入されます）"
         rows={3}
-        className="w-full bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none resize-none"
+        disabled={saving}
+        className="w-full bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none resize-none disabled:opacity-50"
       />
       <div className="flex gap-1">
-        <button type="submit" className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded">保存</button>
-        <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1">×</button>
+        <button type="submit" disabled={saving} className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded disabled:opacity-50">
+          {saving ? "保存中..." : "保存"}
+        </button>
+        <button type="button" onClick={() => setEditing(false)} disabled={saving} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1 disabled:opacity-50">×</button>
       </div>
     </form>
   );

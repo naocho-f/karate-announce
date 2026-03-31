@@ -12,7 +12,7 @@ type Props = {
   rules: Rule[];
   courtCount: number;
   courtNames: string[] | null;
-  onExecute: (groups: AutoGroup[]) => void;
+  onExecute: (groups: AutoGroup[]) => void | Promise<void>;
   onClose: () => void;
 };
 
@@ -30,6 +30,7 @@ export function AutoCreateDialog({
   const [loading, setLoading] = useState(true);
   const [enabledIds, setEnabledIds] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<AutoGroup[] | null>(null);
+  const [executing, setExecuting] = useState(false);
 
   const loadRules = useCallback(async () => {
     setLoading(true);
@@ -66,9 +67,11 @@ export function AutoCreateDialog({
     setPreview(assigned);
   }
 
-  function handleExecute() {
+  async function handleExecute() {
     if (!preview) return;
-    onExecute(preview);
+    setExecuting(true);
+    await onExecute(preview);
+    setExecuting(false);
   }
 
   // 各コートの試合数を集計
@@ -194,9 +197,10 @@ export function AutoCreateDialog({
             {/* 実行ボタン */}
             <button
               onClick={handleExecute}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-sm py-2.5 rounded-lg font-medium transition shadow-lg"
+              disabled={executing}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-sm py-2.5 rounded-lg font-medium transition shadow-lg disabled:opacity-50"
             >
-              この内容で対戦表を作成する
+              {executing ? "作成中..." : "この内容で対戦表を作成する"}
             </button>
           </div>
         )}
