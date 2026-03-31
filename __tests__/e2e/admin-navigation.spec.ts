@@ -67,22 +67,22 @@ test.describe("管理画面ナビゲーション", () => {
     await expect(page.getByRole("button", { name: /^タイマー/ })).toBeVisible();
   });
 
-  test("設定タブのタイマーサブタブクリックでタイマープリセット管理がインライン表示される", async ({ page }) => {
+  test("設定タブのタイマーサブタブクリックでタイマー管理がインライン表示される", async ({ page }) => {
     await page.getByRole("button", { name: "設定", exact: true }).click();
     await expect(page).toHaveURL(/tab=settings/);
 
     await page.getByRole("button", { name: /^タイマー/ }).click();
     await expect(page).toHaveURL(/tab=settings/);
 
-    // タイマープリセット管理がインライン表示される
-    await expect(page.locator("h1", { hasText: "タイマープリセット管理" })).toBeVisible();
+    // タイマー管理がインライン表示される
+    await expect(page.locator("h1", { hasText: "タイマー管理" })).toBeVisible();
   });
 
-  test("タイマープリセットページから設定タブに戻れる", async ({ page }) => {
+  test("タイマーページから設定タブに戻れる", async ({ page }) => {
     await page.goto("/admin/timer-presets");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("h1", { hasText: "タイマープリセット管理" })).toBeVisible();
+    await expect(page.locator("h1", { hasText: "タイマー管理" })).toBeVisible();
 
     // パンくずナビの「設定」リンクをクリック
     await page.getByRole("link", { name: "設定" }).click();

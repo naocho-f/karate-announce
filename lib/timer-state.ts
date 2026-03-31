@@ -204,6 +204,16 @@ export function getNewazaElapsedMs(state: TimerState): number {
   return state.newaza.elapsedMs;
 }
 
+/** 寝技タイマーの表示用ミリ秒を取得（countdown の場合は残り時間） */
+export function getNewazaDisplayMs(state: TimerState): number {
+  const elapsed = getNewazaElapsedMs(state);
+  if (state.preset?.newaza_direction === "countdown") {
+    const duration = (state.preset?.newaza_duration ?? 30) * 1000;
+    return Math.max(0, duration - elapsed);
+  }
+  return elapsed;
+}
+
 // ── アクション ──────────────────────────────────────────────────
 
 /** 試合をセット — idle → ready */

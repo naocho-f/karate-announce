@@ -49,6 +49,7 @@ const DEFAULT_PRESET: TimerPreset = {
   allow_draw: false,
   newaza_enabled: false,
   newaza_duration: 30,
+  newaza_direction: "countup",
   newaza_limit_type: "unlimited",
   newaza_max_count: 0,
   newaza_free_release: 0,

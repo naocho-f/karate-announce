@@ -59,7 +59,7 @@ describe("管理画面ナビゲーション", () => {
     }
   });
 
-  it("タイマープリセットが設定タブ内にインライン表示される", () => {
+  it("タイマーが設定タブ内にインライン表示される", () => {
     expect(ADMIN_PAGE).toContain("TimerPresetsPanel");
     // timer-presets/page.tsx は TimerPresetsPanel をインポートするラッパー
     const timerPage = readFileSync(join(ROOT, "app/admin/timer-presets/page.tsx"), "utf-8");

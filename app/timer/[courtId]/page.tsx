@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { createTimerChannel, loadState } from "@/lib/timer-broadcast";
 import type { TimerState } from "@/lib/timer-state";
-import { createInitialState, getDisplayMs, getNewazaElapsedMs } from "@/lib/timer-state";
+import { createInitialState, getDisplayMs, getNewazaElapsedMs, getNewazaDisplayMs } from "@/lib/timer-state";
 import { resolveLayout } from "@/lib/timer-layout";
 import type { LayoutRow, LayoutAlignment, LayoutVerticalAlign } from "@/lib/types";
 
@@ -121,11 +121,15 @@ export default function TimerDisplayPage() {
 
   const [displayMs, setDisplayMs] = useState(0);
   const [newazaMs, setNewazaMs] = useState(0);
+  const [newazaDispMs, setNewazaDispMs] = useState(0);
 
   const animateLoop = useCallback(() => {
     const s = stateRef.current;
     setDisplayMs(getDisplayMs(s));
-    if (s.newaza.active) setNewazaMs(getNewazaElapsedMs(s));
+    if (s.newaza.active) {
+      setNewazaMs(getNewazaElapsedMs(s));
+      setNewazaDispMs(getNewazaDisplayMs(s));
+    }
     rafRef.current = requestAnimationFrame(animateLoop);
   }, []);
 
@@ -137,7 +141,9 @@ export default function TimerDisplayPage() {
   useEffect(() => {
     if (state.phase !== "running") {
       setDisplayMs(getDisplayMs(state));
-      setNewazaMs(state.newaza.active ? getNewazaElapsedMs(state) : state.newaza.elapsedMs);
+      const elapsed = state.newaza.active ? getNewazaElapsedMs(state) : state.newaza.elapsedMs;
+      setNewazaMs(elapsed);
+      setNewazaDispMs(state.newaza.active ? getNewazaDisplayMs(state) : (state.preset?.newaza_direction === "countdown" ? Math.max(0, (state.preset?.newaza_duration ?? 30) * 1000 - elapsed) : elapsed));
     }
   }, [state]);
 
@@ -231,7 +237,7 @@ export default function TimerDisplayPage() {
           <div key={idx} className="gap-3" style={{ ...baseStyle }}>
             <span className="text-gray-500 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.5, 1)}vh` }}>{layout.labelNewaza || "寝技"}</span>
             <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${row.fontSize}vh` }}>
-              {formatTime(newazaMs)}
+              {formatTime(newazaDispMs)}
             </span>
             {newazaMax !== null && (
               <span className="text-gray-600" style={{ fontSize: `${Math.max(row.fontSize * 0.4, 0.8)}vh` }}>[{state.newaza.usedCount}/{newazaMax}]</span>
@@ -269,7 +275,7 @@ export default function TimerDisplayPage() {
                   {state.redScore.points}
                 </span>
               )}
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center mt-1" style={{ gap: `${layout.scoreItemGap ?? 8}px` }}>
                 {p?.show_wazaari && (
                   <span className="font-bold tabular-nums" style={{ fontSize: `${subFs}vh`, color: colorLeft }}>
                     {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelWazaari}</span>}{state.redScore.wazaari}
@@ -295,7 +301,7 @@ export default function TimerDisplayPage() {
                   {state.whiteScore.points}
                 </span>
               )}
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center mt-1" style={{ gap: `${layout.scoreItemGap ?? 8}px` }}>
                 {p?.show_wazaari && (
                   <span className="font-bold tabular-nums" style={{ fontSize: `${subFs}vh`, color: colorRight }}>
                     {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFs * 0.5}vh` }}>{layout.labelWazaari}</span>}{state.whiteScore.wazaari}
@@ -335,7 +341,7 @@ export default function TimerDisplayPage() {
       {layout.rows.map(renderRow)}
 
       {isFinished && state.resultMethod === "ippon" && (
-        <IpponOverlay />
+        <IpponOverlay winnerColor={redWins ? colorLeft : colorRight} />
       )}
     </div>
   );
@@ -343,7 +349,7 @@ export default function TimerDisplayPage() {
 
 // ── 一本オーバーレイ ──────────────────────────────────────────
 
-function IpponOverlay() {
+function IpponOverlay({ winnerColor }: { winnerColor: string }) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -354,8 +360,16 @@ function IpponOverlay() {
   if (!visible) return null;
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/60 animate-fade-out pointer-events-none overflow-hidden">
-      <span className="text-[min(20vw,8rem)] font-black text-white tracking-widest whitespace-nowrap">一本</span>
+    <div
+      className="absolute inset-0 flex items-center justify-center z-50 animate-fade-out pointer-events-none overflow-hidden"
+      style={{ backgroundColor: `${winnerColor}88` }}
+    >
+      <span
+        className="text-[min(20vw,8rem)] font-black tracking-widest whitespace-nowrap"
+        style={{ color: winnerColor, textShadow: "0 0 40px rgba(255,255,255,0.8), 0 0 80px rgba(255,255,255,0.4)" }}
+      >
+        一本
+      </span>
     </div>
   );
 }

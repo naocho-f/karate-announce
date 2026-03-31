@@ -31,6 +31,7 @@ import {
   getDisplayMs,
   getNewazaElapsedMs,
   tick,
+  getNewazaDisplayMs,
   type TimerState,
   type FighterInfo,
 } from "@/lib/timer-state";
@@ -52,7 +53,7 @@ function makePreset(overrides: Partial<TimerPreset> = {}): TimerPreset {
     id: "test-preset", name: "テスト", event_id: null, rule_id: null,
     match_duration: 120, timer_direction: "countdown",
     has_extension: false, extension_duration: 60, extension_mode: "sudden_death", allow_draw: false,
-    newaza_enabled: false, newaza_duration: 30, newaza_limit_type: "unlimited",
+    newaza_enabled: false, newaza_duration: 30, newaza_direction: "countup", newaza_limit_type: "unlimited",
     newaza_max_count: 0, newaza_free_release: 0,
     show_points: true, show_wazaari: true, wazaari_points: 0,
     show_ippon: true, ippon_wins: true, point_win_threshold: 0,
@@ -772,6 +773,30 @@ describe("timer-state", () => {
       const prevLen = s.logs.length;
       s = addPoint(s, "red");
       expect(s.logs.length).toBeGreaterThan(prevLen);
+    });
+  });
+
+  // ── 15. 寝技カウントダウン ──
+
+  describe("寝技カウントダウン", () => {
+    it("newaza_direction=countup のとき getNewazaDisplayMs は経過時間を返す", () => {
+      const s = readyState({ newaza_enabled: true, newaza_duration: 30, newaza_direction: "countup" });
+      const started = startTimer(s);
+      const toggled = toggleNewaza(started);
+      // active 状態ではほぼ 0ms（開始直後）
+      const display = getNewazaDisplayMs(toggled);
+      expect(display).toBeGreaterThanOrEqual(0);
+      expect(display).toBeLessThan(1000);
+    });
+
+    it("newaza_direction=countdown のとき getNewazaDisplayMs は残り時間を返す", () => {
+      const s = readyState({ newaza_enabled: true, newaza_duration: 30, newaza_direction: "countdown" });
+      const started = startTimer(s);
+      const toggled = toggleNewaza(started);
+      const display = getNewazaDisplayMs(toggled);
+      // 30秒からカウントダウン、開始直後なので約30000ms
+      expect(display).toBeGreaterThan(29000);
+      expect(display).toBeLessThanOrEqual(30000);
     });
   });
 });

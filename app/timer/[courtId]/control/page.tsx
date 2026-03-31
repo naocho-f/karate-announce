@@ -10,7 +10,7 @@ import {
   addPoint, addWazaari, addIppon, addFoul,
   toggleNewaza, newazaTimeUp, adjustNewazaCount,
   undo, finishManual, markResultWritten, cancelResult, resetToIdle,
-  tick, getDisplayMs, getNewazaElapsedMs,
+  tick, getDisplayMs, getNewazaElapsedMs, getNewazaDisplayMs,
   type TimerState, type FighterSide, type ResultMethod, type FighterInfo,
 } from "@/lib/timer-state";
 import { preloadDefaultBuzzer, playBuzzer } from "@/lib/timer-buzzer";
@@ -57,6 +57,7 @@ const DEFAULT_PRESET: TimerPreset = {
   allow_draw: false,
   newaza_enabled: false,
   newaza_duration: 30,
+  newaza_direction: "countup",
   newaza_limit_type: "unlimited",
   newaza_max_count: 0,
   newaza_free_release: 0,
@@ -120,6 +121,7 @@ export default function TimerControlPage() {
 
   const [displayMs, setDisplayMs] = useState(0);
   const [newazaMs, setNewazaMs] = useState(0);
+  const [newazaDispMs, setNewazaDispMs] = useState(0);
 
   // ── トーナメント連携 ──
   const [eventId, setEventId] = useState<string | null>(null);
@@ -326,6 +328,7 @@ export default function TimerControlPage() {
 
     if (s.newaza.active) {
       setNewazaMs(getNewazaElapsedMs(s));
+      setNewazaDispMs(getNewazaDisplayMs(s));
     }
 
     if (s.phase === "running") {
@@ -362,7 +365,9 @@ export default function TimerControlPage() {
   useEffect(() => {
     if (state.phase !== "running") {
       setDisplayMs(getDisplayMs(state));
-      setNewazaMs(state.newaza.active ? getNewazaElapsedMs(state) : state.newaza.elapsedMs);
+      const nElapsed = state.newaza.active ? getNewazaElapsedMs(state) : state.newaza.elapsedMs;
+      setNewazaMs(nElapsed);
+      setNewazaDispMs(state.newaza.active ? getNewazaDisplayMs(state) : (state.preset?.newaza_direction === "countdown" ? Math.max(0, (state.preset?.newaza_duration ?? 30) * 1000 - nElapsed) : nElapsed));
     }
   }, [state]);
 
@@ -872,7 +877,7 @@ export default function TimerControlPage() {
               {/* 寝技情報 */}
               {state.newaza.active && (
                 <div className="mt-2 text-center text-cyan-400 text-lg font-bold tabular-nums">
-                  寝技: {formatTime(newazaMs)}
+                  寝技: {formatTime(newazaDispMs)}
                 </div>
               )}
 

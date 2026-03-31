@@ -10,10 +10,11 @@ import { DEFAULT_LAYOUT } from "@/lib/types";
 export function resolveLayout(preset: TimerPreset | null): LayoutConfig {
   if (!preset) return DEFAULT_LAYOUT;
   if (preset.layout) {
-    // 既存データにラベルフィールドがない場合のフォールバック
+    // 既存データにフィールドがない場合のフォールバック
     return {
       ...DEFAULT_LAYOUT,
       ...preset.layout,
+      scoreItemGap: preset.layout.scoreItemGap ?? DEFAULT_LAYOUT.scoreItemGap,
       labelWazaari: preset.layout.labelWazaari ?? DEFAULT_LAYOUT.labelWazaari,
       labelFoul: preset.layout.labelFoul ?? DEFAULT_LAYOUT.labelFoul,
       labelPoint: preset.layout.labelPoint ?? DEFAULT_LAYOUT.labelPoint,
@@ -42,6 +43,7 @@ export function resolveLayout(preset: TimerPreset | null): LayoutConfig {
     ],
     dividerThickness: 2,
     scoreGap: 2,
+    scoreItemGap: 8,
     labelWazaari: "W",
     labelFoul: "F",
     labelPoint: "",

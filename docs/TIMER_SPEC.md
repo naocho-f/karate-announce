@@ -185,6 +185,7 @@ type LayoutConfig = {
   rows: LayoutRow[];        // 行の配列。並び順 = 表示順
   dividerThickness: number; // 区切り線の太さ (px)
   scoreGap: number;         // 左右スコア間の隙間 (px)
+  scoreItemGap: number;     // スコア項目間（技あり・反則等）の間隔 (px)。デフォルト 8
   labelWazaari: string;     // 技ありラベル（"W", "技あり", "技" 等）
   labelFoul: string;        // 反則ラベル（"F", "反則", "反" 等）
   labelPoint: string;       // ポイントラベル（"", "pt", "P" 等。空で非表示）
@@ -229,7 +230,7 @@ type LayoutRow = {
 - **CRUD**: 作成・編集・削除・一覧表示
 - **複製**: 既存プリセットからコピーして新規作成
 - **ルール紐付け**: 既存の `rules` テーブルのルールにプリセットを紐付け可能。トーナメント/試合にルールが設定されていれば、そのプリセットが自動適用される
-- **管理画面**: `/admin` 内にタイマープリセット管理ページを設置
+- **管理画面**: `/admin` 内にタイマー管理ページを設置
 - **カラー設定**: 6 つのカラーフィールド（`color_left`, `color_right`, `theme_bg_color`, `theme_timer_color`, `theme_timer_warn_color`, `theme_divider_color`）はネイティブカラーピッカー（`<input type="color">`）で選択。HEX コードも横に自動表示
 - **レイアウトエディタ**: 行ベースのビジュアルエディタ。行の追加・削除・並べ替え（ドラッグ&ドロップ）、各行のフォントサイズ（vh数値、上限なし）・高さ・配置をスライダー+数値入力で自由に設定。16:9 リアルタイムプレビュー付き
 - **試合中の設定変更**: 試合中（`running` / `paused`）に変更可能な項目は**表示設定・テーマ設定のみ**（色・フォントサイズ等）。ルール系設定（試合時間、ポイント先取り数、反則負け回数等）は `idle` / `ready` 状態でのみ変更可能。変更不可の項目はグレーアウト表示
@@ -787,6 +788,7 @@ type LayoutRow = {
 | allow_draw | boolean | false | 引き分け判定の有無 |
 | newaza_enabled | boolean | false | 寝技タイマー有効 |
 | newaza_duration | integer | 30 | 寝技制限時間（秒） |
+| newaza_direction | text | 'countup' | `countup` / `countdown`。countdown 時は残り時間を表示 |
 | newaza_limit_type | text | 'unlimited' | `limited` / `unlimited` |
 | newaza_max_count | integer | 0 | 最大起動回数 |
 | newaza_free_release | integer | 0 | 無消費解除時間（秒） |

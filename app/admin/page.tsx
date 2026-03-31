@@ -270,7 +270,7 @@ function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
         "⏱ タイマー操作を開くとキーボードで操作できます",
         "スペースキー: 開始/一時停止",
         "📺 タイマー表示を外部モニターに映して会場に掲示できます",
-        "タイマープリセットは設定タブで管理できます",
+        "タイマーは設定タブで管理できます",
       ],
     },
     {
@@ -1363,7 +1363,7 @@ function RulesPanel() {
                   {linkedPresets.length > 0 ? (
                     linkedPresets.map((lp) => (
                       <span key={lp.id} className="bg-orange-900 text-orange-300 text-xs px-2 py-0.5 rounded inline-flex items-center">
-                        プリセット: {lp.name}
+                        タイマー: {lp.name}
                         <button
                           onClick={() => linkPreset(lp.id, null)}
                           disabled={linkingPresetId === lp.id}
@@ -1381,17 +1381,21 @@ function RulesPanel() {
               </div>
               <div className="mb-1">
                 <select
-                  value=""
+                  value={linkedPresets.length > 0 ? linkedPresets[0].id : ""}
                   disabled={linkingPresetId !== null}
                   onChange={(e) => {
-                    if (e.target.value) linkPreset(e.target.value, r.id);
+                    if (e.target.value) {
+                      linkPreset(e.target.value, r.id);
+                    } else if (linkedPresets.length > 0) {
+                      linkPreset(linkedPresets[0].id, null);
+                    }
                   }}
                   className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 disabled:opacity-50"
                 >
                   <option value="">-- タイマー未設定 --</option>
                   {presets.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name}{p.rule_id ? ` (${rules.find((ru) => ru.id === p.rule_id)?.name ?? "他ルール"}に紐付)` : ""}
+                      {p.name}{p.rule_id && p.rule_id !== r.id ? ` (${rules.find((ru) => ru.id === p.rule_id)?.name ?? "他ルール"}に紐付)` : ""}
                     </option>
                   ))}
                 </select>

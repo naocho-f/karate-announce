@@ -7,7 +7,7 @@ const BASE_PRESET = {
   id: "p1", name: "test", event_id: null, rule_id: null,
   match_duration: 120, timer_direction: "countdown" as const,
   has_extension: false, extension_duration: 60, extension_mode: "sudden_death" as const,
-  allow_draw: false, newaza_enabled: false, newaza_duration: 30,
+  allow_draw: false, newaza_enabled: false, newaza_duration: 30, newaza_direction: "countup" as const,
   newaza_limit_type: "unlimited" as const, newaza_max_count: 0, newaza_free_release: 0,
   show_points: true, show_wazaari: true, wazaari_points: 0,
   show_ippon: true, ippon_wins: true, point_win_threshold: 0,
@@ -42,6 +42,7 @@ describe("resolveLayout", () => {
       ],
       dividerThickness: 4,
       scoreGap: 0,
+      scoreItemGap: 8,
       labelWazaari: "技あり",
       labelFoul: "反則",
       labelPoint: "P",
@@ -63,6 +64,7 @@ describe("resolveLayout", () => {
     expect(result.labelFoul).toBe("F");
     expect(result.labelPoint).toBe("");
     expect(result.labelNewaza).toBe("寝技");
+    expect(result.scoreItemGap).toBe(8);
   });
 
   it("layout が null なら旧 enum から変換する", () => {

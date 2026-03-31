@@ -18,6 +18,7 @@ const EMPTY_PRESET: EditablePreset = {
   allow_draw: false,
   newaza_enabled: false,
   newaza_duration: 30,
+  newaza_direction: "countup",
   newaza_limit_type: "unlimited",
   newaza_max_count: 2,
   newaza_free_release: 10,
@@ -184,7 +185,7 @@ export function TimerPresetsPanel() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("このプリセットを削除しますか？")) return;
+    if (!confirm("このタイマーを削除しますか？")) return;
     const res = await fetch(`/api/admin/timer-presets/${id}`, { method: "DELETE" });
     if (res.ok) load();
   };
@@ -395,7 +396,7 @@ export function TimerPresetsPanel() {
                   {/* Left */}
                   <div className="flex-1 flex flex-col items-center justify-center relative">
                     <span className="font-bold tabular-nums leading-none" style={{ color: colorLeft, fontSize: `${fsPx}px`, ...alignStyle(row.align) }}>3</span>
-                    <div className="flex items-center gap-1" style={{ fontSize: `${subFsPx}px` }}>
+                    <div className="flex items-center" style={{ fontSize: `${subFsPx}px`, gap: `${(layout.scoreItemGap ?? 8) * 0.3}px` }}>
                       <span className="font-bold tabular-nums" style={{ color: colorLeft }}>
                         {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>{layout.labelWazaari}</span>}1
                       </span>
@@ -409,7 +410,7 @@ export function TimerPresetsPanel() {
                   {/* Right */}
                   <div className="flex-1 flex flex-col items-center justify-center relative">
                     <span className="font-bold tabular-nums leading-none" style={{ color: colorRight, fontSize: `${fsPx}px` }}>1</span>
-                    <div className="flex items-center gap-1" style={{ fontSize: `${subFsPx}px` }}>
+                    <div className="flex items-center" style={{ fontSize: `${subFsPx}px`, gap: `${(layout.scoreItemGap ?? 8) * 0.3}px` }}>
                       <span className="font-bold tabular-nums" style={{ color: colorRight }}>
                         {layout.labelWazaari && <span className="text-gray-600" style={{ fontSize: `${subFsPx * 0.6}px` }}>{layout.labelWazaari}</span>}0
                       </span>
@@ -441,7 +442,7 @@ export function TimerPresetsPanel() {
   return (
     <>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">タイマープリセット管理</h1>
+        <h1 className="text-xl font-bold">タイマー管理</h1>
         <div className="flex gap-2">
           <button onClick={() => { setEditing({ ...EMPTY_PRESET, layout: { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) } }); setEditId(null); }}
             className="px-3 py-1.5 rounded bg-blue-700 hover:bg-blue-600 text-sm text-white transition">
@@ -454,7 +455,7 @@ export function TimerPresetsPanel() {
       {loading ? (
         <p className="text-gray-500">読み込み中...</p>
       ) : presets.length === 0 ? (
-        <p className="text-gray-500">プリセットがありません。新規作成してください。</p>
+        <p className="text-gray-500">タイマーがありません。新規作成してください。</p>
       ) : (
         <div className="space-y-2">
           {presets.map((p) => (
@@ -488,12 +489,13 @@ export function TimerPresetsPanel() {
 
       {/* 編集フォーム */}
       {editing && (
-        <div className="fixed inset-0 bg-black/70 flex items-start justify-center pt-10 z-50 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-2xl mb-10">
-            <h2 className="text-lg font-bold mb-4">{editId ? "プリセット編集" : "新規プリセット"}</h2>
+        <div className="mt-6 border border-gray-700 rounded-xl bg-gray-900 p-6">
+            <h2 className="text-lg font-bold mb-4">{editId ? "タイマー編集" : "新規タイマー"}</h2>
 
-            <div className="space-y-4">
-              {field("name", "プリセット名", "text")}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 左: 設定フォーム */}
+            <div className="space-y-4 overflow-y-auto max-h-[80vh]">
+              {field("name", "タイマー名", "text")}
 
               <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">基本設定</h3>
               <div className="grid grid-cols-2 gap-3">
@@ -520,6 +522,9 @@ export function TimerPresetsPanel() {
               {editing.newaza_enabled && (
                 <div className="grid grid-cols-2 gap-3 pl-4">
                   {field("newaza_duration", "寝技制限時間（秒）", "number")}
+                  {field("newaza_direction", "寝技タイマー方向", "select", {
+                    options: [{ value: "countup", label: "カウントアップ" }, { value: "countdown", label: "カウントダウン" }]
+                  })}
                   {field("newaza_limit_type", "起動回数制限", "select", {
                     options: [{ value: "unlimited", label: "無制限" }, { value: "limited", label: "回数制限あり" }]
                   })}
@@ -608,8 +613,9 @@ export function TimerPresetsPanel() {
                       className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-700/30"
                       onClick={() => setExpandedRow(expandedRow === idx ? null : idx)}
                     >
-                      <span className="cursor-grab text-gray-500 hover:text-gray-300 text-sm select-none" title="ドラッグで並べ替え">≡</span>
+                      <span className="cursor-grab text-gray-500 hover:text-gray-300 text-lg select-none" title="ドラッグで並べ替え">⠿</span>
                       <span className="flex-1 text-sm font-medium">{rowTypeLabel(row.type)}</span>
+                      <span className="text-xs text-gray-500 mr-1">{expandedRow === idx ? "▼" : "▶"}</span>
                       <span className="text-xs text-gray-500">
                         {row.height > 0 ? `${row.height}vh` : "自動"} / {row.fontSize}vh
                       </span>
@@ -748,10 +754,30 @@ export function TimerPresetsPanel() {
                   />
                   <span className="text-gray-500">px</span>
                 </label>
+                <label className="text-xs text-gray-400 flex items-center gap-2">
+                  項目間隔
+                  <input
+                    type="range"
+                    min={0} max={40} step={1}
+                    value={layout.scoreItemGap ?? 8}
+                    onChange={(e) => setLayout({ ...layout, scoreItemGap: Number(e.target.value) })}
+                    className="w-20 accent-blue-500"
+                  />
+                  <input
+                    type="number"
+                    min={0} step={1}
+                    value={layout.scoreItemGap ?? 8}
+                    onChange={(e) => setLayout({ ...layout, scoreItemGap: Number(e.target.value) })}
+                    className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right"
+                  />
+                  <span className="text-gray-500">px</span>
+                </label>
               </div>
 
-              {/* 表示ラベル設定 */}
-              <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-700">
+              {/* 表示ラベル設定（アコーディオン） */}
+              <details className="mt-3 pt-3 border-t border-gray-700">
+                <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300 font-medium">表示ラベル設定</summary>
+              <div className="grid grid-cols-2 gap-3 mt-2">
                 <label className="text-xs">
                   <span className="text-gray-400">技ありラベル</span>
                   <input type="text" value={layout.labelWazaari ?? "W"}
@@ -785,13 +811,14 @@ export function TimerPresetsPanel() {
                   <span className="text-gray-600 text-[10px]">例: 寝技, NEWAZA</span>
                 </label>
               </div>
+              </details>
 
               {/* Add row button */}
               <div className="relative mt-2">
                 <button
                   type="button"
                   onClick={() => setAddRowOpen(!addRowOpen)}
-                  className="px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-sm text-gray-300 transition"
+                  className="w-full px-3 py-2 rounded-lg border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-950/30 text-sm text-gray-400 hover:text-blue-400 transition font-medium"
                 >
                   + 行を追加
                 </button>
@@ -811,12 +838,6 @@ export function TimerPresetsPanel() {
                 )}
               </div>
 
-              {/* 16:9 Preview */}
-              <div className="mt-3 rounded-lg overflow-hidden border border-gray-700">
-                <p className="text-xs text-gray-500 px-2 py-1 bg-gray-800/50">プレビュー（実際のタイマー画面イメージ）</p>
-                {renderPreview()}
-              </div>
-
               <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">ブザー</h3>
               <div className="grid grid-cols-2 gap-3">
                 {field("buzzer_on_time_up", "試合終了ブザー", "select", {
@@ -826,6 +847,15 @@ export function TimerPresetsPanel() {
                   options: [{ value: "auto", label: "自動" }, { value: "manual", label: "手動" }, { value: "off", label: "なし" }]
                 })}
               </div>
+            </div>
+
+            {/* 右: プレビュー（sticky） */}
+            <div className="lg:sticky lg:top-4 self-start">
+              <div className="rounded-lg overflow-hidden border border-gray-700">
+                <p className="text-xs text-gray-500 px-2 py-1 bg-gray-800/50">プレビュー（実際のタイマー画面イメージ）</p>
+                {renderPreview()}
+              </div>
+            </div>
             </div>
 
             <div className="flex gap-2 mt-6">
@@ -838,7 +868,6 @@ export function TimerPresetsPanel() {
                 キャンセル
               </button>
             </div>
-          </div>
         </div>
       )}
     </>

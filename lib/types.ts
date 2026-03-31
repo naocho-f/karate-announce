@@ -26,6 +26,7 @@ export type LayoutConfig = {
   rows: LayoutRow[];
   dividerThickness: number; // px
   scoreGap: number;         // px
+  scoreItemGap: number;     // px — スコア項目間の間隔
   // 表示ラベルカスタマイズ
   labelWazaari: string;     // 技ありラベル（例: "W", "技あり", "技"）
   labelFoul: string;        // 反則ラベル（例: "F", "反則", "反"）
@@ -43,6 +44,7 @@ export const DEFAULT_LAYOUT: LayoutConfig = {
   ],
   dividerThickness: 2,
   scoreGap: 2,
+  scoreItemGap: 8,
   labelWazaari: "W",
   labelFoul: "F",
   labelPoint: "",
@@ -243,6 +245,7 @@ export type TimerPreset = {
   // 寝技タイマー
   newaza_enabled: boolean;
   newaza_duration: number;
+  newaza_direction: "countup" | "countdown";
   newaza_limit_type: "limited" | "unlimited";
   newaza_max_count: number;
   newaza_free_release: number;

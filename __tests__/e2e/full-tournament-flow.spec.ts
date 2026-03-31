@@ -203,10 +203,10 @@ test.describe("大会フル進行フロー", () => {
     await expect(page.locator("text=Esc")).toBeVisible();
   });
 
-  test("タイマープリセット管理画面が表示される", async ({ page }) => {
+  test("タイマー管理画面が表示される", async ({ page }) => {
     await adminLogin(page);
     await page.goto("/admin/timer-presets");
-    await expect(page.locator("text=タイマープリセット管理")).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("text=タイマー管理")).toBeVisible({ timeout: 10_000 });
   });
 
   test("ライブ速報ページが表示される", async ({ page }) => {
@@ -215,29 +215,29 @@ test.describe("大会フル進行フロー", () => {
   });
 });
 
-test.describe("タイマープリセット CRUD", () => {
-  test("プリセット作成 → 一覧に表示 → 削除", async ({ page }) => {
+test.describe("タイマー CRUD", () => {
+  test("タイマー作成 → 一覧に表示 → 削除", async ({ page }) => {
     await adminLogin(page);
     await page.goto("/admin/timer-presets", { waitUntil: "networkidle" });
 
     // 新規作成ボタン
     await page.locator("text=新規作成").click();
 
-    // プリセット名を入力
+    // タイマー名を入力
     const nameInput = page.locator('input').first();
-    await nameInput.fill("E2Eテストプリセット");
+    await nameInput.fill("E2Eテストタイマー");
 
     // 保存
     await page.locator("text=保存").click();
 
     // 一覧に表示される
-    await expect(page.locator("text=E2Eテストプリセット")).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator("text=E2Eテストタイマー")).toBeVisible({ timeout: 5_000 });
 
     // 削除
     page.on("dialog", (dialog) => dialog.accept());
     await page.locator("text=削除").first().click();
 
     // 一覧から消える
-    await expect(page.locator("text=E2Eテストプリセット")).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.locator("text=E2Eテストタイマー")).not.toBeVisible({ timeout: 5_000 });
   });
 });
