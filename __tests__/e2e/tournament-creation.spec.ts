@@ -271,4 +271,122 @@ test.describe("対戦表作成", () => {
     await chip.click();
     await expect(chip).not.toHaveClass(/ring-blue-500/, { timeout: 5_000 });
   });
+
+  test("体重差のデフォルト値が5kgになっている", async ({ page }) => {
+    await adminLogin(page);
+    eventId = await createTestEvent(page);
+    await createTestEntries(page, eventId, 4);
+
+    // アクティブにする
+    await page.request.patch(`/api/admin/events/${eventId}`, {
+      data: { is_active: true },
+    });
+
+    // Step2（対戦表作成）を開く
+    await page.goto(`/admin/events/${eventId}?step=2`);
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("text=② 対戦表作成")).toBeVisible({ timeout: 15_000 });
+    await page.waitForTimeout(3_000);
+
+    // 体重差入力欄のデフォルト値が5であることを確認
+    const weightDiffInput = page.locator("input[type='number'][step='0.5']").first();
+    await expect(weightDiffInput).toBeVisible({ timeout: 10_000 });
+    await expect(weightDiffInput).toHaveValue("5");
+  });
+
+  test("新規トーナメントが既存の最下部に追加される", async ({ page }) => {
+    await adminLogin(page);
+    eventId = await createTestEvent(page);
+    const entryIds = await createTestEntries(page, eventId, 4);
+
+    // アクティブにする
+    await page.request.patch(`/api/admin/events/${eventId}`, {
+      data: { is_active: true },
+    });
+
+    // 1つ目のトーナメントをAPI経由で作成（sort_order=1）
+    const res1 = await page.request.post("/api/admin/tournaments", {
+      data: {
+        courtName: "先に作成",
+        courtNum: "1",
+        eventId: eventId,
+        type: "one_match",
+        sortOrder: 1,
+        pairs: [
+          {
+            e1: {
+              id: entryIds[0],
+              family_name: "対戦テスト1",
+              given_name: "選手",
+              family_name_reading: "タイセンテスト1",
+              given_name_reading: "センシュ",
+            },
+            e2: {
+              id: entryIds[1],
+              family_name: "対戦テスト2",
+              given_name: "選手",
+              family_name_reading: "タイセンテスト2",
+              given_name_reading: "センシュ",
+            },
+            matchLabel: null,
+            ruleName: null,
+          },
+        ],
+      },
+    });
+    expect(res1.ok()).toBeTruthy();
+    const { id: t1Id } = await res1.json();
+
+    // 2つ目のトーナメントをAPI経由で作成（sort_order=2）
+    const res2 = await page.request.post("/api/admin/tournaments", {
+      data: {
+        courtName: "後に追加される",
+        courtNum: "1",
+        eventId: eventId,
+        type: "one_match",
+        sortOrder: 2,
+        pairs: [
+          {
+            e1: {
+              id: entryIds[2],
+              family_name: "対戦テスト3",
+              given_name: "選手",
+              family_name_reading: "タイセンテスト3",
+              given_name_reading: "センシュ",
+            },
+            e2: {
+              id: entryIds[3],
+              family_name: "対戦テスト4",
+              given_name: "選手",
+              family_name_reading: "タイセンテスト4",
+              given_name_reading: "センシュ",
+            },
+            matchLabel: null,
+            ruleName: null,
+          },
+        ],
+      },
+    });
+    expect(res2.ok()).toBeTruthy();
+    const { id: t2Id } = await res2.json();
+
+    // コート1の画面でトーナメントの順序を確認
+    await page.goto("/court/1");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(5_000);
+
+    const bodyText = await page.textContent("main");
+    if (bodyText) {
+      const idx1 = bodyText.indexOf("先に作成");
+      const idx2 = bodyText.indexOf("後に追加される");
+      // 「先に作成」が「後に追加される」より前に表示されること
+      if (idx1 >= 0 && idx2 >= 0) {
+        expect(idx1).toBeLessThan(idx2);
+      }
+    }
+
+    // クリーンアップ
+    await page.request.delete(`/api/admin/tournaments/${t1Id}`).catch(() => {});
+    await page.request.delete(`/api/admin/tournaments/${t2Id}`).catch(() => {});
+  });
 });

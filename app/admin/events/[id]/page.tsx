@@ -79,7 +79,7 @@ export default function EventDetailPage({ params }: Props) {
   const [eventRuleIds, setEventRuleIds] = useState<Set<string>>(new Set());
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
-  const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: null, maxHeightDiff: null });
+  const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: 5, maxHeightDiff: null });
   const [tournamentMatchFighterIds, setTournamentMatchFighterIds] = useState<Record<string, Set<string>>>({});
   const [savedMatchPairs, setSavedMatchPairs] = useState<Array<{ f1: string; f2: string; rules: string | null }>>([]);
   const [allMatchRows, setAllMatchRows] = useState<Array<{ tournament_id: string; fighter1_id: string | null; fighter2_id: string | null }>>([]);
@@ -2328,7 +2328,7 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
             ruleName: (p.ruleId ? rules.find((r) => r.id === p.ruleId)?.name : null) ?? defaultRule?.name ?? null,
           })),
           eventId,
-          sortOrder: editingSortOrder ?? groupIndex,
+          sortOrder: editingSortOrder ?? (Math.max(0, ...tournaments.map(t => t.sort_order)) + groupIndex + 1),
           defaultRuleName: defaultRule?.name ?? null,
           maxWeightDiff: g.maxWeightDiff,
           maxHeightDiff: g.maxHeightDiff,
