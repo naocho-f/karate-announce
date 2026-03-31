@@ -360,25 +360,31 @@ export default function CourtPage({ params }: Props) {
     <main className="min-h-screen bg-main-bg text-white p-4">
       <div className="max-w-5xl mx-auto">
         {/* ヘッダー */}
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-4">
           <Link href="/" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
           <h1 className="text-2xl font-bold">{courtDisplayName || `${court}コート`}</h1>
-          <div className="ml-auto flex gap-2">
+        </div>
+
+        {/* タイマー・操作パネルへのリンクカード */}
+        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 mb-6">
+          <div className="grid grid-cols-2 gap-3">
             <a
               href={`/timer/${court}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded transition"
+              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl text-base font-medium transition"
             >
-              ⏱ タイマー表示
+              ⏱ タイマー表示画面を開く
+              <span className="text-sm">↗</span>
             </a>
             <a
               href={`/timer/${court}/control`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded transition"
+              className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-xl text-base font-medium transition"
             >
-              🎮 操作パネル
+              🎮 操作パネルを開く
+              <span className="text-sm">↗</span>
             </a>
           </div>
         </div>

@@ -179,17 +179,17 @@ test.describe("ライブ・表示", () => {
       await expect(timerLink).toBeVisible();
     }).toPass({ timeout: 20_000, intervals: [2_000, 3_000, 4_000] });
 
-    // タイマー表示リンク
+    // タイマー表示リンク（カード内の大きなボタン）
     const timerLink = page.locator('a[href="/timer/1"]');
     await expect(timerLink).toBeVisible();
     await expect(timerLink).toHaveAttribute("target", "_blank");
-    await expect(timerLink).toContainText("タイマー表示");
+    await expect(timerLink).toContainText("タイマー表示画面を開く");
 
-    // 操作パネルリンク
+    // 操作パネルリンク（カード内の大きなボタン）
     const controlLink = page.locator('a[href="/timer/1/control"]');
     await expect(controlLink).toBeVisible();
     await expect(controlLink).toHaveAttribute("target", "_blank");
-    await expect(controlLink).toContainText("操作パネル");
+    await expect(controlLink).toContainText("操作パネルを開く");
   });
 
   test("コート画面で複数トーナメントが表示される", async ({ page }) => {
