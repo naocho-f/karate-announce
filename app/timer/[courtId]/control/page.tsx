@@ -16,7 +16,7 @@ import {
 import { preloadDefaultBuzzer, playBuzzer } from "@/lib/timer-buzzer";
 import { fighterFullName, fighterFullReading } from "@/lib/types";
 import type { TimerPreset, Fighter, Match, Tournament } from "@/lib/types";
-import { announceMatchStart, announceWinner, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
+import { announceMatchStart, announceWinner, buildMatchStartText, prefetchTts, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
 import { roundName } from "@/lib/tournament";
 
 // ── フォーマット ──────────────────────────────────────────────
@@ -134,6 +134,7 @@ export default function TimerControlPage() {
   const [announceTemplates, setAnnounceTemplates] = useState<AnnounceTemplates>(DEFAULT_TEMPLATES);
   const [rulesReadingMap, setRulesReadingMap] = useState<Record<string, string>>({});
   const [isMuted, setIsMuted] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [currentRoundLabel, setCurrentRoundLabel] = useState("");
 
   // localStorage キー用の eventId（未ロード時は courtId をフォールバック）
@@ -504,6 +505,22 @@ export default function TimerControlPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "start", tournamentId: candidate.tournament.id }),
     });
+
+    // TTS プリフェッチ（試合選択時にアナウンスを事前生成）
+    const rLabel = roundName(candidate.match.round, candidate.totalRounds);
+    const rulesText = candidate.match.rules ?? candidate.tournament.default_rules ?? null;
+    const ttsText = buildMatchStartText(
+      fighterFullName(f1), f1.affiliation ?? f1.dojo?.name ?? "",
+      fighterFullName(f2), f2.affiliation ?? f2.dojo?.name ?? "",
+      rLabel,
+      fighterFullReading(f1), f1.affiliation_reading ?? f1.dojo?.name_reading ?? null,
+      fighterFullReading(f2), f2.affiliation_reading ?? f2.dojo?.name_reading ?? null,
+      candidate.match.match_label,
+      rulesText,
+      announceTemplates,
+      rulesText ? rulesReadingMap[rulesText] ?? null : null,
+    );
+    prefetchTts(ttsText);
   };
 
   // プリセット選択ロジック: ルールにマッチするプリセット → 選択中プリセット → デフォルト
@@ -590,31 +607,41 @@ export default function TimerControlPage() {
   };
 
   // ── アナウンス実行 ──
-  const handleAnnounceStart = () => {
-    const s = stateRef.current;
-    const rulesText = s.rules;
-    announceMatchStart(
-      s.red.name, s.red.affiliation,
-      s.white.name, s.white.affiliation,
-      currentRoundLabel,
-      s.red.nameReading, s.red.affiliationReading,
-      s.white.nameReading, s.white.affiliationReading,
-      s.matchLabel,
-      rulesText,
-      announceTemplates,
-      rulesText ? rulesReadingMap[rulesText] ?? null : null,
-    );
+  const handleAnnounceStart = async () => {
+    setIsPlaying(true);
+    try {
+      const s = stateRef.current;
+      const rulesText = s.rules;
+      await announceMatchStart(
+        s.red.name, s.red.affiliation,
+        s.white.name, s.white.affiliation,
+        currentRoundLabel,
+        s.red.nameReading, s.red.affiliationReading,
+        s.white.nameReading, s.white.affiliationReading,
+        s.matchLabel,
+        rulesText,
+        announceTemplates,
+        rulesText ? rulesReadingMap[rulesText] ?? null : null,
+      );
+    } finally {
+      setIsPlaying(false);
+    }
   };
 
-  const handleAnnounceWinner = () => {
+  const handleAnnounceWinner = async () => {
     const s = stateRef.current;
     if (!s.winnerId || !s.winnerSide) return;
-    const winner = s.winnerSide === "red" ? s.red : s.white;
-    announceWinner(
-      winner.name, winner.affiliation,
-      winner.nameReading, winner.affiliationReading,
-      announceTemplates,
-    );
+    setIsPlaying(true);
+    try {
+      const winner = s.winnerSide === "red" ? s.red : s.white;
+      await announceWinner(
+        winner.name, winner.affiliation,
+        winner.nameReading, winner.affiliationReading,
+        announceTemplates,
+      );
+    } finally {
+      setIsPlaying(false);
+    }
   };
 
   const phase = state.phase;
@@ -686,33 +713,37 @@ export default function TimerControlPage() {
                 </div>
               )}
 
-              {/* トーナメント試合一覧 */}
+              {/* トーナメント試合一覧（カード形式） */}
               {loadingTournament ? (
                 <p className="text-gray-600 text-sm">読み込み中...</p>
               ) : matchCandidates.length > 0 ? (
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <p className="text-xs text-gray-500">試合を選択して開始</p>
                   {matchCandidates.map((c) => {
                     const isDone = c.match.status === "done";
                     const isReady = c.match.status === "ready";
                     const isOngoing = c.match.status === "ongoing";
+                    const rulesLabel = c.match.rules ?? c.tournament.default_rules ?? null;
                     return (
                       <button
                         key={c.match.id}
                         onClick={() => !isDone && handleSelectMatch(c)}
                         disabled={isDone}
-                        className={`w-full text-left p-3 rounded-lg border transition ${
+                        className={`w-full text-left rounded-xl border-2 transition overflow-hidden ${
                           isDone
                             ? "border-gray-800 bg-gray-900/50 opacity-50 cursor-not-allowed"
                             : isOngoing
-                            ? "border-yellow-700 bg-yellow-950/50 hover:bg-yellow-950/80"
+                            ? "border-yellow-600 bg-yellow-950/40 hover:bg-yellow-950/70"
                             : isReady
-                            ? "border-blue-600 bg-blue-950/30 hover:bg-blue-950/50"
+                            ? "border-blue-500 bg-blue-950/30 hover:bg-blue-950/50"
                             : "border-gray-700 bg-gray-900 hover:bg-gray-800"
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className={`text-sm font-bold ${isDone ? "text-gray-600" : ""}`}>
+                        {/* ヘッダー */}
+                        <div className={`px-3 py-1.5 flex items-center justify-between ${
+                          isDone ? "bg-gray-800/50" : isOngoing ? "bg-yellow-900/40" : isReady ? "bg-blue-900/30" : "bg-gray-800/30"
+                        }`}>
+                          <span className={`text-sm font-bold ${isDone ? "text-gray-600" : isOngoing ? "text-yellow-300" : isReady ? "text-blue-300" : "text-gray-300"}`}>
                             {c.match.match_label ?? `R${c.match.round}-P${c.match.position}`}
                           </span>
                           <div className="flex items-center gap-2">
@@ -720,16 +751,42 @@ export default function TimerControlPage() {
                               <span className="text-xs text-gray-500 bg-gray-700 px-1.5 py-0.5 rounded font-bold">終了</span>
                             )}
                             {isOngoing && (
-                              <span className="text-xs text-yellow-400 font-bold">試合中</span>
+                              <span className="text-xs text-yellow-400 bg-yellow-900/60 px-1.5 py-0.5 rounded font-bold animate-pulse">試合中</span>
                             )}
-                            <span className="text-xs text-gray-600">{c.tournament.name}</span>
+                            {isReady && (
+                              <span className="text-xs text-blue-400 bg-blue-900/60 px-1.5 py-0.5 rounded font-bold">次の試合</span>
+                            )}
                           </div>
                         </div>
-                        <p className={`text-xs mt-1 ${isDone ? "text-gray-600" : "text-gray-400"}`}>
-                          <span className={isDone ? "text-gray-600" : "text-red-400"}>{fighterFullName(c.fighter1)}</span>
-                          <span className="text-gray-600 mx-1">vs</span>
-                          <span className={isDone ? "text-gray-600" : "text-gray-200"}>{fighterFullName(c.fighter2)}</span>
-                        </p>
+                        {/* 選手情報 */}
+                        <div className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-5 rounded-sm shrink-0 ${isDone ? "bg-gray-700" : "bg-red-600"}`} />
+                            <div className="min-w-0">
+                              <span className={`text-sm font-bold block truncate ${isDone ? "text-gray-600" : "text-red-400"}`}>{fighterFullName(c.fighter1)}</span>
+                              {!isDone && c.fighter1.affiliation && (
+                                <span className="text-[10px] text-gray-500 block truncate">{c.fighter1.affiliation}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-center text-gray-600 text-xs my-0.5">vs</div>
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-5 rounded-sm shrink-0 ${isDone ? "bg-gray-700" : "bg-white/80"}`} />
+                            <div className="min-w-0">
+                              <span className={`text-sm font-bold block truncate ${isDone ? "text-gray-600" : "text-gray-200"}`}>{fighterFullName(c.fighter2)}</span>
+                              {!isDone && c.fighter2.affiliation && (
+                                <span className="text-[10px] text-gray-500 block truncate">{c.fighter2.affiliation}</span>
+                              )}
+                            </div>
+                          </div>
+                          {/* ルール・トーナメント名 */}
+                          <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-gray-800/60">
+                            {rulesLabel && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${isDone ? "bg-gray-800 text-gray-600" : "bg-gray-800 text-gray-400"}`}>{rulesLabel}</span>
+                            )}
+                            <span className={`text-[10px] ml-auto ${isDone ? "text-gray-700" : "text-gray-600"}`}>{c.tournament.name}</span>
+                          </div>
+                        </div>
                       </button>
                     );
                   })}
@@ -819,13 +876,6 @@ export default function TimerControlPage() {
                 </div>
               )}
 
-              {/* ブザー */}
-              <button
-                onClick={() => playBuzzer(p?.buzzer_sound === "custom" ? "custom" : "default")}
-                className="mt-2 w-full py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 font-bold transition"
-              >
-                ブザー [B]
-              </button>
             </section>
           )}
 
@@ -837,24 +887,27 @@ export default function TimerControlPage() {
                 {(phase === "ready" || phase === "running" || phase === "paused") && (
                   <button
                     onClick={handleAnnounceStart}
-                    disabled={isMuted}
+                    disabled={isMuted || isPlaying}
                     className="flex-1 py-2 rounded-lg bg-blue-700 hover:bg-blue-600 text-white font-bold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    試合開始アナウンス
+                    {isPlaying ? "再生中..." : "試合開始アナウンス"}
                   </button>
                 )}
                 {phase === "finished" && state.winnerId && (
                   <button
                     onClick={handleAnnounceWinner}
-                    disabled={isMuted}
+                    disabled={isMuted || isPlaying}
                     className="flex-1 py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-white font-bold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    勝利アナウンス
+                    {isPlaying ? "再生中..." : "勝利アナウンス"}
                   </button>
                 )}
               </div>
               {isMuted && (
                 <p className="text-xs text-red-400 mt-1">ミュート中のため再生されません</p>
+              )}
+              {isPlaying && (
+                <p className="text-xs text-blue-400 mt-1">音声を再生しています...</p>
               )}
             </section>
           )}
@@ -937,30 +990,40 @@ export default function TimerControlPage() {
             </section>
           )}
 
-          {/* ルール設定表示 (#9) */}
+          {/* ルール設定表示 */}
           {(phase === "running" || phase === "paused" || phase === "time_up") && p && (
             <section className="text-xs text-gray-600 space-y-0.5">
-              <p>反則→ポイント: {p.foul_to_point_start > 0 ? `${p.foul_to_point_start}回目から+${p.foul_point_value}pt` : "無効"}</p>
+              <p>反則: {p.foul_to_point_start > 0 ? `${p.foul_to_point_start}回で相手に${p.foul_point_value}点` : "反則→ポイント変換: 無効"}</p>
               {p.foul_loss_count > 0 && <p>反則負け: {p.foul_loss_count}回</p>}
               {p.point_win_threshold > 0 && <p>ポイント先取: {p.point_win_threshold}pt</p>}
             </section>
           )}
 
           {/* サブ操作 */}
-          {(phase === "paused" || phase === "time_up") && (
+          {phase !== "idle" && (
             <section>
               <h3 className="text-sm font-bold text-gray-400 mb-2">サブ操作</h3>
               <div className="flex gap-2 flex-wrap">
-                <button onClick={() => update((s) => adjustTime(s, -10000))}
-                  className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
-                  -10秒 [←]
+                <button
+                  onClick={() => playBuzzer(p?.buzzer_sound === "custom" ? "custom" : "default")}
+                  className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition"
+                >
+                  ブザー [B]
                 </button>
-                <button onClick={() => update((s) => adjustTime(s, 10000))}
-                  className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
-                  +10秒 [→]
-                </button>
+                {(phase === "paused" || phase === "time_up") && (
+                  <>
+                    <button onClick={() => update((s) => adjustTime(s, -10000))}
+                      className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
+                      -10秒 [←]
+                    </button>
+                    <button onClick={() => update((s) => adjustTime(s, 10000))}
+                      className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
+                      +10秒 [→]
+                    </button>
+                  </>
+                )}
                 {/* 寝技回数調整 */}
-                {p?.newaza_enabled && p.newaza_limit_type === "limited" && (
+                {p?.newaza_enabled && p.newaza_limit_type === "limited" && (phase === "paused" || phase === "time_up") && (
                   <>
                     <span className="text-gray-500 text-sm self-center">寝技回数:</span>
                     <button onClick={() => update((s) => adjustNewazaCount(s, -1))}
@@ -1072,6 +1135,9 @@ export default function TimerControlPage() {
                     <p className="text-center text-green-400 text-sm font-bold">結果を書き戻しました</p>
                   )}
                   <button onClick={() => {
+                    if (!state.resultWritten) {
+                      if (!confirm("試合結果が未確定です。戻りますか？")) return;
+                    }
                     update(resetToIdle);
                     loadTournamentData();
                   }}

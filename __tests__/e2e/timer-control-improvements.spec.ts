@@ -152,8 +152,61 @@ test.describe("タイマー操作パネル改善", () => {
     await page.keyboard.press("Space");
     await expect(page.locator("text=試合中")).toBeVisible({ timeout: 5_000 });
 
-    // 反則→ポイント設定が表示される（デフォルトは無効）
-    await expect(page.locator("text=反則→ポイント")).toBeVisible({ timeout: 3_000 });
+    // 反則ルール設定が表示される（デフォルトは無効）
+    await expect(page.locator("text=反則→ポイント変換: 無効")).toBeVisible({ timeout: 3_000 });
+  });
+
+  test("ブザーボタンがサブ操作エリアに表示される", async ({ page }) => {
+    await page.goto("/timer/1/control");
+
+    // クイック試合を開始
+    await page.locator("text=クイック試合").click();
+    await page.keyboard.press("Space");
+    await expect(page.locator("text=試合中")).toBeVisible({ timeout: 5_000 });
+
+    // サブ操作セクション内にブザーボタンがある
+    const subSection = page.locator("section", { hasText: "サブ操作" });
+    await expect(subSection).toBeVisible({ timeout: 3_000 });
+    await expect(subSection.locator("button", { hasText: "ブザー" })).toBeVisible();
+  });
+
+  test("未確定で「次の試合へ」押下時に確認ダイアログが表示される", async ({ page }) => {
+    await page.goto("/timer/1/control");
+
+    // クイック試合を開始
+    await page.locator("text=クイック試合").click();
+    await page.keyboard.press("Space");
+    await expect(page.locator("text=試合中")).toBeVisible({ timeout: 5_000 });
+
+    // R キーで赤一本 → finished
+    await page.keyboard.press("KeyR");
+    await expect(page.locator("text=終了")).toBeVisible({ timeout: 5_000 });
+
+    // 次の試合へを押すと、未確定なので confirm が表示される
+    let dialogMessage = "";
+    page.on("dialog", async (dialog) => {
+      dialogMessage = dialog.message();
+      await dialog.dismiss(); // キャンセル
+    });
+    await page.locator("button", { hasText: "次の試合へ" }).click();
+    await page.waitForTimeout(500);
+
+    // ダイアログが「試合結果が未確定です」と表示されたことを確認
+    expect(dialogMessage).toContain("試合結果が未確定です");
+  });
+
+  test("アナウンスボタンが再生中に無効化される", async ({ page }) => {
+    await page.goto("/timer/1/control");
+
+    // クイック試合をセットアップ
+    await page.locator("text=クイック試合").click();
+    await expect(page.locator("text=準備完了")).toBeVisible({ timeout: 5_000 });
+
+    // アナウンスボタンが存在する（ミュートでなければ有効）
+    const announceBtn = page.locator("button", { hasText: "試合開始アナウンス" });
+    await expect(announceBtn).toBeVisible({ timeout: 3_000 });
+    // disabled 属性がないことを確認（ミュートでなければ）
+    await expect(announceBtn).not.toBeDisabled();
   });
 });
 

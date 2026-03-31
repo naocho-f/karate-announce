@@ -147,7 +147,7 @@ export function normalizeMatchLabelForTts(label: string): string {
 
 // ── TTS 発話 ───────────────────────────────────────────────────────────
 
-async function speak(text: string) {
+async function speak(text: string): Promise<void> {
   const { voice, speed } = getTtsSettings();
   try {
     const res = await fetch("/api/tts", {
@@ -159,8 +159,11 @@ async function speak(text: string) {
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
-    audio.onended = () => URL.revokeObjectURL(url);
-    await audio.play();
+    await new Promise<void>((resolve, reject) => {
+      audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+      audio.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Audio playback error")); };
+      audio.play().catch(reject);
+    });
   } catch (e) {
     console.error("TTS error:", e);
   }
@@ -241,7 +244,7 @@ export function announceMatchStart(
   rules?: string | null,
   templates?: AnnounceTemplates,
   rulesReading?: string | null,
-) {
+): Promise<void> {
   const text = buildMatchStartText(
     fighter1Name, fighter1Affiliation,
     fighter2Name, fighter2Affiliation,
@@ -250,10 +253,10 @@ export function announceMatchStart(
     fighter2NameReading, fighter2AffiliationReading,
     matchLabel, rules, templates, rulesReading,
   );
-  speak(text);
+  return speak(text);
 }
 
-export function announceWinner(winnerName: string, winnerAffiliation: string, nameReading?: string | null, affiliationReading?: string | null, templates?: AnnounceTemplates) {
+export function announceWinner(winnerName: string, winnerAffiliation: string, nameReading?: string | null, affiliationReading?: string | null, templates?: AnnounceTemplates): Promise<void> {
   const name = nameReading || winnerName;
   const affRaw = affiliationReading || winnerAffiliation;
   const aff = buildAffiliationForTts(affRaw);
@@ -265,9 +268,9 @@ export function announceWinner(winnerName: string, winnerAffiliation: string, na
     "勝者流派":      parts.school,
     "勝者道場":      parts.dojo,
   });
-  speak(text);
+  return speak(text);
 }
 
-export function announceCustom(text: string) {
-  speak(text);
+export function announceCustom(text: string): Promise<void> {
+  return speak(text);
 }
