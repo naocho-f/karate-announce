@@ -25,6 +25,7 @@ import { getGradeOptions, gradeToNumber } from "@/lib/grade-options";
 import Link from "next/link";
 import { FormConfigPanel } from "./form-config-panel";
 import { estimateMatchMinutes, formatTimeEstimate, countActualMatches, roundedNowHHMM } from "@/lib/time-estimate";
+import { getEventPhase } from "@/lib/event-phase";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 function supabaseStorageUrl(path: string): string {
@@ -399,13 +400,10 @@ export default function EventDetailPage({ params }: Props) {
             <span className="text-gray-200">{event.name}</span>
           </nav>
           <h1 className="text-2xl font-bold">{event.name}</h1>
-          {event.entry_closed || (event.entry_close_at && new Date(event.entry_close_at) <= new Date()) ? (
-            <span className="text-xs bg-red-900 text-red-300 px-2 py-0.5 rounded">受付終了</span>
-          ) : !formConfigReady ? (
-            <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded">準備中</span>
-          ) : (
-            <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">受付中</span>
-          )}
+          {(() => {
+            const phase = getEventPhase(event, formConfigReady, tournaments, allMatchRows);
+            return <span className={`text-xs px-2 py-0.5 rounded ${phase.color}`}>{phase.label}</span>;
+          })()}
         </div>
 
         {/* メタ情報（開催日・コート名）インライン編集 */}
@@ -461,7 +459,7 @@ export default function EventDetailPage({ params }: Props) {
         </div>
 
         {/* ステップナビ */}
-        <StepNav step={step} tournaments={tournaments} onStepChange={navigateStep} />
+        <StepNav step={step} tournaments={tournaments} onStepChange={navigateStep} phaseStep={getEventPhase(event, formConfigReady, tournaments, allMatchRows).stepHighlight} />
 
         {/* ① 参加者管理 */}
         {step === 1 && (
@@ -781,7 +779,7 @@ export default function EventDetailPage({ params }: Props) {
 
 // ── ステップナビゲーション ────────────────────────────────────────────────
 
-function StepNav({ step, tournaments, onStepChange }: { step: 1 | 2 | 3; tournaments: Tournament[]; onStepChange: (s: 1 | 2 | 3) => void }) {
+function StepNav({ step, tournaments, onStepChange, phaseStep }: { step: 1 | 2 | 3; tournaments: Tournament[]; onStepChange: (s: 1 | 2 | 3) => void; phaseStep: 1 | 2 | 3 }) {
   const steps: { n: 1 | 2 | 3; label: string; disabled?: boolean }[] = [
     { n: 1, label: "① 参加者管理" },
     { n: 2, label: "② 対戦表作成" },
@@ -796,7 +794,7 @@ function StepNav({ step, tournaments, onStepChange }: { step: 1 | 2 | 3; tournam
           disabled={s.disabled}
           className={`flex-1 py-3 text-sm font-medium transition ${
             i > 0 ? "border-l border-gray-700" : ""
-          } ${step === s.n ? "bg-blue-700 text-white" : s.disabled ? "bg-gray-800 text-gray-600 cursor-not-allowed" : "bg-gray-800 hover:bg-gray-750 text-gray-400 hover:text-gray-200"}`}
+          } ${step === s.n ? "bg-blue-700 text-white" : s.disabled ? "bg-gray-800 text-gray-600 cursor-not-allowed" : "bg-gray-800 hover:bg-gray-750 text-gray-400 hover:text-gray-200"} ${step !== s.n && s.n === phaseStep ? "ring-1 ring-inset ring-blue-500/50" : ""}`}
         >
           {s.label}
         </button>
@@ -1951,8 +1949,9 @@ function DistributionPanel({ entries, isOpen, onToggle }: { entries: Entry[]; is
 
   if (suggestions.length === 0) return null;
 
-  // 軸ごとにグルーピング
+  // 軸ごとにグルーピング（経験は「参考」として最後に表示）
   const axisLabels: Record<string, string> = { weight: "体重", age: "年齢", sex: "性別", height: "身長", experience: "経験" };
+  const axisOrder = ["weight", "age", "sex", "height", "experience"];
   const grouped = useMemo(() => {
     const map = new Map<string, typeof suggestions>();
     for (const s of suggestions) {
@@ -1960,7 +1959,17 @@ function DistributionPanel({ entries, isOpen, onToggle }: { entries: Entry[]; is
       list.push(s);
       map.set(s.axis, list);
     }
-    return map;
+    // axisOrder 順に並べ替え
+    const sorted = new Map<string, typeof suggestions>();
+    for (const axis of axisOrder) {
+      const items = map.get(axis);
+      if (items) sorted.set(axis, items);
+    }
+    // axisOrder にない軸があれば末尾に追加
+    for (const [axis, items] of map) {
+      if (!sorted.has(axis)) sorted.set(axis, items);
+    }
+    return sorted;
   }, [suggestions]);
 
   return (
@@ -1974,24 +1983,31 @@ function DistributionPanel({ entries, isOpen, onToggle }: { entries: Entry[]; is
       </button>
       {isOpen && (
         <div className="px-4 pb-3 space-y-3 border-t border-gray-700">
-          {Array.from(grouped.entries()).map(([axis, items]) => (
-            <div key={axis} className="pt-2">
-              <p className="text-xs text-gray-500 mb-1.5">{axisLabels[axis] ?? axis}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {items.map((s, i) => (
-                  <span key={i} className="inline-flex items-center gap-1.5 bg-gray-700/60 rounded-full px-3 py-1 text-xs">
-                    <span className={
-                      s.balance === "◎" ? "text-green-400 font-bold" :
-                      s.balance === "△" ? "text-yellow-400 font-bold" : "text-gray-500 font-bold"
-                    }>{s.balance}</span>
-                    <span className="text-gray-300">{s.belowLabel} {s.belowCount}名</span>
-                    <span className="text-gray-600">/</span>
-                    <span className="text-gray-300">{s.aboveLabel} {s.aboveCount}名</span>
-                  </span>
-                ))}
+          {Array.from(grouped.entries()).map(([axis, items]) => {
+            const isReference = axis === "experience";
+            return (
+              <div key={axis} className={`pt-2${isReference ? " border-t border-gray-700/50 mt-1" : ""}`}>
+                <p className="text-xs text-gray-500 mb-1.5">
+                  {axisLabels[axis] ?? axis}
+                  {isReference && <span className="ml-1.5 text-gray-600">（参考）</span>}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {items.map((s, i) => (
+                    <span key={i} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs ${isReference ? "bg-gray-700/30 opacity-60" : "bg-gray-700/60"}`}>
+                      <span className={
+                        isReference ? "text-gray-500 font-bold" :
+                        s.balance === "◎" ? "text-green-400 font-bold" :
+                        s.balance === "△" ? "text-yellow-400 font-bold" : "text-gray-500 font-bold"
+                      }>{s.balance}</span>
+                      <span className={isReference ? "text-gray-500" : "text-gray-300"}>{s.belowLabel} {s.belowCount}名</span>
+                      <span className="text-gray-600">/</span>
+                      <span className={isReference ? "text-gray-500" : "text-gray-300"}>{s.aboveLabel} {s.aboveCount}名</span>
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <p className="text-xs text-gray-600 pt-1">振り分けルール作成の参考にしてください</p>
         </div>
       )}
