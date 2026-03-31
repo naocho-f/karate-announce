@@ -378,6 +378,8 @@ score = |weight1 - weight2| × 2 + |height1 - height2| × 0.3
 | max_weight | numeric | NULL | 体重上限 |
 | min_height | real | NULL | 身長下限 |
 | max_height | real | NULL | 身長上限 |
+| min_grade | text | NULL | 年代下限（例: "小1"、NULL=制限なし） |
+| max_grade | text | NULL | 年代上限（例: "小4"、NULL=制限なし） |
 | max_grade_diff | integer | NULL | 最大学年差（小学生用、NULL=制限なし） |
 | max_weight_diff | numeric | NULL | トーナメント内の最大体重差 |
 | max_height_diff | numeric | NULL | トーナメント内の最大身長差 |
@@ -411,8 +413,8 @@ score = |weight1 - weight2| × 2 + |height1 - height2| × 0.3
 
 **`groupEntriesByRules(entries, bracketRules, entryRuleIds)`**:
 1. `sort_order` 順にルールを処理
-2. 各ルールの条件（年齢・体重・身長・性別・競技ルール）に合致する未割当選手をグループ化
-3. `max_grade_diff` がある場合は学年差でサブグループに分割（学年の数値変換: 小1=1, ..., 小6=6, 中1=7, ..., 中3=9, 高1=10, ...）
+2. 各ルールの条件（年齢・体重・身長・性別・年代範囲・競技ルール）に合致する未割当選手をグループ化
+3. `min_grade`/`max_grade` で年代範囲フィルタ（例: 小1〜小4。`gradeToNumber()` で数値比較）。`max_grade_diff` がある場合は学年差でサブグループに分割（学年の数値変換: 小1=1, ..., 小6=6, 中1=7, ..., 中3=9, 高1=10, ...）
 4. どのルールにも合致しない選手は「未分類」グループに追加
 
 **`assignCourts(groups, courtCount)`**:

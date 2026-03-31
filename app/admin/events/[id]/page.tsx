@@ -2371,6 +2371,8 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
             min_age: f.minAge ? parseInt(f.minAge) : null,
             max_age: f.maxAge ? parseInt(f.maxAge) : null,
             sex_filter: f.sexFilter || null,
+            min_grade: f.minGrade || null,
+            max_grade: f.maxGrade || null,
             max_grade_diff: gradeDiff,
             min_height: f.minHeight ? parseFloat(f.minHeight) : null,
             max_height: f.maxHeight ? parseFloat(f.maxHeight) : null,

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { BracketRule, Rule } from "@/lib/types";
+import { getGradeOptions } from "@/lib/grade-options";
 
 type Props = {
   eventId: string;
@@ -19,6 +20,8 @@ type FormState = {
   max_weight: string;
   min_height: string;
   max_height: string;
+  min_grade: string;
+  max_grade: string;
   max_grade_diff: string;
   max_weight_diff: string;
   max_height_diff: string;
@@ -35,6 +38,8 @@ const emptyForm: FormState = {
   max_weight: "",
   min_height: "",
   max_height: "",
+  min_grade: "",
+  max_grade: "",
   max_grade_diff: "",
   max_weight_diff: "",
   max_height_diff: "",
@@ -52,6 +57,8 @@ export function toFormState(r: BracketRule): FormState {
     max_weight: r.max_weight != null ? String(r.max_weight) : "",
     min_height: r.min_height != null ? String(r.min_height) : "",
     max_height: r.max_height != null ? String(r.max_height) : "",
+    min_grade: r.min_grade ?? "",
+    max_grade: r.max_grade ?? "",
     max_grade_diff: r.max_grade_diff != null ? String(r.max_grade_diff) : "",
     max_weight_diff: r.max_weight_diff != null ? String(r.max_weight_diff) : "",
     max_height_diff: r.max_height_diff != null ? String(r.max_height_diff) : "",
@@ -72,6 +79,8 @@ function toPayload(form: FormState, eventId: string, sortOrder: number) {
     max_weight: num(form.max_weight),
     min_height: num(form.min_height),
     max_height: num(form.max_height),
+    min_grade: form.min_grade || null,
+    max_grade: form.max_grade || null,
     max_grade_diff: num(form.max_grade_diff),
     max_weight_diff: num(form.max_weight_diff),
     max_height_diff: num(form.max_height_diff),
@@ -253,6 +262,9 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames }: Pr
                 {(rule.min_height != null || rule.max_height != null) && (
                   <span>身長: {rule.min_height ?? ""}〜{rule.max_height ?? ""}cm</span>
                 )}
+                {(rule.min_grade != null || rule.max_grade != null) && (
+                  <span>年代: {rule.min_grade ?? ""}〜{rule.max_grade ?? ""}</span>
+                )}
                 {rule.sex_filter && (
                   <span>性別: {rule.sex_filter === "male" ? "男" : "女"}</span>
                 )}
@@ -367,6 +379,35 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames }: Pr
             <div>
               <label className={labelCls}>身長上限 (cm)</label>
               <input type="number" className={inputCls} value={form.max_height} onChange={(e) => setForm((f) => ({ ...f, max_height: e.target.value }))} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>年代下限</label>
+              <select
+                className={inputCls}
+                value={form.min_grade}
+                onChange={(e) => setForm((f) => ({ ...f, min_grade: e.target.value }))}
+              >
+                <option value="">指定なし</option>
+                {getGradeOptions().map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>年代上限</label>
+              <select
+                className={inputCls}
+                value={form.max_grade}
+                onChange={(e) => setForm((f) => ({ ...f, max_grade: e.target.value }))}
+              >
+                <option value="">指定なし</option>
+                {getGradeOptions().map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
           </div>
 

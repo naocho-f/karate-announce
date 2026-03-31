@@ -364,6 +364,8 @@ export type BracketRule = {
   max_weight: number | null;
   min_height: number | null;
   max_height: number | null;
+  min_grade: string | null;
+  max_grade: string | null;
   max_grade_diff: number | null;
   max_weight_diff: number | null;
   max_height_diff: number | null;

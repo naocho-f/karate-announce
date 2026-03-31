@@ -132,6 +132,9 @@ export function AutoCreateDialog({
                     {(rule.min_weight != null || rule.max_weight != null) && (
                       <span>体重: {rule.min_weight ?? ""}〜{rule.max_weight ?? ""}kg</span>
                     )}
+                    {(rule.min_grade != null || rule.max_grade != null) && (
+                      <span>年代: {rule.min_grade ?? ""}〜{rule.max_grade ?? ""}</span>
+                    )}
                     {rule.sex_filter && (
                       <span>性別: {rule.sex_filter === "male" ? "男" : "女"}</span>
                     )}

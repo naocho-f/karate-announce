@@ -12,8 +12,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
   const updates: Record<string, unknown> = {};
   const fields = [
     "name", "rule_id", "min_age", "max_age", "min_weight", "max_weight",
-    "min_height", "max_height", "max_grade_diff", "max_weight_diff",
-    "max_height_diff", "sex_filter", "court_num", "sort_order",
+    "min_height", "max_height", "min_grade", "max_grade", "max_grade_diff",
+    "max_weight_diff", "max_height_diff", "sex_filter", "court_num", "sort_order",
   ];
   for (const f of fields) {
     if (f in body) updates[f] = body[f];

@@ -50,6 +50,8 @@ function makeRule(id: string, overrides?: Partial<BracketRule>): BracketRule {
     max_weight: null,
     min_height: null,
     max_height: null,
+    min_grade: null,
+    max_grade: null,
     max_grade_diff: null,
     max_weight_diff: null,
     max_height_diff: null,
@@ -198,6 +200,84 @@ describe("groupEntriesByRules", () => {
     const groups = groupEntriesByRules(entries, rules, {});
     // 小1,小2 は学年差1以内 → グループ1
     // 小5,小6 は学年差1以内 → グループ2
+    expect(groups).toHaveLength(2);
+    expect(groups[0].name).toBe("小学生（1）");
+    expect(groups[0].entries.map((e) => e.id).sort()).toEqual(["A", "B"]);
+    expect(groups[1].name).toBe("小学生（2）");
+    expect(groups[1].entries.map((e) => e.id).sort()).toEqual(["C", "D"]);
+  });
+
+  it("年代範囲（min_grade/max_grade）で振り分け", () => {
+    const entries = [
+      makeEntry("A", { grade: "小1" }),
+      makeEntry("B", { grade: "小3" }),
+      makeEntry("C", { grade: "小5" }),
+      makeEntry("D", { grade: "中1" }),
+    ];
+    const rules = [
+      makeRule("R1", { name: "小学低学年", min_grade: "小1", max_grade: "小3", sort_order: 0 }),
+      makeRule("R2", { name: "小学高学年", min_grade: "小4", max_grade: "小6", sort_order: 1 }),
+    ];
+    const groups = groupEntriesByRules(entries, rules, {});
+    expect(groups).toHaveLength(3); // 低学年, 高学年, 未分類(中1)
+
+    const low = groups.find((g) => g.name === "小学低学年");
+    expect(low).toBeTruthy();
+    expect(low!.entries.map((e) => e.id).sort()).toEqual(["A", "B"]);
+
+    const high = groups.find((g) => g.name === "小学高学年");
+    expect(high).toBeTruthy();
+    expect(high!.entries.map((e) => e.id)).toEqual(["C"]);
+
+    const unmatched = groups.find((g) => g.name === "未分類");
+    expect(unmatched).toBeTruthy();
+    expect(unmatched!.entries.map((e) => e.id)).toEqual(["D"]);
+  });
+
+  it("年代範囲: gradeがnullの選手はマッチしない", () => {
+    const entries = [
+      makeEntry("A", { grade: "小2" }),
+      makeEntry("B", { grade: null }),
+    ];
+    const rules = [
+      makeRule("R1", { name: "小学生", min_grade: "小1", max_grade: "小6", sort_order: 0 }),
+    ];
+    const groups = groupEntriesByRules(entries, rules, {});
+    expect(groups).toHaveLength(2); // 小学生, 未分類
+    expect(groups[0].name).toBe("小学生");
+    expect(groups[0].entries).toHaveLength(1);
+    expect(groups[0].entries[0].id).toBe("A");
+    expect(groups[1].name).toBe("未分類");
+    expect(groups[1].entries[0].id).toBe("B");
+  });
+
+  it("年代範囲: min_gradeのみ指定（下限のみ）", () => {
+    const entries = [
+      makeEntry("A", { grade: "小3" }),
+      makeEntry("B", { grade: "中2" }),
+    ];
+    const rules = [
+      makeRule("R1", { name: "小4以上", min_grade: "小4", max_grade: null, sort_order: 0 }),
+    ];
+    const groups = groupEntriesByRules(entries, rules, {});
+    // 小3は小4未満なのでマッチしない、中2(=8)は小4(=4)以上なのでマッチ
+    const matched = groups.find((g) => g.name === "小4以上");
+    expect(matched).toBeTruthy();
+    expect(matched!.entries.map((e) => e.id)).toEqual(["B"]);
+  });
+
+  it("年代範囲 + 学年差制限の組み合わせ", () => {
+    const entries = [
+      makeEntry("A", { grade: "小1" }),
+      makeEntry("B", { grade: "小2" }),
+      makeEntry("C", { grade: "小5" }),
+      makeEntry("D", { grade: "小6" }),
+    ];
+    const rules = [
+      makeRule("R1", { name: "小学生", min_grade: "小1", max_grade: "小6", max_grade_diff: 1, sort_order: 0 }),
+    ];
+    const groups = groupEntriesByRules(entries, rules, {});
+    // 4人が年代範囲にマッチし、学年差1でサブグループ分割
     expect(groups).toHaveLength(2);
     expect(groups[0].name).toBe("小学生（1）");
     expect(groups[0].entries.map((e) => e.id).sort()).toEqual(["A", "B"]);

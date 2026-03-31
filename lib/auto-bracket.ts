@@ -60,6 +60,20 @@ function matchesRule(
   if (rule.min_height != null && (entry.height == null || entry.height < rule.min_height)) return false;
   if (rule.max_height != null && (entry.height == null || entry.height > rule.max_height)) return false;
 
+  // 年代条件
+  if (rule.min_grade != null || rule.max_grade != null) {
+    const entryGradeNum = gradeToNumber(entry.grade);
+    if (entryGradeNum == null) return false;
+    if (rule.min_grade != null) {
+      const minNum = gradeToNumber(rule.min_grade);
+      if (minNum != null && entryGradeNum < minNum) return false;
+    }
+    if (rule.max_grade != null) {
+      const maxNum = gradeToNumber(rule.max_grade);
+      if (maxNum != null && entryGradeNum > maxNum) return false;
+    }
+  }
+
   // 性別条件
   if (rule.sex_filter && entry.sex !== rule.sex_filter) return false;
 

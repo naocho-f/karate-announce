@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-28（UI一貫性・品質改善: スタイル定数・ボタン文言・バッジ色・disabled opacity 統一）
+> 最終更新: 2026-03-28（振り分けルールに年代範囲 min_grade/max_grade を追加）
 
 ---
 
@@ -347,7 +347,7 @@
 
 **振り分けルール（`BracketRulesPanel`）**
 - 振り分けルール（`bracket_rules` テーブル）の CRUD 管理
-- 各ルールに名前、対象競技ルール、年齢範囲、体重範囲、身長範囲、最大学年差、最大体重差・身長差、性別、割り当てコートを設定
+- 各ルールに名前、対象競技ルール、年齢範囲、体重範囲、身長範囲、年代範囲（min_grade/max_grade）、最大学年差、最大体重差・身長差、性別、割り当てコートを設定
 - ▲/▼ ボタンで優先順序（`sort_order`）を変更。先に処理されたルールが優先して選手を取る
 - **複製ボタン**: 各ルールカードに「複製」ボタン。既存ルールの全フィールドをコピーして新規作成フォームにセット、名前に「（コピー）」を付与。新しいAPIは不要（既存のPOSTで新規作成）
 - API: `GET/POST /api/admin/bracket-rules`, `PUT/DELETE /api/admin/bracket-rules/[id]`
@@ -361,7 +361,7 @@
 - 振り分けルール未設定の場合は案内メッセージを表示
 
 **振り分けロジック（`lib/auto-bracket.ts`）**
-- `groupEntriesByRules()`: 振り分けルールを `sort_order` 順に処理。各ルールの条件（年齢・体重・身長・性別・競技ルール）に合致する未割当選手をグループ化。`max_grade_diff` がある場合は学年差でサブグループに分割。どのルールにも合致しない選手は「未分類」グループに
+- `groupEntriesByRules()`: 振り分けルールを `sort_order` 順に処理。各ルールの条件（年齢・体重・身長・性別・年代範囲・競技ルール）に合致する未割当選手をグループ化。`min_grade`/`max_grade` で年代範囲フィルタ（例: 小1〜小4）、`max_grade_diff` がある場合は学年差でサブグループに分割。どのルールにも合致しない選手は「未分類」グループに
 - `assignCourts()`: `court_num` 指定のグループは固定コート、未指定は試合数が最小のコートに自動割り当て
 - 学年の数値変換（`lib/grade-options.ts`）: 年少=-2, 年中=-1, 年長=0, 小1=1, ..., 小6=6, 中1=7, ..., 中3=9, 高1=10, ...。年齢ベース区分（18歳未満/一般/シニア等）は数値変換対象外（null）
 
@@ -641,6 +641,8 @@ bracket_rules (
   max_weight NUMERIC,           -- 体重上限
   min_height REAL,              -- 身長下限
   max_height REAL,              -- 身長上限
+  min_grade TEXT,                -- 年代下限（例: "小1"、NULL=制限なし）
+  max_grade TEXT,                -- 年代上限（例: "小4"、NULL=制限なし）
   max_grade_diff INT,           -- 最大学年差（小学生用、NULL=制限なし）
   max_weight_diff NUMERIC,      -- トーナメント内の最大体重差
   max_height_diff NUMERIC,      -- トーナメント内の最大身長差
@@ -1100,6 +1102,8 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
   - 1ペア自動ワンマッチ化: `confirm()` 内で `pairs.length === 1` のトーナメントを自動で `type: "one_match"` に変更
   - 複数トーナメント並び順保持: `confirm()` 内で `sortOrder` をグループインデックスから設定（`editingSortOrder ?? groupIndex`）
   - 振り分けルールボタン文言変更: 「振り分けルールを登録して対戦表を作成」→「振り分けルールを登録する」、「振り分けルールで対戦表を作成」→「登録済み振り分けルールで対戦表を作成」
+
+- 振り分けルールに年代範囲（min_grade/max_grade）を追加: `bracket_rules` テーブルに `min_grade`/`max_grade` カラムを追加。型定義・API POST/PUT・UIフォーム（セレクトボックス2つ）・一覧表示・auto-bracket の `matchesRule()` に年代フィルタを追加。`AutoCreateDialog` のルール詳細表示にも年代範囲を表示。トーナメント確定時の振り分けルール保存にも min_grade/max_grade を含める
 
 ---
 

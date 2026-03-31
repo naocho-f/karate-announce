@@ -14,6 +14,8 @@ function makeBracketRule(overrides: Partial<BracketRule> = {}): BracketRule {
     max_weight: 40,
     min_height: 100,
     max_height: 150,
+    min_grade: "小1",
+    max_grade: "小6",
     max_grade_diff: 1,
     max_weight_diff: 10,
     max_height_diff: 15,
@@ -38,6 +40,8 @@ describe("toFormState", () => {
       max_weight: "40",
       min_height: "100",
       max_height: "150",
+      min_grade: "小1",
+      max_grade: "小6",
       max_grade_diff: "1",
       max_weight_diff: "10",
       max_height_diff: "15",
@@ -55,6 +59,8 @@ describe("toFormState", () => {
       max_weight: null,
       min_height: null,
       max_height: null,
+      min_grade: null,
+      max_grade: null,
       max_grade_diff: null,
       max_weight_diff: null,
       max_height_diff: null,
@@ -65,6 +71,8 @@ describe("toFormState", () => {
     expect(form.rule_id).toBe("");
     expect(form.min_age).toBe("");
     expect(form.max_age).toBe("");
+    expect(form.min_grade).toBe("");
+    expect(form.max_grade).toBe("");
     expect(form.min_weight).toBe("");
     expect(form.max_weight).toBe("");
     expect(form.min_height).toBe("");

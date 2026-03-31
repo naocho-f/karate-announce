@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const body = await request.json();
-  const { event_id, name, rule_id, min_age, max_age, min_weight, max_weight, min_height, max_height, max_grade_diff, max_weight_diff, max_height_diff, sex_filter, court_num, sort_order } = body;
+  const { event_id, name, rule_id, min_age, max_age, min_weight, max_weight, min_height, max_height, min_grade, max_grade, max_grade_diff, max_weight_diff, max_height_diff, sex_filter, court_num, sort_order } = body;
 
   if (!event_id || !name) {
     return NextResponse.json({ error: "event_id and name required" }, { status: 400 });
@@ -37,6 +37,8 @@ export async function POST(request: NextRequest) {
       max_weight: max_weight ?? null,
       min_height: min_height ?? null,
       max_height: max_height ?? null,
+      min_grade: min_grade ?? null,
+      max_grade: max_grade ?? null,
       max_grade_diff: max_grade_diff ?? null,
       max_weight_diff: max_weight_diff ?? null,
       max_height_diff: max_height_diff ?? null,
