@@ -394,6 +394,11 @@ export function TimerPresetsPanel() {
               const foulCellH = Math.max(fsPx * 0.22, 4);
               const foulCellW = Math.max(fsPx * 0.35, 6);
               const foulFsPx = Math.max(fsPx * 0.13, 3);
+              const showPoints = editing.show_points ?? true;
+              const showWazaari = editing.show_wazaari ?? false;
+              const bothVisible = showPoints && showWazaari;
+              const mainFsPx = bothVisible ? fsPx * 0.67 : fsPx;
+              const wazaariFsPx = bothVisible ? fsPx * 0.35 : fsPx;
               return (
                 <div
                   key={idx}
@@ -403,10 +408,11 @@ export function TimerPresetsPanel() {
                     borderTop,
                   }}
                 >
-                  {/* Left: foul indicator + point */}
+                  {/* Left: foul indicator + score */}
                   <div className="flex-1 flex">
                     {/* Foul indicator (left edge) */}
-                    <div className="flex flex-col justify-center" style={{ padding: `0 ${fsPx * 0.05}px` }}>
+                    <div className="flex flex-col items-center justify-center" style={{ padding: `0 ${fsPx * 0.05}px` }}>
+                      <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.1}px` }}>反則</span>
                       {[4, 3, 2, 1].map((n) => (
                         <div
                           key={n}
@@ -424,9 +430,17 @@ export function TimerPresetsPanel() {
                         />
                       ))}
                     </div>
-                    {/* Point */}
-                    <div className="flex-1 flex items-center justify-center">
-                      <span className="font-bold tabular-nums leading-none" style={{ color: colorLeft, fontSize: `${fsPx}px` }}>3</span>
+                    {/* Score content */}
+                    <div className="flex-1 flex flex-col items-center justify-center">
+                      {showPoints && (
+                        <span className="font-bold tabular-nums leading-none" style={{ color: colorLeft, fontSize: `${mainFsPx}px` }}>3</span>
+                      )}
+                      {showWazaari && (
+                        <div className="flex items-baseline justify-center gap-0.5" style={{ marginTop: showPoints ? `${fsPx * 0.05}px` : undefined }}>
+                          <span className="text-gray-500 font-bold" style={{ fontSize: `${wazaariFsPx * 0.35}px` }}>技</span>
+                          <span className="font-bold tabular-nums leading-none" style={{ color: colorLeft, fontSize: `${wazaariFsPx}px` }}>1</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   {/* Center: newaza */}
@@ -434,14 +448,23 @@ export function TimerPresetsPanel() {
                     <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.2}px` }}>{layout.labelNewaza || "寝技"}</span>
                     <PreviewTimerDigits text="0:12" style={{ color: "rgb(34 211 238)", fontSize: `${fsPx * 0.45}px` }} />
                   </div>
-                  {/* Right: point + foul indicator */}
+                  {/* Right: score + foul indicator */}
                   <div className="flex-1 flex">
-                    {/* Point */}
-                    <div className="flex-1 flex items-center justify-center">
-                      <span className="font-bold tabular-nums leading-none" style={{ color: colorRight, fontSize: `${fsPx}px` }}>1</span>
+                    {/* Score content */}
+                    <div className="flex-1 flex flex-col items-center justify-center">
+                      {showPoints && (
+                        <span className="font-bold tabular-nums leading-none" style={{ color: colorRight, fontSize: `${mainFsPx}px` }}>1</span>
+                      )}
+                      {showWazaari && (
+                        <div className="flex items-baseline justify-center gap-0.5" style={{ marginTop: showPoints ? `${fsPx * 0.05}px` : undefined }}>
+                          <span className="text-gray-500 font-bold" style={{ fontSize: `${wazaariFsPx * 0.35}px` }}>技</span>
+                          <span className="font-bold tabular-nums leading-none" style={{ color: colorRight, fontSize: `${wazaariFsPx}px` }}>0</span>
+                        </div>
+                      )}
                     </div>
                     {/* Foul indicator (right edge) */}
-                    <div className="flex flex-col justify-center" style={{ padding: `0 ${fsPx * 0.05}px` }}>
+                    <div className="flex flex-col items-center justify-center" style={{ padding: `0 ${fsPx * 0.05}px` }}>
+                      <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.1}px` }}>反則</span>
                       {[4, 3, 2, 1].map((n) => (
                         <div
                           key={n}

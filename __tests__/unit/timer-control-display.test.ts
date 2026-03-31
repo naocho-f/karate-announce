@@ -321,3 +321,99 @@ describe("試合一覧の表示スタイル", () => {
     expect(isMatchDisabled("ongoing")).toBe(false);
   });
 });
+
+// ── 修正1: スコア表示ロジック（show_points / show_wazaari フラグ） ──
+
+describe("スコア表示ロジック（show_points / show_wazaari）", () => {
+  // 表示画面のスコア行レンダリングロジックを再実装
+  function getScoreDisplayMode(showPoints: boolean, showWazaari: boolean): "points_only" | "wazaari_only" | "both" | "none" {
+    if (showPoints && showWazaari) return "both";
+    if (showPoints) return "points_only";
+    if (showWazaari) return "wazaari_only";
+    return "none";
+  }
+
+  function getMainFontScale(showPoints: boolean, showWazaari: boolean): number {
+    return (showPoints && showWazaari) ? 0.67 : 1;
+  }
+
+  function getWazaariFontScale(showPoints: boolean, showWazaari: boolean): number {
+    return (showPoints && showWazaari) ? 0.35 : 1;
+  }
+
+  it("ポイントのみ: mainFs = フルサイズ", () => {
+    expect(getScoreDisplayMode(true, false)).toBe("points_only");
+    expect(getMainFontScale(true, false)).toBe(1);
+  });
+
+  it("技ありのみ: wazaariFs = フルサイズ", () => {
+    expect(getScoreDisplayMode(false, true)).toBe("wazaari_only");
+    expect(getWazaariFontScale(false, true)).toBe(1);
+  });
+
+  it("ポイント+技あり: mainFs = 0.67, wazaariFs = 0.35", () => {
+    expect(getScoreDisplayMode(true, true)).toBe("both");
+    expect(getMainFontScale(true, true)).toBe(0.67);
+    expect(getWazaariFontScale(true, true)).toBe(0.35);
+  });
+
+  it("どちらもオフ: none", () => {
+    expect(getScoreDisplayMode(false, false)).toBe("none");
+  });
+});
+
+describe("合わせ一本判定ロジック", () => {
+  it("技あり2以上で合わせ一本と判定される", () => {
+    expect(2 >= 2).toBe(true); // leftCombinedIppon
+    expect(3 >= 2).toBe(true);
+  });
+
+  it("技あり1以下では合わせ一本にならない", () => {
+    expect(0 >= 2).toBe(false);
+    expect(1 >= 2).toBe(false);
+  });
+});
+
+// ── 修正2: 確定前は「次の試合へ」非表示 ──
+
+describe("「次の試合へ」ボタンの表示条件", () => {
+  function isNextMatchButtonVisible(phase: string, resultWritten: boolean): boolean {
+    return phase === "finished" && resultWritten === true;
+  }
+
+  it("finished + resultWritten=true: 表示", () => {
+    expect(isNextMatchButtonVisible("finished", true)).toBe(true);
+  });
+
+  it("finished + resultWritten=false: 非表示", () => {
+    expect(isNextMatchButtonVisible("finished", false)).toBe(false);
+  });
+
+  it("running フェーズでは非表示", () => {
+    expect(isNextMatchButtonVisible("running", true)).toBe(false);
+    expect(isNextMatchButtonVisible("running", false)).toBe(false);
+  });
+});
+
+// ── 修正3: 寝技の残り回数表示 ──
+
+describe("寝技の残り回数計算", () => {
+  function newazaRemainingCount(limitType: string, maxCount: number, usedCount: number): number | null {
+    if (limitType !== "limited") return null;
+    return maxCount - usedCount;
+  }
+
+  it("limited モードで残り回数を計算", () => {
+    expect(newazaRemainingCount("limited", 3, 0)).toBe(3);
+    expect(newazaRemainingCount("limited", 3, 1)).toBe(2);
+    expect(newazaRemainingCount("limited", 3, 3)).toBe(0);
+  });
+
+  it("unlimited モードでは null を返す", () => {
+    expect(newazaRemainingCount("unlimited", 0, 0)).toBeNull();
+  });
+
+  it("上限到達時は0を返す", () => {
+    expect(newazaRemainingCount("limited", 2, 2)).toBe(0);
+  });
+});

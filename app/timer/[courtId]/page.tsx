@@ -277,45 +277,65 @@ export default function TimerDisplayPage() {
         const foulCellH = `${row.fontSize * 0.22}vh`;
         const foulCellW = `${row.fontSize * 0.35}vh`;
         const foulFs = `${row.fontSize * 0.13}vh`;
+        const showPoints = p?.show_points ?? true;
+        const showWazaari = p?.show_wazaari ?? false;
+        const bothVisible = showPoints && showWazaari;
+        // ポイントのフォントサイズ: 両方表示時は2/3、単独時はそのまま
+        const mainFs = bothVisible ? row.fontSize * 0.67 : row.fontSize;
+        // 技ありのフォントサイズ: 両方表示時は1/3、単独時はフルサイズ
+        const wazaariFsVh = bothVisible ? row.fontSize * 0.35 : row.fontSize;
+        const renderFoulIndicator = (side: "left" | "right", score: typeof leftScore, color: string) => (
+          <div className="flex flex-col items-center justify-center" style={{ padding: `0 ${row.fontSize * 0.1}vh` }} data-testid={`foul-indicator-${side}`}>
+            <span className="text-gray-500 font-bold" style={{ fontSize: `${row.fontSize * 0.1}vh` }}>反則</span>
+            {[4, 3, 2, 1].map((n) => (
+              <div
+                key={n}
+                data-testid={`foul-cell-${side}-${n}`}
+                style={{
+                  width: foulCellW,
+                  height: foulCellH,
+                  backgroundColor: score.fouls >= n ? color : "#1a1a2e",
+                  border: "1px solid #333",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: foulFs,
+                  color: score.fouls >= n ? "#000" : "#555",
+                }}
+              >
+                {n === 1 ? "\u2460" : n === 2 ? "\u2461" : n === 3 ? "\u2462" : "\u2463"}
+              </div>
+            ))}
+          </div>
+        );
+
+        const renderScoreContent = (score: typeof leftScore, color: string, wins: boolean) => (
+          <div className="flex-1 flex flex-col items-center justify-center">
+            {showPoints && (
+              <span className="font-bold leading-none tabular-nums" style={{ fontSize: `${mainFs}vh`, color }}>
+                {score.points}
+              </span>
+            )}
+            {showWazaari && (
+              <div className="flex items-baseline justify-center gap-1" style={{ marginTop: showPoints ? `${row.fontSize * 0.05}vh` : undefined }}>
+                <span className="text-gray-500 font-bold" style={{ fontSize: `${wazaariFsVh * 0.35}vh` }}>技</span>
+                <span className="font-bold leading-none tabular-nums" style={{ fontSize: `${wazaariFsVh}vh`, color }}>
+                  {score.wazaari}
+                </span>
+              </div>
+            )}
+            {wins && (
+              <p className="text-green-400 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.18, 1)}vh` }}>{resultDisplayText(state)}</p>
+            )}
+          </div>
+        );
+
         return (
           <div key={idx} style={{ ...baseStyle }} data-testid="scores-row">
-            {/* 左側: 反則インジケータ + ポイント */}
+            {/* 左側: 反則インジケータ + スコア */}
             <div className="flex-1 flex relative" style={{ backgroundColor: leftWins ? `${colorLeft}33` : "transparent" }}>
-              {/* 反則インジケータ（左端） */}
-              {p?.show_fouls && (
-                <div className="flex flex-col justify-center" style={{ padding: `0 ${row.fontSize * 0.1}vh` }} data-testid="foul-indicator-left">
-                  {[4, 3, 2, 1].map((n) => (
-                    <div
-                      key={n}
-                      data-testid={`foul-cell-left-${n}`}
-                      style={{
-                        width: foulCellW,
-                        height: foulCellH,
-                        backgroundColor: leftScore.fouls >= n ? colorLeft : "#1a1a2e",
-                        border: "1px solid #333",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: foulFs,
-                        color: leftScore.fouls >= n ? "#000" : "#555",
-                      }}
-                    >
-                      {n === 1 ? "\u2460" : n === 2 ? "\u2461" : n === 3 ? "\u2462" : "\u2463"}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {/* ポイント */}
-              <div className="flex-1 flex flex-col items-center justify-center">
-                {p?.show_points && (
-                  <span className="font-bold leading-none tabular-nums" style={{ fontSize: `${row.fontSize}vh`, color: colorLeft }}>
-                    {leftScore.points}
-                  </span>
-                )}
-                {leftWins && (
-                  <p className="text-green-400 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.18, 1)}vh` }}>{resultDisplayText(state)}</p>
-                )}
-              </div>
+              {p?.show_fouls && renderFoulIndicator("left", leftScore, colorLeft)}
+              {renderScoreContent(leftScore, colorLeft, leftWins)}
             </div>
             {/* 中央: 寝技 */}
             <div className="flex flex-col items-center justify-center" style={{ minWidth: `${row.fontSize * 1.2}vh`, borderLeft: `${layout.dividerThickness}px solid ${dividerColor}`, borderRight: `${layout.dividerThickness}px solid ${dividerColor}` }}>
@@ -333,43 +353,10 @@ export default function TimerDisplayPage() {
                 <p className="text-gray-400 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.2, 1.5)}vh` }}>引き分け</p>
               )}
             </div>
-            {/* 右側: ポイント + 反則インジケータ */}
+            {/* 右側: スコア + 反則インジケータ */}
             <div className="flex-1 flex relative" style={{ backgroundColor: rightWins ? `${colorRight}33` : "transparent" }}>
-              {/* ポイント */}
-              <div className="flex-1 flex flex-col items-center justify-center">
-                {p?.show_points && (
-                  <span className="font-bold leading-none tabular-nums" style={{ fontSize: `${row.fontSize}vh`, color: colorRight }}>
-                    {rightScore.points}
-                  </span>
-                )}
-                {rightWins && (
-                  <p className="text-green-400 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.18, 1)}vh` }}>{resultDisplayText(state)}</p>
-                )}
-              </div>
-              {/* 反則インジケータ（右端） */}
-              {p?.show_fouls && (
-                <div className="flex flex-col justify-center" style={{ padding: `0 ${row.fontSize * 0.1}vh` }} data-testid="foul-indicator-right">
-                  {[4, 3, 2, 1].map((n) => (
-                    <div
-                      key={n}
-                      data-testid={`foul-cell-right-${n}`}
-                      style={{
-                        width: foulCellW,
-                        height: foulCellH,
-                        backgroundColor: rightScore.fouls >= n ? colorRight : "#1a1a2e",
-                        border: "1px solid #333",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: foulFs,
-                        color: rightScore.fouls >= n ? "#000" : "#555",
-                      }}
-                    >
-                      {n === 1 ? "\u2460" : n === 2 ? "\u2461" : n === 3 ? "\u2462" : "\u2463"}
-                    </div>
-                  ))}
-                </div>
-              )}
+              {renderScoreContent(rightScore, colorRight, rightWins)}
+              {p?.show_fouls && renderFoulIndicator("right", rightScore, colorRight)}
             </div>
           </div>
         );
@@ -394,11 +381,39 @@ export default function TimerDisplayPage() {
       {isFinished && state.resultMethod === "ippon" && (
         <IpponOverlay winnerColor={leftWins ? colorLeft : colorRight} />
       )}
+      {isFinished && state.resultMethod === "combined_ippon" && (
+        <CombinedIpponOverlay winnerColor={leftWins ? colorLeft : colorRight} />
+      )}
     </div>
   );
 }
 
 // ── 一本オーバーレイ ──────────────────────────────────────────
+
+function CombinedIpponOverlay({ winnerColor }: { winnerColor: string }) {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(false), 2000);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      className="absolute inset-0 flex items-center justify-center z-50 animate-fade-out pointer-events-none overflow-hidden"
+      style={{ backgroundColor: `${winnerColor}88` }}
+    >
+      <span
+        className="text-[min(16vw,6rem)] font-black tracking-widest whitespace-nowrap"
+        style={{ color: winnerColor, textShadow: "0 0 40px rgba(255,255,255,0.8), 0 0 80px rgba(255,255,255,0.4)" }}
+      >
+        合わせ一本
+      </span>
+    </div>
+  );
+}
 
 function IpponOverlay({ winnerColor }: { winnerColor: string }) {
   const [visible, setVisible] = useState(true);

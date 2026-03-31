@@ -877,21 +877,28 @@ export default function TimerControlPage() {
                 )}
                 {/* 寝技 */}
                 {phase === "running" && p?.newaza_enabled && (
-                  <button
-                    onClick={() => update(toggleNewaza)}
-                    className={`px-6 py-4 rounded-lg font-bold text-lg transition ${
-                      state.newaza.active
-                        ? "bg-cyan-700 hover:bg-cyan-600 text-white"
-                        : "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                    }`}
-                    disabled={
-                      !state.newaza.active &&
-                      p.newaza_limit_type === "limited" &&
-                      state.newaza.usedCount >= p.newaza_max_count
-                    }
-                  >
-                    {state.newaza.active ? "寝技解除" : "寝技"} [G]
-                  </button>
+                  <div className="flex flex-col items-center gap-1">
+                    <button
+                      onClick={() => update(toggleNewaza)}
+                      className={`px-6 py-4 rounded-lg font-bold text-lg transition ${
+                        state.newaza.active
+                          ? "bg-cyan-700 hover:bg-cyan-600 text-white"
+                          : "bg-gray-700 hover:bg-gray-600 text-gray-300"
+                      }`}
+                      disabled={
+                        !state.newaza.active &&
+                        p.newaza_limit_type === "limited" &&
+                        state.newaza.usedCount >= p.newaza_max_count
+                      }
+                    >
+                      {state.newaza.active ? "寝技解除" : "寝技"} [G]
+                    </button>
+                    {p.newaza_limit_type === "limited" && (
+                      <span className="text-xs text-gray-500">
+                        残り{p.newaza_max_count - state.newaza.usedCount}回
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -1160,16 +1167,15 @@ export default function TimerControlPage() {
                   {state.resultWritten && (
                     <p className="text-center text-green-400 text-sm font-bold">結果を書き戻しました</p>
                   )}
-                  <button onClick={() => {
-                    if (!state.resultWritten) {
-                      if (!confirm("試合結果が未確定です。戻りますか？")) return;
-                    }
-                    update(resetToIdle);
-                    loadTournamentData();
-                  }}
-                    className="w-full py-5 rounded-lg bg-blue-700 hover:bg-blue-600 text-white font-bold text-sm transition">
-                    次の試合へ
-                  </button>
+                  {state.resultWritten && (
+                    <button onClick={() => {
+                      update(resetToIdle);
+                      loadTournamentData();
+                    }}
+                      className="w-full py-5 rounded-lg bg-blue-700 hover:bg-blue-600 text-white font-bold text-sm transition">
+                      次の試合へ
+                    </button>
+                  )}
                 </div>
               )}
             </section>
