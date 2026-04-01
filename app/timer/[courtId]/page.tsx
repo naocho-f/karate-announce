@@ -356,12 +356,12 @@ export default function TimerDisplayPage() {
             {isFinished && !isDraw && (leftWins || rightWins) && (
               <div
                 className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
-                style={{ backgroundColor: `${leftWins ? colorLeft : colorRight}B3` }}
+                style={{ backgroundColor: `${leftWins ? colorLeft : colorRight}E6` }}
                 data-testid="victory-overlay"
               >
                 <span
                   className="font-black tracking-widest whitespace-nowrap text-white"
-                  style={{ fontSize: "min(10vw,4rem)", textShadow: "0 0 40px rgba(0,0,0,0.6)" }}
+                  style={{ fontSize: `${row.fontSize}vh`, textShadow: "0 0 40px rgba(0,0,0,0.8)" }}
                 >
                   {resultDisplayText(state)}
                 </span>
