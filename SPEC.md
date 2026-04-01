@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-01（赤白入替時に操作パネルのスコア操作・試合結果も連動）
+> 最終更新: 2026-04-01（仕様書全体の最新化・精査）
 
 ---
 
@@ -174,7 +174,8 @@ timer_presets (
   match_duration INT DEFAULT 120,
   timer_direction TEXT DEFAULT 'countdown',
   newaza_direction TEXT DEFAULT 'countup',  -- 寝技カウント方向
-  swap_sides BOOLEAN DEFAULT false,  -- 赤白の左右入れ替え
+  swap_sides BOOLEAN DEFAULT false,  -- レガシー（操作画面の試合一覧上部ボタンに移動）
+  combined_ippon_wins BOOLEAN DEFAULT false,  -- 技あり2回で合わせ一本勝ち
   -- 延長・寝技・ポイント・反則・表示・テーマ・ブザー（全46+カラム）
   -- 詳細は docs/TIMER_SPEC.md §9.1 参照
   created_at TIMESTAMPTZ,
@@ -629,7 +630,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
   - タイマー1:ルールNの関係に修正: `rules.timer_preset_id` カラム追加。ルール側からタイマーを参照する形に変更し、1つのタイマーを複数ルールで共有可能に。操作画面の `getPresetForMatch` を `rulePresetMap` 方式に変更
   - システム全体のスピナー漏れ再チェック: `timer-presets-panel.tsx` の削除（`deletingId`）・複製（`duplicatingId`）にローディング状態を追加
   - タイマー複製が末尾に追加: 一覧のソート順を `created_at ASC` に変更し、複製・新規作成が末尾に表示されるよう修正
-  - 赤白の左右入れ替え機能: `timer_presets.swap_sides` カラム追加。設定UIにチェックボックス追加。タイマー表示画面で `swap_sides=true` の場合に赤白の色・選手名・スコアを左右反転して表示
+  - 赤白の左右入れ替え機能: 操作画面の試合一覧上部にボタンとして配置（プリセット設定から移動）。コート単位でセッション中保持。入替時はタイマー表示・ミニプレビュー・スコア操作・試合結果がすべて連動
 - `entries.is_seed` カラム削除済み（`supabase/migrations/0002_drop_is_seed.sql`）
 - `lib/entry-utils.ts` 削除済み（`ensureFighterFromEntry` は `lib/ensure-fighter.ts` に移動）
 - `/live` アクセス制御: アクティブな大会がない場合はゲート画面表示（認証不要）
