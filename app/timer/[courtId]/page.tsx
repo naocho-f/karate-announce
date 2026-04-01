@@ -184,9 +184,6 @@ export default function TimerDisplayPage() {
   const isDraw = state.resultMethod === "draw";
   const leftWins = isFinished && (swapSides ? state.winnerSide === "white" : state.winnerSide === "red");
   const rightWins = isFinished && (swapSides ? state.winnerSide === "red" : state.winnerSide === "white");
-  // Keep legacy aliases for non-swap-aware code
-  const redWins = isFinished && state.winnerSide === "red";
-  const whiteWins = isFinished && state.winnerSide === "white";
 
   const showNewaza = p?.newaza_enabled && (state.newaza.active || state.newaza.elapsedMs > 0);
   const newazaDuration = (p?.newaza_duration ?? 30) * 1000;
@@ -309,7 +306,7 @@ export default function TimerDisplayPage() {
           </div>
         );
 
-        const renderScoreContent = (score: typeof leftScore, color: string, wins: boolean) => (
+        const renderScoreContent = (score: typeof leftScore, color: string) => (
           <div className="flex-1 flex flex-col items-center justify-center">
             {showPoints && (
               <span className="font-bold leading-none tabular-nums" style={{ fontSize: `${mainFs}vh`, color }}>
@@ -324,9 +321,6 @@ export default function TimerDisplayPage() {
                 </span>
               </div>
             )}
-            {wins && (
-              <p className="text-green-400 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.18, 1)}vh` }}>{resultDisplayText(state)}</p>
-            )}
           </div>
         );
 
@@ -335,7 +329,7 @@ export default function TimerDisplayPage() {
             {/* 左側: 反則インジケータ + スコア */}
             <div className="flex-1 flex relative" style={{ backgroundColor: leftWins ? `${colorLeft}33` : "transparent" }}>
               {p?.show_fouls && renderFoulIndicator("left", leftScore, colorLeft)}
-              {renderScoreContent(leftScore, colorLeft, leftWins)}
+              {renderScoreContent(leftScore, colorLeft)}
             </div>
             {/* 中央: 寝技 */}
             <div className="flex flex-col items-center justify-center" style={{ minWidth: `${row.fontSize * 1.2}vh`, borderLeft: `${layout.dividerThickness}px solid ${dividerColor}`, borderRight: `${layout.dividerThickness}px solid ${dividerColor}` }}>
@@ -355,12 +349,23 @@ export default function TimerDisplayPage() {
             </div>
             {/* 右側: スコア + 反則インジケータ */}
             <div className="flex-1 flex relative" style={{ backgroundColor: rightWins ? `${colorRight}33` : "transparent" }}>
-              {renderScoreContent(rightScore, colorRight, rightWins)}
+              {renderScoreContent(rightScore, colorRight)}
               {p?.show_fouls && renderFoulIndicator("right", rightScore, colorRight)}
             </div>
-            {/* 合わせ一本オーバーレイ（スコア行全体に重ねる） */}
-            {isFinished && state.resultMethod === "combined_ippon" && (
-              <CombinedIpponOverlay winnerName={state.winnerSide === "red" ? state.red.name : state.white.name} />
+            {/* 勝利オーバーレイ（スコア行全体に重ねる） */}
+            {isFinished && !isDraw && (leftWins || rightWins) && (
+              <div
+                className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
+                style={{ backgroundColor: `${leftWins ? colorLeft : colorRight}B3` }}
+                data-testid="victory-overlay"
+              >
+                <span
+                  className="font-black tracking-widest whitespace-nowrap text-white"
+                  style={{ fontSize: "min(10vw,4rem)", textShadow: "0 0 40px rgba(0,0,0,0.6)" }}
+                >
+                  {resultDisplayText(state)}
+                </span>
+              </div>
             )}
           </div>
         );
@@ -382,60 +387,7 @@ export default function TimerDisplayPage() {
     >
       {layout.rows.map(renderRow)}
 
-      {isFinished && state.resultMethod === "ippon" && (
-        <IpponOverlay winnerColor={leftWins ? colorLeft : colorRight} />
-      )}
     </div>
   );
 }
 
-// ── 一本オーバーレイ ──────────────────────────────────────────
-
-function CombinedIpponOverlay({ winnerName }: { winnerName: string }) {
-  const [visible, setVisible] = useState(true);
-
-  useEffect(() => {
-    const t = setTimeout(() => setVisible(false), 2000);
-    return () => clearTimeout(t);
-  }, []);
-
-  if (!visible) return null;
-
-  return (
-    <div
-      className="absolute inset-0 flex items-center justify-center z-50 animate-fade-out pointer-events-none overflow-hidden bg-black/80"
-    >
-      <span
-        className="text-[min(10vw,4rem)] font-black tracking-widest whitespace-nowrap text-white"
-        style={{ textShadow: "0 0 40px rgba(255,255,255,0.8), 0 0 80px rgba(255,255,255,0.4)" }}
-      >
-        {winnerName ? `${winnerName}選手の合わせ一本勝ち` : "合わせ一本"}
-      </span>
-    </div>
-  );
-}
-
-function IpponOverlay({ winnerColor }: { winnerColor: string }) {
-  const [visible, setVisible] = useState(true);
-
-  useEffect(() => {
-    const t = setTimeout(() => setVisible(false), 2000);
-    return () => clearTimeout(t);
-  }, []);
-
-  if (!visible) return null;
-
-  return (
-    <div
-      className="absolute inset-0 flex items-center justify-center z-50 animate-fade-out pointer-events-none overflow-hidden"
-      style={{ backgroundColor: `${winnerColor}88` }}
-    >
-      <span
-        className="text-[min(20vw,8rem)] font-black tracking-widest whitespace-nowrap"
-        style={{ color: winnerColor, textShadow: "0 0 40px rgba(255,255,255,0.8), 0 0 80px rgba(255,255,255,0.4)" }}
-      >
-        一本
-      </span>
-    </div>
-  );
-}

@@ -433,19 +433,85 @@ describe("区切り線のデフォルト値", () => {
   });
 });
 
-// ── 修正202e264a: 合わせ一本オーバーレイのテキスト ──
+// ── 勝利オーバーレイ（統合版）──
 
-describe("合わせ一本オーバーレイの勝者名テキスト", () => {
-  function combinedIpponText(winnerName: string): string {
-    return winnerName ? `${winnerName}選手の合わせ一本勝ち` : "合わせ一本";
+// resultDisplayText を page.tsx から再実装（ユニットテスト用）
+function resultDisplayText(state: { resultMethod: string | null; resultDetail: Record<string, number> | null }): string {
+  const m = state.resultMethod;
+  const d = state.resultDetail;
+  if (!m) return "";
+  switch (m) {
+    case "point":
+      return `ポイント (${d?.red_points ?? 0}-${d?.white_points ?? 0} 技${d?.red_wazaari ?? 0}-${d?.white_wazaari ?? 0})`;
+    case "wazaari":
+      return `技あり優勢 (技${d?.red_wazaari ?? 0}-${d?.white_wazaari ?? 0})`;
+    case "combined_ippon": {
+      const n = Math.max(d?.red_wazaari ?? 0, d?.white_wazaari ?? 0);
+      return `合わせ一本 (技${n})`;
+    }
+    default:
+      return resultMethodLabel(m as ResultMethod);
+  }
+}
+
+describe("勝利オーバーレイの表示ロジック", () => {
+  // page.tsx のオーバーレイ表示条件: isFinished && !isDraw && (leftWins || rightWins)
+  function shouldShowVictoryOverlay(phase: string, resultMethod: string | null, winnerSide: string | null): boolean {
+    const isFinished = phase === "finished";
+    const isDraw = resultMethod === "draw";
+    const hasWinner = winnerSide === "red" || winnerSide === "white";
+    return isFinished && !isDraw && hasWinner;
   }
 
-  it("勝者名がある場合は「○○選手の合わせ一本勝ち」を表示", () => {
-    expect(combinedIpponText("田中太郎")).toBe("田中太郎選手の合わせ一本勝ち");
+  // オーバーレイの背景色を決定
+  function getOverlayColor(leftWins: boolean, colorLeft: string, colorRight: string): string {
+    return `${leftWins ? colorLeft : colorRight}B3`;
+  }
+
+  it("finished + 勝者あり: オーバーレイを表示", () => {
+    expect(shouldShowVictoryOverlay("finished", "ippon", "red")).toBe(true);
+    expect(shouldShowVictoryOverlay("finished", "combined_ippon", "white")).toBe(true);
+    expect(shouldShowVictoryOverlay("finished", "point", "red")).toBe(true);
   });
 
-  it("勝者名が空の場合は「合わせ一本」を表示", () => {
-    expect(combinedIpponText("")).toBe("合わせ一本");
+  it("引き分け: オーバーレイを非表示", () => {
+    expect(shouldShowVictoryOverlay("finished", "draw", null)).toBe(false);
+  });
+
+  it("running フェーズ: オーバーレイを非表示", () => {
+    expect(shouldShowVictoryOverlay("running", null, null)).toBe(false);
+  });
+
+  it("勝者なし: オーバーレイを非表示", () => {
+    expect(shouldShowVictoryOverlay("finished", "ippon", null)).toBe(false);
+  });
+
+  it("左側勝利時は左色を使用（B3 = 70%透過）", () => {
+    expect(getOverlayColor(true, "#DC2626", "#FFFFFF")).toBe("#DC2626B3");
+  });
+
+  it("右側勝利時は右色を使用（B3 = 70%透過）", () => {
+    expect(getOverlayColor(false, "#DC2626", "#FFFFFF")).toBe("#FFFFFFB3");
+  });
+
+  it("一本の resultDisplayText", () => {
+    expect(resultDisplayText({ resultMethod: "ippon", resultDetail: null })).toBe("一本");
+  });
+
+  it("合わせ一本の resultDisplayText", () => {
+    expect(resultDisplayText({ resultMethod: "combined_ippon", resultDetail: { red_wazaari: 2, white_wazaari: 0 } })).toBe("合わせ一本 (技2)");
+  });
+
+  it("ポイントの resultDisplayText", () => {
+    expect(resultDisplayText({ resultMethod: "point", resultDetail: { red_points: 5, white_points: 3, red_wazaari: 1, white_wazaari: 0 } })).toBe("ポイント (5-3 技1-0)");
+  });
+
+  it("技あり優勢の resultDisplayText", () => {
+    expect(resultDisplayText({ resultMethod: "wazaari", resultDetail: { red_wazaari: 1, white_wazaari: 0 } })).toBe("技あり優勢 (技1-0)");
+  });
+
+  it("null の resultMethod は空文字", () => {
+    expect(resultDisplayText({ resultMethod: null, resultDetail: null })).toBe("");
   });
 });
 
