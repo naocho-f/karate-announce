@@ -1048,75 +1048,98 @@ export default function TimerControlPage() {
             <section>
               <h3 className="text-sm font-bold text-gray-400 mb-2">スコア操作</h3>
               <div className="grid grid-cols-2 gap-3">
-                {/* 赤 */}
-                <div className="space-y-2">
-                  <p className="text-red-400 font-bold text-center text-sm">赤 ({state.red.name || "赤"})</p>
-                  <div className={`grid gap-1`} style={{ gridTemplateColumns: `repeat(${[p?.show_points, p?.show_wazaari, p?.show_fouls].filter(Boolean).length || 1}, 1fr)` }}>
-                    {p?.show_points && (
-                      <button onClick={() => update((s) => addPoint(s, "red"))}
-                        className="py-4 rounded bg-red-900/50 hover:bg-red-800/60 text-red-300 text-sm font-bold transition">
-                        +1pt [Q]
-                      </button>
-                    )}
-                    {p?.show_wazaari && (
-                      <button onClick={() => update((s) => addWazaari(s, "red"))}
-                        className="py-4 rounded bg-red-900/50 hover:bg-red-800/60 text-red-300 text-sm font-bold transition">
-                        技あり [W]
-                      </button>
-                    )}
-                    {p?.show_fouls && (
-                      <button onClick={() => update((s) => addFoul(s, "red"))}
-                        className="py-4 rounded bg-red-900/50 hover:bg-red-800/60 text-red-300 text-sm font-bold transition">
-                        反則 [E]
-                      </button>
-                    )}
-                  </div>
-                  {p?.show_ippon && (
-                    <button onClick={() => update((s) => addIppon(s, "red"))}
-                      className="w-full py-4 rounded bg-red-900/50 hover:bg-red-800/60 text-red-300 text-sm font-bold transition">
-                      一本 [R]
-                    </button>
-                  )}
-                  <div className="text-center text-xs text-gray-500">
-                    {state.redScore.points}pt / 技{state.redScore.wazaari} / 反{state.redScore.fouls}
-                    {state.redScore.ippon > 0 && ` / 一本${state.redScore.ippon}`}
-                  </div>
-                </div>
+                {/* 左側（通常=赤、入替時=白） */}
+                {(() => {
+                  const side = swapSides ? "white" : "red";
+                  const otherSide = swapSides ? "red" : "white";
+                  const label = swapSides ? "白" : "赤";
+                  const name = swapSides ? state.white.name : state.red.name;
+                  const score = swapSides ? state.whiteScore : state.redScore;
+                  const bgClass = swapSides ? "bg-gray-700/50 hover:bg-gray-600/60 text-gray-200" : "bg-red-900/50 hover:bg-red-800/60 text-red-300";
+                  const labelColor = swapSides ? "text-gray-200" : "text-red-400";
+                  const keys = swapSides ? { pt: "I", wz: "O", fl: "P", ip: "L" } : { pt: "Q", wz: "W", fl: "E", ip: "R" };
+                  return (
+                    <div className="space-y-2">
+                      <p className={`${labelColor} font-bold text-center text-sm`}>{label} ({name || label})</p>
+                      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${[p?.show_points, p?.show_wazaari, p?.show_fouls].filter(Boolean).length || 1}, 1fr)` }}>
+                        {p?.show_points && (
+                          <button onClick={() => update((s) => addPoint(s, side))}
+                            className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
+                            +1pt [{keys.pt}]
+                          </button>
+                        )}
+                        {p?.show_wazaari && (
+                          <button onClick={() => update((s) => addWazaari(s, side))}
+                            className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
+                            技あり [{keys.wz}]
+                          </button>
+                        )}
+                        {p?.show_fouls && (
+                          <button onClick={() => update((s) => addFoul(s, side))}
+                            className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
+                            反則 [{keys.fl}]
+                          </button>
+                        )}
+                      </div>
+                      {p?.show_ippon && (
+                        <button onClick={() => update((s) => addIppon(s, side))}
+                          className={`w-full py-4 rounded ${bgClass} text-sm font-bold transition`}>
+                          一本 [{keys.ip}]
+                        </button>
+                      )}
+                      <div className="text-center text-xs text-gray-500">
+                        {score.points}pt / 技{score.wazaari} / 反{score.fouls}
+                        {score.ippon > 0 && ` / 一本${score.ippon}`}
+                      </div>
+                    </div>
+                  );
+                })()}
 
-                {/* 白 */}
-                <div className="space-y-2">
-                  <p className="text-gray-200 font-bold text-center text-sm">白 ({state.white.name || "白"})</p>
-                  <div className={`grid gap-1`} style={{ gridTemplateColumns: `repeat(${[p?.show_points, p?.show_wazaari, p?.show_fouls].filter(Boolean).length || 1}, 1fr)` }}>
-                    {p?.show_points && (
-                      <button onClick={() => update((s) => addPoint(s, "white"))}
-                        className="py-4 rounded bg-gray-700/50 hover:bg-gray-600/60 text-gray-200 text-sm font-bold transition">
-                        +1pt [I]
-                      </button>
-                    )}
-                    {p?.show_wazaari && (
-                      <button onClick={() => update((s) => addWazaari(s, "white"))}
-                        className="py-4 rounded bg-gray-700/50 hover:bg-gray-600/60 text-gray-200 text-sm font-bold transition">
-                        技あり [O]
-                      </button>
-                    )}
-                    {p?.show_fouls && (
-                      <button onClick={() => update((s) => addFoul(s, "white"))}
-                        className="py-4 rounded bg-gray-700/50 hover:bg-gray-600/60 text-gray-200 text-sm font-bold transition">
-                        反則 [P]
-                      </button>
-                    )}
-                  </div>
-                  {p?.show_ippon && (
-                    <button onClick={() => update((s) => addIppon(s, "white"))}
-                      className="w-full py-4 rounded bg-gray-700/50 hover:bg-gray-600/60 text-gray-200 text-sm font-bold transition">
-                      一本 [L]
-                    </button>
-                  )}
-                  <div className="text-center text-xs text-gray-500">
-                    {state.whiteScore.points}pt / 技{state.whiteScore.wazaari} / 反{state.whiteScore.fouls}
-                    {state.whiteScore.ippon > 0 && ` / 一本${state.whiteScore.ippon}`}
-                  </div>
-                </div>
+                {/* 右側（通常=白、入替時=赤） */}
+                {(() => {
+                  const side = swapSides ? "red" : "white";
+                  const label = swapSides ? "赤" : "白";
+                  const name = swapSides ? state.red.name : state.white.name;
+                  const score = swapSides ? state.redScore : state.whiteScore;
+                  const bgClass = swapSides ? "bg-red-900/50 hover:bg-red-800/60 text-red-300" : "bg-gray-700/50 hover:bg-gray-600/60 text-gray-200";
+                  const labelColor = swapSides ? "text-red-400" : "text-gray-200";
+                  const keys = swapSides ? { pt: "Q", wz: "W", fl: "E", ip: "R" } : { pt: "I", wz: "O", fl: "P", ip: "L" };
+                  return (
+                    <div className="space-y-2">
+                      <p className={`${labelColor} font-bold text-center text-sm`}>{label} ({name || label})</p>
+                      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${[p?.show_points, p?.show_wazaari, p?.show_fouls].filter(Boolean).length || 1}, 1fr)` }}>
+                        {p?.show_points && (
+                          <button onClick={() => update((s) => addPoint(s, side))}
+                            className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
+                            +1pt [{keys.pt}]
+                          </button>
+                        )}
+                        {p?.show_wazaari && (
+                          <button onClick={() => update((s) => addWazaari(s, side))}
+                            className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
+                            技あり [{keys.wz}]
+                          </button>
+                        )}
+                        {p?.show_fouls && (
+                          <button onClick={() => update((s) => addFoul(s, side))}
+                            className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
+                            反則 [{keys.fl}]
+                          </button>
+                        )}
+                      </div>
+                      {p?.show_ippon && (
+                        <button onClick={() => update((s) => addIppon(s, side))}
+                          className={`w-full py-4 rounded ${bgClass} text-sm font-bold transition`}>
+                          一本 [{keys.ip}]
+                        </button>
+                      )}
+                      <div className="text-center text-xs text-gray-500">
+                        {score.points}pt / 技{score.wazaari} / 反{score.fouls}
+                        {score.ippon > 0 && ` / 一本${score.ippon}`}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </section>
           )}
@@ -1198,16 +1221,16 @@ export default function TimerControlPage() {
                 <div className="space-y-2">
                   <div className={`grid gap-2 ${p?.allow_draw ? "grid-cols-3" : "grid-cols-2"}`}>
                     <button
-                      onClick={() => setSelectingResultFor("red")}
-                      className="py-5 rounded-lg bg-red-800 hover:bg-red-700 text-white font-bold text-sm transition"
+                      onClick={() => setSelectingResultFor(swapSides ? "white" : "red")}
+                      className={`py-5 rounded-lg font-bold text-sm transition ${swapSides ? "bg-gray-700 hover:bg-gray-600" : "bg-red-800 hover:bg-red-700"} text-white`}
                     >
-                      赤 勝利 ({state.red.name || "赤"})
+                      {swapSides ? "白" : "赤"} 勝利 ({swapSides ? (state.white.name || "白") : (state.red.name || "赤")})
                     </button>
                     <button
-                      onClick={() => setSelectingResultFor("white")}
-                      className="py-5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold text-sm transition"
+                      onClick={() => setSelectingResultFor(swapSides ? "red" : "white")}
+                      className={`py-5 rounded-lg font-bold text-sm transition ${swapSides ? "bg-red-800 hover:bg-red-700" : "bg-gray-700 hover:bg-gray-600"} text-white`}
                     >
-                      白 勝利 ({state.white.name || "白"})
+                      {swapSides ? "赤" : "白"} 勝利 ({swapSides ? (state.red.name || "赤") : (state.white.name || "白")})
                     </button>
                     {p?.allow_draw && (
                       <button
