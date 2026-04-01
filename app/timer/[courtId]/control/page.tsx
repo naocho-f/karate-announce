@@ -143,6 +143,7 @@ export default function TimerControlPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentRoundLabel, setCurrentRoundLabel] = useState("");
+  const [showAnnounceSelection, setShowAnnounceSelection] = useState(false);
 
   // localStorage キー用の eventId（未ロード時は courtId をフォールバック）
   const storageEventId = eventId ?? "default";
@@ -530,6 +531,9 @@ export default function TimerControlPage() {
       body: JSON.stringify({ action: "start", tournamentId: candidate.tournament.id }),
     });
 
+    // アナウンス選択画面を表示
+    setShowAnnounceSelection(true);
+
     // TTS プリフェッチ（試合選択時にアナウンスを事前生成）
     const rLabel = roundName(candidate.match.round, candidate.totalRounds);
     const rulesText = candidate.match.rules ?? candidate.tournament.default_rules ?? null;
@@ -861,9 +865,10 @@ export default function TimerControlPage() {
           )}
 
           {/* 試合一覧に戻るボタン */}
-          {(phase === "ready" || phase === "running" || phase === "paused") && (
+          {(showAnnounceSelection || phase === "ready" || phase === "running" || phase === "paused") && (
             <button
               onClick={() => {
+                setShowAnnounceSelection(false);
                 update(resetToIdle);
                 loadTournamentData();
               }}
@@ -873,8 +878,33 @@ export default function TimerControlPage() {
             </button>
           )}
 
+          {/* アナウンス選択画面（試合選択直後） */}
+          {phase === "ready" && showAnnounceSelection && (
+            <section className="space-y-3">
+              <button
+                onClick={async () => {
+                  setShowAnnounceSelection(false);
+                  await handleAnnounceStart();
+                }}
+                disabled={isMuted || isPlaying}
+                className="w-full py-4 rounded-lg bg-blue-700 hover:bg-blue-600 text-white font-bold text-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isPlaying ? "再生中..." : "🔊 開始アナウンスを再生"}
+              </button>
+              <button
+                onClick={() => setShowAnnounceSelection(false)}
+                className="w-full py-4 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 font-bold text-lg transition"
+              >
+                アナウンスなしで試合準備画面へ
+              </button>
+              {isMuted && (
+                <p className="text-xs text-red-400">ミュート中のため再生されません</p>
+              )}
+            </section>
+          )}
+
           {/* メイン操作ボタン */}
-          {phase !== "idle" && (
+          {phase !== "idle" && !showAnnounceSelection && (
             <section>
               <h3 className="text-sm font-bold text-gray-400 mb-2">メイン操作</h3>
               <div className="flex gap-2">
@@ -902,32 +932,32 @@ export default function TimerControlPage() {
                     ▶ 再開 [Space]
                   </button>
                 )}
-                {/* 寝技（常時表示） */}
-                {p?.newaza_enabled && (
-                  <div className="flex flex-col items-center gap-1">
-                    <button
-                      onClick={() => update(toggleNewaza)}
-                      className={`px-6 py-4 rounded-lg font-bold text-lg transition ${
-                        state.newaza.active
-                          ? "bg-cyan-700 hover:bg-cyan-600 text-white"
-                          : "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                      }`}
-                      disabled={
-                        !state.newaza.active &&
-                        p.newaza_limit_type === "limited" &&
-                        state.newaza.usedCount >= p.newaza_max_count
-                      }
-                    >
-                      {state.newaza.active ? "寝技解除" : "寝技"} [G]
-                    </button>
-                    {p.newaza_limit_type === "limited" && (
-                      <span className="text-xs text-gray-500">
-                        残り{p.newaza_max_count - state.newaza.usedCount}回
-                      </span>
-                    )}
-                  </div>
-                )}
               </div>
+              {/* 寝技（常時表示・中央寄せ） */}
+              {p?.newaza_enabled && (
+                <div className="flex flex-col items-center gap-1 mt-2">
+                  <button
+                    onClick={() => update(toggleNewaza)}
+                    className={`w-1/2 py-3 rounded-lg font-bold text-lg transition ${
+                      state.newaza.active
+                        ? "bg-cyan-700 hover:bg-cyan-600 text-white"
+                        : "bg-gray-700 hover:bg-gray-600 text-gray-300"
+                    }`}
+                    disabled={
+                      !state.newaza.active &&
+                      p.newaza_limit_type === "limited" &&
+                      state.newaza.usedCount >= p.newaza_max_count
+                    }
+                  >
+                    {state.newaza.active ? "寝技解除" : "寝技"} [G]
+                  </button>
+                  {p.newaza_limit_type === "limited" && (
+                    <span className="text-xs text-gray-500">
+                      残り{p.newaza_max_count - state.newaza.usedCount}回
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* 寝技情報 */}
               {state.newaza.active && (
@@ -939,21 +969,17 @@ export default function TimerControlPage() {
             </section>
           )}
 
-          {/* アナウンス */}
-          {phase !== "idle" && (
+          {/* アナウンス（勝者決定時のみ） */}
+          {phase === "finished" && state.winnerId && (
             <section>
               <h3 className="text-sm font-bold text-gray-400 mb-2">アナウンス</h3>
-              <div className="flex gap-2">
-                {phase === "finished" && state.winnerId && (
-                  <button
-                    onClick={handleAnnounceWinner}
-                    disabled={isMuted || isPlaying}
-                    className="flex-1 py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-white font-bold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {isPlaying ? "再生中..." : "勝利アナウンス"}
-                  </button>
-                )}
-              </div>
+              <button
+                onClick={handleAnnounceWinner}
+                disabled={isMuted || isPlaying}
+                className="w-full py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-white font-bold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isPlaying ? "再生中..." : "勝利アナウンス"}
+              </button>
               {isMuted && (
                 <p className="text-xs text-red-400 mt-1">ミュート中のため再生されません</p>
               )}
