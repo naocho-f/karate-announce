@@ -902,8 +902,8 @@ export default function TimerControlPage() {
                     ▶ 再開 [Space]
                   </button>
                 )}
-                {/* 寝技 */}
-                {phase === "running" && p?.newaza_enabled && (
+                {/* 寝技（常時表示） */}
+                {p?.newaza_enabled && (
                   <div className="flex flex-col items-center gap-1">
                     <button
                       onClick={() => update(toggleNewaza)}
@@ -944,15 +944,6 @@ export default function TimerControlPage() {
             <section>
               <h3 className="text-sm font-bold text-gray-400 mb-2">アナウンス</h3>
               <div className="flex gap-2">
-                {(phase === "ready" || phase === "running" || phase === "paused") && (
-                  <button
-                    onClick={handleAnnounceStart}
-                    disabled={isMuted || isPlaying}
-                    className="flex-1 py-2 rounded-lg bg-blue-700 hover:bg-blue-600 text-white font-bold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {isPlaying ? "再生中..." : "試合開始アナウンス"}
-                  </button>
-                )}
                 {phase === "finished" && state.winnerId && (
                   <button
                     onClick={handleAnnounceWinner}
@@ -980,7 +971,7 @@ export default function TimerControlPage() {
                 {/* 赤 */}
                 <div className="space-y-2">
                   <p className="text-red-400 font-bold text-center text-sm">赤 ({state.red.name || "赤"})</p>
-                  <div className="grid grid-cols-3 gap-1">
+                  <div className={`grid gap-1`} style={{ gridTemplateColumns: `repeat(${[p?.show_points, p?.show_wazaari, p?.show_fouls].filter(Boolean).length || 1}, 1fr)` }}>
                     {p?.show_points && (
                       <button onClick={() => update((s) => addPoint(s, "red"))}
                         className="py-4 rounded bg-red-900/50 hover:bg-red-800/60 text-red-300 text-sm font-bold transition">
@@ -1015,7 +1006,7 @@ export default function TimerControlPage() {
                 {/* 白 */}
                 <div className="space-y-2">
                   <p className="text-gray-200 font-bold text-center text-sm">白 ({state.white.name || "白"})</p>
-                  <div className="grid grid-cols-3 gap-1">
+                  <div className={`grid gap-1`} style={{ gridTemplateColumns: `repeat(${[p?.show_points, p?.show_wazaari, p?.show_fouls].filter(Boolean).length || 1}, 1fr)` }}>
                     {p?.show_points && (
                       <button onClick={() => update((s) => addPoint(s, "white"))}
                         className="py-4 rounded bg-gray-700/50 hover:bg-gray-600/60 text-gray-200 text-sm font-bold transition">
@@ -1063,49 +1054,49 @@ export default function TimerControlPage() {
           {phase !== "idle" && (
             <section>
               <h3 className="text-sm font-bold text-gray-400 mb-2">サブ操作</h3>
-              <div className="flex gap-2 flex-wrap">
+              <div className="grid grid-cols-5 gap-2">
                 <button
                   onClick={() => playBuzzer(p?.buzzer_sound === "custom" ? "custom" : "default")}
-                  className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition"
+                  className={`py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition ${(phase === "paused" || phase === "time_up") ? "" : "col-span-5"}`}
                 >
                   ブザー [B]
                 </button>
                 {(phase === "paused" || phase === "time_up") && (
                   <>
                     <button onClick={() => update((s) => adjustTime(s, -10000))}
-                      className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
+                      className="py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
                       -10秒 [←]
                     </button>
                     <button onClick={() => update((s) => adjustTime(s, -1000))}
-                      className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
+                      className="py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
                       -1秒
                     </button>
                     <button onClick={() => update((s) => adjustTime(s, 1000))}
-                      className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
+                      className="py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
                       +1秒
                     </button>
                     <button onClick={() => update((s) => adjustTime(s, 10000))}
-                      className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
+                      className="py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
                       +10秒 [→]
                     </button>
                   </>
                 )}
+              </div>
                 {/* 寝技回数調整 */}
                 {p?.newaza_enabled && p.newaza_limit_type === "limited" && (phase === "paused" || phase === "time_up") && (
-                  <>
-                    <span className="text-gray-500 text-sm self-center">寝技回数:</span>
+                  <div className="flex gap-2 items-center justify-center mt-2">
+                    <span className="text-gray-500 text-sm">寝技回数:</span>
                     <button onClick={() => update((s) => adjustNewazaCount(s, -1))}
                       className="px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
                       -1
                     </button>
-                    <span className="text-gray-300 text-sm self-center">{state.newaza.usedCount}/{p.newaza_max_count}</span>
+                    <span className="text-gray-300 text-sm">{state.newaza.usedCount}/{p.newaza_max_count}</span>
                     <button onClick={() => update((s) => adjustNewazaCount(s, 1))}
                       className="px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
                       +1
                     </button>
-                  </>
+                  </div>
                 )}
-              </div>
             </section>
           )}
 
