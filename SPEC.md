@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-03-28（タイマー表示・操作パネル改善: スコア表示ロジック、次の試合へボタン制御、寝技残回数表示）
+> 最終更新: 2026-03-28（巨大ファイル分割リファクタリング: events/[id]/page.tsx と admin/page.tsx をコンポーネント単位で分割）
 
 ---
 
@@ -1065,6 +1065,23 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **年代フィルタ**: 下限・上限レンジ（`minGrade`/`maxGrade`）で範囲指定。学年ベース区分（年少〜高3）は `gradeToNumber()` で数値変換してフィルタ、年齢ベース区分は `findAgeCategory()` で取得した `minAge`/`maxAge` で entry の `age` をフィルタ。年齢ベース区分選択時は単一セレクト化（年齢自動入力は廃止）
 - **フィルタ並び順**: 年代 → 年齢 → 体重 → 身長 → 性別 → 経験 → 名前 → 試合数。トーナメント名への反映は年代・年齢・体重・身長・性別のみ（経験・名前・試合数は除外）
 - **トーナメント名自動生成**: フィルター条件からトーナメント名を自動生成（例: 「小1〜小4 男子 18歳以上 75kg以上」）。手動で名前を編集すると自動生成を停止
+
+### 2026-03-28 巨大ファイル分割リファクタリング
+
+機能変更なし。implementer の実行速度向上を目的に、巨大な2ファイルをコンポーネント単位で分割。
+
+**`app/admin/events/[id]/page.tsx`（3,594行 → 約350行）**
+- `components/participant-section.tsx` — Step1 参加者管理（フォーム設定、メール設定、参加受付、参加者一覧、CSV出力、テスト参加者生成）
+- `components/bracket-section.tsx` — Step2 対戦表作成（ダッシュボード、参加者分布、コート別対戦表、グループ編集、確定済み対戦表）
+- `components/match-label-section.tsx` — Step3 試合番号設定（コートタブ + MatchLabelEditor）
+- page.tsx には共通 state、load()、StepNav、レイアウト、メタ情報編集のみ残留
+
+**`app/admin/page.tsx`（2,278行 → 約120行）**
+- `components/home-dashboard-panel.tsx` — ホームタブ（進行中試合パネル、次の試合、要対応）
+- `components/events-panel.tsx` — 試合タブ（CRUD、複製、アクティブ切替）
+- `components/settings-panel.tsx` — 設定タブ（アナウンス、ルール、流派、タイマー、年代区分、不具合報告）
+- `components/guide-panel.tsx` — 操作説明タブ（6ステップガイド、相性マーク凡例）
+- page.tsx にはタブ切替、ログアウト、バージョン表示のみ残留
 
 ---
 
