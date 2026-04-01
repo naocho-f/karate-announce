@@ -132,6 +132,9 @@ export default function TimerControlPage() {
   const [loadingTournament, setLoadingTournament] = useState(true);
   const [writingBack, setWritingBack] = useState(false);
   const [selectingResultFor, setSelectingResultFor] = useState<FighterSide | null>(null);
+  const [shouldScrollToNext, setShouldScrollToNext] = useState(false);
+  const matchItemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const matchListTopRef = useRef<HTMLDivElement | null>(null);
 
   // ── アナウンス関連 ──
   const [announceTemplates, setAnnounceTemplates] = useState<AnnounceTemplates>(DEFAULT_TEMPLATES);
@@ -249,6 +252,24 @@ export default function TimerControlPage() {
     const interval = setInterval(loadTournamentData, 10_000);
     return () => clearInterval(interval);
   }, [loadTournamentData]);
+
+  // ── idle 復帰時に次の試合位置へスクロール ──
+  useEffect(() => {
+    if (!shouldScrollToNext || state.phase !== "idle" || matchCandidates.length === 0) return;
+    setShouldScrollToNext(false);
+    const firstReadyIdx = matchCandidates.findIndex((c) => c.match.status === "ready");
+    if (firstReadyIdx > 0) {
+      // ready の1つ前の試合にスクロール
+      const prevMatch = matchCandidates[firstReadyIdx - 1];
+      const el = matchItemRefs.current[prevMatch.match.id];
+      if (el) {
+        el.scrollIntoView({ block: "start", behavior: "smooth" });
+      }
+    } else {
+      // 前の試合がない場合はリスト先頭にスクロール
+      matchListTopRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+  }, [shouldScrollToNext, state.phase, matchCandidates]);
 
   // ── アナウンステンプレート・ルール読み仮名の取得 ──
   useEffect(() => {
@@ -735,7 +756,7 @@ export default function TimerControlPage() {
               {loadingTournament ? (
                 <p className="text-gray-600 text-sm">読み込み中...</p>
               ) : matchCandidates.length > 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-2" ref={matchListTopRef}>
                   <p className="text-xs text-gray-500">試合を選択して開始</p>
                   {(() => {
                     const firstReadyId = matchCandidates.find((c) => c.match.status === "ready")?.match.id ?? null;
@@ -750,6 +771,7 @@ export default function TimerControlPage() {
                     return (
                       <button
                         key={c.match.id}
+                        ref={(el) => { matchItemRefs.current[c.match.id] = el; }}
                         onClick={() => !isDisabled && handleSelectMatch(c)}
                         disabled={isDisabled}
                         className={`w-full text-left rounded-xl border-2 transition overflow-hidden ${
@@ -1171,6 +1193,7 @@ export default function TimerControlPage() {
                     <button onClick={() => {
                       update(resetToIdle);
                       loadTournamentData();
+                      setShouldScrollToNext(true);
                     }}
                       className="w-full py-5 rounded-lg bg-blue-700 hover:bg-blue-600 text-white font-bold text-sm transition">
                       次の試合へ

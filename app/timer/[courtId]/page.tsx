@@ -331,7 +331,7 @@ export default function TimerDisplayPage() {
         );
 
         return (
-          <div key={idx} style={{ ...baseStyle }} data-testid="scores-row">
+          <div key={idx} style={{ ...baseStyle, position: "relative" }} data-testid="scores-row">
             {/* 左側: 反則インジケータ + スコア */}
             <div className="flex-1 flex relative" style={{ backgroundColor: leftWins ? `${colorLeft}33` : "transparent" }}>
               {p?.show_fouls && renderFoulIndicator("left", leftScore, colorLeft)}
@@ -358,6 +358,10 @@ export default function TimerDisplayPage() {
               {renderScoreContent(rightScore, colorRight, rightWins)}
               {p?.show_fouls && renderFoulIndicator("right", rightScore, colorRight)}
             </div>
+            {/* 合わせ一本オーバーレイ（スコア行全体に重ねる） */}
+            {isFinished && state.resultMethod === "combined_ippon" && (
+              <CombinedIpponOverlay winnerName={state.winnerSide === "red" ? state.red.name : state.white.name} />
+            )}
           </div>
         );
       }
@@ -381,16 +385,13 @@ export default function TimerDisplayPage() {
       {isFinished && state.resultMethod === "ippon" && (
         <IpponOverlay winnerColor={leftWins ? colorLeft : colorRight} />
       )}
-      {isFinished && state.resultMethod === "combined_ippon" && (
-        <CombinedIpponOverlay winnerColor={leftWins ? colorLeft : colorRight} />
-      )}
     </div>
   );
 }
 
 // ── 一本オーバーレイ ──────────────────────────────────────────
 
-function CombinedIpponOverlay({ winnerColor }: { winnerColor: string }) {
+function CombinedIpponOverlay({ winnerName }: { winnerName: string }) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -402,14 +403,13 @@ function CombinedIpponOverlay({ winnerColor }: { winnerColor: string }) {
 
   return (
     <div
-      className="absolute inset-0 flex items-center justify-center z-50 animate-fade-out pointer-events-none overflow-hidden"
-      style={{ backgroundColor: `${winnerColor}88` }}
+      className="absolute inset-0 flex items-center justify-center z-50 animate-fade-out pointer-events-none overflow-hidden bg-black/80"
     >
       <span
-        className="text-[min(16vw,6rem)] font-black tracking-widest whitespace-nowrap"
-        style={{ color: winnerColor, textShadow: "0 0 40px rgba(255,255,255,0.8), 0 0 80px rgba(255,255,255,0.4)" }}
+        className="text-[min(10vw,4rem)] font-black tracking-widest whitespace-nowrap text-white"
+        style={{ textShadow: "0 0 40px rgba(255,255,255,0.8), 0 0 80px rgba(255,255,255,0.4)" }}
       >
-        合わせ一本
+        {winnerName ? `${winnerName}選手の合わせ一本勝ち` : "合わせ一本"}
       </span>
     </div>
   );

@@ -797,54 +797,10 @@ export function TimerPresetsPanel() {
                 ))}
               </div>
 
-              {/* Global layout settings */}
-              <div className="flex items-center gap-4 mt-2">
-                <label className="text-xs text-gray-400 flex items-center gap-2">
-                  区切り線の太さ
-                  <input
-                    type="number"
-                    min={0} step={1}
-                    value={layout.dividerThickness}
-                    onChange={(e) => setLayout({ ...layout, dividerThickness: Number(e.target.value) })}
-                    className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right"
-                  />
-                  <span className="text-gray-500">px</span>
-                </label>
-                <label className="text-xs text-gray-400 flex items-center gap-2">
-                  スコア間隔
-                  <input
-                    type="number"
-                    min={0} step={1}
-                    value={layout.scoreGap}
-                    onChange={(e) => setLayout({ ...layout, scoreGap: Number(e.target.value) })}
-                    className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right"
-                  />
-                  <span className="text-gray-500">px</span>
-                </label>
-                <label className="text-xs text-gray-400 flex items-center gap-2">
-                  項目間隔
-                  <input
-                    type="range"
-                    min={0} max={40} step={1}
-                    value={layout.scoreItemGap ?? 8}
-                    onChange={(e) => setLayout({ ...layout, scoreItemGap: Number(e.target.value) })}
-                    className="w-20 accent-blue-500"
-                  />
-                  <input
-                    type="number"
-                    min={0} step={1}
-                    value={layout.scoreItemGap ?? 8}
-                    onChange={(e) => setLayout({ ...layout, scoreItemGap: Number(e.target.value) })}
-                    className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right"
-                  />
-                  <span className="text-gray-500">px</span>
-                </label>
-              </div>
-
-              {/* 表示ラベル設定（アコーディオン） */}
-              <details className="mt-3 pt-3 border-t border-gray-700">
-                <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300 font-medium">表示ラベル設定</summary>
-              <div className="grid grid-cols-2 gap-3 mt-2">
+              {/* 表示ラベル設定 */}
+              <div className="mt-3 pt-3 border-t border-gray-700">
+                <p className="text-xs text-gray-400 font-medium mb-2">表示ラベル設定</p>
+              <div className="grid grid-cols-2 gap-3">
                 <label className="text-xs">
                   <span className="text-gray-400">技ありラベル</span>
                   <input type="text" value={layout.labelWazaari ?? "W"}
@@ -878,7 +834,7 @@ export function TimerPresetsPanel() {
                   <span className="text-gray-600 text-[10px]">例: 寝技, NEWAZA</span>
                 </label>
               </div>
-              </details>
+              </div>
 
               {/* Add row button */}
               <div className="relative mt-2">

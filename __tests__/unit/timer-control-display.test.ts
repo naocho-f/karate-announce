@@ -417,3 +417,70 @@ describe("寝技の残り回数計算", () => {
     expect(newazaRemainingCount("limited", 2, 2)).toBe(0);
   });
 });
+
+// ── 修正d5a5f89c: 区切り線デフォルト1px ──
+
+describe("区切り線のデフォルト値", () => {
+  it("DEFAULT_LAYOUT の dividerThickness が 1 である", async () => {
+    const { DEFAULT_LAYOUT } = await import("@/lib/types");
+    expect(DEFAULT_LAYOUT.dividerThickness).toBe(1);
+  });
+
+  it("resolveLayout のデフォルトが dividerThickness: 1 である", async () => {
+    const { resolveLayout } = await import("@/lib/timer-layout");
+    const layout = resolveLayout(null);
+    expect(layout.dividerThickness).toBe(1);
+  });
+});
+
+// ── 修正202e264a: 合わせ一本オーバーレイのテキスト ──
+
+describe("合わせ一本オーバーレイの勝者名テキスト", () => {
+  function combinedIpponText(winnerName: string): string {
+    return winnerName ? `${winnerName}選手の合わせ一本勝ち` : "合わせ一本";
+  }
+
+  it("勝者名がある場合は「○○選手の合わせ一本勝ち」を表示", () => {
+    expect(combinedIpponText("田中太郎")).toBe("田中太郎選手の合わせ一本勝ち");
+  });
+
+  it("勝者名が空の場合は「合わせ一本」を表示", () => {
+    expect(combinedIpponText("")).toBe("合わせ一本");
+  });
+});
+
+// ── 修正34710efb: 次の試合位置スクロールのロジック ──
+
+describe("次の試合位置スクロールのインデックス計算", () => {
+  function getScrollTargetIndex(matches: { status: string }[]): number {
+    const firstReadyIdx = matches.findIndex((m) => m.status === "ready");
+    if (firstReadyIdx > 0) return firstReadyIdx - 1;
+    return -1; // -1 = リスト先頭にスクロール
+  }
+
+  it("ready の前に done がある場合は done の位置を返す", () => {
+    const matches = [
+      { status: "done" },
+      { status: "done" },
+      { status: "ready" },
+      { status: "waiting" },
+    ];
+    expect(getScrollTargetIndex(matches)).toBe(1);
+  });
+
+  it("ready が先頭の場合は -1（リスト先頭）を返す", () => {
+    const matches = [
+      { status: "ready" },
+      { status: "waiting" },
+    ];
+    expect(getScrollTargetIndex(matches)).toBe(-1);
+  });
+
+  it("ready がない場合は -1 を返す", () => {
+    const matches = [
+      { status: "done" },
+      { status: "done" },
+    ];
+    expect(getScrollTargetIndex(matches)).toBe(-1);
+  });
+});

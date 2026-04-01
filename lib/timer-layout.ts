@@ -41,7 +41,7 @@ export function resolveLayout(preset: TimerPreset | null): LayoutConfig {
       { type: "player_names", height: 0,  fontSize: 2.5, align: "left",   verticalAlign: "middle" },
       { type: "scores",       height: 0,  fontSize: scoreFs, align: "center", verticalAlign: "middle", subFontSize: 6, subAlign: "center" },
     ],
-    dividerThickness: 2,
+    dividerThickness: 1,
     scoreGap: 2,
     scoreItemGap: 8,
     labelWazaari: "W",
