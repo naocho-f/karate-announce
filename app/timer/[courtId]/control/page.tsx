@@ -714,7 +714,9 @@ export default function TimerControlPage() {
         <div className="flex items-center justify-center gap-8">
           <div className="text-center">
             <p className="text-red-400 text-sm font-bold">{state.red.name || "赤"}</p>
-            <p className="text-2xl font-bold text-red-400 tabular-nums">{state.redScore.points}</p>
+            <p className="text-2xl font-bold text-red-400 tabular-nums">
+              {p?.show_points === false && p?.show_wazaari ? `技${state.redScore.wazaari}` : state.redScore.points}
+            </p>
           </div>
           <div className="text-center">
             <span className="text-4xl font-bold tabular-nums" style={{ color: p?.theme_timer_color ?? "#00FF00" }}>
@@ -723,7 +725,9 @@ export default function TimerControlPage() {
           </div>
           <div className="text-center">
             <p className="text-gray-200 text-sm font-bold">{state.white.name || "白"}</p>
-            <p className="text-2xl font-bold text-gray-200 tabular-nums">{state.whiteScore.points}</p>
+            <p className="text-2xl font-bold text-gray-200 tabular-nums">
+              {p?.show_points === false && p?.show_wazaari ? `技${state.whiteScore.wazaari}` : state.whiteScore.points}
+            </p>
           </div>
         </div>
       </div>
