@@ -354,18 +354,11 @@ export default function TimerDisplayPage() {
             </div>
             {/* 勝利オーバーレイ（スコア行全体に重ねる） */}
             {isFinished && !isDraw && (leftWins || rightWins) && (
-              <div
-                className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
-                style={{ backgroundColor: `${leftWins ? colorLeft : colorRight}E6` }}
-                data-testid="victory-overlay"
-              >
-                <span
-                  className="font-black tracking-wide whitespace-nowrap text-white px-2"
-                  style={{ fontSize: `min(${row.fontSize * 0.45}vh, 18vw)`, textShadow: "0 0 40px rgba(0,0,0,0.8)" }}
-                >
-                  {resultDisplayText(state)}
-                </span>
-              </div>
+              <VictoryOverlay
+                color={leftWins ? colorLeft : colorRight}
+                text={resultDisplayText(state)}
+                maxFontSizeVh={row.fontSize * 0.45}
+              />
             )}
           </div>
         );
@@ -387,6 +380,48 @@ export default function TimerDisplayPage() {
     >
       {layout.rows.map(renderRow)}
 
+    </div>
+  );
+}
+
+// ── 勝利オーバーレイ（動的フォントサイズ調整） ──────────────────
+
+function VictoryOverlay({ color, text, maxFontSizeVh }: { color: string; text: string; maxFontSizeVh: number }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [fontSize, setFontSize] = useState(maxFontSizeVh);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const textEl = textRef.current;
+    if (!container || !textEl) return;
+
+    let fs = maxFontSizeVh;
+    const vhToPx = window.innerHeight / 100;
+
+    // 親の幅に収まるまでフォントサイズを縮小
+    for (let i = 0; i < 20; i++) {
+      textEl.style.fontSize = `${fs * vhToPx}px`;
+      if (textEl.scrollWidth <= container.clientWidth - 16) break; // 16px = px-2 padding
+      fs *= 0.85;
+    }
+    setFontSize(fs);
+  }, [text, maxFontSizeVh]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none overflow-hidden"
+      style={{ backgroundColor: `${color}E6` }}
+      data-testid="victory-overlay"
+    >
+      <span
+        ref={textRef}
+        className="font-black tracking-wide whitespace-nowrap text-white px-2"
+        style={{ fontSize: `${fontSize}vh`, textShadow: "0 0 40px rgba(0,0,0,0.8)" }}
+      >
+        {text}
+      </span>
     </div>
   );
 }
