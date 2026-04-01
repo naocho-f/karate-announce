@@ -256,6 +256,7 @@ export type TimerPreset = {
   wazaari_points: number;
   show_ippon: boolean;
   ippon_wins: boolean;
+  combined_ippon_wins: boolean;
   point_win_threshold: number;
   // 反則
   show_fouls: boolean;

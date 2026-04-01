@@ -27,6 +27,7 @@ const EMPTY_PRESET: EditablePreset = {
   wazaari_points: 0,
   show_ippon: true,
   ippon_wins: true,
+  combined_ippon_wins: false,
   point_win_threshold: 0,
   show_fouls: true,
   foul_to_point_start: 0,
@@ -606,6 +607,7 @@ export function TimerPresetsPanel() {
                 {field("wazaari_points", "技あり→ポイント変換数", "number")}
                 {field("show_ippon", "一本表示", "checkbox")}
                 {field("ippon_wins", "一本で即勝利", "checkbox")}
+                {field("combined_ippon_wins", "技あり2回で合わせ一本勝ち", "checkbox")}
                 {field("point_win_threshold", "ポイント先取り勝ち（0=なし）", "number")}
               </div>
 

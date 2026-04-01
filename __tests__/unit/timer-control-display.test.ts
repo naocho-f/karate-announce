@@ -60,6 +60,7 @@ const DEFAULT_PRESET: TimerPreset = {
   wazaari_points: 0,
   show_ippon: true,
   ippon_wins: true,
+  combined_ippon_wins: false,
   point_win_threshold: 0,
   show_fouls: true,
   foul_to_point_start: 0,

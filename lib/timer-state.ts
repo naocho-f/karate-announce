@@ -403,6 +403,12 @@ function checkAutoFinish(state: TimerState): TimerState {
     if (state.whiteScore.ippon > 0) return finishAuto(state, "white", "ippon");
   }
 
+  // 合わせ一本判定（技あり2回で自動勝利）
+  if (p.combined_ippon_wins) {
+    if (state.redScore.wazaari >= 2) return finishAuto(state, "red", "combined_ippon");
+    if (state.whiteScore.wazaari >= 2) return finishAuto(state, "white", "combined_ippon");
+  }
+
   // 反則負け & ポイント先取り同時判定
   const redFoulLoss = p.foul_loss_count > 0 && redFouls >= p.foul_loss_count;
   const whiteFoulLoss = p.foul_loss_count > 0 && whiteFouls >= p.foul_loss_count;

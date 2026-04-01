@@ -56,7 +56,7 @@ function makePreset(overrides: Partial<TimerPreset> = {}): TimerPreset {
     newaza_enabled: false, newaza_duration: 30, newaza_direction: "countup", newaza_limit_type: "unlimited",
     newaza_max_count: 0, newaza_free_release: 0,
     show_points: true, show_wazaari: true, wazaari_points: 0,
-    show_ippon: true, ippon_wins: true, point_win_threshold: 0,
+    show_ippon: true, ippon_wins: true, combined_ippon_wins: false, point_win_threshold: 0,
     show_fouls: true, foul_to_point_start: 0, foul_point_value: 1,
     foul_loss_count: 0, foul_vs_point_priority: "foul_priority",
     show_player_names: true, show_match_number: true,
