@@ -144,6 +144,8 @@ export default function TimerControlPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentRoundLabel, setCurrentRoundLabel] = useState("");
   const [showAnnounceSelection, setShowAnnounceSelection] = useState(false);
+  const [swapSides, setSwapSides] = useState(false);
+  const [swapping, setSwapping] = useState(false);
 
   // localStorage キー用の eventId（未ロード時は courtId をフォールバック）
   const storageEventId = eventId ?? "default";
@@ -511,18 +513,25 @@ export default function TimerControlPage() {
       affiliationReading: f2.affiliation_reading ?? f2.dojo?.name_reading ?? null,
     };
 
-    update((s) => setMatch(s, {
-      matchId: candidate.match.id,
-      tournamentId: candidate.tournament.id,
-      preset,
-      red: redInfo,
-      white: whiteInfo,
-      matchLabel: candidate.match.match_label ?? "",
-      rules: candidate.match.rules ?? candidate.tournament.default_rules ?? null,
-      rulesReading: null,
-      matchNumber: 0,
-      totalMatches: 0,
-    }));
+    update((s) => {
+      const next = setMatch(s, {
+        matchId: candidate.match.id,
+        tournamentId: candidate.tournament.id,
+        preset,
+        red: redInfo,
+        white: whiteInfo,
+        matchLabel: candidate.match.match_label ?? "",
+        rules: candidate.match.rules ?? candidate.tournament.default_rules ?? null,
+        rulesReading: null,
+        matchNumber: 0,
+        totalMatches: 0,
+      });
+      // コート単位の赤白入替をプリセットに反映
+      if (swapSides && next.preset) {
+        return { ...next, preset: { ...next.preset, swap_sides: true } };
+      }
+      return next;
+    });
 
     // 試合開始 API（status を ongoing に）
     fetch(`/api/court/matches/${candidate.match.id}`, {
@@ -586,18 +595,24 @@ export default function TimerControlPage() {
   // ── テスト用: 簡易試合セット ──
   const handleQuickMatch = () => {
     const preset = presets.find((p) => p.id === selectedPresetId) ?? DEFAULT_PRESET;
-    update((s) => setMatch(s, {
-      matchId: null,
-      tournamentId: null,
-      preset,
-      red: { id: "red-1", name: "選手A", nameReading: null, affiliation: "道場A", affiliationReading: null },
-      white: { id: "white-1", name: "選手B", nameReading: null, affiliation: "道場B", affiliationReading: null },
-      matchLabel: "第1試合",
-      rules: null,
-      rulesReading: null,
-      matchNumber: 1,
-      totalMatches: 1,
-    }));
+    update((s) => {
+      const next = setMatch(s, {
+        matchId: null,
+        tournamentId: null,
+        preset,
+        red: { id: "red-1", name: "選手A", nameReading: null, affiliation: "道場A", affiliationReading: null },
+        white: { id: "white-1", name: "選手B", nameReading: null, affiliation: "道場B", affiliationReading: null },
+        matchLabel: "第1試合",
+        rules: null,
+        rulesReading: null,
+        matchNumber: 1,
+        totalMatches: 1,
+      });
+      if (swapSides && next.preset) {
+        return { ...next, preset: { ...next.preset, swap_sides: true } };
+      }
+      return next;
+    });
   };
 
   // ── 結果書き戻し ──
@@ -713,25 +728,19 @@ export default function TimerControlPage() {
             >
               {isMuted ? "ミュート中" : "音声ON"}
             </button>
-            <button
-              onClick={() => update((s) => ({
-                ...s,
-                preset: s.preset ? { ...s.preset, swap_sides: !s.preset.swap_sides } : s.preset,
-              }))}
-              className={`px-2 py-0.5 rounded text-xs font-bold transition ${
-                state.preset?.swap_sides ? "bg-yellow-700 text-yellow-200" : "bg-gray-700 text-gray-400"
-              }`}
-            >
-              {state.preset?.swap_sides ? "左右入替中" : "左右通常"}
-            </button>
             <span className="text-gray-500 text-xs">コート: {courtId}</span>
           </div>
         </div>
         <div className="flex items-center justify-center gap-8">
           <div className="text-center">
-            <p className="text-red-400 text-sm font-bold">{state.red.name || "赤"}</p>
-            <p className="text-2xl font-bold text-red-400 tabular-nums">
-              {p?.show_points === false && p?.show_wazaari ? `技${state.redScore.wazaari}` : state.redScore.points}
+            <p className={`text-sm font-bold ${swapSides ? "text-gray-200" : "text-red-400"}`}>
+              {swapSides ? (state.white.name || "白") : (state.red.name || "赤")}
+            </p>
+            <p className={`text-2xl font-bold tabular-nums ${swapSides ? "text-gray-200" : "text-red-400"}`}>
+              {(() => {
+                const score = swapSides ? state.whiteScore : state.redScore;
+                return p?.show_points === false && p?.show_wazaari ? `技${score.wazaari}` : score.points;
+              })()}
             </p>
           </div>
           <div className="text-center">
@@ -740,9 +749,14 @@ export default function TimerControlPage() {
             </span>
           </div>
           <div className="text-center">
-            <p className="text-gray-200 text-sm font-bold">{state.white.name || "白"}</p>
-            <p className="text-2xl font-bold text-gray-200 tabular-nums">
-              {p?.show_points === false && p?.show_wazaari ? `技${state.whiteScore.wazaari}` : state.whiteScore.points}
+            <p className={`text-sm font-bold ${swapSides ? "text-red-400" : "text-gray-200"}`}>
+              {swapSides ? (state.red.name || "赤") : (state.white.name || "白")}
+            </p>
+            <p className={`text-2xl font-bold tabular-nums ${swapSides ? "text-red-400" : "text-gray-200"}`}>
+              {(() => {
+                const score = swapSides ? state.redScore : state.whiteScore;
+                return p?.show_points === false && p?.show_wazaari ? `技${score.wazaari}` : score.points;
+              })()}
             </p>
           </div>
         </div>
@@ -754,6 +768,35 @@ export default function TimerControlPage() {
           {/* idle: 試合セット */}
           {phase === "idle" && (
             <section className="space-y-3">
+              {/* 赤白入替 */}
+              <button
+                onClick={async () => {
+                  setSwapping(true);
+                  const next = !swapSides;
+                  setSwapSides(next);
+                  update((s) => ({
+                    ...s,
+                    preset: s.preset ? { ...s.preset, swap_sides: next } : s.preset,
+                  }));
+                  // UIフィードバック用の短い遅延
+                  await new Promise((r) => setTimeout(r, 300));
+                  setSwapping(false);
+                }}
+                disabled={swapping}
+                className={`w-full py-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2 ${
+                  swapSides
+                    ? "bg-yellow-700 hover:bg-yellow-600 text-yellow-100"
+                    : "bg-gray-800 hover:bg-gray-700 text-gray-300"
+                } disabled:opacity-60`}
+              >
+                {swapping ? (
+                  <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>⇄</>
+                )}
+                {swapSides ? "赤白入替中（赤=右・白=左）" : "赤白の左右を入れ替える"}
+              </button>
+
               <h3 className="text-sm font-bold text-gray-400 mb-2">試合セット</h3>
 
               {/* プリセット選択 */}
