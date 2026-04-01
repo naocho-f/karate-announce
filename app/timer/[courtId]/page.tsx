@@ -360,8 +360,8 @@ export default function TimerDisplayPage() {
                 data-testid="victory-overlay"
               >
                 <span
-                  className="font-black tracking-widest whitespace-nowrap text-white"
-                  style={{ fontSize: `${row.fontSize}vh`, textShadow: "0 0 40px rgba(0,0,0,0.8)" }}
+                  className="font-black tracking-wide whitespace-nowrap text-white px-2"
+                  style={{ fontSize: `min(${row.fontSize * 0.45}vh, 18vw)`, textShadow: "0 0 40px rgba(0,0,0,0.8)" }}
                 >
                   {resultDisplayText(state)}
                 </span>
