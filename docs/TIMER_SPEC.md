@@ -787,7 +787,7 @@ type LayoutRow = {
 | name | text | NOT NULL | プリセット名 |
 | event_id | uuid | NULL | FK → events。NULL = グローバル |
 | rule_id | uuid | NULL | レガシー（廃止予定。`rules.timer_preset_id` に移行済み） |
-| swap_sides | boolean | false | 赤白の左右入れ替え（表示画面のみ。操作パネルのラベルは変更しない） |
+| swap_sides | boolean | false | 赤白の左右入れ替え（レガシー。操作画面ヘッダーのトグルに移行済み。コート単位でセッション中保持） |
 | match_duration | integer | 120 | 試合時間（秒） |
 | timer_direction | text | 'countdown' | `countdown` / `countup` |
 | has_extension | boolean | false | 延長戦の有無 |

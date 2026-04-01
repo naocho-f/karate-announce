@@ -713,6 +713,17 @@ export default function TimerControlPage() {
             >
               {isMuted ? "ミュート中" : "音声ON"}
             </button>
+            <button
+              onClick={() => update((s) => ({
+                ...s,
+                preset: s.preset ? { ...s.preset, swap_sides: !s.preset.swap_sides } : s.preset,
+              }))}
+              className={`px-2 py-0.5 rounded text-xs font-bold transition ${
+                state.preset?.swap_sides ? "bg-yellow-700 text-yellow-200" : "bg-gray-700 text-gray-400"
+              }`}
+            >
+              {state.preset?.swap_sides ? "左右入替中" : "左右通常"}
+            </button>
             <span className="text-gray-500 text-xs">コート: {courtId}</span>
           </div>
         </div>

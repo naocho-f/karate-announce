@@ -632,7 +632,6 @@ export function TimerPresetsPanel() {
               <div className="space-y-2">
                 {field("show_player_names", "選手名表示", "checkbox")}
                 {field("show_match_number", "試合番号表示", "checkbox")}
-                {field("swap_sides", "赤白の左右を入れ替え（赤を右・白を左に表示）", "checkbox")}
               </div>
 
               <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">カラー・フォント</h3>
