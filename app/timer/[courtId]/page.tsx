@@ -6,7 +6,7 @@ import { createTimerChannel, loadState } from "@/lib/timer-broadcast";
 import type { TimerState } from "@/lib/timer-state";
 import { createInitialState, getDisplayMs, getNewazaElapsedMs, getNewazaDisplayMs } from "@/lib/timer-state";
 import { resolveLayout } from "@/lib/timer-layout";
-import type { LayoutRow, LayoutAlignment, LayoutVerticalAlign } from "@/lib/types";
+import type { LayoutRow, LayoutAlignment, LayoutVerticalAlign, TimerPreset } from "@/lib/types";
 
 // ── フォーマット ──────────────────────────────────────────────
 
@@ -56,13 +56,18 @@ function resultMethodText(method: string | null): string {
   }
 }
 
-function resultDisplayText(state: TimerState): string {
+function resultDisplayText(state: TimerState, preset: TimerPreset | null): string {
   const m = state.resultMethod;
   const d = state.resultDetail;
   if (!m) return "";
   switch (m) {
-    case "point":
-      return `ポイント (${d?.red_points ?? 0}-${d?.white_points ?? 0} 技${d?.red_wazaari ?? 0}-${d?.white_wazaari ?? 0})`;
+    case "point": {
+      const parts = [`${d?.red_points ?? 0}-${d?.white_points ?? 0}`];
+      if (preset?.show_wazaari) {
+        parts.push(`技${d?.red_wazaari ?? 0}-${d?.white_wazaari ?? 0}`);
+      }
+      return `ポイント (${parts.join(" ")})`;
+    }
     case "wazaari":
       return `技あり優勢 (技${d?.red_wazaari ?? 0}-${d?.white_wazaari ?? 0})`;
     case "combined_ippon": {
@@ -356,7 +361,7 @@ export default function TimerDisplayPage() {
             {isFinished && !isDraw && (leftWins || rightWins) && (
               <VictoryOverlay
                 color={leftWins ? colorLeft : colorRight}
-                text={resultDisplayText(state)}
+                text={resultDisplayText(state, p)}
                 maxFontSizeVh={row.fontSize * 0.45}
               />
             )}
