@@ -1076,6 +1076,14 @@ export default function TimerControlPage() {
                       className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
                       -10秒 [←]
                     </button>
+                    <button onClick={() => update((s) => adjustTime(s, -1000))}
+                      className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
+                      -1秒
+                    </button>
+                    <button onClick={() => update((s) => adjustTime(s, 1000))}
+                      className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
+                      +1秒
+                    </button>
                     <button onClick={() => update((s) => adjustTime(s, 10000))}
                       className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
                       +10秒 [→]
