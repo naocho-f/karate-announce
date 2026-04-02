@@ -142,7 +142,7 @@ function generateDemoEntries(eventId: string, count: number, ruleIds: string[], 
     const grade = age >= 3 && age <= 5 ? ["年少", "年中", "年長"][age - 3]
       : age >= 6 && age <= 11 ? `小${age - 5}`
       : age >= 12 && age <= 14 ? `中${age - 11}`
-      : age >= 16 && age <= 17 ? "18歳未満"
+      : age >= 15 && age <= 17 ? `高${age - 14}`
       : age >= 18 && age <= 59 ? "一般"
       : age >= 60 ? "シニア"
       : null;
