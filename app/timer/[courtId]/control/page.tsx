@@ -80,11 +80,9 @@ const DEFAULT_PRESET: TimerPreset = {
   color_left_name: "赤",
   color_right_name: "白",
   theme_bg_color: "#000000",
-  theme_timer_font_size: "xlarge",
   theme_timer_color: "#00FF00",
   theme_timer_warn_color: "#FF0000",
   theme_warn_threshold: 10,
-  theme_score_font_size: "large",
   theme_show_decimals: false,
   theme_font_family: "digital",
   theme_divider_color: "#333333",
@@ -147,6 +145,7 @@ export default function TimerControlPage() {
   const [swapSides, setSwapSides] = useState(false);
   const [swapping, setSwapping] = useState(false);
   const [ipponConfirmSide, setIpponConfirmSide] = useState<FighterSide | null>(null);
+  const [buzzerWarning, setBuzzerWarning] = useState(false);
 
   // localStorage キー用の eventId（未ロード時は courtId をフォールバック）
   const storageEventId = eventId ?? "default";
@@ -376,7 +375,7 @@ export default function TimerControlPage() {
         update((prev) => {
           const next = timeUp(prev);
           if (next.preset?.buzzer_on_time_up === "auto") {
-            playBuzzer(next.preset.buzzer_sound === "custom" ? "custom" : "default");
+            playBuzzer(next.preset.buzzer_sound === "custom" ? "custom" : "default").then((r) => { if (r === "fallback") setBuzzerWarning(true); });
           }
           return next;
         });
@@ -384,7 +383,7 @@ export default function TimerControlPage() {
         update((prev) => {
           const next = newazaTimeUp(prev);
           if (next.preset?.buzzer_on_newaza === "auto") {
-            playBuzzer(next.preset.buzzer_sound === "custom" ? "custom" : "default");
+            playBuzzer(next.preset.buzzer_sound === "custom" ? "custom" : "default").then((r) => { if (r === "fallback") setBuzzerWarning(true); });
           }
           return next;
         });
@@ -482,14 +481,14 @@ export default function TimerControlPage() {
           break;
         case "ArrowLeft":
           e.preventDefault();
-          update((st) => adjustTime(st, -10000));
+          update((st) => adjustTime(st, e.shiftKey ? -1000 : -10000));
           break;
         case "ArrowRight":
           e.preventDefault();
-          update((st) => adjustTime(st, 10000));
+          update((st) => adjustTime(st, e.shiftKey ? 1000 : 10000));
           break;
         case "KeyB":
-          playBuzzer(s.preset?.buzzer_sound === "custom" ? "custom" : "default");
+          playBuzzer(s.preset?.buzzer_sound === "custom" ? "custom" : "default").then((r) => { if (r === "fallback") setBuzzerWarning(true); });
           break;
         case "KeyD":
           if (s.phase === "time_up") {
@@ -778,6 +777,14 @@ export default function TimerControlPage() {
           </div>
         </div>
       </div>
+
+      {/* カスタムブザー警告バナー */}
+      {buzzerWarning && (
+        <div className="bg-yellow-900 border-b border-yellow-700 px-4 py-2 flex items-center justify-between">
+          <p className="text-yellow-200 text-sm font-medium">カスタム音源の読み込みに失敗しました。デフォルト音源を使用しています。</p>
+          <button onClick={() => setBuzzerWarning(false)} className="text-yellow-400 hover:text-yellow-200 text-sm ml-4">✕</button>
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* ── メイン操作パネル ── */}
@@ -1204,7 +1211,7 @@ export default function TimerControlPage() {
               <h3 className="text-sm font-bold text-gray-400 mb-2">サブ操作</h3>
               <div className="grid grid-cols-5 gap-2">
                 <button
-                  onClick={() => playBuzzer(p?.buzzer_sound === "custom" ? "custom" : "default")}
+                  onClick={() => playBuzzer(p?.buzzer_sound === "custom" ? "custom" : "default").then((r) => { if (r === "fallback") setBuzzerWarning(true); })}
                   className={`py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition ${(phase === "paused" || phase === "time_up") ? "" : "col-span-5"}`}
                 >
                   ブザー [B]

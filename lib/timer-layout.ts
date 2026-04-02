@@ -22,33 +22,8 @@ export function resolveLayout(preset: TimerPreset | null): LayoutConfig {
     };
   }
 
-  // 旧 enum → 数値変換
-  const timerFontMap: Record<string, number> = {
-    large: 25, xlarge: 33, xxlarge: 40, xxxlarge: 48,
-  };
-  const scoreFontMap: Record<string, number> = {
-    medium: 12, large: 20, xlarge: 28,
-  };
-
-  const timerFs = timerFontMap[preset.theme_timer_font_size] ?? 33;
-  const scoreFs = scoreFontMap[preset.theme_score_font_size] ?? 20;
-
-  return {
-    rows: [
-      { type: "match_info",   height: 0,  fontSize: 2,   align: "center", verticalAlign: "middle" },
-      { type: "timer",        height: 40, fontSize: timerFs, align: "center", verticalAlign: "middle" },
-      { type: "newaza",       height: 8,  fontSize: 4,   align: "center", verticalAlign: "middle" },
-      { type: "player_names", height: 0,  fontSize: 2.5, align: "left",   verticalAlign: "middle" },
-      { type: "scores",       height: 0,  fontSize: scoreFs, align: "center", verticalAlign: "middle", subFontSize: 6, subAlign: "center" },
-    ],
-    dividerThickness: 1,
-    scoreGap: 2,
-    scoreItemGap: 8,
-    labelWazaari: "W",
-    labelFoul: "F",
-    labelPoint: "",
-    labelNewaza: "寝技",
-  };
+  // layout 未設定 → デフォルトレイアウトを返す
+  return DEFAULT_LAYOUT;
 }
 
 const ROW_TYPE_LABELS: Record<LayoutRowType, string> = {

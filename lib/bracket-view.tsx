@@ -82,6 +82,7 @@ export function BracketView({
   assignedNumbers,
   nextMatchId,
   hasOngoingMatch = false,
+  timerControlActive = false,
   onNumberClick,
   onMatchClick,
   onSetWinner,
@@ -106,6 +107,8 @@ export function BracketView({
   nextMatchId?: string | null;
   /** 現在進行中の試合が存在する（true の場合、ready 試合の開始オーバーレイを非表示） */
   hasOngoingMatch?: boolean;
+  /** タイマー操作画面で制御中（true の場合、操作ボタンを無効化） */
+  timerControlActive?: boolean;
   onNumberClick?: (matchId: string) => void;
   onMatchClick?: (matchId: string) => void;
   onSetWinner?: (matchId: string, fighterId: string) => void;
@@ -231,7 +234,7 @@ export function BracketView({
             name: string; aff?: string; fighterId: string | null;
             isWinner: boolean; isWithdrawn: boolean; entryId?: string; borderBottom?: boolean; isRed: boolean; showResult?: boolean;
           }) => {
-            const clickable = isOngoing && !!onSetWinner && !!fighterId && !isWithdrawn;
+            const clickable = isOngoing && !!onSetWinner && !!fighterId && !isWithdrawn && !timerControlActive;
             const correctable = isCorrectingThis && !!onCorrectWinner && !!fighterId && !isWithdrawn;
             return (
               <div
@@ -352,7 +355,7 @@ export function BracketView({
               )}
 
               {/* 試合開始オーバーレイ（ready + nextMatch は常時表示、それ以外は hasOngoingMatch でなければ表示） */}
-              {isReady && onMatchClick && !isProcessing && (isNextMatch || !hasOngoingMatch) && (
+              {isReady && onMatchClick && !isProcessing && !timerControlActive && (isNextMatch || !hasOngoingMatch) && (
                 <div
                   className={`absolute inset-0 flex items-center justify-center z-10 cursor-pointer transition-colors ${
                     isNextMatch

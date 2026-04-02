@@ -42,31 +42,33 @@ function playFallbackBeep(): void {
   }
 }
 
-/** ブザーを鳴らす */
-export async function playBuzzer(mode: "default" | "custom" = "default"): Promise<void> {
+/** ブザーを鳴らす。カスタム音源失敗時は fallback を返す */
+export async function playBuzzer(mode: "default" | "custom" = "default"): Promise<"ok" | "fallback"> {
   try {
     if (mode === "custom" && customAudio) {
       customAudio.currentTime = 0;
       await customAudio.play();
-      return;
+      return "ok";
     }
 
     if (defaultAudio) {
       defaultAudio.currentTime = 0;
       await defaultAudio.play();
-      return;
+      return "ok";
     }
 
     // フォールバック
     playFallbackBeep();
+    return "fallback";
   } catch {
     // 音源読み込み失敗 → フォールバック
     playFallbackBeep();
+    return "fallback";
   }
 }
 
 /** テスト再生 */
-export async function testBuzzer(mode: "default" | "custom" = "default"): Promise<void> {
+export async function testBuzzer(mode: "default" | "custom" = "default"): Promise<"ok" | "fallback"> {
   return playBuzzer(mode);
 }
 

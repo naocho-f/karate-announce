@@ -17,10 +17,8 @@ const BASE_PRESET = {
   color_left: "#DC2626", color_right: "#FFFFFF",
   color_left_name: "赤", color_right_name: "白",
   theme_bg_color: "#000000",
-  theme_timer_font_size: "xlarge" as const,
   theme_timer_color: "#00FF00", theme_timer_warn_color: "#FF0000",
   theme_warn_threshold: 10,
-  theme_score_font_size: "large" as const,
   theme_show_decimals: false, theme_font_family: "digital" as const,
   theme_divider_color: "#333333",
   layout: null,
@@ -68,22 +66,10 @@ describe("resolveLayout", () => {
     expect(result.scoreItemGap).toBe(8);
   });
 
-  it("layout が null なら旧 enum から変換する", () => {
-    const preset = { ...BASE_PRESET, layout: null, theme_timer_font_size: "xxlarge" as const, theme_score_font_size: "xlarge" as const };
+  it("layout が null なら DEFAULT_LAYOUT を返す", () => {
+    const preset = { ...BASE_PRESET, layout: null };
     const result = resolveLayout(preset);
-    const timerRow = result.rows.find((r) => r.type === "timer");
-    const scoresRow = result.rows.find((r) => r.type === "scores");
-    expect(timerRow?.fontSize).toBe(40);   // xxlarge → 40
-    expect(scoresRow?.fontSize).toBe(28);  // xlarge → 28
-  });
-
-  it("large / medium の変換", () => {
-    const preset = { ...BASE_PRESET, layout: null, theme_timer_font_size: "large" as const, theme_score_font_size: "medium" as const };
-    const result = resolveLayout(preset);
-    const timerRow = result.rows.find((r) => r.type === "timer");
-    const scoresRow = result.rows.find((r) => r.type === "scores");
-    expect(timerRow?.fontSize).toBe(25);   // large → 25
-    expect(scoresRow?.fontSize).toBe(12);  // medium → 12
+    expect(result).toEqual(DEFAULT_LAYOUT);
   });
 });
 

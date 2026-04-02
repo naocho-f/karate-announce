@@ -273,11 +273,9 @@ export type TimerPreset = {
   color_right_name: string;
   // テーマ
   theme_bg_color: string;
-  theme_timer_font_size: "large" | "xlarge" | "xxlarge";
   theme_timer_color: string;
   theme_timer_warn_color: string;
   theme_warn_threshold: number;
-  theme_score_font_size: "medium" | "large" | "xlarge";
   theme_show_decimals: boolean;
   theme_font_family: "digital" | "sans" | "mono";
   theme_divider_color: string;

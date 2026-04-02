@@ -198,7 +198,7 @@ export default function CourtPage({ params }: Props) {
       const label = roundName(match.round, rounds);
       const tournament = tournaments.find((t) => t.id === tournamentId);
       const rulesText = match.rules ?? tournament?.default_rules;
-      announceMatchStart(
+      await announceMatchStart(
         fighterFullName(f1), f1.affiliation ?? f1.dojo?.name ?? "",
         fighterFullName(f2), f2.affiliation ?? f2.dojo?.name ?? "",
         label,
@@ -237,7 +237,7 @@ export default function CourtPage({ params }: Props) {
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
-      announceWinner(
+      await announceWinner(
         fighterFullName(winner), winner.affiliation ?? winner.dojo?.name ?? "",
         fighterFullReading(winner), winner.affiliation_reading ?? winner.dojo?.name_reading,
         announceTemplates,
@@ -291,7 +291,7 @@ export default function CourtPage({ params }: Props) {
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
-      announceWinner(
+      await announceWinner(
         fighterFullName(winner), winner.affiliation ?? winner.dojo?.name ?? "",
         fighterFullReading(winner), winner.affiliation_reading ?? winner.dojo?.name_reading,
         announceTemplates,
@@ -299,7 +299,7 @@ export default function CourtPage({ params }: Props) {
     }
   }
 
-  function reannounceStart(tournamentId: string, matchId: string) {
+  async function reannounceStart(tournamentId: string, matchId: string) {
     const matches = matchesMap[tournamentId] ?? [];
     const match = matches.find((m) => m.id === matchId);
     if (!match) return;
@@ -309,7 +309,7 @@ export default function CourtPage({ params }: Props) {
     const rounds = Math.max(...matches.map((m) => m.round), 1);
     const tournament = tournaments.find((t) => t.id === tournamentId);
     const rulesText = match.rules ?? tournament?.default_rules;
-    announceMatchStart(
+    await announceMatchStart(
       fighterFullName(f1), f1.affiliation ?? f1.dojo?.name ?? "",
       fighterFullName(f2), f2.affiliation ?? f2.dojo?.name ?? "",
       roundName(match.round, rounds),
@@ -322,13 +322,13 @@ export default function CourtPage({ params }: Props) {
     );
   }
 
-  function reannounceWinner(tournamentId: string, matchId: string) {
+  async function reannounceWinner(tournamentId: string, matchId: string) {
     const matches = matchesMap[tournamentId] ?? [];
     const match = matches.find((m) => m.id === matchId);
     if (!match?.winner_id) return;
     const winner = fighters[match.winner_id];
     if (!winner) return;
-    announceWinner(
+    await announceWinner(
       fighterFullName(winner), winner.affiliation ?? winner.dojo?.name ?? "",
       fighterFullReading(winner), winner.affiliation_reading ?? winner.dojo?.name_reading,
       announceTemplates,
@@ -602,6 +602,7 @@ function CourtContent({
                   mutedMatchIds={mutedMatchIds}
                   nextMatchId={courtNextMatch?.id ?? null}
                   hasOngoingMatch={!!courtOngoing}
+                  timerControlActive={timerControlActive}
                   onMatchClick={(matchId) => onStartMatch(tournament.id, matchId)}
                   onSetWinner={(matchId, fighterId) => onSetWinner(tournament.id, matchId, fighterId)}
                   onCorrectWinner={(matchId, fighterId) => onCorrectWinner(tournament.id, matchId, fighterId)}
