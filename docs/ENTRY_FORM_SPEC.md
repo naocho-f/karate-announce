@@ -353,7 +353,7 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 7. `所属: {dojo_name}`（← branch の値。DB カラム名と表示ラベルの対応は下記注記参照）
 8. `支部: {school_name}`（← organization の値。同上）
 9. `参加ルール: {ルール名カンマ区切り}`
-10. extra_fields の各項目（email, email_confirm を除く。配列値はカンマ区切り）
+10. extra_fields の各項目（email, email_confirm を除く）。キー名は fieldLabels でラベルに変換。選択肢の value は fieldChoices で label に変換（custom_choices → custom_field_defs.choices → FIELD_POOL.defaultChoices の優先順で検索）。配列値は各要素をラベル変換後セミコロン区切り
 
 > **注記: DB カラム名と UI ラベルの歴史的な不一致**
 >

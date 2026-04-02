@@ -55,6 +55,7 @@ export function buildEntryDetails(
   entry: Record<string, unknown>,
   ruleNames: string[],
   fieldLabels?: Record<string, string>,
+  fieldChoices?: Record<string, { value: string; label: string }[]>,
 ): string {
   const participantName = [entry.family_name, entry.given_name].filter(Boolean).join(" ");
   const lines: string[] = [];
@@ -67,11 +68,24 @@ export function buildEntryDetails(
   if (entry.dojo_name) lines.push(`所属: ${String(entry.dojo_name)}`);
   if (entry.school_name) lines.push(`支部: ${String(entry.school_name)}`);
   if (ruleNames.length > 0) lines.push(`参加ルール: ${ruleNames.join(", ")}`);
+
+  // value → label 変換ヘルパー
+  const resolveLabel = (key: string, raw: string): string => {
+    const choices = fieldChoices?.[key];
+    if (choices) {
+      const found = choices.find((c) => c.value === raw);
+      if (found) return found.label;
+    }
+    return raw;
+  };
+
   // extra_fields から主要項目
   const extra = (entry.extra_fields ?? {}) as Record<string, unknown>;
   for (const [k, v] of Object.entries(extra)) {
     if (k === "email" || k === "email_confirm" || !v) continue;
-    const val = Array.isArray(v) ? v.join(", ") : String(v);
+    const val = Array.isArray(v)
+      ? v.map((item: string) => resolveLabel(k, item)).join("; ")
+      : resolveLabel(k, String(v));
     const label = fieldLabels?.[k] ?? k;
     if (val) lines.push(`${label}: ${val}`);
   }

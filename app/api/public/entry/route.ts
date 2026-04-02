@@ -97,22 +97,27 @@ async function sendConfirmationEmail(
     ruleNames = (rules ?? []).map((r) => r.name);
   }
 
-  // フィールド表示名マッピングを構築
+  // フィールド表示名・選択肢マッピングを構築
   const fieldLabels: Record<string, string> = {};
+  const fieldChoices: Record<string, { value: string; label: string }[]> = {};
   const { data: fieldConfigs } = await supabaseAdmin
     .from("form_field_configs")
-    .select("field_key, custom_label")
+    .select("field_key, custom_label, custom_choices")
     .eq("event_id", eventId);
   const { data: customDefs } = await supabaseAdmin
     .from("custom_field_defs")
-    .select("field_key, label")
+    .select("field_key, label, choices")
     .eq("event_id", eventId);
   for (const fc of fieldConfigs ?? []) {
     const poolDef = getFieldDef(fc.field_key);
     fieldLabels[fc.field_key] = fc.custom_label || poolDef?.label || fc.field_key;
+    // 選択肢: custom_choices → FIELD_POOL の defaultChoices/fixedChoices
+    const choices = fc.custom_choices ?? poolDef?.defaultChoices ?? poolDef?.fixedChoices;
+    if (choices && choices.length > 0) fieldChoices[fc.field_key] = choices;
   }
   for (const cd of customDefs ?? []) {
     fieldLabels[cd.field_key] = cd.label;
+    if (cd.choices && cd.choices.length > 0) fieldChoices[cd.field_key] = cd.choices;
   }
 
   // 申込内容のテキスト生成
@@ -123,7 +128,7 @@ async function sendConfirmationEmail(
     event_name: eventData.name,
     event_date: eventData.event_date ?? "",
     venue_info: eventData.venue_info ?? "",
-    entry_details: buildEntryDetails(entry, ruleNames, fieldLabels),
+    entry_details: buildEntryDetails(entry, ruleNames, fieldLabels, fieldChoices),
     submission_date: new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }),
   };
 
