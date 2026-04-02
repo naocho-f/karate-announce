@@ -130,7 +130,7 @@ create table fighters (
 create table form_configs (
   id uuid not null default gen_random_uuid(),
   event_id uuid not null,
-  version integer not null default 1,
+  version integer not null default 0,
   is_ready boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
