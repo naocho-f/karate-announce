@@ -204,7 +204,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="ルール名（例: 組手3分・延長1分）"
+            placeholder="ルール名（例: 組手ポイント制・形）"
             className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
           />
           <input
@@ -221,7 +221,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="説明・詳細（例: 本戦3分、延長1分、体重無差別。防具はメンホー・拳サポーター着用必須。）"
+          placeholder="装備や特殊ルール等を記載（例: 防具はメンホー・拳サポーター着用必須）※試合時間・延長有無はタイマーで設定"
           rows={2}
           className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500 resize-none"
         />

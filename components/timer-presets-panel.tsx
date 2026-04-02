@@ -584,6 +584,7 @@ export function TimerPresetsPanel() {
             {/* 左: 設定フォーム */}
             <div className="space-y-4 overflow-y-auto max-h-[80vh]">
               {field("name", "タイマー名", "text")}
+              <p className="text-xs text-gray-600 -mt-2">試合時間・延長有無などの設定名を入力（例: 3分カウントダウン・延長1分）</p>
 
               <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">基本設定</h3>
               <div className="grid grid-cols-2 gap-3">
