@@ -203,7 +203,7 @@ export function TimerPresetsPanel() {
     setDuplicatingId(null);
   };
 
-  const field = (key: keyof EditablePreset, label: string, type: "text" | "number" | "checkbox" | "select" | "color", opts?: { options?: { value: string; label: string }[] }) => {
+  const field = (key: keyof EditablePreset, label: string, type: "text" | "number" | "checkbox" | "select" | "color" | "duration", opts?: { options?: { value: string; label: string }[] }) => {
     if (!editing) return null;
     const val = editing[key];
     if (type === "checkbox") {
@@ -237,6 +237,26 @@ export function TimerPresetsPanel() {
               onChange={(e) => setEditing({ ...editing, [key]: e.target.value })}
               className="h-8 w-10 rounded border border-gray-700 bg-gray-800 cursor-pointer [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded" />
             <span className="text-xs text-gray-500 font-mono">{String(val ?? "#000000")}</span>
+          </div>
+        </label>
+      );
+    }
+    if (type === "duration") {
+      const totalSec = Number(val ?? 0);
+      const min = Math.floor(totalSec / 60);
+      const sec = totalSec % 60;
+      return (
+        <label className="text-sm">
+          <span className="text-gray-400">{label}</span>
+          <div className="mt-1 flex items-center gap-1">
+            <input type="number" min={0} value={min}
+              onChange={(e) => setEditing({ ...editing, [key]: Number(e.target.value) * 60 + sec })}
+              className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-right" />
+            <span className="text-gray-500 text-xs">分</span>
+            <input type="number" min={0} max={59} value={sec}
+              onChange={(e) => setEditing({ ...editing, [key]: min * 60 + Math.min(59, Number(e.target.value)) })}
+              className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-right" />
+            <span className="text-gray-500 text-xs">秒</span>
           </div>
         </label>
       );
@@ -526,8 +546,8 @@ export function TimerPresetsPanel() {
               <div>
                 <p className="font-bold">{p.name}</p>
                 <p className="text-xs text-gray-500">
-                  {p.match_duration}秒 / {p.timer_direction === "countdown" ? "カウントダウン" : "カウントアップ"}
-                  {p.has_extension && ` / 延長${p.extension_duration}秒`}
+                  {Math.floor(p.match_duration / 60)}分{p.match_duration % 60 > 0 ? `${p.match_duration % 60}秒` : ""} / {p.timer_direction === "countdown" ? "カウントダウン" : "カウントアップ"}
+                  {p.has_extension && ` / 延長${Math.floor(p.extension_duration / 60)}分${p.extension_duration % 60 > 0 ? `${p.extension_duration % 60}秒` : ""}`}
                   {p.newaza_enabled && " / 寝技あり"}
                 </p>
               </div>
@@ -564,7 +584,7 @@ export function TimerPresetsPanel() {
 
               <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">基本設定</h3>
               <div className="grid grid-cols-2 gap-3">
-                {field("match_duration", "試合時間（秒）", "number")}
+                {field("match_duration", "試合時間", "duration")}
                 {field("timer_direction", "タイマー方向", "select", {
                   options: [{ value: "countdown", label: "カウントダウン" }, { value: "countup", label: "カウントアップ" }]
                 })}
@@ -573,7 +593,7 @@ export function TimerPresetsPanel() {
                 {field("has_extension", "延長戦あり", "checkbox")}
                 {editing.has_extension && (
                   <div className="grid grid-cols-2 gap-3 pl-4">
-                    {field("extension_duration", "延長時間（秒）", "number")}
+                    {field("extension_duration", "延長時間", "duration")}
                     {field("extension_mode", "延長方式", "select", {
                       options: [{ value: "sudden_death", label: "サドンデス" }, { value: "full_round", label: "フルラウンド" }]
                     })}
@@ -586,7 +606,7 @@ export function TimerPresetsPanel() {
               {field("newaza_enabled", "寝技タイマー有効", "checkbox")}
               {editing.newaza_enabled && (
                 <div className="grid grid-cols-2 gap-3 pl-4">
-                  {field("newaza_duration", "寝技制限時間（秒）", "number")}
+                  {field("newaza_duration", "寝技制限時間", "duration")}
                   {field("newaza_direction", "寝技タイマー方向", "select", {
                     options: [{ value: "countup", label: "カウントアップ" }, { value: "countdown", label: "カウントダウン" }]
                   })}
@@ -594,7 +614,7 @@ export function TimerPresetsPanel() {
                     options: [{ value: "unlimited", label: "無制限" }, { value: "limited", label: "回数制限あり" }]
                   })}
                   {editing.newaza_limit_type === "limited" && field("newaza_max_count", "最大起動回数", "number")}
-                  {field("newaza_free_release", "無消費解除時間（秒）", "number")}
+                  {field("newaza_free_release", "無消費解除時間", "duration")}
                 </div>
               )}
 
@@ -637,7 +657,7 @@ export function TimerPresetsPanel() {
                 {field("theme_bg_color", "背景色", "color")}
                 {field("theme_timer_color", "タイマー色", "color")}
                 {field("theme_timer_warn_color", "警告色", "color")}
-                {field("theme_warn_threshold", "警告閾値（秒）", "number")}
+                {field("theme_warn_threshold", "警告閾値", "duration")}
                 {field("theme_divider_color", "区切り線色", "color")}
               </div>
               <div className="grid grid-cols-2 gap-3">
