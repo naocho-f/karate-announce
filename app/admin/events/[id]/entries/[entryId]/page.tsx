@@ -155,7 +155,7 @@ export default function EntryDetailPage({ params }: Props) {
           return arr.map((v: string) => {
             const c = choices.find((c) => c.value === v);
             return c?.label ?? v;
-          }).join("、");
+          }).join("\n");
         }
       } catch { /* not JSON */ }
     }
@@ -205,7 +205,7 @@ export default function EntryDetailPage({ params }: Props) {
 
   const sectionCls = "space-y-1";
   const labelCls = "text-xs text-gray-500";
-  const valueCls = "text-sm text-white";
+  const valueCls = "text-sm text-white whitespace-pre-line";
 
   return (
     <main className="min-h-screen bg-main-bg text-white p-6">

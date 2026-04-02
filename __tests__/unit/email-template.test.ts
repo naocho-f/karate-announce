@@ -157,13 +157,13 @@ describe("email-template", () => {
       expect(result).toContain("unknown_field: 値");
     });
 
-    it("extra_fields の配列値はセミコロン区切りで表示", () => {
+    it("extra_fields の配列値は改行区切りで表示", () => {
       const result = buildEntryDetails({
         extra_fields: {
           categories: ["軽量級", "中量級"],
         },
       }, []);
-      expect(result).toContain("categories: 軽量級; 中量級");
+      expect(result).toContain("categories:\n  軽量級\n  中量級");
     });
 
     it("fieldChoices が渡された場合、選択肢の value を label に変換する", () => {
@@ -201,7 +201,7 @@ describe("email-template", () => {
           { value: "fist_guard", label: "拳サポーター" },
         ],
       });
-      expect(result).toContain("道着; メンホー");
+      expect(result).toContain("道着\n  メンホー");
       expect(result).not.toContain("gi");
     });
 

@@ -83,11 +83,14 @@ export function buildEntryDetails(
   const extra = (entry.extra_fields ?? {}) as Record<string, unknown>;
   for (const [k, v] of Object.entries(extra)) {
     if (k === "email" || k === "email_confirm" || !v) continue;
-    const val = Array.isArray(v)
-      ? v.map((item: string) => resolveLabel(k, item)).join("; ")
-      : resolveLabel(k, String(v));
     const label = fieldLabels?.[k] ?? k;
-    if (val) lines.push(`${label}: ${val}`);
+    if (Array.isArray(v)) {
+      const items = v.map((item: string) => resolveLabel(k, item));
+      if (items.length > 0) lines.push(`${label}:\n  ${items.join("\n  ")}`);
+    } else {
+      const val = resolveLabel(k, String(v));
+      if (val) lines.push(`${label}: ${val}`);
+    }
   }
   return lines.join("\n");
 }
