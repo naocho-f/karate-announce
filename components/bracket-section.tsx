@@ -15,8 +15,8 @@ import { AutoCreateDialog } from "@/components/auto-create-dialog";
 import { computeSuggestions } from "@/lib/suggestions";
 import { buildRuleGroups } from "@/lib/rule-grouping";
 import type { AutoGroup } from "@/lib/auto-bracket";
-import { getGradeOptions, gradeToNumber, findAgeCategory, isAgeCategoryLabel, type AgeCategory } from "@/lib/grade-options";
-import { buildFilterSortComparator, matchCountFilterPredicate } from "@/lib/group-filter-sort";
+import { getGradeOptions, gradeToNumber, isAgeCategoryLabel, type AgeCategory } from "@/lib/grade-options";
+import { buildFilterSortComparator, matchCountFilterPredicate, gradeFilterPredicate } from "@/lib/group-filter-sort";
 import Link from "next/link";
 import { estimateMatchMinutes, formatTimeEstimate, countActualMatches, roundedNowHHMM } from "@/lib/time-estimate";
 
@@ -518,28 +518,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
     if (minHeight !== "" && (e.height == null || e.height < parseFloat(minHeight))) return false;
     if (maxHeight !== "" && (e.height == null || e.height > parseFloat(maxHeight))) return false;
     if (sexFilter && e.sex !== sexFilter) return false;
-    if (minGrade || maxGrade) {
-      const eNum = gradeToNumber(e.grade ?? null);
-      // 学年ベース区分: 数値で範囲比較
-      if (eNum != null) {
-        if (minGrade) { const minNum = gradeToNumber(minGrade); if (minNum != null && eNum < minNum) return false; }
-        if (maxGrade) { const maxNum = gradeToNumber(maxGrade); if (maxNum != null && eNum > maxNum) return false; }
-      } else {
-        // 年齢ベース区分: entry の grade が年齢ベース区分の場合、
-        // フィルタの minGrade/maxGrade も年齢ベース区分なら年齢で比較
-        const minCat = minGrade ? findAgeCategory(minGrade, ageCategories) : null;
-        const maxCat = maxGrade ? findAgeCategory(maxGrade, ageCategories) : null;
-        if (minCat || maxCat) {
-          // 年齢ベースフィルタ: entry の age でフィルタ
-          if (e.age == null) return false;
-          if (minCat && e.age < minCat.minAge) return false;
-          if (maxCat && maxCat.maxAge != null && e.age > maxCat.maxAge) return false;
-        } else {
-          // フィルタが学年ベースで entry が年齢ベース区分 → マッチしない
-          return false;
-        }
-      }
-    }
+    if ((minGrade || maxGrade) && !gradeFilterPredicate(minGrade, maxGrade, ageCategories)(e)) return false;
     if (experienceFilter && !e.experience?.includes(experienceFilter)) return false;
     if (nameFilter && !entryFullName(e).toLowerCase().includes(nameFilter.toLowerCase())) return false;
     const matchPred = matchCountFilterPredicate(matchCountFilter, getTotalMatchCount, getDesiredMatchCount);

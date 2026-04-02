@@ -4,7 +4,7 @@
  * GroupSection のインラインロジックをテスト可能な形で切り出したもの。
  */
 
-import { gradeToNumber } from "@/lib/grade-options";
+import { gradeToNumber, findAgeCategory, type AgeCategory } from "@/lib/grade-options";
 import { entryFullName, type Entry } from "@/lib/types";
 
 type FilterState = {
@@ -72,4 +72,50 @@ export function matchCountFilterPredicate(
     return (entry) => getTotalMatchCount(entry) === n;
   }
   return () => true;
+}
+
+/**
+ * 年代区分フィルタの判定関数を返す。
+ *
+ * - 年齢ベース区分がフィルタに含まれる場合: エントリーの age で比較
+ *   - 下限 → その区分の minAge を下限値として使用
+ *   - 上限 → その区分の maxAge を上限値として使用
+ * - 学年ベース同士: gradeToNumber() で数値化して範囲比較
+ * - 混在（学年エントリーに年齢フィルタ等）: age があれば年齢で比較
+ */
+export function gradeFilterPredicate(
+  minGrade: string,
+  maxGrade: string,
+  ageCategories?: AgeCategory[],
+): (entry: Entry) => boolean {
+  if (!minGrade && !maxGrade) return () => true;
+
+  const minCat = minGrade ? findAgeCategory(minGrade, ageCategories) : null;
+  const maxCat = maxGrade ? findAgeCategory(maxGrade, ageCategories) : null;
+  const hasAgeCategoryFilter = !!(minCat || maxCat);
+
+  const minNum = minGrade ? gradeToNumber(minGrade) : null;
+  const maxNum = maxGrade ? gradeToNumber(maxGrade) : null;
+
+  return (entry: Entry) => {
+    const eNum = gradeToNumber(entry.grade ?? null);
+
+    // 年齢ベース区分がフィルタに含まれる場合 → age で比較
+    if (hasAgeCategoryFilter) {
+      if (entry.age == null) return false;
+      if (minCat && entry.age < minCat.minAge) return false;
+      if (maxCat && maxCat.maxAge != null && entry.age > maxCat.maxAge) return false;
+      return true;
+    }
+
+    // 学年ベース同士
+    if (eNum != null) {
+      if (minNum != null && eNum < minNum) return false;
+      if (maxNum != null && eNum > maxNum) return false;
+      return true;
+    }
+
+    // エントリーが年齢ベースでフィルタが学年ベース → age で比較できないので除外
+    return false;
+  };
 }
