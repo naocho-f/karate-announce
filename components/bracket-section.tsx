@@ -15,7 +15,7 @@ import { AutoCreateDialog } from "@/components/auto-create-dialog";
 import { computeSuggestions } from "@/lib/suggestions";
 import { buildRuleGroups } from "@/lib/rule-grouping";
 import type { AutoGroup } from "@/lib/auto-bracket";
-import { getGradeOptions, gradeToNumber, isAgeCategoryLabel, type AgeCategory } from "@/lib/grade-options";
+import { getGradeOptions, gradeToNumber, type AgeCategory } from "@/lib/grade-options";
 import { buildFilterSortComparator, matchCountFilterPredicate, gradeFilterPredicate } from "@/lib/group-filter-sort";
 import Link from "next/link";
 import { estimateMatchMinutes, formatTimeEstimate, countActualMatches, roundedNowHHMM } from "@/lib/time-estimate";
@@ -589,47 +589,19 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
         <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-center">
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">年代</span>
-            <div className="relative">
-              <select value={minGrade} onChange={(e) => {
-                const v = e.target.value;
-                setMinGrade(v);
-                // 年齢ベース区分選択時は単一セレクト（上限も同じ値にセット）
-                if (v && isAgeCategoryLabel(v, ageCategories)) {
-                  setMaxGrade(v);
-                }
-              }} className={`w-20 pr-6 ${inpSm}`}>
-                <option value="">下限</option>
-                {getGradeOptions(ageCategories).map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-              {minGrade && (
-                <button type="button" onClick={() => { setMinGrade(""); }} className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs leading-none" aria-label="年代下限をクリア">×</button>
-              )}
-            </div>
-            {!(minGrade && isAgeCategoryLabel(minGrade, ageCategories)) && (
-              <>
-                <span className="text-xs text-gray-500">〜</span>
-                <div className="relative">
-                  <select value={maxGrade} onChange={(e) => {
-                    const v = e.target.value;
-                    setMaxGrade(v);
-                    // 年齢ベース区分選択時は単一セレクト（下限も同じ値にセット）
-                    if (v && isAgeCategoryLabel(v, ageCategories)) {
-                      setMinGrade(v);
-                    }
-                  }} className={`w-20 pr-6 ${inpSm}`}>
-                    <option value="">上限</option>
-                    {getGradeOptions(ageCategories).map((o) => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                  {maxGrade && (
-                    <button type="button" onClick={() => { setMaxGrade(""); }} className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs leading-none" aria-label="年代上限をクリア">×</button>
-                  )}
-                </div>
-              </>
-            )}
+            <select value={minGrade} onChange={(e) => setMinGrade(e.target.value)} className={`w-20 ${inpSm}`}>
+              <option value="">下限</option>
+              {getGradeOptions(ageCategories).map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <span className="text-xs text-gray-500">〜</span>
+            <select value={maxGrade} onChange={(e) => setMaxGrade(e.target.value)} className={`w-20 ${inpSm}`}>
+              <option value="">上限</option>
+              {getGradeOptions(ageCategories).map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">年齢</span>
