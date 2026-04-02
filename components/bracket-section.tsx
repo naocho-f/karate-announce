@@ -713,8 +713,9 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
         {sortedFilteredUnassigned.length > 0 ? (
           <>
             {(() => {
-              // ルールごとにグループ化
-              const displayRules = eventRules.length > 0 ? eventRules : [];
+              // ルールごとにグループ化（ルール絞込時は該当ルールのみ表示）
+              const allRules = eventRules.length > 0 ? eventRules : [];
+              const displayRules = defaultRuleId ? allRules.filter((r) => r.id === defaultRuleId) : allRules;
               const ruleGroups: { rule: Rule | null; entries: Entry[]; totalDesired: number }[] = [];
 
               if (displayRules.length > 0) {
