@@ -9,6 +9,7 @@ import {
   gradeToNumber,
   isAgeCategoryLabel,
   findAgeCategory,
+  gradeFromBirthDate,
   FIXED_GRADE_OPTIONS,
   DEFAULT_AGE_CATEGORIES,
   type AgeCategory,
@@ -257,5 +258,78 @@ describe("findAgeCategory", () => {
     expect(findAgeCategory("ジュニア", custom)).toEqual({ label: "ジュニア", minAge: 15, maxAge: 17 });
     expect(findAgeCategory("マスターズ", custom)).toEqual({ label: "マスターズ", minAge: 40, maxAge: null });
     expect(findAgeCategory("一般", custom)).toBeNull();
+  });
+});
+
+// ──────────────────────────────────────────────
+// gradeFromBirthDate
+// ──────────────────────────────────────────────
+
+describe("gradeFromBirthDate", () => {
+  // 大会日: 2026-07-15（2026年度）
+
+  it("小学1年生（2026年度に満6歳 = 2019年4月2日〜2020年4月1日生まれ）", () => {
+    expect(gradeFromBirthDate("2020-01-15", "2026-07-15")).toBe("小1");
+  });
+
+  it("小学3年生（2026年度に満8歳 = 2017年4月2日〜2018年4月1日生まれ）", () => {
+    expect(gradeFromBirthDate("2017-08-01", "2026-07-15")).toBe("小3");
+  });
+
+  it("小学6年生（2026年度に満11歳 = 2014年4月2日〜2015年4月1日生まれ）", () => {
+    expect(gradeFromBirthDate("2014-12-25", "2026-07-15")).toBe("小6");
+  });
+
+  it("中学1年生（2026年度に満12歳 = 2013年4月2日〜2014年4月1日生まれ）", () => {
+    expect(gradeFromBirthDate("2013-06-01", "2026-07-15")).toBe("中1");
+  });
+
+  it("高校3年生（2026年度に満17歳 = 2008年4月2日〜2009年4月1日生まれ）", () => {
+    expect(gradeFromBirthDate("2008-09-01", "2026-07-15")).toBe("高3");
+  });
+
+  it("年少（2026年度に満3歳 = 2022年4月2日〜2023年4月1日生まれ）", () => {
+    expect(gradeFromBirthDate("2022-10-01", "2026-07-15")).toBe("年少");
+  });
+
+  it("4月1日生まれは前年度扱い（早生まれ）", () => {
+    // 2020年4月1日生まれ → 2019年度 → 2026年度との差=7 → 小1（2026年4月入学の早生まれ）
+    expect(gradeFromBirthDate("2020-04-01", "2026-07-15")).toBe("小1");
+  });
+
+  it("4月2日生まれは当年度扱い", () => {
+    // 2020年4月2日生まれ → 2020年度 → 2026年度との差=6 → 年長（2027年4月入学）
+    expect(gradeFromBirthDate("2020-04-02", "2026-07-15")).toBe("年長");
+  });
+
+  it("18歳以上は年齢ベース区分から判定（一般）", () => {
+    expect(gradeFromBirthDate("2000-01-01", "2026-07-15")).toBe("一般");
+  });
+
+  it("60歳以上はシニア", () => {
+    expect(gradeFromBirthDate("1960-01-01", "2026-07-15")).toBe("シニア");
+  });
+
+  it("eventDate が null の場合は今日を基準にする", () => {
+    // 結果は実行日によって変わるため null でないことだけ確認
+    const result = gradeFromBirthDate("2015-06-01", null);
+    expect(result).not.toBeNull();
+  });
+
+  it("2歳以下は null を返す", () => {
+    expect(gradeFromBirthDate("2025-01-01", "2026-07-15")).toBeNull();
+  });
+
+  it("カスタム年齢区分を使用できる", () => {
+    const custom: AgeCategory[] = [
+      { label: "ジュニア", minAge: 16, maxAge: 20 },
+      { label: "アダルト", minAge: 21, maxAge: null },
+    ];
+    expect(gradeFromBirthDate("2000-01-01", "2026-07-15", custom)).toBe("アダルト");
+  });
+
+  it("大会日が1月（前年度）でも正しく判定", () => {
+    // 大会日: 2027-01-15 → 2026年度
+    expect(gradeFromBirthDate("2020-01-15", "2027-01-15")).toBe("小1");
   });
 });

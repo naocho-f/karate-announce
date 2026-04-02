@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import type { Event, FormFieldConfig, FormNotice, CustomFieldDef } from "@/lib/types";
 import { FIELD_POOL, getFieldDef, getKanaFieldKey, isKanaField, isCustomField, customFieldToPoolItem } from "@/lib/form-fields";
 import type { FieldPoolItem } from "@/lib/form-fields";
-import { getGradeOptions, type AgeCategory } from "@/lib/grade-options";
+import { getGradeOptions, gradeFromBirthDate, type AgeCategory } from "@/lib/grade-options";
 
 type Props = { params: Promise<{ eventId: string }> };
 
@@ -766,27 +766,36 @@ export default function EntryPage({ params }: Props) {
                 value={values[key] ?? ""}
                 onChange={(e) => {
                   setValue(key, e.target.value);
-                  // 年齢を自動計算して age にセット
-                  if (ageFieldConfig && e.target.value && /^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) {
-                    const refDate = event?.event_date ? new Date(event.event_date) : new Date();
-                    const birth = new Date(e.target.value);
-                    let age = refDate.getFullYear() - birth.getFullYear();
-                    const hasBday = refDate.getMonth() > birth.getMonth() ||
-                      (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
-                    if (!hasBday) age--;
-                    setValue("age", String(age));
+                  if (e.target.value && /^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) {
+                    // 年齢を自動計算して age にセット
+                    if (ageFieldConfig) {
+                      const refDate = event?.event_date ? new Date(event.event_date) : new Date();
+                      const birth = new Date(e.target.value);
+                      let age = refDate.getFullYear() - birth.getFullYear();
+                      const hasBday = refDate.getMonth() > birth.getMonth() ||
+                        (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
+                      if (!hasBday) age--;
+                      setValue("age", String(age));
+                    }
+                    // 年代区分を自動選択
+                    const grade = gradeFromBirthDate(e.target.value, event?.event_date ?? null, ageCategories);
+                    if (grade) setValue("grade", grade);
                   }
                 }}
                 onBlur={(e) => {
                   const val = e.target.value;
-                  if (ageFieldConfig && val && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
-                    const refDate = event?.event_date ? new Date(event.event_date) : new Date();
-                    const birth = new Date(val);
-                    let age = refDate.getFullYear() - birth.getFullYear();
-                    const hasBday = refDate.getMonth() > birth.getMonth() ||
-                      (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
-                    if (!hasBday) age--;
-                    setValue("age", String(age));
+                  if (val && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                    if (ageFieldConfig) {
+                      const refDate = event?.event_date ? new Date(event.event_date) : new Date();
+                      const birth = new Date(val);
+                      let age = refDate.getFullYear() - birth.getFullYear();
+                      const hasBday = refDate.getMonth() > birth.getMonth() ||
+                        (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
+                      if (!hasBday) age--;
+                      setValue("age", String(age));
+                    }
+                    const grade = gradeFromBirthDate(val, event?.event_date ?? null, ageCategories);
+                    if (grade) setValue("grade", grade);
                   }
                 }}
                 className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`}
