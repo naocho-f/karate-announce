@@ -48,15 +48,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // メール送信（fire-and-forget）
+  // メール送信
+  let emailError: string | null = null;
+  try {
+    await sendConfirmationEmail(entry, created.id, rule_ids);
+  } catch (err) {
+    emailError = err instanceof Error ? err.message : String(err);
+    console.error("[email] sendConfirmationEmail failed:", err);
+  }
+
   const extra = (entry.extra_fields ?? {}) as Record<string, unknown>;
-  const emailSent = !!process.env.RESEND_API_KEY && !!(extra.email as string);
+  const emailSent = !!process.env.RESEND_API_KEY && !!(extra.email as string) && !emailError;
 
-  sendConfirmationEmail(entry, created.id, rule_ids).catch((err) =>
-    console.error("[email] sendConfirmationEmail failed:", err)
-  );
-
-  return NextResponse.json({ id: created.id, email_sent: emailSent });
+  return NextResponse.json({ id: created.id, email_sent: emailSent, ...(emailError && { email_error: emailError }) });
 }
 
 async function sendConfirmationEmail(
@@ -130,12 +134,16 @@ async function sendConfirmationEmail(
   const from = process.env.RESEND_FROM_EMAIL || "参加受付 <onboarding@resend.dev>";
 
   console.log("[email] sending to:", applicantEmail, "bcc:", adminEmails, "from:", from);
-  const result = await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from,
     to: applicantEmail,
     ...(adminEmails.length > 0 && { bcc: adminEmails }),
     subject,
     text: body,
   });
-  console.log("[email] sent successfully, result:", JSON.stringify(result));
+  if (error) {
+    console.error("[email] Resend API error:", JSON.stringify(error));
+    throw new Error(`Resend API error: ${error.message ?? JSON.stringify(error)}`);
+  }
+  console.log("[email] sent successfully, id:", data?.id);
 }
