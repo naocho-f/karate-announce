@@ -216,7 +216,7 @@ renderTemplate(template: string, vars: Record<string, string>): string
 ### 7.3 Audio 要素管理
 - 毎回新しい Audio 要素を作成（再利用なし）
 - Object URL は再生完了後に `revokeObjectURL()` で解放
-- 同時再生の制御なし（複数アナウンスが重なる可能性あり）
+- 同時再生防止: 再生中は新しい再生要求を無視（`speaking` フラグで排他制御）
 
 ---
 

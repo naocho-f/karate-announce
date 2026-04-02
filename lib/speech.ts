@@ -147,7 +147,12 @@ export function normalizeMatchLabelForTts(label: string): string {
 
 // ── TTS 発話 ───────────────────────────────────────────────────────────
 
+let speaking = false;
+
 async function speak(text: string): Promise<void> {
+  // 再生中なら新しい再生要求を無視
+  if (speaking) return;
+  speaking = true;
   const { voice, speed } = getTtsSettings();
   try {
     const res = await fetch("/api/tts", {
@@ -166,6 +171,8 @@ async function speak(text: string): Promise<void> {
     });
   } catch (e) {
     console.error("TTS error:", e);
+  } finally {
+    speaking = false;
   }
 }
 
