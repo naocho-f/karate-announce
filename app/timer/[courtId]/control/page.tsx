@@ -146,6 +146,7 @@ export default function TimerControlPage() {
   const [showAnnounceSelection, setShowAnnounceSelection] = useState(false);
   const [swapSides, setSwapSides] = useState(false);
   const [swapping, setSwapping] = useState(false);
+  const [ipponConfirmSide, setIpponConfirmSide] = useState<FighterSide | null>(null);
 
   // localStorage キー用の eventId（未ロード時は courtId をフォールバック）
   const storageEventId = eventId ?? "default";
@@ -331,15 +332,31 @@ export default function TimerControlPage() {
     channelRef.current?.send(s);
   }, []);
 
+  // ── 操作ログ DB 書き込み（fire-and-forget） ──
+  const flushLogs = useCallback((matchId: string | null, prevLogsLen: number, next: TimerState) => {
+    if (!matchId || next.logs.length <= prevLogsLen) return;
+    const newEntries = next.logs.slice(prevLogsLen);
+    for (const entry of newEntries) {
+      supabase.from("timer_logs").insert({
+        match_id: matchId,
+        action: entry.action,
+        payload: entry.payload ?? {},
+        elapsed_ms: entry.elapsedMs,
+      }).then(); // fire-and-forget
+    }
+  }, []);
+
   // ── 状態更新ラッパー ──
   const update = useCallback((fn: (s: TimerState) => TimerState) => {
     setState((prev) => {
+      const prevLogsLen = prev.logs.length;
       const next = fn(prev);
       stateRef.current = next;
       broadcast(next);
+      flushLogs(next.matchId, prevLogsLen, next);
       return next;
     });
-  }, [broadcast]);
+  }, [broadcast, flushLogs]);
 
   // ── requestAnimationFrame ──
   const animateLoop = useCallback(() => {
@@ -449,7 +466,7 @@ export default function TimerControlPage() {
           update((st) => addFoul(st, "red"));
           break;
         case "KeyR":
-          update((st) => addIppon(st, "red"));
+          setIpponConfirmSide("red");
           break;
         case "KeyI":
           update((st) => addPoint(st, "white"));
@@ -461,7 +478,7 @@ export default function TimerControlPage() {
           update((st) => addFoul(st, "white"));
           break;
         case "KeyL":
-          update((st) => addIppon(st, "white"));
+          setIpponConfirmSide("white");
           break;
         case "ArrowLeft":
           e.preventDefault();
@@ -1082,7 +1099,7 @@ export default function TimerControlPage() {
                         )}
                       </div>
                       {p?.show_ippon && (
-                        <button onClick={() => update((s) => addIppon(s, side))}
+                        <button onClick={() => setIpponConfirmSide(side)}
                           className={`w-full py-4 rounded ${bgClass} text-sm font-bold transition`}>
                           一本 [{keys.ip}]
                         </button>
@@ -1128,7 +1145,7 @@ export default function TimerControlPage() {
                         )}
                       </div>
                       {p?.show_ippon && (
-                        <button onClick={() => update((s) => addIppon(s, side))}
+                        <button onClick={() => setIpponConfirmSide(side)}
                           className={`w-full py-4 rounded ${bgClass} text-sm font-bold transition`}>
                           一本 [{keys.ip}]
                         </button>
@@ -1142,6 +1159,34 @@ export default function TimerControlPage() {
                 })()}
               </div>
             </section>
+          )}
+
+          {/* 一本確認ダイアログ */}
+          {ipponConfirmSide && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+              <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 mx-4 max-w-sm w-full space-y-4">
+                <p className="text-center text-lg font-bold text-white">
+                  {ipponConfirmSide === "red" ? "赤" : "白"}（{ipponConfirmSide === "red" ? (state.red.name || "赤") : (state.white.name || "白")}）の一本を記録しますか？
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      update((s) => addIppon(s, ipponConfirmSide));
+                      setIpponConfirmSide(null);
+                    }}
+                    className="py-4 rounded-lg bg-red-700 hover:bg-red-600 text-white font-bold text-lg transition"
+                  >
+                    一本を記録
+                  </button>
+                  <button
+                    onClick={() => setIpponConfirmSide(null)}
+                    className="py-4 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 font-bold text-lg transition"
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* ルール設定表示 */}
