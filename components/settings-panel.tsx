@@ -114,7 +114,7 @@ function DojoPanel() {
 
 // ── ルール ────────────────────────────────────────────────────────────────
 
-function RulesPanel() {
+function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
   const [rules, setRules] = useState<Rule[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
@@ -269,23 +269,41 @@ function RulesPanel() {
               </div>
               {isSelecting && (
                 <div className="mb-1 flex items-center gap-2">
-                  <select
-                    value={r.timer_preset_id ?? ""}
-                    disabled={isLinking}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        linkPreset(r.id, e.target.value);
-                      } else {
-                        linkPreset(r.id, null);
-                      }
-                    }}
-                    className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 disabled:opacity-50"
-                  >
-                    <option value="">-- タイマー未設定 --</option>
-                    {presets.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
+                  {presets.length === 0 ? (
+                    <>
+                      <span className="text-xs text-gray-500">タイマーが未登録です。</span>
+                      <button
+                        onClick={() => { setSelectingRuleId(null); onNavigateToTimer(); }}
+                        className="text-xs text-blue-400 hover:text-blue-300 underline"
+                      >タイマータブで作成</button>
+                    </>
+                  ) : (
+                    <>
+                      <select
+                        value={r.timer_preset_id ?? ""}
+                        disabled={isLinking}
+                        onChange={(e) => {
+                          if (e.target.value === "__new__") {
+                            setSelectingRuleId(null);
+                            onNavigateToTimer();
+                            return;
+                          }
+                          if (e.target.value) {
+                            linkPreset(r.id, e.target.value);
+                          } else {
+                            linkPreset(r.id, null);
+                          }
+                        }}
+                        className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 disabled:opacity-50"
+                      >
+                        <option value="">-- タイマー未設定 --</option>
+                        {presets.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                        <option value="__new__">＋ 新規追加（タイマータブへ）</option>
+                      </select>
+                    </>
+                  )}
                   <button
                     onClick={() => setSelectingRuleId(null)}
                     className="text-xs text-gray-500 hover:text-gray-300"
@@ -1141,7 +1159,7 @@ export function SettingsPanel() {
       </div>
 
       {subTab === "announce"       && <AnnounceSettingsPanel />}
-      {subTab === "rules"          && <RulesPanel />}
+      {subTab === "rules"          && <RulesPanel onNavigateToTimer={() => handleSubTab("timer")} />}
       {subTab === "dojos"          && <DojoPanel />}
       {subTab === "timer"          && <TimerPresetsPanel />}
       {subTab === "age_categories" && <AgeCategoriesPanel />}
