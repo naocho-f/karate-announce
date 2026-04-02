@@ -1,6 +1,10 @@
 -- karate-announce database schema
 -- Generated from Supabase: 2026-03-28
 -- Project: xkrjltbtikbgeimtjvga
+--
+-- RLS: 全テーブルで RLS 有効。全テーブルに allow_select (USING true) ポリシーあり。
+-- timer_logs は allow_insert (WITH CHECK true) も追加。
+-- INSERT/UPDATE/DELETE は API ルート経由で supabaseAdmin (service_role) を使用。
 
 
 create table bug_reports (
