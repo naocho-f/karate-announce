@@ -258,7 +258,7 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 
 ### 4.4 設定タブ
 
-4つのサブタブで構成（開発モード時は5つ）:
+6つのサブタブで構成（順序: ルール → タイマー → アナウンス設定 → 年代区分 → 流派 → 不具合報告）。不具合報告は開発モード時のみ表示:
 
 #### アナウンス設定
 - **音声選択**: OpenAI TTS の6ボイス（nova, shimmer, alloy, echo, fable, onyx）

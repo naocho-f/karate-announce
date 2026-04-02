@@ -1128,9 +1128,9 @@ const SETTINGS_SUBTAB_LABELS: Record<SettingsSubTab, string> = {
 export function SettingsPanel() {
   const router = useRouter();
   const [subTab, setSubTab] = useState<SettingsSubTab>(() => {
-    if (typeof window === "undefined") return "announce";
+    if (typeof window === "undefined") return "rules";
     const sub = new URLSearchParams(window.location.search).get("sub") as SettingsSubTab | null;
-    return sub && sub in SETTINGS_SUBTAB_LABELS ? sub : "announce";
+    return sub && sub in SETTINGS_SUBTAB_LABELS ? sub : "rules";
   });
 
   function handleSubTab(t: SettingsSubTab) {
@@ -1139,8 +1139,8 @@ export function SettingsPanel() {
   }
 
   const subTabs = isDev()
-    ? (["announce", "rules", "dojos", "timer", "age_categories", "bug_reports"] as const)
-    : (["announce", "rules", "dojos", "timer", "age_categories"] as const);
+    ? (["rules", "timer", "announce", "age_categories", "dojos", "bug_reports"] as const)
+    : (["rules", "timer", "announce", "age_categories", "dojos"] as const);
 
   return (
     <div className="space-y-4">
