@@ -622,12 +622,12 @@ export default function EntryPage({ params }: Props) {
           </p>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <label className="text-xs text-gray-400">姓</label>
+              <label className="text-xs text-gray-400">姓{isReq && <span className="text-red-400 ml-1">*</span>}</label>
               <input value={values["family_name"] ?? ""} onChange={(e) => setValue("family_name", e.target.value)}
                 placeholder="山田" className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`} required={isReq} />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-gray-400">名</label>
+              <label className="text-xs text-gray-400">名{isReq && <span className="text-red-400 ml-1">*</span>}</label>
               <input value={values["given_name"] ?? ""} onChange={(e) => setValue("given_name", e.target.value)}
                 placeholder="太郎" className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`} required={isReq} />
             </div>
@@ -1239,11 +1239,11 @@ export default function EntryPage({ params }: Props) {
 
           <button
             type="submit"
-            disabled={submitting || !canSubmit}
+            disabled={submitting}
             className={`w-full py-3 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${
               canSubmit
                 ? "bg-blue-600 hover:bg-blue-500 text-white"
-                : "bg-blue-600/60 text-white/80"
+                : "bg-gray-600 hover:bg-gray-500 text-gray-300"
             } disabled:opacity-50`}
           >
             {submitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}

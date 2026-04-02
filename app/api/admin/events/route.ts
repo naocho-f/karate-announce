@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   if (!copy_from_event_id) {
     const { data: e, error } = await supabaseAdmin
       .from("events")
-      .insert({ name, event_date: event_date ?? null, court_count, court_names: court_names ?? null, status: "preparing" })
+      .insert({ name, event_date: event_date ?? null, court_count, court_names: court_names ?? null, status: "preparing", entry_closed: true })
       .select()
       .single();
     if (error || !e) return NextResponse.json({ error: error?.message ?? "Failed" }, { status: 500 });

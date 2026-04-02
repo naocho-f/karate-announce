@@ -385,7 +385,7 @@ export function FormConfigPanel({ eventId }: Props) {
           </button>
           <button onClick={save} disabled={saving}
             className={`px-4 py-1.5 text-sm rounded-lg transition font-medium ${dirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}>
-            {saving ? <><Spinner className="inline-block mr-1" />保存中...</> : "保存"}
+            {saving ? <><Spinner className="inline-block mr-1" />保存中...</> : "一時保存"}
           </button>
           {saveMessage && (
             <span className={`text-xs animate-pulse ${saveMessage === "保存しました" ? "text-green-400" : "text-gray-400"}`}>
@@ -394,7 +394,7 @@ export function FormConfigPanel({ eventId }: Props) {
           )}
           <button onClick={toggleReady} disabled={togglingReady}
             className={`px-4 py-1.5 text-sm rounded-lg transition font-medium disabled:opacity-50 ${config.is_ready ? "bg-yellow-700 hover:bg-yellow-600 text-white" : "bg-green-700 hover:bg-green-600 text-white"}`}>
-            {togglingReady ? "処理中..." : config.is_ready ? "公開を取り消す" : "公開する"}
+            {togglingReady ? "処理中..." : config.is_ready ? "決定を取り消す" : "フォーム内容を決定"}
           </button>
         </div>
       </div>

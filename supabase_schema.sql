@@ -102,7 +102,7 @@ create table events (
   max_height_diff numeric,
   event_date date,
   court_names text[],
-  entry_closed boolean not null default false,
+  entry_closed boolean not null default true,
   entry_close_at timestamptz,
   banner_image_path text,
   ogp_image_path text,
