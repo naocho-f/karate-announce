@@ -515,6 +515,17 @@ export default function EntryPage({ params }: Props) {
     entry["extra_fields"] = extraFields;
     entry["form_version"] = formConfig?.version ?? null;
 
+    // birthday がある場合、age を再計算して保存（onChange で setValue されるが、タイミングで取りこぼす可能性があるため）
+    if (entry["birth_date"] && typeof entry["birth_date"] === "string" && /^\d{4}-\d{2}-\d{2}$/.test(entry["birth_date"])) {
+      const refDate = event?.event_date ? new Date(event.event_date) : new Date();
+      const birth = new Date(entry["birth_date"]);
+      let age = refDate.getFullYear() - birth.getFullYear();
+      const hasBday = refDate.getMonth() > birth.getMonth() ||
+        (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
+      if (!hasBday) age--;
+      entry["age"] = age;
+    }
+
     return entry;
   }
 

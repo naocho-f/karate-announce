@@ -233,7 +233,7 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 | `branch` | `entries.dojo_name` | ※歴史的命名（8.7 注記参照） |
 | `branch_kana` | `entries.dojo_name_reading` | |
 | `birthday` | `entries.birth_date` | |
-| `age` | `entries.age` | |
+| `age` | `entries.age` | birthday がある場合、送信時に大会日基準で再計算して保存 |
 | `sex` | `entries.sex` | |
 | `weight` | `entries.weight` | `parseFloat` 変換 |
 | `height` | `entries.height` | `parseFloat` 変換 |
