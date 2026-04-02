@@ -260,6 +260,34 @@ describe("buildMatchStartText", () => {
   });
 });
 
+describe("announceWinner テンプレート展開", () => {
+  it("デフォルトテンプレートで勝者アナウンステキストが生成される", () => {
+    const { winner } = DEFAULT_TEMPLATES;
+    const name = "やまだたろう";
+    const aff = buildAffiliationForTts("極真会　本部道場");
+    const parts = splitAffiliationParts("極真会　本部道場");
+    const text = renderTemplate(winner, {
+      "勝者名前": name,
+      "勝者流派＋道場": aff,
+      "勝者流派": parts.school,
+      "勝者道場": parts.dojo,
+    });
+    expect(text).toContain("やまだたろう");
+    expect(text).toContain("極真会、本部道場");
+  });
+
+  it("カスタムテンプレートで変数が展開される", () => {
+    const template = "{{勝者名前}}選手の勝ちです。所属、{{勝者流派}}。";
+    const text = renderTemplate(template, {
+      "勝者名前": "鈴木一郎",
+      "勝者流派＋道場": "柔空会、本部道場",
+      "勝者流派": "柔空会",
+      "勝者道場": "本部道場",
+    });
+    expect(text).toBe("鈴木一郎選手の勝ちです。所属、柔空会。");
+  });
+});
+
 describe("prefetchTts", () => {
   it("空文字列の場合は fetch を呼ばない", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response());

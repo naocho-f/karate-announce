@@ -3,7 +3,7 @@
  *
  * テスト対象:
  * #1: 次の試合へ押下でidle（試合一覧）に戻る
- * #2: 一本のconfirm()削除
+ * #2: 一本の確認ダイアログ（モーダル方式）
  * #3: プリセット→ルールのラベル変更
  * #4: 試合一覧に戻るボタン
  * #5: 画面全体を使うレイアウト
@@ -59,24 +59,24 @@ test.describe("タイマー操作パネル改善", () => {
     await expect(page.locator("text=試合セット")).toBeVisible({ timeout: 5_000 });
   });
 
-  test("#2: 一本ボタンが confirm なしで動作する", async ({ page }) => {
+  test("#2: 一本操作時に確認ダイアログが表示され、確定で試合終了する", async ({ page }) => {
     await page.goto("/timer/1/control");
 
     // クイック試合を開始
     await page.locator("text=クイック試合").click();
+    await page.locator("text=アナウンスなしで試合準備画面へ").click();
     await page.keyboard.press("Space");
     await expect(page.locator("text=試合中")).toBeVisible({ timeout: 5_000 });
 
-    // dialog イベントが来ないことを確認するためリスナーを設定
-    let dialogShown = false;
-    page.on("dialog", () => { dialogShown = true; });
-
-    // R キーで赤一本（confirm なしで直接実行）
+    // R キーで赤一本 → 確認ダイアログが表示される
     await page.keyboard.press("KeyR");
+    await expect(page.locator("text=一本を記録しますか")).toBeVisible({ timeout: 3_000 });
+
+    // 「一本を記録」ボタンで確定
+    await page.locator("text=一本を記録").click();
 
     // 一本で試合終了（ippon_wins: true）
     await expect(page.locator("text=終了")).toBeVisible({ timeout: 5_000 });
-    expect(dialogShown).toBe(false);
   });
 
   test("#6: 勝利理由をボタンで選択できる", async ({ page }) => {
@@ -123,8 +123,9 @@ test.describe("タイマー操作パネル改善", () => {
     await page.keyboard.press("Space");
     await expect(page.locator("text=試合中")).toBeVisible({ timeout: 5_000 });
 
-    // R キーで赤一本 → 即 finished
+    // R キーで赤一本 → 確認ダイアログ → 確定 → finished
     await page.keyboard.press("KeyR");
+    await page.locator("text=一本を記録").click();
     await expect(page.locator("text=終了")).toBeVisible({ timeout: 5_000 });
 
     // 確定するボタンが表示される
@@ -178,8 +179,9 @@ test.describe("タイマー操作パネル改善", () => {
     await page.keyboard.press("Space");
     await expect(page.locator("text=試合中")).toBeVisible({ timeout: 5_000 });
 
-    // R キーで赤一本 → finished
+    // R キーで赤一本 → 確認ダイアログ → 確定 → finished
     await page.keyboard.press("KeyR");
+    await page.locator("text=一本を記録").click();
     await expect(page.locator("text=終了")).toBeVisible({ timeout: 5_000 });
 
     // 次の試合へを押すと、未確定なので confirm が表示される

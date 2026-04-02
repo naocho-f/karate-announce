@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { BracketView, type BracketMatch } from "@/lib/bracket-view";
+import { autoAssignOrder } from "@/lib/match-label-utils";
 
 type TournamentData = {
   id: string;
@@ -194,24 +195,7 @@ export function MatchLabelEditor({ eventId, courtNames, courtCount, selectedCour
   }
 
   function autoAssign() {
-    // コートごとに独立してソート: ラウンド → トーナメント sort_order → ポジション
-    const result: string[] = [];
-    for (let courtNum = 1; courtNum <= courtCount; courtNum++) {
-      const courtTournaments = tournaments.filter((t) => t.court === String(courtNum));
-      const courtMatches = courtTournaments.flatMap((t, tIdx) =>
-        t.matches
-          .filter((m) => !(m.round === 1 && !!m.fighter1_id && !m.fighter2_id))
-          .map((m) => ({ id: m.id, round: m.round, sortOrder: t.sortOrder, tIdx, position: m.position }))
-      );
-      courtMatches.sort((a, b) => {
-        if (a.round !== b.round) return a.round - b.round;
-        if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
-        if (a.tIdx !== b.tIdx) return a.tIdx - b.tIdx;
-        return a.position - b.position;
-      });
-      result.push(...courtMatches.map((m) => m.id));
-    }
-    setOrder(result);
+    setOrder(autoAssignOrder(tournaments, courtCount));
   }
 
   function clearAll() {

@@ -284,6 +284,23 @@ describe("timer-state", () => {
       expect(s.phase).toBe("running");
     });
 
+    it("合わせ一本（combined_ippon_wins: true、技あり2回で即勝利）", () => {
+      const running = startTimer(readyState({ combined_ippon_wins: true }));
+      let s = addWazaari(running, "red");
+      expect(s.phase).toBe("running");
+      s = addWazaari(s, "red");
+      expect(s.phase).toBe("finished");
+      expect(s.winnerSide).toBe("red");
+      expect(s.resultMethod).toBe("combined_ippon");
+    });
+
+    it("合わせ一本しない（combined_ippon_wins: false）", () => {
+      const running = startTimer(readyState({ combined_ippon_wins: false }));
+      let s = addWazaari(running, "white");
+      s = addWazaari(s, "white");
+      expect(s.phase).toBe("running");
+    });
+
     it("ポイント先取り勝ち", () => {
       const running = startTimer(readyState({ point_win_threshold: 3 }));
       let s = addPoint(running, "white");

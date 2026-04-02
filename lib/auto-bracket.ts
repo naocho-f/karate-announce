@@ -36,7 +36,7 @@ function getAge(entry: Entry, referenceDate?: Date): number | null {
 // gradeToNumber は lib/grade-options.ts からインポート
 
 /** エントリーが振り分けルールの条件に合致するか判定 */
-function matchesRule(
+export function matchesRule(
   entry: Entry,
   rule: BracketRule,
   entryRuleIds: Record<string, Set<string>>,

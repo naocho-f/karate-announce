@@ -18,6 +18,7 @@ import { fighterFullName, fighterFullReading } from "@/lib/types";
 import type { TimerPreset, Fighter, Match, Tournament } from "@/lib/types";
 import { announceMatchStart, announceWinner, buildMatchStartText, prefetchTts, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
 import { roundName } from "@/lib/tournament";
+import { flushTimerLogs } from "@/lib/timer-log-flush";
 
 // ── フォーマット ──────────────────────────────────────────────
 
@@ -331,20 +332,6 @@ export default function TimerControlPage() {
     channelRef.current?.send(s);
   }, []);
 
-  // ── 操作ログ DB 書き込み（fire-and-forget） ──
-  const flushLogs = useCallback((matchId: string | null, prevLogsLen: number, next: TimerState) => {
-    if (!matchId || next.logs.length <= prevLogsLen) return;
-    const newEntries = next.logs.slice(prevLogsLen);
-    for (const entry of newEntries) {
-      supabase.from("timer_logs").insert({
-        match_id: matchId,
-        action: entry.action,
-        payload: entry.payload ?? {},
-        elapsed_ms: entry.elapsedMs,
-      }).then(); // fire-and-forget
-    }
-  }, []);
-
   // ── 状態更新ラッパー ──
   const update = useCallback((fn: (s: TimerState) => TimerState) => {
     setState((prev) => {
@@ -352,10 +339,10 @@ export default function TimerControlPage() {
       const next = fn(prev);
       stateRef.current = next;
       broadcast(next);
-      flushLogs(next.matchId, prevLogsLen, next);
+      flushTimerLogs(next.matchId, prevLogsLen, next);
       return next;
     });
-  }, [broadcast, flushLogs]);
+  }, [broadcast]);
 
   // ── requestAnimationFrame ──
   const animateLoop = useCallback(() => {
