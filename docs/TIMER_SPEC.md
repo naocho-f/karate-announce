@@ -131,6 +131,7 @@
 | 起動回数制限 | enum | `limited` / `unlimited` | |
 | 最大起動回数 | number | 2 | `limited` の場合のみ |
 | 無消費解除時間 | number (秒) | 10 | この時間以内に解除されたら回数消費なし。0 = 常に消費 |
+| 寝技カウント方向 | enum | `countup` / `countdown` | countup: 0→制限時間、countdown: 制限時間→0（残り時間表示） |
 
 #### ポイント・判定設定
 | 項目 | 型 | 例 | 説明 |
@@ -176,7 +177,7 @@
 | 区切り線色 | string | `#333333` | |
 
 #### レイアウト設定（行ベースエディタ）
-フォントサイズは数値（vh単位）で自由に指定可能。上限なし（画面からはみ出すサイズも設定可）。旧 enum フィールド（`theme_timer_font_size` / `theme_score_font_size`）は `layout: null` 時のフォールバック変換用に内部残存（UIには非表示）。
+フォントサイズは数値（vh単位）で自由に指定可能。上限なし（画面からはみ出すサイズも設定可）。
 
 | 項目 | 型 | 説明 |
 |------|-----|------|
@@ -835,11 +836,9 @@ type LayoutRow = {
 | color_left_name | text | '赤' | 左選手カラー名（アナウンス用） |
 | color_right_name | text | '白' | 右選手カラー名（アナウンス用） |
 | theme_bg_color | text | '#000000' | 背景色 |
-| theme_timer_font_size | text | 'xlarge' | タイマーフォントサイズ |
 | theme_timer_color | text | '#00FF00' | タイマー文字色 |
 | theme_timer_warn_color | text | '#FF0000' | タイマー警告色 |
 | theme_warn_threshold | integer | 10 | 警告閾値（秒） |
-| theme_score_font_size | text | 'large' | スコアフォントサイズ |
 | theme_show_decimals | boolean | false | 0.1秒表示 |
 | theme_font_family | text | 'digital' | フォントスタイル |
 | theme_divider_color | text | '#333333' | 区切り線色 |
