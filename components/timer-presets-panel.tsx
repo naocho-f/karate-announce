@@ -556,7 +556,7 @@ export function TimerPresetsPanel() {
               </div>
               <div className="flex gap-1">
                 <button onClick={() => { setEditing({ ...p }); setEditId(p.id); }}
-                  className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs text-gray-300 transition">
+                  className="px-2 py-1 rounded bg-blue-900/50 hover:bg-blue-800/60 text-xs text-blue-300 transition">
                   編集
                 </button>
                 <button onClick={() => handleDuplicate(p.id)}
