@@ -61,7 +61,7 @@ export interface TimerState {
   rulesReading: string | null;
   matchNumber: number;
   totalMatches: number;
-  isExtension: boolean;
+  extensionCount: number;
 
   // ── 選手 ──
   red: FighterInfo;
@@ -146,7 +146,7 @@ export function createInitialState(): TimerState {
     rulesReading: null,
     matchNumber: 0,
     totalMatches: 0,
-    isExtension: false,
+    extensionCount: 0,
     red: { ...EMPTY_FIGHTER },
     white: { ...EMPTY_FIGHTER },
     redScore: { ...EMPTY_SCORE },
@@ -325,26 +325,40 @@ export function startExtension(state: TimerState): TimerState {
   const p = state.preset;
   const s = { ...state, preset: p };
   s.phase = "extension";
-  s.isExtension = true;
+  s.extensionCount = state.extensionCount + 1;
   const extDuration = p.extension_duration * 1000;
   if (p.extension_mode === "sudden_death") {
-    // サドンデス: スコアリセット、カウントアップ
+    // 先取延長: スコアリセット
     s.redScore = { ...EMPTY_SCORE };
     s.whiteScore = { ...EMPTY_SCORE };
-    s.durationMs = 0; // 無制限
-    s.timerMs = 0;
-    s.timerBaseMs = 0;
+    if (p.extension_show_timer) {
+      // カウントアップ表示
+      s.durationMs = 0;
+      s.timerMs = 0;
+      s.timerBaseMs = 0;
+    } else {
+      // タイマー非表示（durationMs=0 で countup 扱い）
+      s.durationMs = 0;
+      s.timerMs = 0;
+      s.timerBaseMs = 0;
+    }
   } else {
-    // フルラウンド: カウントダウン
-    s.durationMs = extDuration;
-    s.timerMs = extDuration;
-    s.timerBaseMs = extDuration;
+    // 時間延長: スコア引き継ぎ
+    if (p.extension_timer_direction === "countup") {
+      s.durationMs = extDuration;
+      s.timerMs = 0;
+      s.timerBaseMs = 0;
+    } else {
+      s.durationMs = extDuration;
+      s.timerMs = extDuration;
+      s.timerBaseMs = extDuration;
+    }
   }
   s.timerStartedAt = null;
   // 寝技回数リセット
   s.newaza = { ...EMPTY_NEWAZA };
   s.undoStack = [];
-  log(s, "extension_start", { mode: p.extension_mode });
+  log(s, "extension_start", { mode: p.extension_mode, count: s.extensionCount });
   return s;
 }
 
@@ -433,7 +447,7 @@ function checkAutoFinish(state: TimerState): TimerState {
   if (whitePointWin) return finishAuto(state, "white", "point");
 
   // サドンデス中: ポイント差が付いた瞬間
-  if (state.isExtension && state.preset?.extension_mode === "sudden_death") {
+  if (state.extensionCount > 0 && state.preset?.extension_mode === "sudden_death") {
     if (redPts > whitePts) return finishAuto(state, "red", "sudden_death");
     if (whitePts > redPts) return finishAuto(state, "white", "sudden_death");
   }

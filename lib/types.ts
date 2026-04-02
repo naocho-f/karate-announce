@@ -241,7 +241,10 @@ export type TimerPreset = {
   timer_direction: "countdown" | "countup";
   has_extension: boolean;
   extension_duration: number;
-  extension_mode: "sudden_death" | "full_round";
+  extension_mode: "sudden_death" | "timed";
+  extension_timer_direction: "countdown" | "countup";
+  extension_show_timer: boolean;
+  extension_max_count: number;
   allow_draw: boolean;
   // 寝技タイマー
   newaza_enabled: boolean;

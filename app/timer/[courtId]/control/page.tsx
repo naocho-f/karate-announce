@@ -55,6 +55,9 @@ const DEFAULT_PRESET: TimerPreset = {
   has_extension: false,
   extension_duration: 60,
   extension_mode: "sudden_death",
+  extension_timer_direction: "countdown",
+  extension_show_timer: true,
+  extension_max_count: 0,
   allow_draw: false,
   newaza_enabled: false,
   newaza_duration: 30,
@@ -719,7 +722,7 @@ export default function TimerControlPage() {
             <span className={`px-2 py-0.5 rounded text-xs font-bold text-white ${badge.color}`}>
               {badge.label}
             </span>
-            {state.isExtension && <span className="text-yellow-400 text-xs font-bold">延長戦</span>}
+            {state.extensionCount > 0 && <span className="text-yellow-400 text-xs font-bold">延長戦</span>}
             {state.matchLabel && <span className="text-gray-400 text-sm">{state.matchLabel}</span>}
           </div>
           <div className="flex items-center gap-2">
@@ -1243,7 +1246,7 @@ export default function TimerControlPage() {
           )}
 
           {/* 延長戦 */}
-          {phase === "time_up" && p?.has_extension && !state.isExtension && (
+          {phase === "time_up" && p?.has_extension && (p.extension_max_count === 0 || state.extensionCount < p.extension_max_count) && (
             <section>
               <button onClick={() => update(startExtension)}
                 className="w-full py-3 rounded-lg bg-purple-700 hover:bg-purple-600 text-white font-bold text-lg transition">

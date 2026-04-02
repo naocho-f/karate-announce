@@ -7,6 +7,7 @@ const BASE_PRESET = {
   id: "p1", name: "test", event_id: null, rule_id: null,
   match_duration: 120, timer_direction: "countdown" as const,
   has_extension: false, extension_duration: 60, extension_mode: "sudden_death" as const,
+  extension_timer_direction: "countdown" as const, extension_show_timer: true, extension_max_count: 0,
   allow_draw: false, newaza_enabled: false, newaza_duration: 30, newaza_direction: "countup" as const,
   newaza_limit_type: "unlimited" as const, newaza_max_count: 0, newaza_free_release: 0,
   show_points: true, show_wazaari: true, wazaari_points: 0,

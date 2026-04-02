@@ -52,7 +52,9 @@ function makePreset(overrides: Partial<TimerPreset> = {}): TimerPreset {
   return {
     id: "test-preset", name: "テスト", event_id: null, rule_id: null,
     match_duration: 120, timer_direction: "countdown",
-    has_extension: false, extension_duration: 60, extension_mode: "sudden_death", allow_draw: false,
+    has_extension: false, extension_duration: 60, extension_mode: "sudden_death",
+    extension_timer_direction: "countdown", extension_show_timer: true, extension_max_count: 0,
+    allow_draw: false,
     newaza_enabled: false, newaza_duration: 30, newaza_direction: "countup", newaza_limit_type: "unlimited",
     newaza_max_count: 0, newaza_free_release: 0,
     show_points: true, show_wazaari: true, wazaari_points: 0,
@@ -409,20 +411,20 @@ describe("timer-state", () => {
       s = timeUp(s);
       s = startExtension(s);
       expect(s.phase).toBe("extension");
-      expect(s.isExtension).toBe(true);
+      expect(s.extensionCount).toBe(1);
       expect(s.durationMs).toBe(0); // サドンデスは無制限
       expect(s.redScore.points).toBe(0); // スコアリセット
     });
 
     it("startExtension(full_round): time_up → extension、スコア引き継ぎ・カウントダウン", () => {
-      const base = readyState({ has_extension: true, extension_duration: 60, extension_mode: "full_round" });
+      const base = readyState({ has_extension: true, extension_duration: 60, extension_mode: "timed" });
       let s = startTimer(base);
       s = addPoint(s, "red");
       s = addPoint(s, "red");
       s = timeUp(s);
       s = startExtension(s);
       expect(s.phase).toBe("extension");
-      expect(s.isExtension).toBe(true);
+      expect(s.extensionCount).toBe(1);
       expect(s.durationMs).toBe(60_000);
       expect(s.redScore.points).toBe(2); // スコア引き継ぎ
     });

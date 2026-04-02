@@ -15,6 +15,9 @@ const EMPTY_PRESET: EditablePreset = {
   has_extension: false,
   extension_duration: 60,
   extension_mode: "sudden_death",
+  extension_timer_direction: "countdown",
+  extension_show_timer: true,
+  extension_max_count: 0,
   allow_draw: false,
   newaza_enabled: false,
   newaza_duration: 30,
@@ -592,11 +595,24 @@ export function TimerPresetsPanel() {
               <div className="space-y-2">
                 {field("has_extension", "延長戦あり", "checkbox")}
                 {editing.has_extension && (
-                  <div className="grid grid-cols-2 gap-3 pl-4">
-                    {field("extension_duration", "延長時間", "duration")}
-                    {field("extension_mode", "延長方式", "select", {
-                      options: [{ value: "sudden_death", label: "サドンデス" }, { value: "full_round", label: "フルラウンド" }]
+                  <div className="space-y-2 pl-4">
+                    {field("extension_mode", "延長タイプ", "select", {
+                      options: [{ value: "timed", label: "時間延長" }, { value: "sudden_death", label: "先取延長" }]
                     })}
+                    {editing.extension_mode === "timed" && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {field("extension_duration", "延長時間", "duration")}
+                        {field("extension_timer_direction", "カウント方向", "select", {
+                          options: [{ value: "countdown", label: "カウントダウン" }, { value: "countup", label: "カウントアップ" }]
+                        })}
+                        {field("extension_max_count", "最大延長回数（0=無制限）", "number")}
+                      </div>
+                    )}
+                    {editing.extension_mode === "sudden_death" && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {field("extension_show_timer", "タイマー表示（カウントアップ）", "checkbox")}
+                      </div>
+                    )}
                   </div>
                 )}
                 {field("allow_draw", "引き分け判定あり", "checkbox")}

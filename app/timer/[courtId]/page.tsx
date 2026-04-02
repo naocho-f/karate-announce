@@ -236,12 +236,12 @@ export default function TimerDisplayPage() {
         );
 
       case "match_info":
-        if (!p?.show_match_number && !state.isExtension) return null;
+        if (!p?.show_match_number && state.extensionCount === 0) return null;
         return (
           <div key={idx} className="text-gray-500" style={{ ...baseStyle, fontSize: `${row.fontSize}vh` }}>
             {p?.show_match_number && toFullWidthDigits(state.matchLabel)}
             {p?.show_match_number && state.totalMatches > 0 && toFullWidthDigits(` / 全${state.totalMatches}試合`)}
-            {state.isExtension && <span className="ml-2 text-yellow-400 font-bold">延長戦</span>}
+            {state.extensionCount > 0 && <span className="ml-2 text-yellow-400 font-bold">延長戦</span>}
           </div>
         );
 
