@@ -13,6 +13,7 @@ import { BracketView, roundLabel } from "@/lib/bracket-view";
 import { BracketRulesPanel } from "@/components/bracket-rules-panel";
 import { AutoCreateDialog } from "@/components/auto-create-dialog";
 import { computeSuggestions } from "@/lib/suggestions";
+import { buildRuleGroups } from "@/lib/rule-grouping";
 import type { AutoGroup } from "@/lib/auto-bracket";
 import { getGradeOptions, gradeToNumber, findAgeCategory, isAgeCategoryLabel, type AgeCategory } from "@/lib/grade-options";
 import { buildFilterSortComparator, matchCountFilterPredicate } from "@/lib/group-filter-sort";
@@ -713,35 +714,8 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
         {sortedFilteredUnassigned.length > 0 ? (
           <>
             {(() => {
-              // ルールごとにグループ化（ルール絞込時はフラット表示）
               const allRules = eventRules.length > 0 ? eventRules : [];
-              const ruleGroups: { rule: Rule | null; entries: Entry[]; totalDesired: number }[] = [];
-
-              if (!defaultRuleId && allRules.length > 0) {
-                for (const rule of allRules) {
-                  const ruleEntries = sortedFilteredUnassigned.filter((e) => entryRuleIds[e.id]?.has(rule.id));
-                  if (ruleEntries.length > 0) {
-                    const totalDesired = ruleEntries.reduce((sum, e) => sum + getDesiredMatchCount(e), 0);
-                    ruleGroups.push({ rule, entries: ruleEntries, totalDesired });
-                  }
-                }
-                // ルールに属さない選手
-                const noRuleEntries = sortedFilteredUnassigned.filter((e) => {
-                  const rids = entryRuleIds[e.id];
-                  return !rids || rids.size === 0 || !allRules.some((r) => rids.has(r.id));
-                });
-                if (noRuleEntries.length > 0) {
-                  const totalDesired = noRuleEntries.reduce((sum, e) => sum + getDesiredMatchCount(e), 0);
-                  ruleGroups.push({ rule: null, entries: noRuleEntries, totalDesired });
-                }
-              }
-
-              // ルール絞込時 or ルールが1つ以下の場合はフラット表示
-              if (ruleGroups.length <= 1) {
-                ruleGroups.length = 0;
-                const totalDesired = sortedFilteredUnassigned.reduce((sum, e) => sum + getDesiredMatchCount(e), 0);
-                ruleGroups.push({ rule: null, entries: sortedFilteredUnassigned, totalDesired });
-              }
+              const ruleGroups = buildRuleGroups(sortedFilteredUnassigned, allRules, defaultRuleId, entryRuleIds, getDesiredMatchCount);
 
               const renderEntryChip = (e: Entry) => {
                 const desired = getDesiredMatchCount(e);
