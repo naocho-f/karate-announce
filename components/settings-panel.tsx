@@ -501,15 +501,15 @@ function TemplateEditor() {
       </div>
 
       {/* タブ */}
-      <div className="flex gap-1">
+      <div className="grid grid-cols-2 gap-2">
         {(["matchStart", "winner"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`py-2 rounded-lg text-sm font-medium transition text-center ${
               activeTab === tab
                 ? "bg-blue-600 text-white"
-                : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                : "bg-gray-800 text-gray-400 hover:bg-gray-700"
             }`}
           >
             {tab === "matchStart" ? "試合開始" : "勝者発表"}
