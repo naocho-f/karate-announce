@@ -205,6 +205,20 @@ describe("email-template", () => {
       expect(result).not.toContain("gi");
     });
 
+    it("other: プレフィックスを「その他: 」に変換して表示する", () => {
+      const result = buildEntryDetails({
+        extra_fields: {
+          equipment_owned: ["gi", "other:レンタル希望"],
+        },
+      }, [], { equipment_owned: "持っている防具" }, {
+        equipment_owned: [
+          { value: "gi", label: "道着" },
+        ],
+      });
+      expect(result).toContain("道着\n  その他: レンタル希望");
+      expect(result).not.toContain("other:");
+    });
+
     it("値が未設定のフィールドは行を出力しない", () => {
       const result = buildEntryDetails({
         family_name: "山田",

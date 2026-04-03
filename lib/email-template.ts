@@ -71,6 +71,7 @@ export function buildEntryDetails(
 
   // value → label 変換ヘルパー
   const resolveLabel = (key: string, raw: string): string => {
+    if (raw.startsWith("other:")) return `その他: ${raw.slice(6)}`;
     const choices = fieldChoices?.[key];
     if (choices) {
       const found = choices.find((c) => c.value === raw);

@@ -142,6 +142,7 @@ export default function EntryDetailPage({ params }: Props) {
   }
 
   function formatValue(key: string, raw: string): string {
+    if (raw.startsWith("other:")) return `その他: ${raw.slice(6)}`;
     if (key === "sex") return raw === "male" ? "男性" : raw === "female" ? "女性" : raw;
     // checkbox: JSON配列をカンマ区切りに
     if (raw.startsWith("[")) {
@@ -153,6 +154,7 @@ export default function EntryDetailPage({ params }: Props) {
           const def = isCustomField(key) ? customFieldDefs.find((d) => d.field_key === key) : null;
           const choices = fc?.custom_choices ?? def?.choices ?? getFieldDef(key)?.defaultChoices ?? [];
           return arr.map((v: string) => {
+            if (v.startsWith("other:")) return `その他: ${v.slice(6)}`;
             const c = choices.find((c) => c.value === v);
             return c?.label ?? v;
           }).join("\n");

@@ -332,6 +332,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
 
       // 選択肢ラベルに変換
       function formatValue(key: string, raw: string): string {
+        if (raw.startsWith("other:")) return `その他: ${raw.slice(6)}`;
         if (key === "sex") return raw === "male" ? "男性" : raw === "female" ? "女性" : raw;
         if (raw.startsWith("[")) {
           try {
@@ -341,6 +342,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
               const def = isCustomField(key) ? customFieldDefs.find((d) => d.field_key === key) : null;
               const choices = fc?.custom_choices ?? def?.choices ?? getFieldDef(key)?.defaultChoices ?? [];
               return arr.map((v: string) => {
+                if (v.startsWith("other:")) return `その他: ${v.slice(6)}`;
                 const c = choices.find((ch) => ch.value === v);
                 return c?.label ?? v;
               }).join("\n");
