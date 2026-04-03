@@ -304,14 +304,20 @@ describe("gradeFilterPredicate", () => {
   });
 
   describe("上限のみ設定", () => {
-    it("上限=学年ベース（高3）→ 学年が高3以下のみ通過", () => {
+    it("上限=学年ベース（高3）→ 学年が高3以下のみ通過、年齢ベース区分は概算年齢で判定", () => {
       const pred = gradeFilterPredicate("", "高3", ageCategories);
       expect(pred(child)).toBe(true);   // 小3=3 <= 高3=12
       expect(pred(teen)).toBe(true);    // 中2=8 <= 12
-      // 既知の制限: 年齢ベース区分（一般・シニア）は学年フィルタでは除外されない
-      // 高校生以下に絞る場合は年齢フィルタとの併用が必要
-      expect(pred(adult)).toBe(true);
-      expect(pred(senior)).toBe(true);
+      // 高3=12 → 概算上限18歳。一般(age=30)・シニア(age=60)は18超なので除外
+      expect(pred(adult)).toBe(false);
+      expect(pred(senior)).toBe(false);
+    });
+
+    it("上限=学年ベース（高3）→ 概算年齢以下の年齢ベース区分は通過", () => {
+      // 16歳未満カテゴリで age=15 → 概算上限18歳以下なので通過
+      const youngAdult = makeEntry({ id: "ya", family_name: "若者", grade: "16歳未満", age: 15 });
+      const pred = gradeFilterPredicate("", "高3", ageCategories);
+      expect(pred(youngAdult)).toBe(true);
     });
 
     it("上限=シニア（maxAge: null）→ 全員通過", () => {

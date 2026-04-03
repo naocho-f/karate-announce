@@ -120,8 +120,15 @@ export function gradeFilterPredicate(
       return true;
     }
 
-    // エントリーが年齢ベース区分（一般・シニア等）→ 学年フィルタでは除外しない
-    if (entry.grade && findAgeCategory(entry.grade, ageCategories)) return true;
+    // エントリーが年齢ベース区分（一般・シニア等）→ 概算年齢で比較
+    if (entry.grade && findAgeCategory(entry.grade, ageCategories)) {
+      if (entry.age == null) return false;
+      const approxMinAge = minNum != null ? minNum + 5 : null;
+      const approxMaxAge = maxNum != null ? maxNum + 6 : null;
+      if (approxMinAge != null && entry.age < approxMinAge) return false;
+      if (approxMaxAge != null && entry.age > approxMaxAge) return false;
+      return true;
+    }
 
     // どちらにも該当しない → 除外
     return false;
