@@ -100,10 +100,18 @@ async function sendConfirmationEmail(
   // フィールド表示名・選択肢マッピングを構築
   const fieldLabels: Record<string, string> = {};
   const fieldChoices: Record<string, { value: string; label: string }[]> = {};
-  const { data: fieldConfigs } = await supabaseAdmin
-    .from("form_field_configs")
-    .select("field_key, custom_label, custom_choices")
-    .eq("event_id", eventId);
+  const { data: formConfigs } = await supabaseAdmin
+    .from("form_configs")
+    .select("id")
+    .eq("event_id", eventId)
+    .limit(1);
+  const formConfigId = formConfigs?.[0]?.id;
+  const { data: fieldConfigs } = formConfigId
+    ? await supabaseAdmin
+        .from("form_field_configs")
+        .select("field_key, custom_label, custom_choices")
+        .eq("form_config_id", formConfigId)
+    : { data: [] as { field_key: string; custom_label: string | null; custom_choices: { value: string; label: string }[] | null }[] };
   const { data: customDefs } = await supabaseAdmin
     .from("custom_field_defs")
     .select("field_key, label, choices")

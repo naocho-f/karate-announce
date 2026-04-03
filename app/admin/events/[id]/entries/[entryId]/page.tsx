@@ -256,14 +256,6 @@ export default function EntryDetailPage({ params }: Props) {
             )}
           </div>
 
-          {/* 申込備考 */}
-          {entry.memo && (
-            <div className="bg-gray-800 rounded-lg p-4 space-y-2">
-              <h2 className="text-sm font-bold text-gray-300 border-b border-gray-700 pb-2">申込時の備考</h2>
-              <p className="text-sm text-gray-300 whitespace-pre-wrap">{entry.memo}</p>
-            </div>
-          )}
-
           {/* 管理者メモ */}
           <div className="bg-gray-800 rounded-lg p-4 space-y-2">
             <h2 className="text-sm font-bold text-yellow-300 border-b border-gray-700 pb-2">管理者メモ</h2>
