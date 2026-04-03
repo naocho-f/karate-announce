@@ -198,6 +198,24 @@ describe("buildFilterSortComparator", () => {
     expect(sorted.map((e) => e.id)).toEqual(["a", "b"]);
   });
 
+  it("年代フィルタ設定時、年齢ベース区分のエントリーは末尾にソートされる", () => {
+    const child1 = makeEntry({ id: "c1", family_name: "A", age: 9, grade: "小3" });
+    const child2 = makeEntry({ id: "c2", family_name: "B", age: 10, grade: "小4" });
+    const adultE = makeEntry({ id: "ad", family_name: "C", age: 30, grade: "一般" });
+    const cmp = buildFilterSortComparator({ ...noFilter, minGrade: "小1" });
+    const sorted = [adultE, child2, child1].sort(cmp);
+    // 小3(3), 小4(4), 一般(null→999) の順
+    expect(sorted.map((e) => e.id)).toEqual(["c1", "c2", "ad"]);
+  });
+
+  it("全フィールドが null のエントリーはデフォルトソートで末尾", () => {
+    const withData = makeEntry({ id: "a", family_name: "A", age: 25 });
+    const allNull = makeEntry({ id: "b", family_name: "B", age: null, weight: null, height: null });
+    const cmp = buildFilterSortComparator(noFilter);
+    const sorted = [allNull, withData].sort(cmp);
+    expect(sorted.map((e) => e.id)).toEqual(["a", "b"]);
+  });
+
   it("元の配列を変異させない", () => {
     const entries = [entryC, entryA, entryB];
     const original = [...entries];
@@ -347,6 +365,34 @@ describe("gradeFilterPredicate", () => {
       const pred = gradeFilterPredicate("小1", "小6", undefined);
       expect(pred(child)).toBe(true);
       expect(pred(teen)).toBe(false);
+    });
+
+    it("ageCategories が空配列の場合、年齢ベース区分エントリーは除外される", () => {
+      const pred = gradeFilterPredicate("年少", "", []);
+      expect(pred(child)).toBe(true);   // 学年ベースは通常通り
+      expect(pred(adult)).toBe(false);  // findAgeCategory が null → 除外
+    });
+
+    it("grade が不明な文字列（学年でも年齢ベースでもない）は除外", () => {
+      const unknown = makeEntry({ id: "u", family_name: "不明", grade: "特別枠", age: 25 });
+      const pred = gradeFilterPredicate("小1", "", ageCategories);
+      expect(pred(unknown)).toBe(false);
+    });
+
+    it("下限=小1, 上限=高3 で概算年齢の範囲内の年齢ベース区分は通過", () => {
+      // 16歳未満(age=15): approxMin=1+5=6, approxMax=12+6=18 → 6<=15<=18 → 通過
+      const youngCat = makeEntry({ id: "yc", family_name: "若", grade: "16歳未満", age: 15 });
+      const pred = gradeFilterPredicate("小1", "高3", ageCategories);
+      expect(pred(youngCat)).toBe(true);
+      expect(pred(adult)).toBe(false);  // age=30 > 18
+    });
+
+    it("概算年齢の境界: 19歳の高3生は上限=高3で除外される", () => {
+      // 早生まれ等で高3時点で19歳のケース
+      // approxMaxAge = 12+6 = 18, 19 > 18 → 除外
+      const lateStudent = makeEntry({ id: "ls", family_name: "遅", grade: "一般", age: 19 });
+      const pred = gradeFilterPredicate("", "高3", ageCategories);
+      expect(pred(lateStudent)).toBe(false);
     });
 
     it("境界値: age が minAge と一致 → 通過", () => {
