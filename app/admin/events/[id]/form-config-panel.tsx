@@ -561,7 +561,11 @@ function FieldPreviewCard({
                 <span className="w-px h-3 bg-gray-600 mx-1" />
                 <select
                   value={field.required ? "required" : "optional"}
-                  onChange={(e) => onUpdate(field.id, { required: e.target.value === "required" })}
+                  onChange={(e) => {
+                    const newRequired = e.target.value === "required";
+                    onUpdate(field.id, { required: newRequired });
+                    if (kanaField) onUpdate(kanaField.id, { required: newRequired });
+                  }}
                   className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
                 >
                   <option value="required">必須</option>
@@ -951,7 +955,7 @@ function FieldDetailEditor({ field, def, allFields, onUpdate, onClose }: {
           <textarea value={choicesText} onChange={(e) => setChoicesText(e.target.value)}
             rows={Math.min(choices_line_count(choicesText), 10)}
             className="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none" />
-          <button onClick={saveChoices} className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded transition">適用</button>
+          <button onClick={saveChoices} className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded transition">選択肢をフォームに反映</button>
         </div>
       )}
     </div>

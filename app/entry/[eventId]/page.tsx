@@ -1158,12 +1158,17 @@ export default function EntryPage({ params }: Props) {
     <main className="min-h-screen bg-main-bg text-white p-6">
       {/* バリデーションエラーバナー（画面上部固定） */}
       {Object.keys(fieldErrors).length > 0 && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-red-900/95 border-b border-red-500/50 px-4 py-3 shadow-lg backdrop-blur-sm">
-          <div className="max-w-md mx-auto flex items-center justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-red-200">入力内容を確認してください（{Object.keys(fieldErrors).length}件）</p>
+        <div className="fixed top-0 left-0 right-0 z-50 bg-red-900/95 border-b border-red-500/50 px-4 py-3 shadow-lg backdrop-blur-sm max-h-[40vh] overflow-y-auto">
+          <div className="max-w-md mx-auto">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0 space-y-1">
+                <p className="text-sm font-bold text-red-200">入力内容を確認してください（{Object.keys(fieldErrors).length}件）</p>
+                {Object.values(fieldErrors).map((msg, i) => (
+                  <p key={i} className="text-xs text-red-300/80">・{msg}</p>
+                ))}
+              </div>
+              <button onClick={() => setFieldErrors({})} className="text-red-300 hover:text-white text-lg leading-none shrink-0 mt-0.5" aria-label="閉じる">×</button>
             </div>
-            <button onClick={() => setFieldErrors({})} className="text-red-300 hover:text-white text-lg leading-none shrink-0" aria-label="閉じる">×</button>
           </div>
         </div>
       )}

@@ -21,6 +21,20 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // サーバー側でも birth_date から age を再計算（クライアント側の取りこぼし防止）
+  if (entry?.birth_date && typeof entry.birth_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(entry.birth_date)) {
+    const { data: ev2 } = entry.event_id
+      ? await supabaseAdmin.from("events").select("event_date").eq("id", entry.event_id).single()
+      : { data: null };
+    const refDate = ev2?.event_date ? new Date(ev2.event_date) : new Date();
+    const birth = new Date(entry.birth_date);
+    let age = refDate.getFullYear() - birth.getFullYear();
+    const hasBday = refDate.getMonth() > birth.getMonth() ||
+      (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
+    if (!hasBday) age--;
+    entry.age = age;
+  }
+
   if (school_name) {
     const { data: existing } = await supabaseAdmin
       .from("dojos")
