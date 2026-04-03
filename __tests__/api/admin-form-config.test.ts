@@ -103,6 +103,78 @@ describe("/api/admin/form-config PUT", () => {
     expect(json.ok).toBe(true);
     expect(json.version).toBe(3);
   });
+
+  it("temp_ ID のフィールドは update をスキップする", async () => {
+    mockResult("form_configs", "select", { data: { version: 1 } });
+    resetCalls();
+    const { PUT } = await import("@/app/api/admin/form-config/route");
+    const req = createAdminRequest("PUT", "/api/admin/form-config", {
+      body: {
+        config_id: "fc1",
+        fields: [
+          { id: "ff1", field_key: "phone", visible: true, required: false, sort_order: 0 },
+          { id: "temp_abc", field_key: "custom_xyz", visible: true, required: true, sort_order: 5 },
+        ],
+      },
+    });
+    const res = await PUT(req);
+    expect(res.status).toBe(200);
+    // form_field_configs の update 呼び出しを確認（temp_ はスキップされる）
+    const updateCalls = getCallsFor("form_field_configs", "update");
+    // ff1 の update のみ（temp_abc はスキップ）
+    expect(updateCalls.length).toBe(1);
+  });
+
+  it("注意書きのバッチ保存（新規・更新・削除）", async () => {
+    mockResult("form_configs", "select", { data: { version: 1 } });
+    // deleteNoticeWithImages 用のモック
+    mockResult("form_notice_images", "select", { data: [] });
+    const { PUT } = await import("@/app/api/admin/form-config/route");
+    const req = createAdminRequest("PUT", "/api/admin/form-config", {
+      body: {
+        config_id: "fc1",
+        fields: [],
+        notices: {
+          upsert: [
+            { id: "temp_new1", anchor_type: "form_start", sort_order: 0, text_content: "新規注意" },
+            { id: "existing1", anchor_type: "form_end", sort_order: 0, text_content: "更新済み" },
+          ],
+          delete_ids: ["del1"],
+        },
+      },
+    });
+    const res = await PUT(req);
+    expect(res.status).toBe(200);
+    // form_notices に insert と update が呼ばれたことを確認
+    const insertCalls = getCallsFor("form_notices", "insert");
+    expect(insertCalls.length).toBeGreaterThanOrEqual(1);
+    const updateCalls = getCallsFor("form_notices", "update");
+    expect(updateCalls.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("カスタムフィールドのバッチ作成・削除", async () => {
+    mockResult("form_configs", "select", { data: { version: 1 } });
+    const { PUT } = await import("@/app/api/admin/form-config/route");
+    const req = createAdminRequest("PUT", "/api/admin/form-config", {
+      body: {
+        config_id: "fc1",
+        fields: [
+          { id: "temp_ffc1", field_key: "custom_aaa", visible: true, required: true, sort_order: 10, has_other_option: false, custom_choices: null, custom_label: "テスト" },
+        ],
+        custom_fields: {
+          create: [{ field_key: "custom_aaa", label: "テスト", field_type: "text", choices: null }],
+          delete_keys: ["custom_old"],
+        },
+      },
+    });
+    const res = await PUT(req);
+    expect(res.status).toBe(200);
+    // custom_field_defs の insert と delete が呼ばれた
+    const defInserts = getCallsFor("custom_field_defs", "insert");
+    expect(defInserts.length).toBeGreaterThanOrEqual(1);
+    const defDeletes = getCallsFor("custom_field_defs", "delete");
+    expect(defDeletes.length).toBeGreaterThanOrEqual(1);
+  });
 });
 
 // ── /api/admin/form-config/copy ──

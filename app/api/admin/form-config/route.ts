@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 import { FIELD_POOL, DEFAULT_CUSTOM_FIELDS } from "@/lib/form-fields";
+import { deleteNoticeWithImages, deleteImageById } from "@/lib/form-config-utils";
 
 // ──────────────────────────────────────────────
 // デフォルトフォーム設定（Google Forms の実績フォームを再現）
@@ -350,30 +351,93 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ config, fields: fields ?? [], notices: notices ?? [], customFieldDefs: customFieldDefs ?? [] });
 }
 
-/** PUT — フォーム設定の一括更新（フィールド設定 + version インクリメント） */
+/** PUT — フォーム設定の一括保存（フィールド + 注意書き + カスタムフィールド + 画像削除） */
 export async function PUT(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
-  const { config_id, fields } = await request.json();
+  const { config_id, fields, notices, custom_fields, deleted_image_ids } = await request.json();
   if (!config_id) return NextResponse.json({ error: "config_id required" }, { status: 400 });
 
-  // 現在の version を取得
-  const { data: current } = await supabaseAdmin
-    .from("form_configs")
-    .select("version")
-    .eq("id", config_id)
-    .single();
+  // ── Step 1: 画像削除（冪等） ──
+  if (deleted_image_ids && Array.isArray(deleted_image_ids)) {
+    for (const imageId of deleted_image_ids) {
+      await deleteImageById(imageId);
+    }
+  }
 
-  const newVersion = (current?.version ?? 0) + 1;
+  // ── Step 2: 注意書き削除（画像カスケード含む） ──
+  if (notices?.delete_ids && Array.isArray(notices.delete_ids)) {
+    for (const noticeId of notices.delete_ids) {
+      await deleteNoticeWithImages(noticeId);
+    }
+  }
 
-  // version インクリメント
-  await supabaseAdmin
-    .from("form_configs")
-    .update({ version: newVersion, updated_at: new Date().toISOString() })
-    .eq("id", config_id);
+  // ── Step 3: カスタムフィールド削除 ──
+  if (custom_fields?.delete_keys && Array.isArray(custom_fields.delete_keys)) {
+    for (const fieldKey of custom_fields.delete_keys) {
+      await supabaseAdmin.from("custom_field_defs").delete().eq("form_config_id", config_id).eq("field_key", fieldKey);
+      await supabaseAdmin.from("form_field_configs").delete().eq("form_config_id", config_id).eq("field_key", fieldKey);
+    }
+  }
 
-  // フィールド設定の一括更新
+  // ── Step 4: 注意書き upsert ──
+  if (notices?.upsert && Array.isArray(notices.upsert)) {
+    for (const n of notices.upsert) {
+      const noticeData = {
+        form_config_id: config_id,
+        anchor_type: n.anchor_type,
+        anchor_field_key: n.anchor_field_key ?? null,
+        sort_order: n.sort_order ?? 0,
+        text_content: n.text_content ?? null,
+        scrollable_text: n.scrollable_text ?? null,
+        link_url: n.link_url ?? null,
+        link_label: n.link_label ?? null,
+        require_consent: n.require_consent ?? false,
+        consent_label: n.consent_label ?? null,
+      };
+      if (typeof n.id === "string" && n.id.startsWith("temp_")) {
+        // 新規 INSERT
+        await supabaseAdmin.from("form_notices").insert(noticeData);
+      } else {
+        // 既存 UPDATE
+        await supabaseAdmin.from("form_notices").update(noticeData).eq("id", n.id);
+      }
+    }
+  }
+
+  // ── Step 5: カスタムフィールド作成 ──
+  if (custom_fields?.create && Array.isArray(custom_fields.create)) {
+    for (const cf of custom_fields.create) {
+      // custom_field_defs に INSERT
+      const matchingField = (fields ?? []).find((f: { field_key: string }) => f.field_key === cf.field_key);
+      const sortOrder = matchingField?.sort_order ?? 0;
+
+      await supabaseAdmin.from("custom_field_defs").insert({
+        form_config_id: config_id,
+        field_key: cf.field_key,
+        label: cf.label,
+        field_type: cf.field_type,
+        choices: cf.choices ?? null,
+        sort_order: sortOrder,
+      });
+
+      // form_field_configs に INSERT（fields 配列から visible/required 等を取得）
+      await supabaseAdmin.from("form_field_configs").insert({
+        form_config_id: config_id,
+        field_key: cf.field_key,
+        visible: matchingField?.visible ?? true,
+        required: matchingField?.required ?? false,
+        sort_order: sortOrder,
+        has_other_option: matchingField?.has_other_option ?? false,
+        custom_choices: matchingField?.custom_choices ?? cf.choices ?? null,
+        custom_label: matchingField?.custom_label ?? cf.label,
+      });
+    }
+  }
+
+  // ── Step 6: フィールド設定の一括更新（temp_ ID はスキップ） ──
   if (fields && Array.isArray(fields)) {
     for (const f of fields) {
+      if (typeof f.id === "string" && f.id.startsWith("temp_")) continue;
       await supabaseAdmin
         .from("form_field_configs")
         .update({
@@ -387,6 +451,20 @@ export async function PUT(request: NextRequest) {
         .eq("id", f.id);
     }
   }
+
+  // ── Step 7: バージョンインクリメント ──
+  const { data: current } = await supabaseAdmin
+    .from("form_configs")
+    .select("version")
+    .eq("id", config_id)
+    .single();
+
+  const newVersion = (current?.version ?? 0) + 1;
+
+  await supabaseAdmin
+    .from("form_configs")
+    .update({ version: newVersion, updated_at: new Date().toISOString() })
+    .eq("id", config_id);
 
   return NextResponse.json({ ok: true, version: newVersion });
 }

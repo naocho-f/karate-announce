@@ -192,24 +192,41 @@ type FieldPoolItem = {
 
 **後方互換**: `form_field_configs` にカスタムフィールドキーがあるが `custom_field_defs` にない場合、DEFAULT_CUSTOM_FIELDS から自動補完。
 
-### 4.2 フィールド設定保存
+### 4.2 フォーム設定の一括保存
 
 **`PUT /api/admin/form-config`**
+
+フィールド設定・注意書き・カスタムフィールド・画像削除をバッチで処理する。全変更は保存ボタン経由でこのエンドポイントに送信される。
 
 **リクエスト**:
 ```json
 {
   "config_id": "uuid",
-  "fields": [ /* FormFieldConfig[] */ ]
+  "fields": [ /* FormFieldConfig[] — temp_ prefix ID は新規カスタムフィールド */ ],
+  "notices": {
+    "upsert": [ /* FormNotice[] — images/created_at 除外。temp_ prefix ID は新規 */ ],
+    "delete_ids": [ /* 削除する notice の real ID */ ]
+  },
+  "custom_fields": {
+    "create": [ /* { field_key, label, field_type, choices } — 新規 def 情報 */ ],
+    "delete_keys": [ /* 削除する field_key */ ]
+  },
+  "deleted_image_ids": [ /* 削除する画像の real ID */ ]
 }
 ```
 
-**動作**:
-- `form_field_configs` の `visible`, `required`, `sort_order`, `has_other_option`, `custom_choices`, `custom_label` を一括更新
-- `version` をインクリメント
-- `updated_at` を更新
+**処理順序**（部分失敗でも安全な順序）:
+1. 画像削除（ストレージ + DB、冪等）
+2. 注意書き削除（画像カスケード含む）
+3. カスタムフィールド削除（`custom_field_defs` + `form_field_configs`）
+4. 注意書き upsert（temp_ ID → INSERT、既存 → UPDATE）
+5. カスタムフィールド作成（`custom_field_defs` + `form_field_configs`。fields 配列から visible/required/sort_order を取得）
+6. フィールド設定更新（temp_ ID はスキップ — step 5 で INSERT 済み）
+7. バージョンインクリメント
 
 **レスポンス**: `{ ok: true, version: 新バージョン番号 }`
+
+クライアントは成功後に `load()` を呼んで全 state をリフレッシュする（temp ID → real ID の解決含む）。
 
 ### 4.4 過去イベントからコピー
 
@@ -347,7 +364,8 @@ type FieldPoolItem = {
 - リンク URL + ラベル（2カラムグリッド）
 - 画像アップロード + サムネイル（削除ボタン付き）
 - 同意チェックボックス ON/OFF + カスタムラベル入力
-- 保存 / キャンセルボタン
+- 適用 / キャンセルボタン（「適用」はローカル state への反映。DB保存は主保存ボタンで行う）
+- 新規注意書き（未保存、temp_ ID）の場合、画像アップロードは disabled（「保存後に画像を追加できます」ツールチップ）
 
 ### 5.8 カスタムフィールド追加フォーム
 - 「カスタムフィールドを追加」ボタンで展開
@@ -400,15 +418,22 @@ type FieldPoolItem = {
 ## 8. 状態管理
 
 ### 8.1 dirty フラグ
-- フィールドの変更（表示/非表示、必須、並び順、ラベル、選択肢）で `dirty = true`
-- `save()` 成功後に `dirty = false`
-- 注意書きの変更は即座に API を呼ぶため dirty フラグの対象外
+- 全ての変更操作（フィールド、注意書き、カスタムフィールド、画像アップロード/削除）で `dirty = true`
+- `save()` 成功 → `load()` 完了後に `dirty = false`
+- 保存ボタンは `dirty = true` の場合に青色、`false` の場合にグレー
+- 保存ボタンは `saving` 中または `busyNotices.size > 0`（画像アップロード中）の場合に disabled
+- 「過去の大会から読み込む」は `dirty = true` の場合に確認ダイアログを表示
 - ページ遷移時の未保存警告なし（将来対応の余地あり）
 
 ### 8.2 busyNotices
-- 注意書き操作（画像アップロード/削除、注意書き更新/削除）中の notice ID を `Set<string>` で管理
+- 画像アップロード中の notice ID を `Set<string>` で管理
 - busy 中はオーバーレイスピナーを表示し、操作をブロック
-- 複数注意書きの同時操作は可能（独立した API 呼び出し）
+
+### 8.3 削除追跡用 State
+- `deletedNoticeIds: string[]` — 削除した注意書きの real ID（temp_ ID は追跡しない）
+- `deletedCustomFieldKeys: string[]` — 削除したカスタムフィールドの field_key
+- `deletedImageIds: string[]` — 削除した画像の real ID
+- `load()` 時に全てリセット
 
 ---
 

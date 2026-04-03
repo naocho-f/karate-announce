@@ -85,23 +85,28 @@ export function FormConfigPanel({ eventId }: Props) {
   const [busyNotices, setBusyNotices] = useState<Set<string>>(new Set());
   const [rules, setRules] = useState<{ id: string; name: string }[]>([]);
   const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
-  // togglingReady は廃止（公開ボタン削除）
   const [copying, setCopying] = useState(false);
   const [deletingCustomKey, setDeletingCustomKey] = useState<string | null>(null);
   const [duplicatingCustomKey, setDuplicatingCustomKey] = useState<string | null>(null);
+  const [deletedNoticeIds, setDeletedNoticeIds] = useState<string[]>([]);
+  const [deletedCustomFieldKeys, setDeletedCustomFieldKeys] = useState<string[]>([]);
+  const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
 
   const addBusy = (id: string) => setBusyNotices((s) => new Set(s).add(id));
   const removeBusy = (id: string) => setBusyNotices((s) => { const n = new Set(s); n.delete(id); return n; });
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     const res = await fetch(`/api/admin/form-config?event_id=${eventId}`, { credentials: "include" });
     const data = await res.json();
     setConfig(data.config);
     setFields(data.fields);
     setNotices(data.notices);
     setCustomFieldDefs(data.customFieldDefs ?? []);
-    setLoading(false);
+    setDeletedNoticeIds([]);
+    setDeletedCustomFieldKeys([]);
+    setDeletedImageIds([]);
+    if (showLoading) setLoading(false);
     setDirty(false);
   }, [eventId]);
 
@@ -126,25 +131,44 @@ export function FormConfigPanel({ eventId }: Props) {
       return;
     }
     setSaving(true);
-    const res = await fetch("/api/admin/form-config", {
-      method: "PUT", credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ config_id: config.id, fields }),
-    });
-    if (!res.ok) { alert("保存に失敗しました"); setSaving(false); return; }
-    const json = await res.json();
-    if (json.version !== undefined) {
-      setConfig((prev) => prev ? { ...prev, version: json.version } : prev);
+    try {
+      // notices から images/created_at を除外
+      const noticeUpserts = notices.map(({ images, created_at, ...rest }) => rest);
+      // 新規カスタムフィールドを特定
+      const newCustomFields = customFieldDefs
+        .filter((d) => d.id.startsWith("temp_"))
+        .map((d) => ({ field_key: d.field_key, label: d.label, field_type: d.field_type, choices: d.choices }));
+
+      const res = await fetch("/api/admin/form-config", {
+        method: "PUT", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          config_id: config.id,
+          fields,
+          notices: {
+            upsert: noticeUpserts,
+            delete_ids: deletedNoticeIds,
+          },
+          custom_fields: {
+            create: newCustomFields,
+            delete_keys: deletedCustomFieldKeys,
+          },
+          deleted_image_ids: deletedImageIds,
+        }),
+      });
+      if (!res.ok) { alert("保存に失敗しました"); return; }
+      await load(false);
+      showSaveMessage("保存しました");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setDirty(false);
-    showSaveMessage("保存しました");
   }
 
 
 
   async function copyFromEvent(sourceEventId: string) {
     if (!config) return;
+    if (dirty && !confirm("未保存の変更があります。コピーすると失われます。続行しますか？")) return;
     setCopying(true);
     const res = await fetch("/api/admin/form-config/copy", {
       method: "POST", credentials: "include",
@@ -231,91 +255,117 @@ export function FormConfigPanel({ eventId }: Props) {
   }
 
   // 注意書き操作
-  async function addNotice(anchorType: "form_start" | "field" | "form_end", anchorFieldKey?: string) {
+  function addNotice(anchorType: "form_start" | "field" | "form_end", anchorFieldKey?: string) {
     if (!config) return;
-    const tempId = `adding-${Date.now()}`;
-    addBusy(tempId);
-    const res = await fetch("/api/admin/form-config/notices", {
-      method: "POST", credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        form_config_id: config.id, anchor_type: anchorType,
-        anchor_field_key: anchorFieldKey ?? null,
-        sort_order: notices.filter((n) => n.anchor_type === anchorType && n.anchor_field_key === anchorFieldKey).length,
-      }),
-    });
-    removeBusy(tempId);
-    if (!res.ok) { alert("注意書きの追加に失敗しました"); return; }
-    const notice = await res.json();
+    const notice = {
+      id: `temp_${crypto.randomUUID()}`,
+      form_config_id: config.id,
+      anchor_type: anchorType,
+      anchor_field_key: anchorFieldKey ?? null,
+      sort_order: notices.filter((n) => n.anchor_type === anchorType && n.anchor_field_key === anchorFieldKey).length,
+      text_content: null,
+      scrollable_text: null,
+      link_url: null,
+      link_label: null,
+      require_consent: false,
+      consent_label: null,
+      created_at: "",
+      images: [],
+    };
     setNotices((prev) => [...prev, notice]);
+    setDirty(true);
   }
 
-  async function updateNotice(id: string, patch: Partial<FormNotice>) {
-    addBusy(id);
-    await fetch(`/api/admin/form-config/notices/${id}`, {
-      method: "PATCH", credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    removeBusy(id);
+  function updateNotice(id: string, patch: Partial<FormNotice>) {
     setNotices((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
+    setDirty(true);
   }
 
-  async function deleteNotice(id: string) {
-    addBusy(id);
-    await fetch(`/api/admin/form-config/notices/${id}`, { method: "DELETE", credentials: "include" });
-    removeBusy(id);
+  function deleteNotice(id: string) {
     setNotices((prev) => prev.filter((n) => n.id !== id));
+    if (!id.startsWith("temp_")) {
+      setDeletedNoticeIds((prev) => [...prev, id]);
+    }
+    setDirty(true);
   }
 
   // ── カスタムフィールド操作 ──
-  async function addCustomField(label: string, fieldType: string, choices: { label: string; value: string }[] | null) {
+  function addCustomField(label: string, fieldType: string, choices: { label: string; value: string }[] | null) {
     if (!config) return;
-    const res = await fetch("/api/admin/form-config/custom-fields", {
-      method: "POST", credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ form_config_id: config.id, label, field_type: fieldType, choices }),
-    });
-    if (!res.ok) { alert("自由設問の追加に失敗しました"); return; }
-    const { def, fieldConfig } = await res.json();
+    const fieldKey = `custom_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
+    const nextOrder = fields.length > 0 ? Math.max(...fields.map((f) => f.sort_order)) + 1 : 0;
+    const def: CustomFieldDef = {
+      id: `temp_def_${crypto.randomUUID()}`,
+      form_config_id: config.id,
+      field_key: fieldKey,
+      label,
+      field_type: fieldType as CustomFieldDef["field_type"],
+      choices,
+      sort_order: nextOrder,
+      created_at: "",
+    };
+    const fieldConfig: FormFieldConfig = {
+      id: `temp_ffc_${crypto.randomUUID()}`,
+      form_config_id: config.id,
+      field_key: fieldKey,
+      visible: true,
+      required: false,
+      sort_order: nextOrder,
+      has_other_option: false,
+      custom_choices: choices,
+      custom_label: label,
+    };
     setCustomFieldDefs((prev) => [...prev, def]);
     setFields((prev) => [...prev, fieldConfig]);
     setDirty(true);
   }
 
-  async function deleteCustomField(fieldKey: string) {
-    if (!config) return;
-    setDeletingCustomKey(fieldKey);
-    const res = await fetch("/api/admin/form-config/custom-fields", {
-      method: "DELETE", credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ form_config_id: config.id, field_key: fieldKey }),
-    });
-    if (!res.ok) { alert("自由設問の削除に失敗しました"); setDeletingCustomKey(null); return; }
+  function deleteCustomField(fieldKey: string) {
+    const def = customFieldDefs.find((d) => d.field_key === fieldKey);
+    if (def && !def.id.startsWith("temp_")) {
+      setDeletedCustomFieldKeys((prev) => [...prev, fieldKey]);
+    }
     setCustomFieldDefs((prev) => prev.filter((d) => d.field_key !== fieldKey));
     setFields((prev) => prev.filter((f) => f.field_key !== fieldKey));
     setNotices((prev) => prev.filter((n) => !(n.anchor_type === "field" && n.anchor_field_key === fieldKey)));
-    setDeletingCustomKey(null);
     setDirty(true);
   }
 
-  async function duplicateCustomField(fieldKey: string) {
+  function duplicateCustomField(fieldKey: string) {
     if (!config) return;
-    setDuplicatingCustomKey(fieldKey);
-    const res = await fetch("/api/admin/form-config/custom-fields/duplicate", {
-      method: "POST", credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ form_config_id: config.id, source_field_key: fieldKey }),
-    });
-    if (!res.ok) { alert("自由設問の複製に失敗しました"); setDuplicatingCustomKey(null); return; }
-    const { def, fieldConfig } = await res.json();
+    const sourceDef = customFieldDefs.find((d) => d.field_key === fieldKey);
+    const sourceConfig = fields.find((f) => f.field_key === fieldKey);
+    if (!sourceDef || !sourceConfig) return;
+    const newFieldKey = `custom_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
+    const nextOrder = Math.max(...fields.map((f) => f.sort_order)) + 1;
+    const def: CustomFieldDef = {
+      id: `temp_def_${crypto.randomUUID()}`,
+      form_config_id: config.id,
+      field_key: newFieldKey,
+      label: `${sourceDef.label}(コピー)`,
+      field_type: sourceDef.field_type,
+      choices: sourceDef.choices,
+      sort_order: nextOrder,
+      created_at: "",
+    };
+    const fieldConfig: FormFieldConfig = {
+      id: `temp_ffc_${crypto.randomUUID()}`,
+      form_config_id: config.id,
+      field_key: newFieldKey,
+      visible: sourceConfig.visible,
+      required: sourceConfig.required,
+      sort_order: nextOrder,
+      has_other_option: sourceConfig.has_other_option,
+      custom_choices: sourceConfig.custom_choices,
+      custom_label: `${sourceDef.label}(コピー)`,
+    };
     setCustomFieldDefs((prev) => [...prev, def]);
     setFields((prev) => [...prev, fieldConfig]);
-    setDuplicatingCustomKey(null);
     setDirty(true);
   }
 
   async function uploadImage(noticeId: string, file: File) {
+    if (noticeId.startsWith("temp_")) { alert("先に保存してから画像を追加してください"); return; }
     addBusy(noticeId);
     const fd = new FormData();
     fd.append("file", file);
@@ -325,17 +375,13 @@ export function FormConfigPanel({ eventId }: Props) {
     if (!res.ok) { alert("画像アップロードに失敗しました"); return; }
     const img = await res.json();
     setNotices((prev) => prev.map((n) => n.id === noticeId ? { ...n, images: [...(n.images ?? []), img] } : n));
+    setDirty(true);
   }
 
-  async function deleteImage(imageId: string, noticeId: string) {
-    addBusy(noticeId);
-    await fetch("/api/admin/form-config/image-upload", {
-      method: "DELETE", credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image_id: imageId }),
-    });
-    removeBusy(noticeId);
+  function deleteImage(imageId: string, noticeId: string) {
     setNotices((prev) => prev.map((n) => n.id === noticeId ? { ...n, images: (n.images ?? []).filter((img) => img.id !== imageId) } : n));
+    setDeletedImageIds((prev) => [...prev, imageId]);
+    setDirty(true);
   }
 
   if (loading) return <div className="text-center py-8 text-gray-500"><Spinner className="inline-block mr-2" />読み込み中...</div>;
@@ -357,8 +403,8 @@ export function FormConfigPanel({ eventId }: Props) {
           <button onClick={() => setShowCopyModal(true)} disabled={copying} className="px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 rounded-lg transition disabled:opacity-50">
             {copying ? "コピー中..." : "過去の大会から読み込む"}
           </button>
-          <button onClick={save} disabled={saving}
-            className={`px-4 py-1.5 text-sm rounded-lg transition font-medium ${dirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}>
+          <button onClick={save} disabled={saving || busyNotices.size > 0}
+            className={`px-4 py-1.5 text-sm rounded-lg transition font-medium disabled:opacity-50 ${dirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}>
             {saving ? <><Spinner className="inline-block mr-1" />保存中...</> : "保存"}
           </button>
           {saveMessage && (
@@ -1028,7 +1074,7 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
       <div className="flex items-center justify-between">
         <span className="text-xs text-blue-400 font-medium">注意書き編集</span>
         <div className="flex gap-2">
-          <button onClick={saveAll} className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded">保存</button>
+          <button onClick={saveAll} className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded">適用</button>
           <button onClick={() => setEditing(false)} className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded">キャンセル</button>
         </div>
       </div>
@@ -1051,11 +1097,15 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
             </div>
           ))}
         </div>
-        <label className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
-          + 画像をアップロード
-          <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) onUploadImage(notice.id, f); e.target.value = ""; }} />
-        </label>
+        {notice.id.startsWith("temp_") ? (
+          <span className="text-xs text-gray-500" title="保存後に画像を追加できます">+ 画像をアップロード（保存後に利用可能）</span>
+        ) : (
+          <label className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
+            + 画像をアップロード
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) onUploadImage(notice.id, f); e.target.value = ""; }} />
+          </label>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -1096,7 +1146,7 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
 // 自由設問追加フォーム
 // ══════════════════════════════════════════════════════════════
 
-function AddCustomFieldForm({ onAdd }: { onAdd: (label: string, fieldType: string, choices: { label: string; value: string }[] | null) => Promise<void> }) {
+function AddCustomFieldForm({ onAdd }: { onAdd: (label: string, fieldType: string, choices: { label: string; value: string }[] | null) => void }) {
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState("");
   const [fieldType, setFieldType] = useState("text");
@@ -1105,18 +1155,16 @@ function AddCustomFieldForm({ onAdd }: { onAdd: (label: string, fieldType: strin
 
   const needsChoices = fieldType === "select" || fieldType === "checkbox";
 
-  async function handleAdd() {
+  function handleAdd() {
     if (!label.trim()) { alert("ラベルを入力してください"); return; }
     if (needsChoices && !choicesText.trim()) { alert("選択肢を入力してください"); return; }
-    setAdding(true);
     const choices = needsChoices
       ? choicesText.split("\n").filter((l) => l.trim()).map((l) => ({ label: l.trim(), value: l.trim().toLowerCase().replace(/\s+/g, "_") }))
       : null;
-    await onAdd(label.trim(), fieldType, choices);
+    onAdd(label.trim(), fieldType, choices);
     setLabel("");
     setFieldType("text");
     setChoicesText("");
-    setAdding(false);
     setOpen(false);
   }
 
