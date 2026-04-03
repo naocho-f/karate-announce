@@ -75,8 +75,13 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 5. フィールド群（`form_field_configs.sort_order` 順）
    - 各フィールドの直後に `field` 注意書き（anchor_field_key 一致、sort_order 順）
 6. `form_end` 注意書き（sort_order 順）
-7. バリデーションエラーサマリー（エラー時のみ）
-8. 送信ボタン
+7. 送信ボタン
+
+### 3.2.1 バリデーションエラー表示
+- 送信時にバリデーションエラーがある場合、画面上部に固定（sticky）のエラーバナーを表示
+- バナーには「入力内容を確認してください」とエラー件数を表示
+- 最初のエラー箇所に自動スクロール
+- バナーは閉じるボタンで非表示にできる
 
 ### 3.3 フィールドの表示/非表示
 - `form_field_configs.visible === true` のフィールドのみ表示

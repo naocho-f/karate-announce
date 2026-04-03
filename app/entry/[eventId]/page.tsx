@@ -1156,6 +1156,17 @@ export default function EntryPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-main-bg text-white p-6">
+      {/* バリデーションエラーバナー（画面上部固定） */}
+      {Object.keys(fieldErrors).length > 0 && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-red-900/95 border-b border-red-500/50 px-4 py-3 shadow-lg backdrop-blur-sm">
+          <div className="max-w-md mx-auto flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-red-200">入力内容を確認してください（{Object.keys(fieldErrors).length}件）</p>
+            </div>
+            <button onClick={() => setFieldErrors({})} className="text-red-300 hover:text-white text-lg leading-none shrink-0" aria-label="閉じる">×</button>
+          </div>
+        </div>
+      )}
       <div className="max-w-md mx-auto">
         {event.banner_image_path && (
           <img
@@ -1225,16 +1236,6 @@ export default function EntryPage({ params }: Props) {
 
           {error && (
             <p className="text-sm text-red-400 bg-red-900/30 rounded-lg px-3 py-2">{error}</p>
-          )}
-
-          {/* バリデーションエラーサマリー */}
-          {Object.keys(fieldErrors).length > 0 && (
-            <div className="bg-red-900/30 border border-red-500/40 rounded-lg px-3 py-2 space-y-1">
-              <p className="text-xs font-bold text-red-400">入力内容を確認してください</p>
-              {Object.values(fieldErrors).map((msg, i) => (
-                <p key={i} className="text-xs text-red-400/80">・{msg}</p>
-              ))}
-            </div>
           )}
 
           <button
