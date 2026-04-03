@@ -109,11 +109,22 @@ describe("buildFilterSortComparator", () => {
   const entryB = makeEntry({ id: "b", family_name: "あいう", age: 20, weight: 60, height: 180, grade: "小3" });
   const entryC = makeEntry({ id: "c", family_name: "田中", age: 30, weight: 80, height: 160, grade: "小2" });
 
-  it("フィルタなしの場合は氏名順", () => {
+  it("フィルタなしの場合は年齢昇順", () => {
+    // 氏名順だと あいう(30) < 山田(25) < 田中(20) になるが、年齢順を期待
+    const young = makeEntry({ id: "y", family_name: "田中", age: 20, weight: 70, height: 170, grade: "小1" });
+    const mid = makeEntry({ id: "m", family_name: "山田", age: 25, weight: 60, height: 180, grade: "小3" });
+    const old = makeEntry({ id: "o", family_name: "あいう", age: 30, weight: 80, height: 160, grade: "小2" });
     const cmp = buildFilterSortComparator(noFilter);
-    const sorted = [entryA, entryB, entryC].sort(cmp);
-    // あいう < 山田 < 田中 (Japanese locale)
-    expect(sorted.map((e) => e.id)).toEqual(["b", "a", "c"]);
+    const sorted = [old, young, mid].sort(cmp);
+    expect(sorted.map((e) => e.age)).toEqual([20, 25, 30]);
+  });
+
+  it("フィルタなしで年齢が同じ場合は氏名順", () => {
+    const e1 = makeEntry({ id: "x", family_name: "山田", age: 25 });
+    const e2 = makeEntry({ id: "y", family_name: "あいう", age: 25 });
+    const cmp = buildFilterSortComparator(noFilter);
+    const sorted = [e1, e2].sort(cmp);
+    expect(sorted.map((e) => e.id)).toEqual(["y", "x"]);
   });
 
   it("年齢フィルタ設定時は年齢順", () => {
@@ -141,15 +152,15 @@ describe("buildFilterSortComparator", () => {
     expect(sorted.map((e) => e.grade)).toEqual(["小1", "小2", "小3"]);
   });
 
-  it("複数フィルタ設定時は年代→年齢→体重→身長の優先順", () => {
-    // 同学年で年齢が違うケース
+  it("複数フィルタ設定時は体重→年齢→年代→身長の優先順", () => {
+    // 年齢フィルタ+年代フィルタ → 年齢が先に適用される
     const e1 = makeEntry({ id: "x", family_name: "X", age: 10, weight: 40, grade: "小4" });
     const e2 = makeEntry({ id: "y", family_name: "Y", age: 9, weight: 35, grade: "小4" });
     const e3 = makeEntry({ id: "z", family_name: "Z", age: 10, weight: 38, grade: "小3" });
     const cmp = buildFilterSortComparator({ ...noFilter, minGrade: "小3", maxGrade: "小4", minAge: "8" });
     const sorted = [e1, e2, e3].sort(cmp);
-    // 小学3年(Z) first, then 小学4年 sorted by age: Y(9), X(10)
-    expect(sorted.map((e) => e.id)).toEqual(["z", "y", "x"]);
+    // 年齢順: Y(9), then X(10) and Z(10) are same age → 年代順: Z(小3), X(小4)
+    expect(sorted.map((e) => e.id)).toEqual(["y", "z", "x"]);
   });
 
   it("null値は末尾に配置される", () => {

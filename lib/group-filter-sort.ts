@@ -20,15 +20,16 @@ type FilterState = {
 
 /**
  * フィルタに応じたソート比較関数を返す。
- * 年代→年齢→体重→身長の優先順でソートし、フィルタなしなら氏名順。
+ * 体重→年齢→年代→身長の優先順でソートし、デフォルトは年齢昇順。
+ * 同値のフォールバックは氏名順。
  */
 export function buildFilterSortComparator(filters: FilterState): (a: Entry, b: Entry) => number {
   return (a: Entry, b: Entry) => {
-    // 年代フィルタ: 学年順
-    if (filters.minGrade || filters.maxGrade) {
-      const aNum = gradeToNumber(a.grade ?? null) ?? 999;
-      const bNum = gradeToNumber(b.grade ?? null) ?? 999;
-      if (aNum !== bNum) return aNum - bNum;
+    // 体重フィルタ: 体重順（最優先）
+    if (filters.minWeight || filters.maxWeight) {
+      const aW = a.weight ?? 999;
+      const bW = b.weight ?? 999;
+      if (aW !== bW) return aW - bW;
     }
     // 年齢フィルタ: 年齢順
     if (filters.minAge || filters.maxAge) {
@@ -36,11 +37,11 @@ export function buildFilterSortComparator(filters: FilterState): (a: Entry, b: E
       const bAge = b.age ?? 999;
       if (aAge !== bAge) return aAge - bAge;
     }
-    // 体重フィルタ: 体重順
-    if (filters.minWeight || filters.maxWeight) {
-      const aW = a.weight ?? 999;
-      const bW = b.weight ?? 999;
-      if (aW !== bW) return aW - bW;
+    // 年代フィルタ: 学年順
+    if (filters.minGrade || filters.maxGrade) {
+      const aNum = gradeToNumber(a.grade ?? null) ?? 999;
+      const bNum = gradeToNumber(b.grade ?? null) ?? 999;
+      if (aNum !== bNum) return aNum - bNum;
     }
     // 身長フィルタ: 身長順
     if (filters.minHeight || filters.maxHeight) {
@@ -48,7 +49,11 @@ export function buildFilterSortComparator(filters: FilterState): (a: Entry, b: E
       const bH = b.height ?? 999;
       if (aH !== bH) return aH - bH;
     }
-    // フィルタなし: 氏名順
+    // デフォルト: 年齢昇順
+    const aAge = a.age ?? 999;
+    const bAge = b.age ?? 999;
+    if (aAge !== bAge) return aAge - bAge;
+    // 同年齢: 氏名順
     return entryFullName(a).localeCompare(entryFullName(b), "ja");
   };
 }
