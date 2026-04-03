@@ -889,9 +889,7 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
 
 // ── CourtSection ──────────────────────────────────────────────────────────
 
-function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, eventRules, tournaments, tournamentMatchFighterIds, rules, mismatchSettings, savedMatchPairs, bracketRuleCount, allMatchRows, timerPresets, ageCategories, onCreated, onAutoCreate, onNavigateToBracketRules }: {
-  courtNum: number;
-  courtLabel: string;
+function TournamentEditor({ eventId, entries, entryRuleIds, eventRules, tournaments, tournamentMatchFighterIds, rules, mismatchSettings, savedMatchPairs, bracketRuleCount, allMatchRows, timerPresets, ageCategories, courtCount, courtNames, onCreated, onAutoCreate, onNavigateToBracketRules }: {
   eventId: string;
   entries: Entry[];
   entryRuleIds: Record<string, Set<string>>;
@@ -905,6 +903,8 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
   allMatchRows: Array<{ tournament_id: string; fighter1_id: string | null; fighter2_id: string | null }>;
   timerPresets: TimerPreset[];
   ageCategories?: AgeCategory[];
+  courtCount: number;
+  courtNames: string[];
   onCreated: () => void;
   onAutoCreate: () => void;
   onNavigateToBracketRules: () => void;
@@ -1141,8 +1141,8 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
         // 1ペアのトーナメントは自動でワンマッチ扱いにする
         const effectiveType = g.type === "tournament" && g.pairs.length === 1 ? "one_match" : g.type;
         const payload = {
-          courtName: g.name || `コート${courtNum}`,
-          courtNum: String(courtNum),
+          courtName: g.name || "トーナメント",
+          courtNum: "",
           type: effectiveType,
           pairs: g.pairs.map((p) => ({
             e1: p.e1,
@@ -1255,8 +1255,8 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
   })();
 
   const editFormTitle = editingTournamentId
-    ? `${courtLabel} の対戦表編集`
-    : `${courtLabel} の対戦表作成${tournaments.length > 0 ? "" : ""}`;
+    ? "対戦表編集"
+    : "対戦表作成";
 
   const editForm = (
     <div className="bg-gray-800 rounded-xl p-4 space-y-4">
@@ -1361,67 +1361,76 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
   );
 
   // 時間見積もり計算
-  const courtMatchCount = useMemo(() => {
-    const tids = tournaments.map((t) => t.id);
-    return countActualMatches(allMatchRows, tids);
-  }, [tournaments, allMatchRows]);
+  // コートごとの時間見積もりを計算
+  const courtEstimates = useMemo(() => {
+    const estimates: Array<{ courtLabel: string; courtNum: string; matchCount: number; estimate: ReturnType<typeof formatTimeEstimate> | null }> = [];
+    for (let i = 1; i <= courtCount; i++) {
+      const courtTournaments = tournaments.filter((t) => t.court === String(i));
+      const matchCount = countActualMatches(allMatchRows, courtTournaments.map((t) => t.id));
+      if (matchCount === 0) continue;
 
-  const timeEstimate = useMemo(() => {
-    if (courtMatchCount === 0) return null;
-    // トーナメントの default_rules からタイマープリセットを解決
-    // 全トーナメントのうち最初に見つかったルールのプリセットを使う
-    let matchDurationSec = 120; // デフォルト2分
-    let hasExtension = false;
-    let extensionDurationSec = 0;
-
-    for (const t of tournaments) {
-      if (!t.default_rules) continue;
-      const rule = rules.find((r) => r.name === t.default_rules);
-      if (!rule) continue;
-      const preset = rule.timer_preset_id ? timerPresets.find((p) => p.id === rule.timer_preset_id) : timerPresets.find((p) => p.rule_id === rule.id);
-      if (preset) {
-        matchDurationSec = preset.match_duration;
-        hasExtension = preset.has_extension;
-        extensionDurationSec = preset.extension_duration;
-        break;
+      let matchDurationSec = 120;
+      let hasExtension = false;
+      let extensionDurationSec = 0;
+      for (const t of courtTournaments) {
+        if (!t.default_rules) continue;
+        const rule = rules.find((r) => r.name === t.default_rules);
+        if (!rule) continue;
+        const preset = rule.timer_preset_id ? timerPresets.find((p) => p.id === rule.timer_preset_id) : timerPresets.find((p) => p.rule_id === rule.id);
+        if (preset) {
+          matchDurationSec = preset.match_duration;
+          hasExtension = preset.has_extension;
+          extensionDurationSec = preset.extension_duration;
+          break;
+        }
       }
-    }
 
-    const minutes = estimateMatchMinutes({
-      matchCount: courtMatchCount,
-      matchDurationSec,
-      hasExtension,
-      extensionDurationSec,
-      intervalSec: intervalMin * 60,
-    });
-    const extensionSec = hasExtension ? extensionDurationSec * 0.5 : 0;
-    return formatTimeEstimate({
-      minutes,
-      startTime,
-      matchCount: courtMatchCount,
-      matchDurationSec,
-      extensionSec,
-      intervalSec: intervalMin * 60,
-    });
-  }, [courtMatchCount, tournaments, rules, timerPresets, intervalMin, startTime]);
+      const minutes = estimateMatchMinutes({
+        matchCount,
+        matchDurationSec,
+        hasExtension,
+        extensionDurationSec,
+        intervalSec: intervalMin * 60,
+      });
+      const extensionSec = hasExtension ? extensionDurationSec * 0.5 : 0;
+      const estimate = formatTimeEstimate({
+        minutes,
+        startTime,
+        matchCount,
+        matchDurationSec,
+        extensionSec,
+        intervalSec: intervalMin * 60,
+      });
+      estimates.push({
+        courtLabel: courtNames[i - 1]?.trim() || `コート${i}`,
+        courtNum: String(i),
+        matchCount,
+        estimate,
+      });
+    }
+    return estimates;
+  }, [tournaments, allMatchRows, courtCount, courtNames, rules, timerPresets, intervalMin, startTime]);
 
   return (
     <div ref={sectionRef} className="space-y-4">
-      <div className="flex items-center gap-2">
-        <h3 className="text-base font-semibold text-gray-200">{courtLabel}</h3>
-      </div>
-
-      {/* 時間見積もりパネル */}
-      {courtMatchCount > 0 && timeEstimate && (
+      {/* 時間見積もりパネル（コートごと） */}
+      {courtEstimates.length > 0 && (
         <div className="bg-gray-800/60 border border-gray-700 rounded-lg px-4 py-3 space-y-2">
-          <div className="text-sm text-gray-200">
-            全{courtMatchCount}試合 &mdash; 推定 <span className="font-medium text-white">{timeEstimate.duration}</span>
-            {timeEstimate.endTime && (
-              <span className="text-gray-400">（{startTime}開始 → <span className="text-white font-medium">{timeEstimate.endTime}</span>終了予定）</span>
-            )}
-          </div>
-          {timeEstimate.breakdown && (
-            <div className="text-xs text-gray-400">{timeEstimate.breakdown}</div>
+          {courtEstimates.map((ce) => (
+            <div key={ce.courtNum} className="text-sm text-gray-200">
+              <span className="font-medium text-gray-300">{ce.courtLabel}</span>: {ce.matchCount}試合
+              {ce.estimate && (
+                <>
+                  {" "}&mdash; 推定 <span className="font-medium text-white">{ce.estimate.duration}</span>
+                  {ce.estimate.endTime && (
+                    <span className="text-gray-400">（{startTime}開始 → <span className="text-white font-medium">{ce.estimate.endTime}</span>終了予定）</span>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+          {tournaments.some((t) => t.court === "") && (
+            <div className="text-xs text-orange-400">※ コート未割当のトーナメントは見積もりに含まれていません</div>
           )}
           <div className="flex items-center gap-4 text-xs">
             <label className="flex items-center gap-1.5 text-gray-400">
@@ -1499,13 +1508,15 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
             </div>
             <div className="flex-1 min-w-0">
               <ExistingTournamentSection
-                courtLabel={courtLabel}
                 tournament={t}
                 eventId={eventId}
                 entries={entries}
                 rules={rules}
                 mismatchSettings={mismatchSettings}
+                courtCount={courtCount}
+                courtNames={courtNames}
                 onDeleted={onCreated}
+                onCourtChanged={onCreated}
                 onEdit={(id, initialGroups, initialDefaultRuleId, sortOrder) => {
                   setEditingTournamentId(id);
                   setEditingSortOrder(sortOrder ?? null);
@@ -1570,15 +1581,17 @@ function CourtSection({ courtNum, courtLabel, eventId, entries, entryRuleIds, ev
 
 // ── ExistingTournamentSection ──────────────────────────────────────────
 
-function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, rules, mismatchSettings, onDeleted, onEdit }: {
-  courtLabel: string;
+function ExistingTournamentSection({ tournament, eventId, entries, rules, mismatchSettings, courtCount, courtNames, onDeleted, onEdit, onCourtChanged }: {
   tournament: Tournament;
   eventId: string;
   entries: Entry[];
   rules: Rule[];
   mismatchSettings: MismatchSettings;
+  courtCount: number;
+  courtNames: string[];
   onDeleted: () => void;
   onEdit: (id: string, initialGroups: Group[], initialDefaultRuleId?: string, sortOrder?: number) => void;
+  onCourtChanged: () => void;
 }) {
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [fighterMap, setFighterMap] = useState<Record<string, Fighter>>({});
@@ -1643,7 +1656,7 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
   }, [affectedMatches]);
 
   async function handleDelete() {
-    if (!confirm(`${courtLabel} の対戦表を削除して組み直しますか？\n進行中・完了済みのデータもすべて失われます。`)) return;
+    if (!confirm(`「${tournament.name}」を削除して組み直しますか？\n進行中・完了済みのデータもすべて失われます。`)) return;
     setDeleting(true);
     const res = await fetch(`/api/admin/tournaments/${tournament.id}`, { method: "DELETE" });
     if (!res.ok) { alert("削除に失敗しました"); setDeleting(false); return; }
@@ -1653,8 +1666,7 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
   return (
     <div className="bg-gray-800 rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <h2 className="font-semibold text-gray-200">{courtLabel}</h2>
+        <div className="flex items-center gap-2 flex-wrap">
           {tournament.name && (
             <span className="text-sm font-medium text-white">{tournament.name}</span>
           )}
@@ -1668,10 +1680,34 @@ function ExistingTournamentSection({ courtLabel, tournament, eventId, entries, r
           }`}>
             {tournament.status === "preparing" ? "準備中" : tournament.status === "ongoing" ? "進行中" : "終了"}
           </span>
-          <Link href={`/court/${tournament.court}`} target="_blank"
-            className="text-xs bg-blue-700 hover:bg-blue-600 text-blue-100 px-2 py-0.5 rounded transition">
-            アナウンス画面 ↗
-          </Link>
+          <select
+            value={tournament.court}
+            onChange={async (e) => {
+              await fetch(`/api/admin/tournaments/${tournament.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ court: e.target.value }),
+              });
+              onCourtChanged();
+            }}
+            className="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs text-white"
+          >
+            <option value="">未割当</option>
+            {Array.from({ length: courtCount }, (_, i) => (
+              <option key={i + 1} value={String(i + 1)}>
+                {courtNames[i]?.trim() || `コート${i + 1}`}
+              </option>
+            ))}
+          </select>
+          {tournament.court === "" && (
+            <span className="text-xs bg-orange-900 text-orange-300 px-2 py-0.5 rounded">コート未割当</span>
+          )}
+          {tournament.court !== "" && (
+            <Link href={`/court/${tournament.court}`} target="_blank"
+              className="text-xs bg-blue-700 hover:bg-blue-600 text-blue-100 px-2 py-0.5 rounded transition">
+              アナウンス画面 ↗
+            </Link>
+          )}
           {tournament.default_rules && (
             <span className="text-xs text-gray-500">{tournament.default_rules}</span>
           )}
@@ -1908,7 +1944,7 @@ export function BracketSection({
       {/* サブタブ */}
       <div className="grid grid-cols-2 rounded-xl overflow-hidden border border-gray-700">
         {([
-          { key: "courts" as const, label: "コート別対戦表" },
+          { key: "courts" as const, label: "対戦表" },
           { key: "bracket-rules" as const, label: "振り分けルール" },
         ]).map((tab) => (
           <button
@@ -1939,32 +1975,27 @@ export function BracketSection({
             entryRuleIds={entryRuleIds}
           />
 
-          {/* コート別対戦表 */}
-          <div className="space-y-6">
-            {Array.from({ length: event.court_count }, (_, i) => i + 1).map((courtNum) => (
-              <CourtSection
-                key={courtNum}
-                courtNum={courtNum}
-                courtLabel={getCourtLabel(courtNum)}
-                eventId={eventId}
-                entries={entries}
-                entryRuleIds={entryRuleIds}
-                eventRules={eventRules}
-                tournaments={tournaments.filter((t) => t.court === String(courtNum))}
-                tournamentMatchFighterIds={tournamentMatchFighterIds}
-                rules={rules}
-                mismatchSettings={mismatchSettings}
-                savedMatchPairs={savedMatchPairs}
-                bracketRuleCount={bracketRuleCount}
-                allMatchRows={allMatchRows}
-                timerPresets={timerPresets}
-                ageCategories={ageCategories}
-                onCreated={onLoad}
-                onAutoCreate={() => onSetShowAutoDialog(true)}
-                onNavigateToBracketRules={() => onSetBracketSubTab("bracket-rules")}
-              />
-            ))}
-          </div>
+          {/* 対戦表 */}
+          <TournamentEditor
+            eventId={eventId}
+            entries={entries}
+            entryRuleIds={entryRuleIds}
+            eventRules={eventRules}
+            tournaments={tournaments}
+            tournamentMatchFighterIds={tournamentMatchFighterIds}
+            rules={rules}
+            mismatchSettings={mismatchSettings}
+            savedMatchPairs={savedMatchPairs}
+            bracketRuleCount={bracketRuleCount}
+            allMatchRows={allMatchRows}
+            timerPresets={timerPresets}
+            ageCategories={ageCategories}
+            courtCount={event.court_count}
+            courtNames={event.court_names ?? []}
+            onCreated={onLoad}
+            onAutoCreate={() => onSetShowAutoDialog(true)}
+            onNavigateToBracketRules={() => onSetBracketSubTab("bracket-rules")}
+          />
         </>
       )}
 

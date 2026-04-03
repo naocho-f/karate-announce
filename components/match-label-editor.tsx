@@ -343,6 +343,51 @@ export function MatchLabelEditor({ eventId, courtNames, courtCount, selectedCour
           <p className="text-sm text-gray-600">確定済みのトーナメントがありません</p>
         ) : (
           <div className="space-y-6">
+            {/* 未割当トーナメント */}
+            {(() => {
+              const unassigned = tournaments.filter((t) => t.court === "");
+              if (unassigned.length === 0 || (selectedCourt && selectedCourt !== "")) return null;
+              return (
+                <div key="unassigned">
+                  <h2 className="text-base font-semibold text-orange-400 mb-3">未割当</h2>
+                  <div className="space-y-4">
+                    {unassigned.map((t) => (
+                      <div key={t.id}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-sm font-medium text-gray-400">{t.name}</h3>
+                          {t.type === "one_match" && (
+                            <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">ワンマッチ</span>
+                          )}
+                          <span className="text-xs text-orange-400">※ コートを割り当ててください</span>
+                        </div>
+                        <div className="bg-gray-800 rounded-xl p-3">
+                          {t.type === "one_match" && t.matches.length === 1 ? (
+                            <OneMatchNumberCard
+                              match={t.matches[0]}
+                              nameMap={t.nameMap}
+                              assignedNumber={assignedNumbers[t.matches[0].id]}
+                              onClick={() => handleNumberClick(t.matches[0].id)}
+                              onSwapFighters={() => handleSwapFighters(t.matches[0].id)}
+                              isSwapping={swappingIds.has(t.matches[0].id)}
+                            />
+                          ) : (
+                            <BracketView
+                              matches={t.matches}
+                              nameMap={t.nameMap}
+                              assignedNumbers={assignedNumbers}
+                              onNumberClick={handleNumberClick}
+                              onSwapWithNext={handleSwapWithNext}
+                              onSwapFighters={handleSwapFighters}
+                              processingMatchIds={swappingIds}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             {Array.from({ length: courtCount }, (_, i) => i + 1)
               .filter((courtNum) => !selectedCourt || String(courtNum) === selectedCourt)
               .map((courtNum) => {

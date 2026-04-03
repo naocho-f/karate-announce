@@ -169,11 +169,13 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     max_weight_diff?: number | null;
     max_height_diff?: number | null;
     sort_order?: number;
+    court?: string;
   };
   const updates: Record<string, unknown> = {};
   if ("max_weight_diff" in body) updates.max_weight_diff = body.max_weight_diff;
   if ("max_height_diff" in body) updates.max_height_diff = body.max_height_diff;
   if ("sort_order" in body) updates.sort_order = body.sort_order;
+  if ("court" in body) updates.court = body.court;
   const { error } = await supabaseAdmin
     .from("tournaments")
     .update(updates)
