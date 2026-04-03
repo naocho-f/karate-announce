@@ -919,6 +919,7 @@ function TournamentEditor({ eventId, entries, entryRuleIds, eventRules, tourname
   const [editingSortOrder, setEditingSortOrder] = useState<number | null>(null);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
   const [reorderingId, setReorderingId] = useState<string | null>(null);
+  const [autoAssigning, setAutoAssigning] = useState(false);
 
   const [startTime, setStartTime] = useState(() => roundedNowHHMM());
   const [intervalMin, setIntervalMin] = useState(1);
@@ -1411,6 +1412,41 @@ function TournamentEditor({ eventId, entries, entryRuleIds, eventRules, tourname
     return estimates;
   }, [tournaments, allMatchRows, courtCount, courtNames, rules, timerPresets, intervalMin, startTime]);
 
+  async function autoAssignCourts() {
+    const unassigned = tournaments.filter((t) => t.court === "");
+    if (unassigned.length === 0 || courtCount === 0) return;
+    const count = unassigned.length;
+    if (!window.confirm(`未割当の ${count} 件を各コートに自動振り分けしますか？`)) return;
+
+    setAutoAssigning(true);
+    const courtMatchCounts: number[] = [];
+    for (let i = 1; i <= courtCount; i++) {
+      const ct = tournaments.filter((t) => t.court === String(i));
+      courtMatchCounts.push(countActualMatches(allMatchRows, ct.map((t) => t.id)));
+    }
+
+    const sorted = [...unassigned].sort((a, b) => {
+      return countActualMatches(allMatchRows, [b.id]) - countActualMatches(allMatchRows, [a.id]);
+    });
+
+    const assignments: Array<{ id: string; court: string }> = [];
+    for (const t of sorted) {
+      const minIdx = courtMatchCounts.indexOf(Math.min(...courtMatchCounts));
+      assignments.push({ id: t.id, court: String(minIdx + 1) });
+      courtMatchCounts[minIdx] += countActualMatches(allMatchRows, [t.id]);
+    }
+
+    await Promise.all(assignments.map(({ id, court }) =>
+      fetch(`/api/admin/tournaments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ court }),
+      })
+    ));
+    setAutoAssigning(false);
+    onCreated();
+  }
+
   return (
     <div ref={sectionRef} className="space-y-4">
       {/* 時間見積もりパネル（コートごと） */}
@@ -1430,7 +1466,16 @@ function TournamentEditor({ eventId, entries, entryRuleIds, eventRules, tourname
             </div>
           ))}
           {tournaments.some((t) => t.court === "") && (
-            <div className="text-xs text-orange-400">※ コート未割当のトーナメントは見積もりに含まれていません</div>
+            <div className="flex items-center gap-3 text-xs text-orange-400">
+              <span>※ コート未割当のトーナメントは見積もりに含まれていません</span>
+              <button
+                onClick={autoAssignCourts}
+                disabled={autoAssigning}
+                className="bg-orange-700 hover:bg-orange-600 disabled:opacity-50 text-white px-3 py-1 rounded transition"
+              >
+                {autoAssigning ? "振り分け中..." : "コート自動振り分け"}
+              </button>
+            </div>
           )}
           <div className="flex items-center gap-4 text-xs">
             <label className="flex items-center gap-1.5 text-gray-400">
@@ -1458,6 +1503,20 @@ function TournamentEditor({ eventId, entries, entryRuleIds, eventRules, tourname
               </select>
             </label>
           </div>
+        </div>
+      )}
+
+      {/* 見積もりパネルが非表示で未割当がある場合のコート自動振り分けボタン */}
+      {courtEstimates.length === 0 && tournaments.some((t) => t.court === "") && tournaments.length > 0 && (
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-orange-400">※ コート未割当のトーナメントがあります</span>
+          <button
+            onClick={autoAssignCourts}
+            disabled={autoAssigning}
+            className="text-xs bg-orange-700 hover:bg-orange-600 disabled:opacity-50 text-white px-3 py-1 rounded transition"
+          >
+            {autoAssigning ? "振り分け中..." : "コート自動振り分け"}
+          </button>
         </div>
       )}
 
