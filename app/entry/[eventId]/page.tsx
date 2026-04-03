@@ -355,7 +355,7 @@ export default function EntryPage({ params }: Props) {
     if (def.type === "checkbox") {
       const config = visibleFields.find((f) => f.def.key === key)?.config;
       if (config && isSingleSelect(config)) return !!values[key]?.trim();
-      return (multiValues[key]?.size ?? 0) > 0;
+      return (multiValues[key]?.size ?? 0) > 0 || !!(config?.has_other_option && otherValues[key]?.trim());
     }
     if (def.type === "radio" || def.type === "select") {
       return !!values[key]?.trim();

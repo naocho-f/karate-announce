@@ -202,7 +202,7 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 |-----------|------------|
 | `full_name` | `family_name` AND `given_name` が非空 |
 | `kana` | `family_name_reading` AND `given_name_reading` が非空 |
-| checkbox（複数選択） | `multiValues[key].size > 0` |
+| checkbox（複数選択） | `multiValues[key].size > 0` OR（`has_other_option` かつ `otherValues[key]` が非空） |
 | checkbox（単一選択） | `values[key]` が非空 |
 | radio / select | `values[key]` が非空 |
 | その他 | `values[key]` が非空 |
