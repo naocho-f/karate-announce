@@ -617,9 +617,12 @@ function MockLabel({ children }: { children: React.ReactNode }) {
 
 function NavButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="text-xs bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition font-medium mt-1">
-      {label}
-    </button>
+    <div className="border-t border-gray-700/50 pt-3 mt-3 flex justify-end">
+      <button onClick={onClick} className="text-xs bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition font-medium flex items-center gap-1.5">
+        <span>📋</span>
+        <span>{label}</span>
+      </button>
+    </div>
   );
 }
 
