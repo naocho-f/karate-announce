@@ -280,6 +280,7 @@ export function FormConfigPanel({ eventId }: Props) {
     const { def, fieldConfig } = await res.json();
     setCustomFieldDefs((prev) => [...prev, def]);
     setFields((prev) => [...prev, fieldConfig]);
+    setDirty(true);
   }
 
   async function deleteCustomField(fieldKey: string) {
@@ -295,6 +296,7 @@ export function FormConfigPanel({ eventId }: Props) {
     setFields((prev) => prev.filter((f) => f.field_key !== fieldKey));
     setNotices((prev) => prev.filter((n) => !(n.anchor_type === "field" && n.anchor_field_key === fieldKey)));
     setDeletingCustomKey(null);
+    setDirty(true);
   }
 
   async function duplicateCustomField(fieldKey: string) {
@@ -310,6 +312,7 @@ export function FormConfigPanel({ eventId }: Props) {
     setCustomFieldDefs((prev) => [...prev, def]);
     setFields((prev) => [...prev, fieldConfig]);
     setDuplicatingCustomKey(null);
+    setDirty(true);
   }
 
   async function uploadImage(noticeId: string, file: File) {
