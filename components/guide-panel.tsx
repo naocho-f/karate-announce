@@ -10,7 +10,7 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
   return (
     <div className="space-y-8">
       <p className="text-sm text-gray-400">
-        このシステムは空手大会の試合管理・AI アナウンス・リアルタイム速報を行うツールです。
+        このシステムは武道大会の試合管理・AI アナウンス・リアルタイム速報を行うツールです。
         以下の手順に沿って設定・運営を進めてください。各セクションをクリックすると詳細が表示されます。
       </p>
 
@@ -37,7 +37,7 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
             <FieldTable fields={[
               { name: "ルール名", required: true, example: "RF一般エキスパートB", note: "この名前がそのままアナウンスで読み上げられます。正式名称で登録してください" },
               { name: "読み仮名", required: false, example: "あーるえふいっぱんえきすぱーとびー", note: "AI が正しく読めない場合に設定すると読み間違いを防げます" },
-              { name: "説明", required: false, example: "防具はメンホー・拳サポーター着用必須", note: "試合時間やポイント制などはタイマー名で表現するため、ここにはルール固有の補足（装備要件等）を記載" },
+              { name: "説明", required: false, example: "防具はメンホー・拳サポーター着用必須。ポイント制3分", note: "装備要件・試合時間・ポイント制など、参加者が知るべきルールの詳細を記載します。この内容は管理画面上で確認用に表示されます" },
             ]} />
             <UsedIn items={[
               "対戦表作成 → コートルール選択で、そのルールの参加者だけを絞り込み対象にできます",
@@ -82,7 +82,7 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
               試合時間、延長戦、寝技、ポイント制、反則、表示テーマなどを細かく設定できます。
             </Desc>
             <FieldTable fields={[
-              { name: "タイマー名", required: true, example: "組手3分・延長1分", note: "ルール名と重複しないよう、試合時間やポイント制を表す名前にすると区別しやすい" },
+              { name: "タイマー名", required: true, example: "組手3分・延長1分", note: "管理画面でタイマーを区別するための名前です。画面上には表示されません" },
               { name: "試合時間", required: true, example: "3分00秒", note: "分と秒で入力。カウントダウンまたはカウントアップを選択" },
               { name: "延長戦", required: false, example: "時間延長 1分 / 先取延長", note: "時間延長は再延長回数も設定可。先取延長はタイマー非表示またはカウントアップ" },
               { name: "寝技", required: false, example: "30秒 カウントアップ", note: "Gキーで切り替え。制限時間ありの場合は自動ブザー" },
