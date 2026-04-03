@@ -213,6 +213,24 @@ describe("email-template", () => {
       expect(result).toBe("氏名: 山田 太郎");
     });
 
+    it("改行を含む文字列値はラベル後改行+インデント形式で表示", () => {
+      const result = buildEntryDetails({
+        extra_fields: {
+          free_text: "1行目\n2行目\n3行目",
+        },
+      }, [], { free_text: "自由記述" });
+      expect(result).toContain("自由記述:\n  1行目\n  2行目\n  3行目");
+    });
+
+    it("改行を含まない文字列値はラベルと同一行で表示", () => {
+      const result = buildEntryDetails({
+        extra_fields: {
+          simple: "短い値",
+        },
+      }, [], { simple: "項目名" });
+      expect(result).toContain("項目名: 短い値");
+    });
+
     it("participantName が空のとき氏名行を出力しない", () => {
       const result = buildEntryDetails({ sex: "male" }, []);
       expect(result).toBe("性別: 男性");

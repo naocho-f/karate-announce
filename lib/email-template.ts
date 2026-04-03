@@ -89,7 +89,13 @@ export function buildEntryDetails(
       if (items.length > 0) lines.push(`${label}:\n  ${items.join("\n  ")}`);
     } else {
       const val = resolveLabel(k, String(v));
-      if (val) lines.push(`${label}: ${val}`);
+      if (val) {
+        if (val.includes("\n")) {
+          lines.push(`${label}:\n  ${val.split("\n").join("\n  ")}`);
+        } else {
+          lines.push(`${label}: ${val}`);
+        }
+      }
     }
   }
   return lines.join("\n");
