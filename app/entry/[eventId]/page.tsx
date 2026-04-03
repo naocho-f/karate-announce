@@ -337,6 +337,12 @@ export default function EntryPage({ params }: Props) {
     if (!config.required) return true;
     const key = def.key;
 
+    // よみがなフィールドは親が任意なら必須チェックをスキップ
+    if (def.kanaParent) {
+      const parentConfig = visibleFields.find((f) => f.def.key === def.kanaParent);
+      if (parentConfig && !parentConfig.config.required) return true;
+    }
+
     // full_name: 姓名両方必要
     if (key === "full_name") {
       return !!(values["family_name"]?.trim() && values["given_name"]?.trim());
@@ -664,7 +670,7 @@ export default function EntryPage({ params }: Props) {
     // organization: マスタ選択 + 自由入力 + 読み仮名
     if (key === "organization") {
       const kanaConfig = visibleFields.find((f) => f.def.key === "organization_kana");
-      const kanaRequired = kanaConfig?.config.required ?? false;
+      const kanaRequired = isReq && (kanaConfig?.config.required ?? false);
       const showKana = !!kanaConfig;
       const orgValue = values["organization"] ?? "";
 
@@ -710,7 +716,7 @@ export default function EntryPage({ params }: Props) {
     // branch + branch_kana
     if (key === "branch") {
       const kanaConfig = visibleFields.find((f) => f.def.key === "branch_kana");
-      const kanaRequired = kanaConfig?.config.required ?? false;
+      const kanaRequired = isReq && (kanaConfig?.config.required ?? false);
       const showKana = !!kanaConfig;
       return (
         <div key={key} id={`field-${key}`} className="space-y-2">

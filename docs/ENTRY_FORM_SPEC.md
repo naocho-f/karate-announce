@@ -86,6 +86,7 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 ### 3.3 フィールドの表示/非表示
 - `form_field_configs.visible === true` のフィールドのみ表示
 - 読み仮名フィールド（kana）は親フィールドが表示されている場合のみ表示
+- **読み仮名の必須設定は親フィールドに従う**: 親フィールドが任意（required: false）の場合、読み仮名も自動的に任意になる（管理画面で読み仮名を必須に設定していても、親が任意なら必須マーク `*` は表示せず、バリデーションもスキップする）
 - 親子ペア:
   - `full_name` ↔ `kana`
   - `organization` ↔ `organization_kana`
