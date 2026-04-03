@@ -235,6 +235,13 @@ describe("gradeFilterPredicate", () => {
       expect(pred(child)).toBe(true);   // 小3 → gradeToNumber=3, range 1-6
       expect(pred(teen)).toBe(false);   // 中2 → gradeToNumber=8, > 6
     });
+
+    it("学年ベースフィルタで年齢ベース区分のエントリーは除外されない", () => {
+      const pred = gradeFilterPredicate("年少", "", ageCategories);
+      expect(pred(child)).toBe(true);   // 小3: 学年ベース、範囲内
+      expect(pred(adult)).toBe(true);   // 一般: 年齢ベース区分 → 通過
+      expect(pred(senior)).toBe(true);  // シニア: 年齢ベース区分 → 通過
+    });
   });
 
   describe("学年エントリーに年齢ベースフィルタ", () => {

@@ -120,7 +120,10 @@ export function gradeFilterPredicate(
       return true;
     }
 
-    // エントリーが年齢ベースでフィルタが学年ベース → age で比較できないので除外
+    // エントリーが年齢ベース区分（一般・シニア等）→ 学年フィルタでは除外しない
+    if (entry.grade && findAgeCategory(entry.grade, ageCategories)) return true;
+
+    // どちらにも該当しない → 除外
     return false;
   };
 }
