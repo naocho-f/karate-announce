@@ -126,10 +126,12 @@ async function sendConfirmationEmail(
         .select("field_key, custom_label, custom_choices")
         .eq("form_config_id", formConfigId)
     : { data: [] as { field_key: string; custom_label: string | null; custom_choices: { value: string; label: string }[] | null }[] };
-  const { data: customDefs } = await supabaseAdmin
-    .from("custom_field_defs")
-    .select("field_key, label, choices")
-    .eq("event_id", eventId);
+  const { data: customDefs } = formConfigId
+    ? await supabaseAdmin
+        .from("custom_field_defs")
+        .select("field_key, label, choices")
+        .eq("form_config_id", formConfigId)
+    : { data: [] as { field_key: string; label: string; choices: { value: string; label: string }[] | null }[] };
   for (const fc of fieldConfigs ?? []) {
     const poolDef = getFieldDef(fc.field_key);
     fieldLabels[fc.field_key] = fc.custom_label || poolDef?.label || fc.field_key;
