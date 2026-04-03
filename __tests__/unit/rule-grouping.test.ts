@@ -38,11 +38,13 @@ function makeEntry(id: string, name: string): Entry {
     custom_fields: null,
     created_at: "2026-01-01",
     submitted_at: null,
+    extra_fields: {},
+    form_version: null,
   } as Entry;
 }
 
 function makeRule(id: string, name: string): Rule {
-  return { id, name, description: null, event_id: null } as Rule;
+  return { id, name, name_reading: null, description: null, timer_preset_id: null, event_id: null, created_at: "2026-01-01" } as Rule;
 }
 
 const ruleA = makeRule("ruleA", "RFビギナー");
