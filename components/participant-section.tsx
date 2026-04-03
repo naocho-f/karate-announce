@@ -319,7 +319,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
           const ruleNames = ruleIds
             ? eventRules.filter((r) => ruleIds.has(r.id)).map((r) => r.name)
             : [];
-          return ruleNames.join("; ");
+          return ruleNames.join("\n");
         }
         const extra = entry.extra_fields?.[key];
         if (extra != null && extra !== "") {
@@ -343,7 +343,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
               return arr.map((v: string) => {
                 const c = choices.find((ch) => ch.value === v);
                 return c?.label ?? v;
-              }).join("; ");
+              }).join("\n");
             }
           } catch { /* not JSON */ }
         }
