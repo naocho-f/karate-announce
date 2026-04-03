@@ -89,11 +89,13 @@
   - E2E テスト: `*.spec.ts`（例: `entry-form.spec.ts`）
 
 ### Step 3: 実装（Green）
-- `npm run dev`, `curl`, `npx tsc --noEmit` 等は確認不要で実行してよい。
+- `npm run dev`, `curl` 等は確認不要で実行してよい。
 - テストが通るように実装する。
-- `npx vitest run` で**全テスト通過**を確認する（Green 状態）。
-- `npm run build` でビルドエラーがないことを確認する。
-- テストまたはビルドが失敗した場合は、この Step 3 内で修正→再実行を繰り返す。Step 4 以降には進まない。
+- 以下の3つを**すべて**実行し、全パスを確認する:
+  1. `npx tsc --noEmit` — 型チェック（GitHub Actions と同じチェック）
+  2. `npx vitest run` — 全テスト通過（Green 状態）
+  3. `npm run build` — ビルドエラーなし
+- テスト・型チェック・ビルドのいずれかが失敗した場合は、この Step 3 内で修正→再実行を繰り返す。Step 4 以降には進まない。
 
 ### Step 4: チェックリスト（該当する場合のみ）
 
