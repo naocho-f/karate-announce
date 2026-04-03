@@ -120,10 +120,7 @@ export default function Home() {
 
         {!activeEvent ? (
           <div className="text-center py-20 text-gray-500">
-            <p className="mb-3">アクティブな試合がありません</p>
-            <Link href="/admin" className="text-blue-400 hover:text-blue-300 text-sm">
-              管理画面で試合をアクティブに設定する →
-            </Link>
+            <p>開催中の試合はありません</p>
           </div>
         ) : (
           <>
