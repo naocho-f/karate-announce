@@ -200,29 +200,13 @@ type FieldPoolItem = {
 ```json
 {
   "config_id": "uuid",
-  "fields": [ /* FormFieldConfig[] */ ],
-  "is_ready": false
+  "fields": [ /* FormFieldConfig[] */ ]
 }
 ```
 
 **動作**:
 - `form_field_configs` の `visible`, `required`, `sort_order`, `has_other_option`, `custom_choices`, `custom_label` を一括更新
-- `is_ready` が指定されている場合、`form_configs.is_ready` を更新（バージョンは変更しない）
-
-### 4.3 フォーム公開
-
-**`PATCH /api/admin/form-config`**
-
-**リクエスト**:
-```json
-{
-  "config_id": "uuid"
-}
-```
-
-**動作**:
 - `version` をインクリメント
-- `is_ready = true` に設定
 - `updated_at` を更新
 
 **レスポンス**: `{ ok: true, version: 新バージョン番号 }`
@@ -301,8 +285,7 @@ type FieldPoolItem = {
 
 ### 5.1.1 展開内ヘッダー（操作ボタンのみ）
 - 「過去の大会から読み込む」ボタン → コピーモーダル
-- 「一時保存」ボタン（保存中は「保存中...」、保存後は「保存しました」）
-- 「フォーム内容を決定」/「決定を取り消す」ボタン
+- 「保存」ボタン（保存中は「保存中...」、保存後は「保存しました」）。保存のたびにバージョンがインクリメントされる
 - ステータスバッジ・タイトル・バージョン表示は折りたたみヘッダーに集約（展開内では重複表示しない）
 
 ### 5.2 フォームプレビュー
@@ -400,14 +383,17 @@ type FieldPoolItem = {
 
 ### 7.1 バージョンのライフサイクル
 1. **作成時**: `version: 0`, `is_ready: false`
-2. **保存時**（PUT）: バージョン変更なし
-3. **公開時**（PATCH）: `version++`, `is_ready: true`
-4. **非公開に戻す**（PUT with `is_ready: false`）: バージョン変更なし
+2. **保存時**（PUT）: `version++`
+3. **受付開始時**: `is_ready` は受付開始（`entry_closed: false`）時に自動で `true` に設定される。一度 `true` になったら戻らない
 
 ### 7.2 バージョンの用途
-- 公開フォーム（`/entry/[eventId]`）は `is_ready: true` の場合のみ表示
 - 申込時に `entry.form_version` に現在のバージョンを記録
 - 管理画面の参加者一覧で、旧バージョンで送信されたエントリーに紫バッジ「旧」を表示
+
+### 7.3 フォーム表示条件
+- `is_ready: true` かつ `entry_closed: false`（受付中）の場合のみ、公開フォーム（`/entry/[eventId]`）を表示
+- `is_ready: false` の場合: 「準備中」画面を表示
+- `entry_closed: true` の場合: 「受付終了」画面を表示（`is_ready` の状態にかかわらず）
 
 ---
 
@@ -450,7 +436,7 @@ type FieldPoolItem = {
 - [x] ルール選択肢: DB 駆動（event_rules + rules テーブル）、フォーム設定画面からは直接編集不可
 - [x] 単一選択/複数選択: `__single_select__` マーカーによる切替
 - [x] コピー機能: フィールド設定と注意書きをまるごとコピー（画像は参照共有）
-- [x] バージョン管理: 公開時のみインクリメント。保存だけではバージョンは変わらない
+- [x] バージョン管理: 保存のたびにインクリメント
 - [x] カスタムフィールドキー: `custom_` + ランダム8桁hex。作成後変更不可
 
 ## 11. 未決事項

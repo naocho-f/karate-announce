@@ -87,11 +87,11 @@ describe("/api/admin/form-config PUT", () => {
   });
 
   it("フォーム設定を一括更新できる", async () => {
+    mockResult("form_configs", "select", { data: { version: 2 } });
     const { PUT } = await import("@/app/api/admin/form-config/route");
     const req = createAdminRequest("PUT", "/api/admin/form-config", {
       body: {
         config_id: "fc1",
-        is_ready: true,
         fields: [
           { id: "ff1", visible: true, required: true, sort_order: 0, has_other_option: false, custom_choices: null },
         ],
@@ -101,32 +101,7 @@ describe("/api/admin/form-config PUT", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.ok).toBe(true);
-  });
-});
-
-describe("/api/admin/form-config PATCH", () => {
-  beforeEach(() => resetAll());
-
-  it("フォーム公開（version インクリメント）", async () => {
-    mockResult("form_configs", "select", { data: { version: 2 } });
-    const { PATCH } = await import("@/app/api/admin/form-config/route");
-    const req = createAdminRequest("PATCH", "/api/admin/form-config", {
-      body: { config_id: "fc1" },
-    });
-    const res = await PATCH(req);
-    expect(res.status).toBe(200);
-    const json = await res.json();
     expect(json.version).toBe(3);
-  });
-
-  it("存在しない config_id で 404", async () => {
-    mockResult("form_configs", "select", { data: null });
-    const { PATCH } = await import("@/app/api/admin/form-config/route");
-    const req = createAdminRequest("PATCH", "/api/admin/form-config", {
-      body: { config_id: "nonexist" },
-    });
-    const res = await PATCH(req);
-    expect(res.status).toBe(404);
   });
 });
 

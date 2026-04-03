@@ -25,6 +25,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       .neq("id", "00000000-0000-0000-0000-000000000000");
   }
 
+  // 受付開始（entry_closed=false）時にフォームを自動公開
+  if (body.entry_closed === false) {
+    await supabaseAdmin
+      .from("form_configs")
+      .update({ is_ready: true, updated_at: new Date().toISOString() })
+      .eq("event_id", id);
+  }
+
   const { error } = await supabaseAdmin.from("events").update(body).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });

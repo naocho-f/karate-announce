@@ -3,12 +3,11 @@ import type { Event, Tournament } from "@/lib/types";
 export type EventPhase = { label: string; color: string; stepHighlight: 1 | 2 | 3 };
 
 /**
- * イベントの現在フェーズを6段階で自動判定する。
+ * イベントの現在フェーズを5段階で自動判定する。
  *
  * | フェーズ     | 条件                                              | バッジ色     |
  * |-------------|---------------------------------------------------|-------------|
- * | 準備中       | フォーム未公開（is_ready=false）                     | gray        |
- * | 受付中       | entry_closed=false かつフォーム公開済                 | green       |
+ * | 受付中       | entry_closed=false                                | green       |
  * | 対戦表作成中  | entry_closed=true かつトーナメント未作成 or 未確定     | blue        |
  * | 試合準備中    | トーナメント確定済み かつ is_active=false              | yellow      |
  * | 試合中       | is_active=true かつ status !== "finished"           | green（点滅）|
@@ -16,7 +15,6 @@ export type EventPhase = { label: string; color: string; stepHighlight: 1 | 2 | 
  */
 export function getEventPhase(
   event: Event,
-  formConfigReady: boolean,
   tournaments: Tournament[],
   allMatchRows: Array<{ tournament_id: string; fighter1_id: string | null; fighter2_id: string | null }>,
 ): EventPhase {
@@ -38,10 +36,6 @@ export function getEventPhase(
   if (isEntryClosed) {
     return { label: "対戦表作成中", color: "bg-blue-900 text-blue-300", stepHighlight: 2 };
   }
-  // 受付中: entry_closed=false かつフォーム公開済
-  if (formConfigReady) {
-    return { label: "受付中", color: "bg-green-900 text-green-300", stepHighlight: 1 };
-  }
-  // 準備中: フォーム未公開
-  return { label: "準備中", color: "bg-gray-700 text-gray-400", stepHighlight: 1 };
+  // 受付中: entry_closed=false
+  return { label: "受付中", color: "bg-green-900 text-green-300", stepHighlight: 1 };
 }

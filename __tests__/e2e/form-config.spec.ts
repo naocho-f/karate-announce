@@ -125,7 +125,7 @@ test.describe("フォーム設定", () => {
     expect(notFound).toBeFalsy();
   });
 
-  test("フォーム設定を公開できる", async ({ page }) => {
+  test("受付開始で is_ready が自動的に true になりフォームが公開される", async ({ page }) => {
     await adminLogin(page);
     eventId = await createTestEvent(page);
 
@@ -134,16 +134,14 @@ test.describe("フォーム設定", () => {
     expect(cfgRes.ok()).toBeTruthy();
     const { config } = await cfgRes.json();
 
-    // 公開前は is_ready が false のはず
+    // 受付開始前は is_ready が false のはず
     expect(config.is_ready).toBeFalsy();
 
-    // 公開（PATCH）
-    const publishRes = await page.request.patch("/api/admin/form-config", {
-      data: { config_id: config.id },
+    // 受付開始（entry_closed=false）で is_ready が自動で true になる
+    const openRes = await page.request.patch(`/api/admin/events/${eventId}`, {
+      data: { entry_closed: false },
     });
-    expect(publishRes.ok()).toBeTruthy();
-    const { version } = await publishRes.json();
-    expect(version).toBeGreaterThan(0);
+    expect(openRes.ok()).toBeTruthy();
 
     // 公開後にフォームが公開状態であることを確認（パブリックAPI経由）
     const publicRes = await page.request.get(`/api/public/form-config?event_id=${eventId}`);

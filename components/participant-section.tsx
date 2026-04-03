@@ -952,7 +952,6 @@ export type ParticipantSectionProps = {
   processingEntryIds: Set<string>;
   processingRuleKeys: Set<string>;
   currentFormVersion: number | null;
-  formConfigReady: boolean;
   formConfigVersion: number;
   ageCategories?: AgeCategory[];
   entrySubTab: "entries" | "form" | "email";
@@ -988,7 +987,6 @@ export function ParticipantSection({
   processingEntryIds,
   processingRuleKeys,
   currentFormVersion,
-  formConfigReady,
   formConfigVersion,
   ageCategories,
   entrySubTab,
@@ -1060,11 +1058,6 @@ export function ParticipantSection({
 
       {/* 参加受付（常時表示） */}
       <div className="bg-gray-800 rounded-xl p-4 space-y-3">
-        {!formConfigReady && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-yellow-900/30 border border-yellow-700/50 rounded-lg">
-            <span className="text-sm text-yellow-400">⚠ フォーム設定が未完了です。公開後に受付を開始してください</span>
-          </div>
-        )}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h2 className="font-semibold text-gray-200">参加受付</h2>
           {(() => {
@@ -1073,7 +1066,7 @@ export function ParticipantSection({
             return (
               <button
                 onClick={onToggleEntryClosed}
-                disabled={togglingClosed || !formConfigReady}
+                disabled={togglingClosed}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition border disabled:opacity-50 ${
                   isEffectivelyClosed
                     ? "bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600"
@@ -1081,7 +1074,7 @@ export function ParticipantSection({
                 }`}
               >
                 {togglingClosed && <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />}
-                {togglingClosed ? "処理中..." : event.entry_closed ? "🔒 受付終了（クリックで再開）" : isEffectivelyClosed ? "🔒 受付終了（自動）" : !formConfigReady ? "📋 準備中（フォーム設定を公開してください）" : "🔓 受付中（クリックで締め切り）"}
+                {togglingClosed ? "処理中..." : event.entry_closed ? "🔒 受付終了（クリックで再開）" : isEffectivelyClosed ? "🔒 受付終了（自動）" : "🔓 受付中（クリックで締め切り）"}
               </button>
             );
           })()}

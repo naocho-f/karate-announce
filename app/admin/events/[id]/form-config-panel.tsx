@@ -85,7 +85,7 @@ export function FormConfigPanel({ eventId }: Props) {
   const [busyNotices, setBusyNotices] = useState<Set<string>>(new Set());
   const [rules, setRules] = useState<{ id: string; name: string }[]>([]);
   const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
-  const [togglingReady, setTogglingReady] = useState(false);
+  // togglingReady は廃止（公開ボタン削除）
   const [copying, setCopying] = useState(false);
   const [deletingCustomKey, setDeletingCustomKey] = useState<string | null>(null);
   const [duplicatingCustomKey, setDuplicatingCustomKey] = useState<string | null>(null);
@@ -132,45 +132,16 @@ export function FormConfigPanel({ eventId }: Props) {
       body: JSON.stringify({ config_id: config.id, fields }),
     });
     if (!res.ok) { alert("保存に失敗しました"); setSaving(false); return; }
+    const json = await res.json();
+    if (json.version !== undefined) {
+      setConfig((prev) => prev ? { ...prev, version: json.version } : prev);
+    }
     setSaving(false);
     setDirty(false);
     showSaveMessage("保存しました");
   }
 
-  async function toggleReady() {
-    if (!config) return;
-    setTogglingReady(true);
-    try {
-      if (!config.is_ready) {
-        // 未保存の変更がある場合は先に保存してから公開する
-        if (dirty) {
-          setSaving(true);
-          const saveRes = await fetch("/api/admin/form-config", {
-            method: "PUT", credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ config_id: config.id, fields }),
-          });
-          setSaving(false);
-          if (!saveRes.ok) { alert("保存に失敗しました"); return; }
-          setDirty(false);
-        }
-        await fetch("/api/admin/form-config", {
-          method: "PATCH", credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ config_id: config.id }),
-        });
-      } else {
-        await fetch("/api/admin/form-config", {
-          method: "PUT", credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ config_id: config.id, is_ready: false }),
-        });
-      }
-      await load();
-    } finally {
-      setTogglingReady(false);
-    }
-  }
+
 
   async function copyFromEvent(sourceEventId: string) {
     if (!config) return;
@@ -385,17 +356,13 @@ export function FormConfigPanel({ eventId }: Props) {
           </button>
           <button onClick={save} disabled={saving}
             className={`px-4 py-1.5 text-sm rounded-lg transition font-medium ${dirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}>
-            {saving ? <><Spinner className="inline-block mr-1" />保存中...</> : "一時保存"}
+            {saving ? <><Spinner className="inline-block mr-1" />保存中...</> : "保存"}
           </button>
           {saveMessage && (
             <span className={`text-xs animate-pulse ${saveMessage === "保存しました" ? "text-green-400" : "text-gray-400"}`}>
               {saveMessage}
             </span>
           )}
-          <button onClick={toggleReady} disabled={togglingReady}
-            className={`px-4 py-1.5 text-sm rounded-lg transition font-medium disabled:opacity-50 ${config.is_ready ? "bg-yellow-700 hover:bg-yellow-600 text-white" : "bg-green-700 hover:bg-green-600 text-white"}`}>
-            {togglingReady ? "処理中..." : config.is_ready ? "決定を取り消す" : "フォーム内容を決定"}
-          </button>
         </div>
       </div>
 

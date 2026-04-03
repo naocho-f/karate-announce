@@ -58,7 +58,7 @@ export default function EventDetailPage({ params }: Props) {
   const [processingRuleKeys, setProcessingRuleKeys] = useState<Set<string>>(new Set());
   const [currentFormVersion, setCurrentFormVersion] = useState<number | null>(null);
   const [formConfigVersion, setFormConfigVersion] = useState(0);
-  const [formConfigReady, setFormConfigReady] = useState(false);
+  // formConfigReady は廃止（受付開始時に自動で is_ready=true になる）
   const [ageCategories, setAgeCategories] = useState<AgeCategory[] | undefined>(undefined);
 
   const load = useCallback(async () => {
@@ -310,12 +310,7 @@ export default function EventDetailPage({ params }: Props) {
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    supabase.from("form_configs").select("is_ready").eq("event_id", id).maybeSingle()
-      .then(({ data }) => {
-        setFormConfigReady(data?.is_ready ?? false);
-      });
-  }, [id, formConfigVersion]);
+  // form_configs の is_ready 監視は廃止（受付開始時に自動で true に設定される）
 
   if (!event) {
     return <div className="min-h-screen bg-main-bg text-white flex items-center justify-center text-gray-400">読み込み中...</div>;
@@ -365,7 +360,7 @@ export default function EventDetailPage({ params }: Props) {
           </nav>
           <h1 className="text-2xl font-bold">{event.name}</h1>
           {(() => {
-            const phase = getEventPhase(event, formConfigReady, tournaments, allMatchRows);
+            const phase = getEventPhase(event, tournaments, allMatchRows);
             return <span className={`text-xs px-2 py-0.5 rounded ${phase.color}`}>{phase.label}</span>;
           })()}
         </div>
@@ -423,7 +418,7 @@ export default function EventDetailPage({ params }: Props) {
         </div>
 
         {/* ステップナビ */}
-        <StepNav step={step} tournaments={tournaments} onStepChange={navigateStep} phaseStep={getEventPhase(event, formConfigReady, tournaments, allMatchRows).stepHighlight} />
+        <StepNav step={step} tournaments={tournaments} onStepChange={navigateStep} phaseStep={getEventPhase(event, tournaments, allMatchRows).stepHighlight} />
 
         {/* ① 参加者管理 */}
         {step === 1 && (
@@ -436,7 +431,7 @@ export default function EventDetailPage({ params }: Props) {
             processingEntryIds={processingEntryIds}
             processingRuleKeys={processingRuleKeys}
             currentFormVersion={currentFormVersion}
-            formConfigReady={formConfigReady}
+
             formConfigVersion={formConfigVersion}
             ageCategories={ageCategories}
             entrySubTab={entrySubTab}

@@ -54,21 +54,15 @@ function makeTournament(overrides: Partial<Tournament> = {}): Tournament {
 }
 
 describe("getEventPhase", () => {
-  it("準備中: フォーム未公開", () => {
-    const phase = getEventPhase(makeEvent(), false, [], []);
-    expect(phase.label).toBe("準備中");
-    expect(phase.stepHighlight).toBe(1);
-  });
-
-  it("受付中: フォーム公開済み、entry_closed=false", () => {
-    const phase = getEventPhase(makeEvent(), true, [], []);
+  it("受付中: entry_closed=false", () => {
+    const phase = getEventPhase(makeEvent(), [], []);
     expect(phase.label).toBe("受付中");
     expect(phase.color).toContain("green");
     expect(phase.stepHighlight).toBe(1);
   });
 
   it("対戦表作成中: entry_closed=true、トーナメント未作成", () => {
-    const phase = getEventPhase(makeEvent({ entry_closed: true }), true, [], []);
+    const phase = getEventPhase(makeEvent({ entry_closed: true }), [], []);
     expect(phase.label).toBe("対戦表作成中");
     expect(phase.color).toContain("blue");
     expect(phase.stepHighlight).toBe(2);
@@ -76,7 +70,7 @@ describe("getEventPhase", () => {
 
   it("対戦表作成中: entry_close_at が過去日時", () => {
     const pastDate = new Date(Date.now() - 86400000).toISOString();
-    const phase = getEventPhase(makeEvent({ entry_close_at: pastDate }), true, [], []);
+    const phase = getEventPhase(makeEvent({ entry_close_at: pastDate }), [], []);
     expect(phase.label).toBe("対戦表作成中");
     expect(phase.stepHighlight).toBe(2);
   });
@@ -84,7 +78,6 @@ describe("getEventPhase", () => {
   it("対戦表作成中: entry_closed=true だがトーナメントに matches がない", () => {
     const phase = getEventPhase(
       makeEvent({ entry_closed: true }),
-      true,
       [makeTournament()],
       [],
     );
@@ -95,7 +88,6 @@ describe("getEventPhase", () => {
   it("試合準備中: トーナメント確定済み（matches あり）、is_active=false", () => {
     const phase = getEventPhase(
       makeEvent({ entry_closed: true }),
-      true,
       [makeTournament()],
       [{ tournament_id: "t1", fighter1_id: "f1", fighter2_id: "f2" }],
     );
@@ -107,7 +99,6 @@ describe("getEventPhase", () => {
   it("試合中: is_active=true", () => {
     const phase = getEventPhase(
       makeEvent({ is_active: true, entry_closed: true }),
-      true,
       [makeTournament()],
       [{ tournament_id: "t1", fighter1_id: "f1", fighter2_id: "f2" }],
     );
@@ -119,7 +110,6 @@ describe("getEventPhase", () => {
   it("試合終了: status=finished", () => {
     const phase = getEventPhase(
       makeEvent({ status: "finished", is_active: true }),
-      true,
       [makeTournament()],
       [{ tournament_id: "t1", fighter1_id: "f1", fighter2_id: "f2" }],
     );
@@ -130,7 +120,6 @@ describe("getEventPhase", () => {
   it("試合終了は is_active より優先", () => {
     const phase = getEventPhase(
       makeEvent({ status: "finished", is_active: true }),
-      true,
       [],
       [],
     );

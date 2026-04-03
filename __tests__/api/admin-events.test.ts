@@ -12,6 +12,7 @@ import {
   createAdminRequest,
   createParams,
   resetAll,
+  getCallsFor,
 } from "../helpers/supabase-mock";
 
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: createMockSupabase() }));
@@ -90,6 +91,20 @@ describe("/api/admin/events/[id]", () => {
     });
     const res = await PATCH(req, createParams({ id: "ev1" }));
     expect(res.status).toBe(200);
+  });
+
+  it("PATCH: entry_closed=false で form_configs.is_ready を自動で true にする", async () => {
+    const { PATCH } = await import("@/app/api/admin/events/[id]/route");
+    const req = createAdminRequest("PATCH", "/api/admin/events/ev1", {
+      body: { entry_closed: false },
+    });
+    const res = await PATCH(req, createParams({ id: "ev1" }));
+    expect(res.status).toBe(200);
+    // form_configs の update が呼ばれたことを確認
+    const formConfigUpdates = getCallsFor("form_configs", "update");
+    expect(formConfigUpdates.length).toBeGreaterThanOrEqual(1);
+    const updateArg = formConfigUpdates[0].args[0] as Record<string, unknown>;
+    expect(updateArg.is_ready).toBe(true);
   });
 
   it("PATCH: is_active=true で全イベント非アクティブ化後に更新", async () => {

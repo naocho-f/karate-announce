@@ -350,19 +350,26 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ config, fields: fields ?? [], notices: notices ?? [], customFieldDefs: customFieldDefs ?? [] });
 }
 
-/** PUT — フォーム設定の一括更新（フィールド設定 + config） */
+/** PUT — フォーム設定の一括更新（フィールド設定 + version インクリメント） */
 export async function PUT(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
-  const { config_id, is_ready, fields } = await request.json();
+  const { config_id, fields } = await request.json();
   if (!config_id) return NextResponse.json({ error: "config_id required" }, { status: 400 });
 
-  // config 更新（version インクリメント + is_ready）
-  if (is_ready !== undefined) {
-    await supabaseAdmin
-      .from("form_configs")
-      .update({ is_ready, updated_at: new Date().toISOString() })
-      .eq("id", config_id);
-  }
+  // 現在の version を取得
+  const { data: current } = await supabaseAdmin
+    .from("form_configs")
+    .select("version")
+    .eq("id", config_id)
+    .single();
+
+  const newVersion = (current?.version ?? 0) + 1;
+
+  // version インクリメント
+  await supabaseAdmin
+    .from("form_configs")
+    .update({ version: newVersion, updated_at: new Date().toISOString() })
+    .eq("id", config_id);
 
   // フィールド設定の一括更新
   if (fields && Array.isArray(fields)) {
@@ -381,31 +388,5 @@ export async function PUT(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true });
-}
-
-/** PATCH — フォーム公開（version インクリメント） */
-export async function PATCH(request: NextRequest) {
-  if (!verifyAdminAuth(request)) return unauthorized();
-  const { config_id } = await request.json();
-
-  const { data: current } = await supabaseAdmin
-    .from("form_configs")
-    .select("version")
-    .eq("id", config_id)
-    .single();
-
-  if (!current) return NextResponse.json({ error: "not found" }, { status: 404 });
-
-  const { error } = await supabaseAdmin
-    .from("form_configs")
-    .update({
-      version: current.version + 1,
-      is_ready: true,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", config_id);
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true, version: current.version + 1 });
+  return NextResponse.json({ ok: true, version: newVersion });
 }
