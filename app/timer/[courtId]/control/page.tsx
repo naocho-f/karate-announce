@@ -151,6 +151,13 @@ export default function TimerControlPage() {
   const [ipponConfirmSide, setIpponConfirmSide] = useState<FighterSide | null>(null);
   const [buzzerWarning, setBuzzerWarning] = useState(false);
 
+  // ブザー警告バナーの自動消去（5秒）
+  useEffect(() => {
+    if (!buzzerWarning) return;
+    const timer = setTimeout(() => setBuzzerWarning(false), 5000);
+    return () => clearTimeout(timer);
+  }, [buzzerWarning]);
+
   // localStorage キー用の eventId（未ロード時は courtId をフォールバック）
   const storageEventId = eventId ?? "default";
 
@@ -768,7 +775,7 @@ export default function TimerControlPage() {
         </div>
       </div>
 
-      {/* カスタムブザー警告バナー */}
+      {/* カスタムブザー警告バナー（5秒で自動消去） */}
       {buzzerWarning && (
         <div className="bg-yellow-900 border-b border-yellow-700 px-4 py-2 flex items-center justify-between">
           <p className="text-yellow-200 text-sm font-medium">カスタム音源の読み込みに失敗しました。デフォルト音源を使用しています。</p>
@@ -1001,8 +1008,8 @@ export default function TimerControlPage() {
                   </button>
                 )}
               </div>
-              {/* 寝技（常時表示・中央寄せ） */}
-              {p?.newaza_enabled && (
+              {/* 寝技（勝敗確定時は非表示） */}
+              {p?.newaza_enabled && phase !== "finished" && (
                 <div className="flex flex-col items-center gap-1 mt-2">
                   <button
                     onClick={() => update(toggleNewaza)}

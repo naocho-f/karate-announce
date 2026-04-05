@@ -127,7 +127,7 @@ export default function LivePage() {
     const newNotifs = checkWatchNotifications(matchesByCourt, watchList, notifiedRef.current);
     if (newNotifs.length > 0) {
       setWatchNotifications(prev => [...prev, ...newNotifs]);
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      // バイブレーションは多くの端末で非対応のため削除済み
     }
   }, [courts, watchList]);
 
@@ -200,7 +200,7 @@ export default function LivePage() {
               onClick={() => setShowWatch(!showWatch)}
               className={`relative text-xs px-2 py-1 rounded-lg transition ${showWatch ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}
             >
-              👁 ウォッチ
+              ⭐ ウォッチ
               {watchList.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                   {watchList.length}
@@ -274,7 +274,7 @@ export default function LivePage() {
                   <p className="text-[10px] text-gray-500">ウォッチ中:</p>
                   {watchList.map(name => (
                     <div key={name} className="flex items-center justify-between bg-gray-700/50 rounded px-3 py-1.5">
-                      <span className="text-sm text-gray-200">👁 {name}</span>
+                      <span className="text-sm text-gray-200">⭐ {name}</span>
                       <button
                         onClick={() => setWatchList(prev => prev.filter(n => n !== name))}
                         className="text-xs text-red-400 hover:text-red-300"
@@ -300,7 +300,7 @@ export default function LivePage() {
             <button
               key={n.id}
               onClick={() => setWatchNotifications(prev => prev.filter(x => x.id !== n.id))}
-              className="w-full bg-orange-600 text-white rounded-xl px-4 py-3 text-sm font-medium shadow-lg animate-slide-in text-left"
+              className="w-full bg-orange-600 text-white rounded-xl px-5 py-4 text-base font-bold shadow-2xl animate-pulse text-left"
             >
               🔔 {n.message}
             </button>
@@ -317,8 +317,10 @@ export default function LivePage() {
 
 function CourtView({ court }: { court: CourtData }) {
   const { tournaments } = court;
+  const scrollTargetRef = useRef<HTMLDivElement>(null);
+  const prevScrollTargetId = useRef<string | null>(null);
 
-  // 全トーナメントの試合をフラットにして試合番号順にソート
+  // 全トーナメントの試合をフラットにして試合番号順にソート（順序は固定）
   const allMatches = tournaments.flatMap(({ matches }) => matches);
   const sortedMatches = [...allMatches].sort((a, b) => {
     const nA = matchLabelNum(a.match_label);
@@ -334,11 +336,24 @@ function CourtView({ court }: { court: CourtData }) {
   // 不戦勝（round 1 で fighter2 なし）を除外
   const visibleMatches = sortedMatches.filter((m) => m.fighter2_id || m.round > 1);
 
+  // ongoing または次の試合が変わったら自動スクロール
+  const scrollTargetId = ongoingMatch?.id ?? nextMatch?.id ?? null;
+  useEffect(() => {
+    if (scrollTargetId && scrollTargetId !== prevScrollTargetId.current) {
+      prevScrollTargetId.current = scrollTargetId;
+      setTimeout(() => {
+        scrollTargetRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+    }
+  }, [scrollTargetId]);
+
   return (
     <div className="space-y-1.5">
-      {/* 試合番号順の対戦リスト */}
+      {/* 試合番号順の対戦リスト（順序固定） */}
       {visibleMatches.map((m) => (
-        <MatchRow key={m.id} match={m} isOngoing={m.id === ongoingMatch?.id} isNext={m.id === nextMatch?.id} />
+        <div key={m.id} ref={m.id === scrollTargetId ? scrollTargetRef : undefined}>
+          <MatchRow match={m} isOngoing={m.id === ongoingMatch?.id} isNext={m.id === nextMatch?.id} />
+        </div>
       ))}
 
       {visibleMatches.length === 0 && (
