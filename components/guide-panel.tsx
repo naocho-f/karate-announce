@@ -105,6 +105,10 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
                   <p className="text-white font-medium">得点・反則 <span className="text-gray-600 font-normal">（ON/OFF）</span></p>
                   <p className="text-gray-500">ポイント・技あり・一本の表示と得点値、反則回数と得点変換ルール</p>
                 </div>
+                <div className="bg-gray-900 rounded px-3 py-2 space-y-0.5">
+                  <p className="text-white font-medium">ブザー音源</p>
+                  <p className="text-gray-500">試合終了ブザーと寝技タイムアップブザーで別の音を設定可能。内蔵30種（音程×波形×パターンの組み合わせ）から選択するか、カスタム音源をアップロード。鳴動秒数（0.5〜5秒）と連続回数（1〜3回）も設定できます。試聴ボタン（▶）で音を確認してから保存してください</p>
+                </div>
               </div>
             </div>
             <UsedIn items={[
