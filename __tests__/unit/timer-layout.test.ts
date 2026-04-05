@@ -24,7 +24,7 @@ const BASE_PRESET = {
   theme_divider_color: "#333333",
   layout: null,
   buzzer_on_time_up: "auto" as const, buzzer_on_newaza: "auto" as const,
-  buzzer_sound: "default", buzzer_duration: 1.5, buzzer_custom_path: null,
+  buzzer_sound: "mid-square-single", buzzer_duration: 1.5, buzzer_repeat: 1, buzzer_sound_newaza: "mid-square-single", buzzer_duration_newaza: 1.5, buzzer_repeat_newaza: 1, buzzer_custom_path: null,
   swap_sides: false,
   created_at: "", updated_at: "",
 } satisfies TimerPreset;

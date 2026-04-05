@@ -5,7 +5,7 @@ import type { TimerPreset } from "@/lib/types";
 import { DEFAULT_LAYOUT } from "@/lib/types";
 import type { LayoutConfig, LayoutRow, LayoutRowType, LayoutAlignment, LayoutVerticalAlign } from "@/lib/types";
 import { rowTypeLabel } from "@/lib/timer-layout";
-import { BUILTIN_SOUNDS, testBuzzer, preloadCustomBuzzer } from "@/lib/timer-buzzer";
+import { BUILTIN_SOUNDS, SOUND_CATEGORIES, testBuzzer, preloadCustomBuzzer } from "@/lib/timer-buzzer";
 
 type EditablePreset = Partial<TimerPreset> & { name: string };
 
@@ -53,8 +53,12 @@ const EMPTY_PRESET: EditablePreset = {
   theme_divider_color: "#333333",
   buzzer_on_time_up: "auto",
   buzzer_on_newaza: "auto",
-  buzzer_sound: "default",
+  buzzer_sound: "mid-square-single",
   buzzer_duration: 1.5,
+  buzzer_repeat: 1,
+  buzzer_sound_newaza: "mid-square-single",
+  buzzer_duration_newaza: 1.5,
+  buzzer_repeat_newaza: 1,
   swap_sides: false,
   layout: { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) },
 };
@@ -908,14 +912,29 @@ export function TimerPresetsPanel() {
                   options: [{ value: "auto", label: "自動" }, { value: "manual", label: "手動" }, { value: "off", label: "なし" }]
                 })}
               </div>
+              <p className="text-xs text-gray-500 mt-2 mb-1">試合終了ブザー音源</p>
               <BuzzerSoundSelector
-                soundId={editing.buzzer_sound ?? "default"}
+                soundId={editing.buzzer_sound ?? "mid-square-single"}
                 duration={editing.buzzer_duration ?? 1.5}
+                repeat={editing.buzzer_repeat ?? 1}
                 customPath={editing.buzzer_custom_path ?? null}
                 presetId={editId}
                 onSoundChange={(v) => setEditing({ ...editing, buzzer_sound: v })}
                 onDurationChange={(v) => setEditing({ ...editing, buzzer_duration: v })}
-                onCustomPathChange={(v) => setEditing({ ...editing, buzzer_custom_path: v, buzzer_sound: v ? "custom" : "default" })}
+                onRepeatChange={(v) => setEditing({ ...editing, buzzer_repeat: v })}
+                onCustomPathChange={(v) => setEditing({ ...editing, buzzer_custom_path: v, buzzer_sound: v ? "custom" : "mid-square-single" })}
+              />
+              <p className="text-xs text-gray-500 mt-3 mb-1">寝技タイムアップブザー音源</p>
+              <BuzzerSoundSelector
+                soundId={editing.buzzer_sound_newaza ?? "mid-square-single"}
+                duration={editing.buzzer_duration_newaza ?? 1.5}
+                repeat={editing.buzzer_repeat_newaza ?? 1}
+                customPath={null}
+                presetId={null}
+                onSoundChange={(v) => setEditing({ ...editing, buzzer_sound_newaza: v })}
+                onDurationChange={(v) => setEditing({ ...editing, buzzer_duration_newaza: v })}
+                onRepeatChange={(v) => setEditing({ ...editing, buzzer_repeat_newaza: v })}
+                onCustomPathChange={() => {}}
               />
             </div>
 
@@ -946,13 +965,15 @@ export function TimerPresetsPanel() {
 
 // ═══════════ ブザー音源選択コンポーネント ═══════════
 
-function BuzzerSoundSelector({ soundId, duration, customPath, presetId, onSoundChange, onDurationChange, onCustomPathChange }: {
+function BuzzerSoundSelector({ soundId, duration, repeat, customPath, presetId, onSoundChange, onDurationChange, onRepeatChange, onCustomPathChange }: {
   soundId: string;
   duration: number;
+  repeat: number;
   customPath: string | null;
   presetId: string | null;
   onSoundChange: (id: string) => void;
   onDurationChange: (d: number) => void;
+  onRepeatChange: (r: number) => void;
   onCustomPathChange: (path: string | null) => void;
 }) {
   const [uploading, setUploading] = useState(false);
@@ -965,8 +986,8 @@ function BuzzerSoundSelector({ soundId, duration, customPath, presetId, onSoundC
       preloadCustomBuzzer(customPath);
       await new Promise(r => setTimeout(r, 300));
     }
-    await testBuzzer(soundId, duration);
-    setTimeout(() => setPlaying(false), Math.max(duration * 1000, 500));
+    await testBuzzer(soundId, duration, repeat);
+    setTimeout(() => setPlaying(false), Math.max(duration * 1000 * repeat + 300 * (repeat - 1), 500));
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -993,8 +1014,8 @@ function BuzzerSoundSelector({ soundId, duration, customPath, presetId, onSoundC
   }
 
   return (
-    <div className="space-y-2 mt-2">
-      <div className="grid grid-cols-2 gap-3">
+    <div className="space-y-2">
+      <div className="grid grid-cols-3 gap-2">
         <div>
           <label className="block text-xs text-gray-400 mb-1">ブザー音源</label>
           <div className="flex gap-1">
@@ -1003,10 +1024,16 @@ function BuzzerSoundSelector({ soundId, duration, customPath, presetId, onSoundC
               onChange={(e) => onSoundChange(e.target.value)}
               className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500"
             >
-              {BUILTIN_SOUNDS.map(s => (
-                <option key={s.id} value={s.id}>{s.label}</option>
+              {SOUND_CATEGORIES.map(cat => (
+                <optgroup key={cat} label={cat}>
+                  {BUILTIN_SOUNDS.filter(s => s.category === cat).map(s => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
+                  ))}
+                </optgroup>
               ))}
-              <option value="custom">カスタム音源</option>
+              <optgroup label="その他">
+                <option value="custom">カスタム音源</option>
+              </optgroup>
             </select>
             <button
               onClick={handlePreview}
@@ -1022,12 +1049,24 @@ function BuzzerSoundSelector({ soundId, duration, customPath, presetId, onSoundC
           <select
             value={duration}
             onChange={(e) => onDurationChange(Number(e.target.value))}
-            disabled={soundId === "custom" || soundId === "short" || soundId === "double" || soundId === "triple"}
+            disabled={soundId === "custom" || soundId.endsWith("-double") || soundId.endsWith("-triple")}
             className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500 disabled:opacity-50"
           >
             {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0].map(v => (
               <option key={v} value={v}>{v}秒</option>
             ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">連続回数</label>
+          <select
+            value={repeat}
+            onChange={(e) => onRepeatChange(Number(e.target.value))}
+            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500"
+          >
+            <option value={1}>1回</option>
+            <option value={2}>2回</option>
+            <option value={3}>3回</option>
           </select>
         </div>
       </div>
