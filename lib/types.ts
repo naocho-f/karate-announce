@@ -287,7 +287,8 @@ export type TimerPreset = {
   // ブザー
   buzzer_on_time_up: "auto" | "manual" | "off";
   buzzer_on_newaza: "auto" | "manual" | "off";
-  buzzer_sound: "default" | "custom";
+  buzzer_sound: string;  // 内蔵音源ID or "custom"
+  buzzer_duration: number;  // ブザー鳴動秒数
   buzzer_custom_path: string | null;
   // 左右入れ替え
   swap_sides: boolean;

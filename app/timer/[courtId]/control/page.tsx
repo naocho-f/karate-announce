@@ -13,7 +13,7 @@ import {
   tick, getDisplayMs, getNewazaElapsedMs, getNewazaDisplayMs,
   type TimerState, type FighterSide, type ResultMethod, type FighterInfo,
 } from "@/lib/timer-state";
-import { preloadDefaultBuzzer, playBuzzer } from "@/lib/timer-buzzer";
+import { playBuzzer, preloadCustomBuzzer } from "@/lib/timer-buzzer";
 import { fighterFullName, fighterFullReading } from "@/lib/types";
 import type { TimerPreset, Fighter, Match, Tournament } from "@/lib/types";
 import { announceMatchStart, announceWinner, buildMatchStartText, prefetchTts, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
@@ -94,6 +94,7 @@ const DEFAULT_PRESET: TimerPreset = {
   buzzer_on_time_up: "auto",
   buzzer_on_newaza: "auto",
   buzzer_sound: "default",
+  buzzer_duration: 1.5,
   buzzer_custom_path: null,
   swap_sides: false,
   created_at: "",
@@ -157,6 +158,16 @@ export default function TimerControlPage() {
     const timer = setTimeout(() => setBuzzerWarning(false), 5000);
     return () => clearTimeout(timer);
   }, [buzzerWarning]);
+
+  // カスタム音源プリロード
+  useEffect(() => {
+    for (const p of presets) {
+      if (p.buzzer_sound === "custom" && p.buzzer_custom_path) {
+        preloadCustomBuzzer(p.buzzer_custom_path);
+        break;
+      }
+    }
+  }, [presets]);
 
   // localStorage キー用の eventId（未ロード時は courtId をフォールバック）
   const storageEventId = eventId ?? "default";
@@ -305,7 +316,6 @@ export default function TimerControlPage() {
 
   // ── 初期化 ──
   useEffect(() => {
-    preloadDefaultBuzzer();
     const ch = createTimerChannel(courtId);
     channelRef.current = ch;
 
@@ -372,7 +382,7 @@ export default function TimerControlPage() {
         update((prev) => {
           const next = timeUp(prev);
           if (next.preset?.buzzer_on_time_up === "auto") {
-            playBuzzer(next.preset.buzzer_sound === "custom" ? "custom" : "default").then((r) => { if (r === "fallback") setBuzzerWarning(true); });
+            playBuzzer(next.preset.buzzer_sound ?? "default", next.preset.buzzer_duration ?? 1.5).then((r) => { if (r === "fallback") setBuzzerWarning(true); });
           }
           return next;
         });
@@ -380,7 +390,7 @@ export default function TimerControlPage() {
         update((prev) => {
           const next = newazaTimeUp(prev);
           if (next.preset?.buzzer_on_newaza === "auto") {
-            playBuzzer(next.preset.buzzer_sound === "custom" ? "custom" : "default").then((r) => { if (r === "fallback") setBuzzerWarning(true); });
+            playBuzzer(next.preset.buzzer_sound ?? "default", next.preset.buzzer_duration ?? 1.5).then((r) => { if (r === "fallback") setBuzzerWarning(true); });
           }
           return next;
         });
@@ -485,7 +495,7 @@ export default function TimerControlPage() {
           update((st) => adjustTime(st, e.shiftKey ? 1000 : 10000));
           break;
         case "KeyB":
-          playBuzzer(s.preset?.buzzer_sound === "custom" ? "custom" : "default").then((r) => { if (r === "fallback") setBuzzerWarning(true); });
+          playBuzzer(s.preset?.buzzer_sound ?? "default", s.preset?.buzzer_duration ?? 1.5).then((r) => { if (r === "fallback") setBuzzerWarning(true); });
           break;
         case "KeyD":
           if (s.phase === "time_up") {
@@ -1208,7 +1218,7 @@ export default function TimerControlPage() {
               <h3 className="text-sm font-bold text-gray-400 mb-2">サブ操作</h3>
               <div className="grid grid-cols-5 gap-2">
                 <button
-                  onClick={() => playBuzzer(p?.buzzer_sound === "custom" ? "custom" : "default").then((r) => { if (r === "fallback") setBuzzerWarning(true); })}
+                  onClick={() => playBuzzer(p?.buzzer_sound ?? "default", p?.buzzer_duration ?? 1.5).then((r) => { if (r === "fallback") setBuzzerWarning(true); })}
                   className={`py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition ${(phase === "paused" || phase === "time_up") ? "" : "col-span-5"}`}
                 >
                   ブザー [B]

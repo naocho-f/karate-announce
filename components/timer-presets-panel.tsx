@@ -5,6 +5,7 @@ import type { TimerPreset } from "@/lib/types";
 import { DEFAULT_LAYOUT } from "@/lib/types";
 import type { LayoutConfig, LayoutRow, LayoutRowType, LayoutAlignment, LayoutVerticalAlign } from "@/lib/types";
 import { rowTypeLabel } from "@/lib/timer-layout";
+import { BUILTIN_SOUNDS, testBuzzer, preloadCustomBuzzer } from "@/lib/timer-buzzer";
 
 type EditablePreset = Partial<TimerPreset> & { name: string };
 
@@ -53,6 +54,7 @@ const EMPTY_PRESET: EditablePreset = {
   buzzer_on_time_up: "auto",
   buzzer_on_newaza: "auto",
   buzzer_sound: "default",
+  buzzer_duration: 1.5,
   swap_sides: false,
   layout: { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) },
 };
@@ -906,6 +908,15 @@ export function TimerPresetsPanel() {
                   options: [{ value: "auto", label: "自動" }, { value: "manual", label: "手動" }, { value: "off", label: "なし" }]
                 })}
               </div>
+              <BuzzerSoundSelector
+                soundId={editing.buzzer_sound ?? "default"}
+                duration={editing.buzzer_duration ?? 1.5}
+                customPath={editing.buzzer_custom_path ?? null}
+                presetId={editId}
+                onSoundChange={(v) => setEditing({ ...editing, buzzer_sound: v })}
+                onDurationChange={(v) => setEditing({ ...editing, buzzer_duration: v })}
+                onCustomPathChange={(v) => setEditing({ ...editing, buzzer_custom_path: v, buzzer_sound: v ? "custom" : "default" })}
+              />
             </div>
 
             {/* 右: プレビュー（sticky） */}
@@ -930,5 +941,126 @@ export function TimerPresetsPanel() {
         </div>
       )}
     </>
+  );
+}
+
+// ═══════════ ブザー音源選択コンポーネント ═══════════
+
+function BuzzerSoundSelector({ soundId, duration, customPath, presetId, onSoundChange, onDurationChange, onCustomPathChange }: {
+  soundId: string;
+  duration: number;
+  customPath: string | null;
+  presetId: string | null;
+  onSoundChange: (id: string) => void;
+  onDurationChange: (d: number) => void;
+  onCustomPathChange: (path: string | null) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [playing, setPlaying] = useState(false);
+
+  async function handlePreview() {
+    if (playing) return;
+    setPlaying(true);
+    if (soundId === "custom" && customPath) {
+      preloadCustomBuzzer(customPath);
+      await new Promise(r => setTimeout(r, 300));
+    }
+    await testBuzzer(soundId, duration);
+    setTimeout(() => setPlaying(false), Math.max(duration * 1000, 500));
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !presetId) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`/api/admin/timer-presets/${presetId}/buzzer`, { method: "POST", body: formData });
+    if (res.ok) {
+      const { url } = await res.json();
+      onCustomPathChange(url);
+    } else {
+      alert("アップロードに失敗しました");
+    }
+    setUploading(false);
+    e.target.value = "";
+  }
+
+  async function handleDelete() {
+    if (!presetId) return;
+    await fetch(`/api/admin/timer-presets/${presetId}/buzzer`, { method: "DELETE" });
+    onCustomPathChange(null);
+  }
+
+  return (
+    <div className="space-y-2 mt-2">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">ブザー音源</label>
+          <div className="flex gap-1">
+            <select
+              value={soundId}
+              onChange={(e) => onSoundChange(e.target.value)}
+              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500"
+            >
+              {BUILTIN_SOUNDS.map(s => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+              <option value="custom">カスタム音源</option>
+            </select>
+            <button
+              onClick={handlePreview}
+              disabled={playing}
+              className="bg-gray-600 hover:bg-gray-500 disabled:opacity-50 text-white px-2 py-1 rounded text-sm transition shrink-0"
+            >
+              {playing ? "..." : "▶"}
+            </button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">鳴動秒数</label>
+          <select
+            value={duration}
+            onChange={(e) => onDurationChange(Number(e.target.value))}
+            disabled={soundId === "custom" || soundId === "short" || soundId === "double" || soundId === "triple"}
+            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500 disabled:opacity-50"
+          >
+            {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0].map(v => (
+              <option key={v} value={v}>{v}秒</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {soundId === "custom" && (
+        <div className="bg-gray-900 rounded px-3 py-2 space-y-2">
+          {customPath ? (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-300 truncate flex-1">アップロード済み</span>
+              <div className="flex gap-2 shrink-0">
+                <button onClick={handlePreview} disabled={playing} className="text-xs text-blue-400 hover:text-blue-300">
+                  {playing ? "再生中..." : "試聴"}
+                </button>
+                <button onClick={handleDelete} className="text-xs text-red-400 hover:text-red-300">削除</button>
+              </div>
+            </div>
+          ) : presetId ? (
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">音源ファイル（MP3/WAV/OGG、2MB以内）</label>
+              <input
+                type="file"
+                accept="audio/mpeg,audio/wav,audio/ogg"
+                onChange={handleUpload}
+                disabled={uploading}
+                className="text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-700 file:text-gray-300 hover:file:bg-gray-600"
+              />
+              {uploading && <p className="text-xs text-blue-400 mt-1">アップロード中...</p>}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500">カスタム音源のアップロードはプリセット保存後に行えます</p>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
