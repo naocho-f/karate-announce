@@ -401,31 +401,79 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
             </MockScreen>
           </Section>
 
-          {/* ── 10. 試合進行 ── */}
+          {/* ── 10. 試合進行（タイマー＋操作パネル） ── */}
           <Section
-            id="court" openIds={openIds} toggle={toggle}
-            color="border-blue-500" num={5} title="試合を進行する（コート画面）"
+            id="timer-op" openIds={openIds} toggle={toggle}
+            color="border-blue-500" num={5} title="試合を進行する（タイマー＋操作パネル）"
           >
             <Desc>
-              イベントを「開催中」に設定すると、コート画面（/court/1 など）が有効になります。
-              コート画面のブラケット上で試合の開始・勝者確定・アナウンスを操作します。
+              試合の進行は「タイマー表示画面」と「操作パネル」の2画面で行います。
+              イベントを「開催中」に設定すると、コート画面（/court/1 など）が有効になり、そこからタイマーと操作パネルを開けます。
+              操作パネルで試合の開始・計時・得点記録・勝者確定まで一連の操作を行います。
             </Desc>
             <Steps steps={[
               "「試合」タブ → イベント一覧で「開催中に設定」を押します",
               "コート画面（/court/1 等）をタブレットやPCで開きます",
-              "ブラケット上の「▶ 試合開始」をタップ → AI が選手名・所属・ルールをアナウンス",
-              "試合中に勝者の選手スロットをタップ → 勝者確定＋次ラウンド自動進出＋勝者アナウンス",
-              "全試合が終了するまで繰り返します",
+              "コート画面ヘッダーの「⏱ タイマー表示画面」を観客向けモニターで開きます",
+              "「🎮 操作パネル」を運営者のスマホやタブレットで開きます（別タブ）",
+              "操作パネルの試合リストから試合を選択します",
+              "スペースキーまたは「▶ スタート」で試合開始 → タイマーが動き、AI アナウンスが再生されます",
+              "ポイント・技あり・一本・反則を各ボタンで記録します",
+              "時間切れまたは一本で試合終了 → 結果方法を選択して勝者を確定",
+              "勝者が次ラウンドに自動進出し、勝者アナウンスが再生されます",
             ]} />
             <div className="text-xs text-gray-400 space-y-1 mt-2">
-              <p className="font-medium text-gray-300">コート画面の補助機能:</p>
+              <p className="font-medium text-gray-300">キーボードショートカット:</p>
               <ul className="ml-3 space-y-0.5">
-                <li>・<span className="text-gray-300">再アナウンス</span>: 聞き逃した場合に試合開始/勝者アナウンスを再生</li>
+                <li>・<span className="text-gray-300">スペース</span>: タイマー開始/停止/再開</li>
+                <li>・<span className="text-gray-300">G</span>: 寝技タイマー切り替え</li>
+              </ul>
+              <p className="font-medium text-gray-300 mt-1">延長戦:</p>
+              <p className="ml-3">メインの試合時間が終了すると、タイマー設定に応じて延長戦に移行します。「時間延長」は指定時間のカウント、「先取延長」はポイント先取で決着です。</p>
+            </div>
+            <MockScreen>
+              <MockLabel>タイマー操作パネル</MockLabel>
+              <div className="space-y-2">
+                <div className="bg-gray-900 rounded p-2 text-center">
+                  <span className="text-2xl font-bold font-mono text-white">2:45</span>
+                  <span className="text-[10px] text-gray-500 ml-2">カウントダウン</span>
+                </div>
+                <div className="flex gap-2 justify-center">
+                  <div className="bg-red-800 text-white rounded px-3 py-1 text-[10px]">赤 +1点</div>
+                  <div className="bg-blue-700 text-white rounded px-3 py-1 text-[10px]">⏸ ストップ</div>
+                  <div className="bg-gray-600 text-white rounded px-3 py-1 text-[10px]">白 +1点</div>
+                </div>
+              </div>
+            </MockScreen>
+          </Section>
+
+          {/* ── 11. コート画面（タイマー不使用時） ── */}
+          <Section
+            id="court" openIds={openIds} toggle={toggle}
+            color="border-blue-500" num={6} title="コート画面で直接操作する（タイマー不使用時）"
+          >
+            <Desc>
+              タイマーを使わずに試合を進行する場合は、コート画面のブラケット上で直接操作できます。
+              試合開始・勝者確定・アナウンスをブラケットのカードから行います。
+            </Desc>
+            <div className="text-xs text-gray-400 space-y-1 mt-1">
+              <p className="font-medium text-gray-300">操作方法:</p>
+              <ul className="ml-3 space-y-0.5">
+                <li>・ブラケット上の「▶ 試合開始」をタップ → AI アナウンス再生</li>
+                <li>・試合中に勝者の選手スロットをタップ → 勝者確定＋次ラウンド進出＋勝者アナウンス</li>
+              </ul>
+              <p className="font-medium text-gray-300 mt-1">補助機能:</p>
+              <ul className="ml-3 space-y-0.5">
+                <li>・<span className="text-gray-300">再アナウンス</span>: 聞き逃した場合に再生</li>
                 <li>・<span className="text-gray-300">棄権切り替え</span>: 選手の棄権を登録（不戦勝処理）</li>
                 <li>・<span className="text-gray-300">勝者訂正</span>: 誤った結果を修正</li>
                 <li>・<span className="text-gray-300">音声ON/OFF</span>: アナウンスのミュート切り替え</li>
               </ul>
             </div>
+            <Tip>
+              タイマー＋操作パネルを使う場合はこのセクションの操作は不要です。
+              操作パネルを開いている間、コート画面からの試合開始操作は自動的にロックされます（二重操作防止）。
+            </Tip>
             <MockScreen>
               <MockLabel>コート画面 — ブラケットの試合カード</MockLabel>
               <div className="border border-yellow-600 rounded overflow-hidden">
@@ -449,50 +497,6 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
                 </div>
               </div>
               <p className="text-[10px] text-gray-500 mt-1 text-center">↑ 選手名をタップで勝者確定 → 自動アナウンス</p>
-            </MockScreen>
-          </Section>
-
-          {/* ── 11. タイマー操作 ── */}
-          <Section
-            id="timer-op" openIds={openIds} toggle={toggle}
-            color="border-blue-500" num={6} title="タイマーで計時・得点を管理する"
-          >
-            <Desc>
-              タイマー画面はコート画面とは別に開きます。コート画面のヘッダーにある「⏱ タイマー表示画面」と「🎮 操作パネル」のリンクを使います。
-              タイマー表示画面は観客向けの大画面表示、操作パネルは運営者がスマホやタブレットで操作するための画面です。
-            </Desc>
-            <Steps steps={[
-              "コート画面のヘッダーから「🎮 操作パネルを開く」をタップ（別タブで開きます）",
-              "操作パネルの試合リストから試合を選択します",
-              "スペースキーまたは「▶ スタート」で試合開始 → タイマーが動きます",
-              "ポイント・技あり・一本・反則を各ボタンで記録します",
-              "時間切れまたは一本で試合終了 → 結果方法を選択して確定",
-              "寝技が発生した場合は G キーで寝技タイマーに切り替え",
-            ]} />
-            <div className="text-xs text-gray-400 space-y-1 mt-2">
-              <p className="font-medium text-gray-300">キーボードショートカット:</p>
-              <ul className="ml-3 space-y-0.5">
-                <li>・<span className="text-gray-300">スペース</span>: タイマー開始/停止/再開</li>
-                <li>・<span className="text-gray-300">G</span>: 寝技タイマー切り替え</li>
-              </ul>
-              <p className="font-medium text-gray-300 mt-1">延長戦:</p>
-              <p className="ml-3">メインの試合時間が終了すると、タイマー設定に応じて延長戦に移行します。「時間延長」は指定時間のカウント、「先取延長」はポイント先取で決着です。</p>
-              <p className="font-medium text-gray-300 mt-1">注意:</p>
-              <p className="ml-3">操作パネルを開いている間、コート画面からの試合開始操作はロックされます（二重操作防止）。</p>
-            </div>
-            <MockScreen>
-              <MockLabel>タイマー操作パネル</MockLabel>
-              <div className="space-y-2">
-                <div className="bg-gray-900 rounded p-2 text-center">
-                  <span className="text-2xl font-bold font-mono text-white">2:45</span>
-                  <span className="text-[10px] text-gray-500 ml-2">カウントダウン</span>
-                </div>
-                <div className="flex gap-2 justify-center">
-                  <div className="bg-red-800 text-white rounded px-3 py-1 text-[10px]">赤 +1点</div>
-                  <div className="bg-blue-700 text-white rounded px-3 py-1 text-[10px]">⏸ ストップ</div>
-                  <div className="bg-gray-600 text-white rounded px-3 py-1 text-[10px]">白 +1点</div>
-                </div>
-              </div>
             </MockScreen>
           </Section>
 
