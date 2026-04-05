@@ -1244,16 +1244,16 @@ export default function TimerControlPage() {
                   </>
                 )}
               </div>
-                {/* 寝技回数調整 */}
+                {/* 寝技残り回数調整（+1=残り増加=usedCount-1、-1=残り減少=usedCount+1） */}
                 {p?.newaza_enabled && p.newaza_limit_type === "limited" && (phase === "paused" || phase === "time_up") && (
                   <div className="flex gap-2 items-center justify-center mt-2">
-                    <span className="text-gray-500 text-sm">寝技回数:</span>
-                    <button onClick={() => update((s) => adjustNewazaCount(s, -1))}
+                    <span className="text-gray-500 text-sm">寝技残り:</span>
+                    <button onClick={() => update((s) => adjustNewazaCount(s, 1))}
                       className="px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
                       -1
                     </button>
-                    <span className="text-gray-300 text-sm">{state.newaza.usedCount}/{p.newaza_max_count}</span>
-                    <button onClick={() => update((s) => adjustNewazaCount(s, 1))}
+                    <span className="text-gray-300 text-sm">残り{p.newaza_max_count - state.newaza.usedCount}回</span>
+                    <button onClick={() => update((s) => adjustNewazaCount(s, -1))}
                       className="px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
                       +1
                     </button>
