@@ -252,7 +252,7 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 **「その他」値の保存と表示**:
 - 保存形式: `other:{入力テキスト}`（例: `other:レンタル希望`）
 - 表示変換: `other:` プレフィックスを持つ値は、表示時に `その他: {入力テキスト}` に変換する（確認メール・CSV・申込詳細画面で共通）
-- 変換関数: `lib/format-other.ts` の `formatOtherValue()` を使用
+- 変換: 各表示箇所（確認メール・CSV・詳細画面）でインラインで `other:` プレフィックスを「その他: 」に変換
 
 **バージョン記録**: `entry.form_version = formConfig.version`（管理者がフォーム設定を更新するとインクリメントされる。旧バージョンでの送信を識別可能）
 

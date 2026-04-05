@@ -67,7 +67,7 @@ export async function DELETE(request: NextRequest, ctx: Ctx) {
 
   const { error } = await supabaseAdmin
     .from("timer_presets")
-    .update({ buzzer_sound: "default", buzzer_custom_path: null, updated_at: new Date().toISOString() })
+    .update({ buzzer_sound: "mid-square-single", buzzer_custom_path: null, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });

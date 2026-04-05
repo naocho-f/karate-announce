@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 
 const ALLOWED_VOICES = ["alloy", "echo", "fable", "nova", "onyx", "shimmer"];
 
 export async function POST(req: NextRequest) {
+  if (!verifyAdminAuth(req)) return unauthorized();
   const { text, voice, speed } = await req.json();
   if (!text) return NextResponse.json({ error: "text required" }, { status: 400 });
 
