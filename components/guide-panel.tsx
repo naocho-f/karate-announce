@@ -4,8 +4,12 @@ import { useState } from "react";
 import type { AdminTab } from "@/components/home-dashboard-panel";
 
 export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
-  const [openId, setOpenId] = useState<string | null>(null);
-  const toggle = (id: string) => setOpenId(openId === id ? null : id);
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+  const toggle = (id: string) => setOpenIds(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
 
   return (
     <div className="space-y-8">
@@ -25,7 +29,7 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
         <div className="space-y-1.5">
           {/* ── 1. ルール設定 ── */}
           <Section
-            id="rule" openId={openId} toggle={toggle}
+            id="rule" openIds={openIds} toggle={toggle}
             color="border-yellow-500" num={1} title="ルール設定" badge="必須"
             badgeColor="bg-red-700 text-red-200"
           >
@@ -73,22 +77,36 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 2. タイマー設定 ── */}
           <Section
-            id="timer" openId={openId} toggle={toggle}
+            id="timer" openIds={openIds} toggle={toggle}
             color="border-yellow-500" num={2} title="タイマー設定" badge="必須"
             badgeColor="bg-red-700 text-red-200"
           >
             <Desc>
-              試合の計時・得点管理に使うタイマープリセットを作成します。
-              試合時間、延長戦、寝技、ポイント制、反則、表示テーマなどを細かく設定できます。
+              試合の計時・得点管理に使う「タイマープリセット」を作成します。
+              1つのプリセットの中に、試合時間・延長戦・寝技・ポイント・反則など全ての設定が含まれます。
+              それぞれの項目は ON/OFF で切り替えられるので、大会のルールに合わせて必要な項目だけ有効にしてください。
             </Desc>
-            <FieldTable fields={[
-              { name: "タイマー名", required: true, example: "組手3分・延長1分", note: "管理画面でタイマーを区別するための名前です。画面上には表示されません" },
-              { name: "試合時間", required: true, example: "3分00秒", note: "分と秒で入力。カウントダウンまたはカウントアップを選択" },
-              { name: "延長戦", required: false, example: "時間延長 1分 / 先取延長", note: "時間延長は再延長回数も設定可。先取延長はタイマー非表示またはカウントアップ" },
-              { name: "寝技", required: false, example: "30秒 カウントアップ", note: "Gキーで切り替え。制限時間ありの場合は自動ブザー" },
-              { name: "ポイント・技あり・一本", required: false, example: "技あり2点 / 一本で即勝利", note: "表示のON/OFFと得点値を設定" },
-              { name: "反則", required: false, example: "反則3回で相手に1点", note: "反則回数と得点変換ルールを設定" },
-            ]} />
+            <div className="text-xs text-gray-400 space-y-2 mt-1">
+              <p className="font-medium text-gray-300">1つのタイマープリセットに含まれる設定:</p>
+              <div className="space-y-1.5 ml-1">
+                <div className="bg-gray-900 rounded px-3 py-2 space-y-0.5">
+                  <p className="text-white font-medium">基本設定</p>
+                  <p className="text-gray-500">タイマー名（管理用、画面には表示されない）、試合時間（分:秒）、カウント方向（ダウン/アップ）</p>
+                </div>
+                <div className="bg-gray-900 rounded px-3 py-2 space-y-0.5">
+                  <p className="text-white font-medium">延長戦 <span className="text-gray-600 font-normal">（ON/OFF）</span></p>
+                  <p className="text-gray-500">時間延長（指定秒数で再戦）または先取延長（ポイント先取で決着）。再延長回数も設定可</p>
+                </div>
+                <div className="bg-gray-900 rounded px-3 py-2 space-y-0.5">
+                  <p className="text-white font-medium">寝技タイマー <span className="text-gray-600 font-normal">（ON/OFF）</span></p>
+                  <p className="text-gray-500">寝技時間・制限回数を設定。試合中に G キーで切り替え</p>
+                </div>
+                <div className="bg-gray-900 rounded px-3 py-2 space-y-0.5">
+                  <p className="text-white font-medium">得点・反則 <span className="text-gray-600 font-normal">（ON/OFF）</span></p>
+                  <p className="text-gray-500">ポイント・技あり・一本の表示と得点値、反則回数と得点変換ルール</p>
+                </div>
+              </div>
+            </div>
             <UsedIn items={[
               "ルールとの紐付け → ルールにタイマーを設定すると、そのルールの試合で自動適用",
               "タイマー画面（/timer/）→ 試合の計時・得点・延長・寝技を管理",
@@ -120,8 +138,8 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 3. アナウンス設定 ── */}
           <Section
-            id="announce" openId={openId} toggle={toggle}
-            color="border-blue-500" num={3} title="アナウンス設定" badge="任意"
+            id="announce" openIds={openIds} toggle={toggle}
+            color="border-yellow-500" num={3} title="アナウンス設定" badge="任意"
             badgeColor="bg-gray-600 text-gray-300"
           >
             <Desc>
@@ -154,8 +172,8 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 4. 年代区分 ── */}
           <Section
-            id="age" openId={openId} toggle={toggle}
-            color="border-blue-500" num={4} title="年代区分" badge="任意"
+            id="age" openIds={openIds} toggle={toggle}
+            color="border-yellow-500" num={4} title="年代区分" badge="任意"
             badgeColor="bg-gray-600 text-gray-300"
           >
             <Desc>
@@ -181,13 +199,13 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 5. 流派 ── */}
           <Section
-            id="dojo" openId={openId} toggle={toggle}
-            color="border-gray-500" num={5} title="流派" badge="事前登録不要"
+            id="dojo" openIds={openIds} toggle={toggle}
+            color="border-yellow-500" num={5} title="流派" badge="任意"
             badgeColor="bg-gray-600 text-gray-300"
           >
             <Desc>
               流派（所属団体）のマスタデータです。参加者がエントリーフォームで所属団体名を入力すると自動的に追加されるため、
-              事前登録は不要です。ただし、事前に登録しておくと「読み仮名」を設定でき、AI アナウンスの読み上げ精度が上がります。
+              事前に登録しなくても使えます。事前に登録しておくと「読み仮名」を設定でき、AI アナウンスの読み上げ精度が上がります。
             </Desc>
             <UsedIn items={[
               "エントリーフォーム → 所属団体の入力候補として表示（オートコンプリート）",
@@ -213,7 +231,7 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
         <div className="space-y-1.5">
           {/* ── 6. イベント作成 ── */}
           <Section
-            id="event" openId={openId} toggle={toggle}
+            id="event" openIds={openIds} toggle={toggle}
             color="border-blue-500" num={1} title="イベント（大会）を作成する"
           >
             <Desc>
@@ -250,8 +268,8 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 7. 参加者管理 ── */}
           <Section
-            id="entry" openId={openId} toggle={toggle}
-            color="border-green-500" num={2} title="参加者を集める（Step ①）"
+            id="entry" openIds={openIds} toggle={toggle}
+            color="border-blue-500" num={2} title="参加者を集める（Step ①）"
           >
             <Desc>
               イベント詳細画面の Step ① で参加者を管理します。
@@ -294,8 +312,8 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 8. 対戦表作成 ── */}
           <Section
-            id="bracket" openId={openId} toggle={toggle}
-            color="border-orange-500" num={3} title="対戦表を作成する（Step ②）"
+            id="bracket" openIds={openIds} toggle={toggle}
+            color="border-blue-500" num={3} title="対戦表を作成する（Step ②）"
           >
             <Desc>
               参加者を絞り込み、対戦の組み合わせを作成します。
@@ -351,8 +369,8 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 9. 試合番号設定 ── */}
           <Section
-            id="label" openId={openId} toggle={toggle}
-            color="border-orange-500" num={4} title="試合番号を設定する（Step ③）"
+            id="label" openIds={openIds} toggle={toggle}
+            color="border-blue-500" num={4} title="試合番号を設定する（Step ③）"
           >
             <Desc>
               確定したトーナメントの各試合に番号を割り当てます。
@@ -385,8 +403,8 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 10. 試合進行 ── */}
           <Section
-            id="court" openId={openId} toggle={toggle}
-            color="border-green-400" num={5} title="試合を進行する（コート画面）"
+            id="court" openIds={openIds} toggle={toggle}
+            color="border-blue-500" num={5} title="試合を進行する（コート画面）"
           >
             <Desc>
               イベントを「開催中」に設定すると、コート画面（/court/1 など）が有効になります。
@@ -436,8 +454,8 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 11. タイマー操作 ── */}
           <Section
-            id="timer-op" openId={openId} toggle={toggle}
-            color="border-purple-500" num={6} title="タイマーで計時・得点を管理する"
+            id="timer-op" openIds={openIds} toggle={toggle}
+            color="border-blue-500" num={6} title="タイマーで計時・得点を管理する"
           >
             <Desc>
               タイマー画面はコート画面とは別に開きます。コート画面のヘッダーにある「⏱ タイマー表示画面」と「🎮 操作パネル」のリンクを使います。
@@ -480,8 +498,8 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 12. 試合速報 ── */}
           <Section
-            id="live" openId={openId} toggle={toggle}
-            color="border-cyan-500" num={7} title="試合速報を観客に共有する"
+            id="live" openIds={openIds} toggle={toggle}
+            color="border-blue-500" num={7} title="試合速報を観客に共有する"
           >
             <Desc>
               /live ページは観客向けのリアルタイム速報画面です。
@@ -515,12 +533,12 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
 // ══════════ 共通コンポーネント ══════════
 
-function Section({ id, openId, toggle, color, num, title, badge, badgeColor, children }: {
-  id: string; openId: string | null; toggle: (id: string) => void;
+function Section({ id, openIds, toggle, color, num, title, badge, badgeColor, children }: {
+  id: string; openIds: Set<string>; toggle: (id: string) => void;
   color: string; num: number; title: string; badge?: string; badgeColor?: string;
   children: React.ReactNode;
 }) {
-  const isOpen = openId === id;
+  const isOpen = openIds.has(id);
   return (
     <div className={`border-l-4 ${color} bg-gray-800 rounded-r-xl overflow-hidden`}>
       <button
