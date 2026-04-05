@@ -197,8 +197,11 @@ export async function playBuzzer(soundId: string = "mid-square-single", duration
     if (soundId !== "custom") {
       const clampedRepeat = Math.min(Math.max(repeat, 1), 3);
       for (let i = 0; i < clampedRepeat; i++) {
-        if (i > 0) await new Promise(r => setTimeout(r, 300));
-        playBuiltinOnce(soundId, durationSec);
+        const actualDuration = playBuiltinOnce(soundId, durationSec);
+        if (i < clampedRepeat - 1) {
+          // 前の音が鳴り終わるのを待ってから0.3秒休止
+          await new Promise(r => setTimeout(r, actualDuration * 1000 + 300));
+        }
       }
       return "ok";
     }
