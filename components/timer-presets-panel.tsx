@@ -1015,14 +1015,14 @@ function BuzzerSoundSelector({ soundId, duration, repeat, customPath, presetId, 
 
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-3 gap-2">
-        <div>
+      <div className="grid gap-2" style={{ gridTemplateColumns: "2fr 1fr 1fr" }}>
+        <div className="min-w-0">
           <label className="block text-xs text-gray-400 mb-1">ブザー音源</label>
           <div className="flex gap-1">
             <select
               value={soundId}
               onChange={(e) => onSoundChange(e.target.value)}
-              className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500"
+              className="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500"
             >
               {SOUND_CATEGORIES.map(cat => (
                 <optgroup key={cat} label={cat}>
