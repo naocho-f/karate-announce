@@ -2,10 +2,11 @@
 
 export const dynamic = "force-dynamic";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Event, FighterInfo, Match, Tournament } from "@/lib/types";
 import { matchLabelNum } from "@/lib/match-utils";
+import { checkWatchNotifications, type WatchNotification } from "@/lib/watch-notify";
 
 type CourtData = {
   courtNum: number;
@@ -19,6 +20,26 @@ export default function LivePage() {
   const [selectedCourt, setSelectedCourt] = useState<number>(0);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const prevCourtsRef = useRef<string>("");
+
+  // ウォッチ機能
+  const [watchList, setWatchList] = useState<string[]>([]);
+  const [showWatch, setShowWatch] = useState(false);
+  const [watchSearch, setWatchSearch] = useState("");
+  const [watchNotifications, setWatchNotifications] = useState<WatchNotification[]>([]);
+  const notifiedRef = useRef<Set<string>>(new Set());
+
+  // localStorage からウォッチリストを復元
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("karate_watch_list");
+      if (saved) setWatchList(JSON.parse(saved));
+    } catch { /* ignore */ }
+  }, []);
+
+  // ウォッチリスト変更時に localStorage に保存
+  useEffect(() => {
+    localStorage.setItem("karate_watch_list", JSON.stringify(watchList));
+  }, [watchList]);
 
   const load = useCallback(async () => {
     const { data: ae } = await supabase
@@ -87,6 +108,55 @@ export default function LivePage() {
     };
   }, [load]);
 
+  // courts が更新されたらウォッチ判定
+  useEffect(() => {
+    if (courts.length === 0 || watchList.length === 0) return;
+    const matchesByCourt = courts.map(c => ({
+      courtLabel: c.courtName,
+      matches: c.tournaments.flatMap(({ matches }) =>
+        matches.map(m => ({
+          id: m.id,
+          status: m.status,
+          match_label: m.match_label,
+          fighter1_name: (m.fighter1 as FighterInfo | null)?.name ?? null,
+          fighter2_name: (m.fighter2 as FighterInfo | null)?.name ?? null,
+          courtLabel: c.courtName,
+        }))
+      ),
+    }));
+    const newNotifs = checkWatchNotifications(matchesByCourt, watchList, notifiedRef.current);
+    if (newNotifs.length > 0) {
+      setWatchNotifications(prev => [...prev, ...newNotifs]);
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+  }, [courts, watchList]);
+
+  // 通知の自動消去（10秒）
+  useEffect(() => {
+    if (watchNotifications.length === 0) return;
+    const timer = setTimeout(() => {
+      const now = Date.now();
+      setWatchNotifications(prev => prev.filter(n => now - n.timestamp < 10000));
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, [watchNotifications]);
+
+  // 全試合から選手名候補を抽出（検索用）
+  const allFighterNames = useMemo(() => {
+    const names = new Set<string>();
+    for (const court of courts) {
+      for (const { matches } of court.tournaments) {
+        for (const m of matches) {
+          const f1 = (m.fighter1 as FighterInfo | null)?.name;
+          const f2 = (m.fighter2 as FighterInfo | null)?.name;
+          if (f1) names.add(f1);
+          if (f2) names.add(f2);
+        }
+      }
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, "ja"));
+  }, [courts]);
+
   if (activeEvent === undefined) {
     return (
       <div className="min-h-screen bg-main-bg flex items-center justify-center">
@@ -120,11 +190,24 @@ export default function LivePage() {
             <span className="shrink-0 text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded-full font-medium">LIVE</span>
             <span className="font-bold text-sm truncate">{activeEvent.name}</span>
           </div>
-          {lastUpdated && (
-            <span className="text-[10px] text-gray-500 shrink-0">
-              {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-            </span>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {lastUpdated && (
+              <span className="text-[10px] text-gray-500">
+                {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              </span>
+            )}
+            <button
+              onClick={() => setShowWatch(!showWatch)}
+              className={`relative text-xs px-2 py-1 rounded-lg transition ${showWatch ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}
+            >
+              👁 ウォッチ
+              {watchList.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                  {watchList.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* コートタブ（2コート以上の場合のみ表示） */}
@@ -155,7 +238,75 @@ export default function LivePage() {
 
         {/* 試合中バナー（sticky ヘッダー内に固定） */}
         {activeOngoing && <OngoingBanner match={activeOngoing} />}
+
+        {/* ウォッチパネル */}
+        {showWatch && (
+          <div className="bg-gray-800 border-t border-gray-700/60 px-3 py-3">
+            <div className="max-w-lg mx-auto space-y-2">
+              <input
+                type="text"
+                value={watchSearch}
+                onChange={(e) => setWatchSearch(e.target.value)}
+                placeholder="選手名で検索..."
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500"
+              />
+              {watchSearch.length > 0 && (
+                <div className="max-h-32 overflow-y-auto space-y-0.5">
+                  {allFighterNames
+                    .filter(n => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n))
+                    .slice(0, 10)
+                    .map(name => (
+                      <button
+                        key={name}
+                        onClick={() => { setWatchList(prev => [...prev, name]); setWatchSearch(""); }}
+                        className="w-full text-left text-sm text-gray-200 bg-gray-700/50 hover:bg-gray-600 rounded px-3 py-1.5 transition"
+                      >
+                        + {name}
+                      </button>
+                    ))}
+                  {allFighterNames.filter(n => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n)).length === 0 && (
+                    <p className="text-xs text-gray-500 py-1">該当する選手がいません</p>
+                  )}
+                </div>
+              )}
+              {watchList.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[10px] text-gray-500">ウォッチ中:</p>
+                  {watchList.map(name => (
+                    <div key={name} className="flex items-center justify-between bg-gray-700/50 rounded px-3 py-1.5">
+                      <span className="text-sm text-gray-200">👁 {name}</span>
+                      <button
+                        onClick={() => setWatchList(prev => prev.filter(n => n !== name))}
+                        className="text-xs text-red-400 hover:text-red-300"
+                      >
+                        解除
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {watchList.length === 0 && watchSearch.length === 0 && (
+                <p className="text-xs text-gray-500">選手名を入力してウォッチリストに追加すると、試合の3試合前に通知します</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* ウォッチ通知バナー */}
+      {watchNotifications.length > 0 && (
+        <div className="fixed top-0 left-0 right-0 z-50 space-y-1 p-2">
+          {watchNotifications.map(n => (
+            <button
+              key={n.id}
+              onClick={() => setWatchNotifications(prev => prev.filter(x => x.id !== n.id))}
+              className="w-full bg-orange-600 text-white rounded-xl px-4 py-3 text-sm font-medium shadow-lg animate-slide-in text-left"
+            >
+              🔔 {n.message}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="max-w-lg mx-auto px-3 py-3">
         {activeCourt && <CourtView court={activeCourt} />}
