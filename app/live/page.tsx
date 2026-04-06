@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import type { Event, FighterInfo, Match, Tournament } from "@/lib/types";
 import { matchLabelNum } from "@/lib/match-utils";
 import { checkWatchNotifications, type WatchNotification } from "@/lib/watch-notify";
+import { useConnectionStatus, ConnectionStatusBanner } from "@/components/connection-status";
 
 type CourtData = {
   courtNum: number;
@@ -82,22 +83,24 @@ export default function LivePage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const { isOffline, wrappedFetch } = useConnectionStatus(load);
+
+  useEffect(() => { wrappedFetch(); }, [wrappedFetch]);
 
   useEffect(() => {
-    const timer = setInterval(load, 5000);
+    const timer = setInterval(wrappedFetch, 5000);
 
     // Supabase Realtime: matches テーブルの変更を即座に検知
     const channel = supabase
       .channel("live-matches")
       .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => {
-        load();
+        wrappedFetch();
       })
       .subscribe();
 
     // バックグラウンドタブ復帰時に即座にリロード（Android等でsetIntervalが停止するため）
     function handleVisibility() {
-      if (document.visibilityState === "visible") load();
+      if (document.visibilityState === "visible") wrappedFetch();
     }
     document.addEventListener("visibilitychange", handleVisibility);
 
@@ -106,7 +109,7 @@ export default function LivePage() {
       supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [load]);
+  }, [wrappedFetch]);
 
   // courts が更新されたらウォッチ判定
   useEffect(() => {
@@ -183,6 +186,7 @@ export default function LivePage() {
 
   return (
     <main className="min-h-screen bg-main-bg text-white">
+      <ConnectionStatusBanner isOffline={isOffline} />
       {/* ヘッダー（sticky: タイトル + タブ + 試合中カード） */}
       <div className="sticky top-0 z-10 bg-gray-900 backdrop-blur border-b border-gray-700/60">
         <div className="max-w-lg mx-auto px-3 py-2.5 flex items-center justify-between gap-2">

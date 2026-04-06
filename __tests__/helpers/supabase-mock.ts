@@ -169,10 +169,10 @@ export function createAdminRequest(
     .createHash("sha256")
     .update("test-password" + "karate-announce-v1")
     .digest("hex");
-  return createRequest(method, url, {
-    ...options,
-    cookies: { admin_auth: token },
-  });
+  const req = createRequest(method, url, options);
+  // happy-dom が Cookie ヘッダーを除去するため、NextRequest.cookies.set() で直接設定
+  req.cookies.set("admin_auth", token);
+  return req;
 }
 
 /** params オブジェクトを生成（App Router の動的ルート用） */

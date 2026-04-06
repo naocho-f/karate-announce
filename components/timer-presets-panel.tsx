@@ -6,6 +6,7 @@ import { DEFAULT_LAYOUT } from "@/lib/types";
 import type { LayoutConfig, LayoutRow, LayoutRowType, LayoutAlignment, LayoutVerticalAlign } from "@/lib/types";
 import { rowTypeLabel } from "@/lib/timer-layout";
 import { BUILTIN_SOUNDS, SOUND_CATEGORIES, testBuzzer, preloadCustomBuzzer } from "@/lib/timer-buzzer";
+import { showToast } from "@/components/toast";
 
 type EditablePreset = Partial<TimerPreset> & { name: string };
 
@@ -178,14 +179,14 @@ export function TimerPresetsPanel() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(editing),
         });
-        if (!res.ok) { alert("保存に失敗しました"); return; }
+        if (!res.ok) { showToast("保存に失敗しました"); return; }
       } else {
         const res = await fetch("/api/admin/timer-presets", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(editing),
         });
-        if (!res.ok) { alert("作成に失敗しました"); return; }
+        if (!res.ok) { showToast("作成に失敗しました"); return; }
       }
       setEditing(null);
       setEditId(null);
@@ -200,7 +201,7 @@ export function TimerPresetsPanel() {
     setDeletingId(id);
     const res = await fetch(`/api/admin/timer-presets/${id}`, { method: "DELETE" });
     if (res.ok) await load();
-    else alert("削除に失敗しました");
+    else showToast("削除に失敗しました");
     setDeletingId(null);
   };
 
@@ -208,7 +209,7 @@ export function TimerPresetsPanel() {
     setDuplicatingId(id);
     const res = await fetch(`/api/admin/timer-presets/${id}/duplicate`, { method: "POST" });
     if (res.ok) await load();
-    else alert("複製に失敗しました");
+    else showToast("複製に失敗しました");
     setDuplicatingId(null);
   };
 
@@ -1001,7 +1002,7 @@ function BuzzerSoundSelector({ soundId, duration, repeat, customPath, presetId, 
       const { url } = await res.json();
       onCustomPathChange(url);
     } else {
-      alert("アップロードに失敗しました");
+      showToast("アップロードに失敗しました");
     }
     setUploading(false);
     e.target.value = "";

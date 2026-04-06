@@ -4,29 +4,8 @@
  * 全管理ページがメインの管理画面からアクセス可能であることを検証する。
  * URL 直アクセスでしか到達できないページがないことを保証する。
  */
-import { test, expect, type Page } from "@playwright/test";
-
-const ADMIN_USER = process.env.ADMIN_USERNAME ?? "admin";
-const ADMIN_PASS = process.env.ADMIN_PASSWORD!;
-
-/** API 経由でログインし Cookie を設定 */
-async function adminLogin(page: Page) {
-  // まずログインページにアクセスしてフォームからログイン
-  await page.goto("/admin/login");
-  await page.waitForLoadState("networkidle");
-
-  const usernameInput = page.locator('input[placeholder="ID"]');
-  const passwordInput = page.locator('input[type="password"]');
-
-  await usernameInput.fill(ADMIN_USER);
-  await passwordInput.fill(ADMIN_PASS);
-  await page.locator('button[type="submit"]').click();
-
-  // /admin にリダイレクトされるのを待つ
-  await page.waitForURL("**/admin", { timeout: 15_000 });
-  // ページの描画完了を待つ
-  await page.waitForLoadState("networkidle");
-}
+import { test, expect } from "@playwright/test";
+import { adminLogin } from "./helpers";
 
 test.describe("管理画面ナビゲーション", () => {
   test.beforeEach(async ({ page }) => {
@@ -35,40 +14,42 @@ test.describe("管理画面ナビゲーション", () => {
 
   test("メインタブ4つが表示され、クリックで切り替わる", async ({ page }) => {
     // ホームタブがデフォルト表示
-    await expect(page.getByRole("button", { name: "ホーム", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "試合", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "設定", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "操作説明", exact: true })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /ホーム/ })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /試合/ })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /設定/ })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /操作説明/ })).toBeVisible();
 
     // 試合タブをクリック
-    await page.getByRole("button", { name: "試合", exact: true }).click();
+    await page.getByRole("tab", { name: /試合/ }).click();
     await expect(page).toHaveURL(/tab=events/);
 
     // 設定タブをクリック
-    await page.getByRole("button", { name: "設定", exact: true }).click();
+    await page.getByRole("tab", { name: /設定/ }).click();
     await expect(page).toHaveURL(/tab=settings/);
 
     // 操作説明タブをクリック
-    await page.getByRole("button", { name: "操作説明", exact: true }).click();
+    await page.getByRole("tab", { name: /操作説明/ }).click();
     await expect(page).toHaveURL(/tab=guide/);
 
     // ホームに戻る
-    await page.getByRole("button", { name: "ホーム", exact: true }).click();
+    await page.getByRole("tab", { name: /ホーム/ }).click();
     await expect(page).toHaveURL(/tab=home/);
   });
 
-  test("設定タブにサブタブ4つ（アナウンス設定・ルール・流派・タイマー）が表示される", async ({ page }) => {
-    await page.getByRole("button", { name: "設定" }).click();
+  test("設定タブにサブタブ6つが表示される", async ({ page }) => {
+    await page.getByRole("tab", { name: /設定/ }).click();
     await expect(page).toHaveURL(/tab=settings/);
 
-    await expect(page.getByRole("button", { name: "アナウンス設定", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "ルール", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "タイマー", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "アナウンス設定", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "年代区分", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "流派", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^タイマー/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "不具合報告", exact: true })).toBeVisible();
   });
 
   test("設定タブのタイマーサブタブクリックでタイマー管理がインライン表示される", async ({ page }) => {
-    await page.getByRole("button", { name: "設定", exact: true }).click();
+    await page.getByRole("tab", { name: /設定/ }).click();
     await expect(page).toHaveURL(/tab=settings/);
 
     await page.getByRole("button", { name: /^タイマー/ }).click();
@@ -96,15 +77,14 @@ test.describe("管理画面ナビゲーション", () => {
   });
 
   test("設定タブの各サブタブが正しく切り替わる", async ({ page }) => {
-    await page.getByRole("button", { name: "設定" }).click();
+    await page.getByRole("tab", { name: /設定/ }).click();
 
-    // デフォルトはアナウンス設定
-    await expect(page.locator("text=音声設定")).toBeVisible();
-
-    // ルールサブタブ
-    await page.getByRole("button", { name: "ルール", exact: true }).click();
-    // ルールパネルが表示される（入力欄がある）
+    // デフォルトはルール
     await expect(page.locator('input[placeholder*="ルール"]')).toBeVisible({ timeout: 5000 });
+
+    // アナウンス設定サブタブ
+    await page.getByRole("button", { name: "アナウンス設定", exact: true }).click();
+    await expect(page.locator("text=音声設定")).toBeVisible({ timeout: 5000 });
 
     // 流派サブタブ
     await page.getByRole("button", { name: "流派", exact: true }).click();
@@ -112,10 +92,12 @@ test.describe("管理画面ナビゲーション", () => {
   });
 
   test("操作説明タブにセットアップガイドが表示される", async ({ page }) => {
-    await page.getByRole("button", { name: "操作説明", exact: true }).click();
+    await page.getByRole("tab", { name: /操作説明/ }).click();
     await expect(page).toHaveURL(/tab=guide/);
 
-    // ステップ1のタイトルが表示される
-    await expect(page.locator("text=ルールを登録する")).toBeVisible();
+    // 第1部のタイトルが表示される
+    await expect(page.locator("text=事前設定")).toBeVisible();
+    // ルール設定ステップが表示される
+    await expect(page.getByRole("button", { name: /ルール設定/ })).toBeVisible();
   });
 });

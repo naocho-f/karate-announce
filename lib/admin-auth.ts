@@ -4,9 +4,23 @@ import { NextRequest, NextResponse } from "next/server";
 const SALT = "karate-announce-v1";
 const COOKIE_NAME = "admin_auth";
 
+let devPasswordWarningLogged = false;
+
 export function verifyAdminAuth(request: NextRequest): boolean {
-  const password = process.env.ADMIN_PASSWORD;
-  if (!password) return true; // ローカル開発: env 未設定なら許可
+  let password = process.env.ADMIN_PASSWORD;
+
+  if (!password) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("[admin-auth] ADMIN_PASSWORD is not set in production. Rejecting all requests.");
+      return false;
+    }
+    // Development mode: use default dev password
+    if (!devPasswordWarningLogged) {
+      console.warn("[admin-auth] ADMIN_PASSWORD is not set. Using default dev password 'dev'. Do NOT use in production.");
+      devPasswordWarningLogged = true;
+    }
+    password = "dev";
+  }
 
   const cookie = request.cookies.get(COOKIE_NAME)?.value;
   if (!cookie) return false;

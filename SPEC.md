@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-03（フォーム設定を一括保存に統一：注意書き・自由設問もローカルファースト化）
+> 最終更新: 2026-04-06（SPEC.mdドキュメント修正・セキュリティ強化・UI/UX改善・コード品質向上）
 
 ---
 
@@ -373,7 +373,7 @@ form_notice_images (
 | POST | `/api/admin/timer-presets/[id]/duplicate` | タイマー複製 |
 | POST/DELETE | `/api/admin/timer-presets/[id]/buzzer` | カスタムブザー音源アップロード/削除 |
 
-### 5.2 コート用 API（認証不要）
+### 5.2 コート用 API（認証必須）
 
 | メソッド | パス | 概要 |
 |---------|------|------|
@@ -416,11 +416,19 @@ form_notice_images (
 | DELETE | `/api/admin/form-config/custom-fields` | 自由設問削除 |
 | POST | `/api/admin/form-config/custom-fields/duplicate` | 自由設問複製 |
 
-### 5.5 TTS API
+### 5.5 TTS API（認証必須）
 
 | メソッド | パス | 概要 |
 |---------|------|------|
 | POST | `/api/tts` | OpenAI TTS-1 で音声生成。`{ text, voice, speed }` を受け取り音声 blob を返す。コート画面の TTS prefetch でも使用 |
+
+### 5.6 不具合報告 API
+
+| メソッド | パス | 概要 |
+|---------|------|------|
+| POST | `/api/bug-reports` | 不具合報告の投稿（公開、認証不要） |
+| GET | `/api/bug-reports` | 一覧取得（認証必須） |
+| PATCH | `/api/bug-reports/[id]` | ステータス更新（認証必須） |
 
 ---
 
@@ -542,6 +550,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **再読み上げ（2026-03-23）**: 試合中のカードフッターに「📢 再読」ボタン（試合開始アナウンス再読）、終了済みカードに「📢 再読」ボタン（勝者アナウンス再読）を追加
 - **勝者訂正（2026-03-23）**: 終了済みカードフッターの「訂正」ボタンでカードをオレンジ枠の訂正モードに切り替え。選手スロットをタップして勝者を変更。API `correct_winner` アクションで winner_id を更新し、次ラウンドのマッチが done/ongoing でない場合は選手も差し替え。キャンセルボタンで訂正モード解除
 - **棄権バッジ即時反映（2026-03-23）**: 変化検知を `allMatches` のみから `{ allMatches, allEntries }` に拡張。棄権トグル後（matches は変化しない）もポーリングで検知して状態が即時反映されるように修正
+- **SPEC.mdドキュメント修正（2026-04-06）**: §5.2 court API認証記述を修正、§5.5 TTS API認証記述を追加、§5.6 不具合報告APIを追記
 - **品質レビュー2回目（2026-04-05）**: supabase_schema.sqlにbuzzer新カラム5つを反映、buzzer_soundデフォルト値を修正
 - **品質レビュー対応（2026-04-05）**: court API/TTS APIに認証追加、buzzer旧ID統一、console.log整理、未使用format-other削除、TIMER_SPEC DB定義更新
 - **操作説明にブザー音源設定の説明を追加（2026-04-05）**: タイマー設定セクションにブザー音源（30種＋カスタム）・メイン/寝技別設定・連続回数の説明を追加

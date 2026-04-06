@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (tErr || !t) return NextResponse.json({ error: tErr?.message ?? "Failed" }, { status: 500 });
+  if (tErr || !t) return NextResponse.json({ error: tErr?.message ?? "トーナメントの作成に失敗しました" }, { status: 500 });
 
   const resolvedPairs = await Promise.all(
     pairs.map(async (p) => ({

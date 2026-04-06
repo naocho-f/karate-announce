@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Event, Rule } from "@/lib/types";
 import Link from "next/link";
+import { showToast } from "@/components/toast";
 
 export function EventsPanel() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export function EventsPanel() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: name.trim(), event_date: eventDate || null, court_count: courtCount, court_names: courtNames.slice(0, courtCount), rule_ids: [...selectedRuleIds] }),
     });
-    if (!res.ok) { alert("試合の作成に失敗しました"); setCreating(false); return; }
+    if (!res.ok) { showToast("試合の作成に失敗しました"); setCreating(false); return; }
     const { id } = await res.json();
     router.push(`/admin/events/${id}`);
   }
@@ -63,7 +64,7 @@ export function EventsPanel() {
     setRemovingId(id);
     const res = await fetch(`/api/admin/events/${id}`, { method: "DELETE" });
     setRemovingId(null);
-    if (!res.ok) { alert("削除に失敗しました"); return; }
+    if (!res.ok) { showToast("削除に失敗しました"); return; }
     load();
   }
 
@@ -75,7 +76,7 @@ export function EventsPanel() {
       body: JSON.stringify({ is_active: active }),
     });
     setActivatingId(null);
-    if (!res.ok) { alert("状態の変更に失敗しました"); return; }
+    if (!res.ok) { showToast("状態の変更に失敗しました"); return; }
     load();
   }
 
@@ -88,7 +89,7 @@ export function EventsPanel() {
       body: JSON.stringify({ status: "finished", is_active: false }),
     });
     setFinishingId(null);
-    if (!res.ok) { alert("状態の変更に失敗しました"); return; }
+    if (!res.ok) { showToast("状態の変更に失敗しました"); return; }
     load();
   }
 
@@ -100,7 +101,7 @@ export function EventsPanel() {
       body: JSON.stringify({ status: "preparing" }),
     });
     setReopeningId(null);
-    if (!res.ok) { alert("状態の変更に失敗しました"); return; }
+    if (!res.ok) { showToast("状態の変更に失敗しました"); return; }
     load();
   }
 
@@ -131,7 +132,7 @@ export function EventsPanel() {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
-      alert(body?.error ?? "複製に失敗しました");
+      showToast(body?.error ?? "複製に失敗しました");
       setCopying(false);
       return;
     }

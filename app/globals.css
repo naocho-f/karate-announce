@@ -134,6 +134,15 @@ body {
   --default-transition-timing-function: cubic-bezier(.4, 0, .2, 1);
 }
 
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@utility animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
 /* Prevent iOS auto-zoom on input focus (font-size < 16px triggers zoom) */
 @media (max-width: 1024px) {
   input, select, textarea {

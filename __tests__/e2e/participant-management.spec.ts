@@ -4,34 +4,7 @@
  * 参加者一覧表示・テスト参加者追加・欠場切り替え・詳細表示を検証する。
  */
 import { test, expect, type Page } from "@playwright/test";
-
-const ADMIN_USER = process.env.ADMIN_USERNAME ?? "admin";
-const ADMIN_PASS = process.env.ADMIN_PASSWORD!;
-
-// ── ヘルパー ──
-
-async function adminLogin(page: Page) {
-  await page.goto("/admin/login");
-  await page.waitForLoadState("networkidle");
-  await page.locator('input[placeholder="ID"]').fill(ADMIN_USER);
-  await page.locator('input[type="password"]').fill(ADMIN_PASS);
-  await page.locator('button[type="submit"]').click();
-  await page.waitForURL("**/admin", { timeout: 15_000 });
-  await page.waitForLoadState("networkidle");
-}
-
-async function createTestEvent(page: Page): Promise<string> {
-  const res = await page.request.post("/api/admin/events", {
-    data: {
-      name: `E2E 参加者管理テスト ${Date.now()}`,
-      event_date: "2027-12-01",
-      court_count: 1,
-    },
-  });
-  expect(res.ok()).toBeTruthy();
-  const { id } = await res.json();
-  return id;
-}
+import { adminLogin, createTestEvent, cleanupEvent } from "./helpers";
 
 async function createTestEntry(page: Page, eventId: string, index: number): Promise<string> {
   const res = await page.request.post("/api/admin/entries", {
@@ -56,10 +29,6 @@ async function createTestEntry(page: Page, eventId: string, index: number): Prom
   return data.id;
 }
 
-async function cleanupEvent(page: Page, eventId: string | null) {
-  if (!eventId) return;
-  await page.request.delete(`/api/admin/events/${eventId}`).catch(() => {});
-}
 
 // ── テスト ──
 
@@ -87,7 +56,6 @@ test.describe("参加者管理", () => {
     // イベント管理画面のStep1（参加受付）を直接開く
     await page.goto(`/admin/events/${eventId}?step=1`);
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3_000);
 
     // 参加者名が表示されることを確認
     await expect(page.locator("text=参加者テスト1")).toBeVisible({ timeout: 10_000 });
@@ -122,7 +90,6 @@ test.describe("参加者管理", () => {
     // イベント管理画面で確認
     await page.goto(`/admin/events/${eventId}`);
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3_000);
 
     await expect(page.locator(`text=追加テスト${ts}`)).toBeVisible({ timeout: 10_000 });
   });
@@ -155,10 +122,8 @@ test.describe("参加者管理", () => {
     // エントリー詳細ページがあるか確認（/admin/events/[id]/entries/[entryId]）
     await page.goto(`/admin/events/${eventId}/entries/${entryId}`);
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3_000);
 
-    // 参加者情報が表示されることを確認
-    const bodyText = await page.textContent("body");
-    expect(bodyText).toContain("参加者テスト1");
+    // 参加者情報が表示されることを確認（見出しで特定）
+    await expect(page.getByRole("heading", { name: /参加者テスト1/ })).toBeVisible({ timeout: 5_000 });
   });
 });

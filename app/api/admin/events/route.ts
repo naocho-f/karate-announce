@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       .insert({ name, event_date: event_date ?? null, court_count, court_names: court_names ?? null, status: "preparing", entry_closed: true })
       .select()
       .single();
-    if (error || !e) return NextResponse.json({ error: error?.message ?? "Failed" }, { status: 500 });
+    if (error || !e) return NextResponse.json({ error: error?.message ?? "イベントの作成に失敗しました" }, { status: 500 });
 
     if (rule_ids && rule_ids.length > 0) {
       await supabaseAdmin.from("event_rules").insert(
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     })
     .select()
     .single();
-  if (evErr || !newEvent) return NextResponse.json({ error: evErr?.message ?? "Failed" }, { status: 500 });
+  if (evErr || !newEvent) return NextResponse.json({ error: evErr?.message ?? "イベントの複製に失敗しました" }, { status: 500 });
 
   // 失敗時に作成済みイベントと関連データを削除するクリーンアップ関数
   async function cleanupNewEvent() {
@@ -219,6 +219,19 @@ export async function POST(request: NextRequest) {
         .eq("event_id", source.id);
 
       if (sourceEntries?.length) {
+        // N+1 回避: 全エントリーの entry_rules を一括取得
+        const sourceEntryIds = sourceEntries.map((e) => e.id);
+        const { data: allEntryRules } = await supabaseAdmin
+          .from("entry_rules")
+          .select("entry_id, rule_id")
+          .in("entry_id", sourceEntryIds);
+        const entryRulesMap = new Map<string, { rule_id: string }[]>();
+        for (const r of allEntryRules ?? []) {
+          const list = entryRulesMap.get(r.entry_id) ?? [];
+          list.push({ rule_id: r.rule_id });
+          entryRulesMap.set(r.entry_id, list);
+        }
+
         for (const entry of sourceEntries) {
           const { data: newEntry, error: entryErr } = await supabaseAdmin
             .from("entries")
@@ -251,12 +264,9 @@ export async function POST(request: NextRequest) {
             .single();
           if (entryErr) throw new Error(`エントリーのコピーに失敗: ${entryErr.message}`);
 
-          // entry_rules もコピー
+          // entry_rules もコピー（バッチ取得済みデータを使用）
           if (newEntry) {
-            const { data: entryRules } = await supabaseAdmin
-              .from("entry_rules")
-              .select("rule_id")
-              .eq("entry_id", entry.id);
+            const entryRules = entryRulesMap.get(entry.id);
             if (entryRules?.length) {
               const { error } = await supabaseAdmin.from("entry_rules").insert(
                 entryRules.map((r) => ({ entry_id: newEntry.id, rule_id: r.rule_id }))

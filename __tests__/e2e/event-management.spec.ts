@@ -3,43 +3,8 @@
  *
  * イベントの編集・複製・アクティブ切り替え・削除・参加受付開始/終了を検証する。
  */
-import { test, expect, type Page } from "@playwright/test";
-
-const ADMIN_USER = process.env.ADMIN_USERNAME ?? "admin";
-const ADMIN_PASS = process.env.ADMIN_PASSWORD!;
-
-// ── ヘルパー ──
-
-async function adminLogin(page: Page) {
-  await page.goto("/admin/login");
-  await page.waitForLoadState("networkidle");
-  await page.locator('input[placeholder="ID"]').fill(ADMIN_USER);
-  await page.locator('input[type="password"]').fill(ADMIN_PASS);
-  await page.locator('button[type="submit"]').click();
-  await page.waitForURL("**/admin", { timeout: 15_000 });
-  await page.waitForLoadState("networkidle");
-}
-
-async function createTestEvent(page: Page, name?: string): Promise<string> {
-  const res = await page.request.post("/api/admin/events", {
-    data: {
-      name: name ?? `E2E イベント管理テスト ${Date.now()}`,
-      event_date: "2027-12-01",
-      court_count: 2,
-    },
-  });
-  expect(res.ok()).toBeTruthy();
-  const { id } = await res.json();
-  return id;
-}
-
-async function cleanupEvent(page: Page, eventId: string | null) {
-  if (!eventId) return;
-  await page.request.patch(`/api/admin/events/${eventId}`, {
-    data: { is_active: false },
-  }).catch(() => {});
-  await page.request.delete(`/api/admin/events/${eventId}`).catch(() => {});
-}
+import { test, expect } from "@playwright/test";
+import { adminLogin, createTestEvent, cleanupEvent } from "./helpers";
 
 // ── テスト ──
 
@@ -72,10 +37,8 @@ test.describe("イベント管理", () => {
     // 管理画面で確認
     await page.goto("/admin?tab=events");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3_000);
 
-    const bodyText = await page.textContent("body");
-    expect(bodyText).toContain("E2E 編集済みイベント");
+    await expect(page.locator("text=E2E 編集済みイベント").first()).toBeVisible({ timeout: 10_000 });
   });
 
   test("イベントを複製できる", async ({ page }) => {
@@ -98,10 +61,8 @@ test.describe("イベント管理", () => {
     // 管理画面で複製先が表示されることを確認
     await page.goto("/admin?tab=events");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3_000);
 
-    const bodyText = await page.textContent("body");
-    expect(bodyText).toContain("E2E 複製先");
+    await expect(page.locator("text=E2E 複製先").first()).toBeVisible({ timeout: 10_000 });
   });
 
   test("イベントをアクティブ/非アクティブに切り替えられる", async ({ page }) => {
@@ -124,7 +85,7 @@ test.describe("イベント管理", () => {
       await page.goto("/admin?tab=home");
       await page.waitForLoadState("networkidle");
       const bodyText = await page.textContent("body");
-      expect(bodyText).toContain("E2E イベント管理テスト");
+      expect(bodyText).toContain("E2E テストイベント");
     }).toPass({ timeout: 15_000, intervals: [2_000, 3_000] });
 
     // 非アクティブにする
@@ -151,10 +112,8 @@ test.describe("イベント管理", () => {
     // 管理画面で表示されないことを確認
     await page.goto("/admin?tab=events");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3_000);
 
-    const bodyText = await page.textContent("body");
-    expect(bodyText).not.toContain(`E2E 削除テスト ${ts}`);
+    await expect(page.locator(`text=E2E 削除テスト ${ts}`)).not.toBeVisible({ timeout: 10_000 });
   });
 
   test("参加受付を開始/終了できる", async ({ page }) => {
@@ -174,16 +133,11 @@ test.describe("イベント管理", () => {
     });
     expect(openRes.ok()).toBeTruthy();
 
-    // アクティブにしてホームタブで受付状態を確認
-    await page.request.patch(`/api/admin/events/${eventId}`, {
-      data: { is_active: true },
-    });
-
-    await page.goto("/admin?tab=home");
+    // イベント管理画面のStep①で受付状態を確認（is_active 競合を避ける）
+    await page.goto(`/admin/events/${eventId}?step=1`);
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3_000);
 
-    const bodyText = await page.textContent("body");
-    expect(bodyText).toContain("受付中");
+    // 受付中の表示がある
+    await expect(page.locator("text=受付中").first()).toBeVisible({ timeout: 10_000 });
   });
 });

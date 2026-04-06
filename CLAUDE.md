@@ -47,6 +47,10 @@
 - 新しい環境変数を追加する場合は、Vercel の Environment Variables にも追加すること。
 - 必要な変数: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `ADMIN_PASSWORD`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_MODE`
 
+## Vercel デプロイ時の注意事項
+- **レート制限**: 公開エントリーAPIのレート制限はin-memory Map実装。Vercelのサーバーレス関数はコールドスタートでメモリがリセットされるため、トラフィック集中時にレート制限が効かない場合がある。大会当日に大量申込が予想される場合は、Supabase RLS や外部レート制限サービス（Upstash等）への移行を検討すること。
+- **関数タイムアウト**: Vercel Free は10秒、Pro は60秒。メール送信を含むエントリーAPIは処理時間が長くなる可能性がある。
+
 ## 計画（大きな機能の場合）
 - 複数ファイルにまたがる変更や新機能追加の場合は、**先に計画を出してレビューを受けてから実装する**。
 - 小さなバグ修正や1ファイルの変更は直接実装してよい。

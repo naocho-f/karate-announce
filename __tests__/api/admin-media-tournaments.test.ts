@@ -35,9 +35,22 @@ function createAdminFormDataRequest(method: string, url: string, formData: FormD
   return req;
 }
 
-/** テスト用の File オブジェクトを生成 */
+/** 画像形式ごとのマジックバイト */
+const MAGIC_BYTES: Record<string, number[]> = {
+  "image/jpeg": [0xFF, 0xD8, 0xFF, 0xE0],
+  "image/png": [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
+  "image/webp": [0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50],
+};
+
+/** テスト用の File オブジェクトを生成（画像形式にはマジックバイトを付与） */
 function createMockFile(name: string, type: string, sizeBytes: number = 100): File {
-  const buffer = new ArrayBuffer(sizeBytes);
+  const buffer = new Uint8Array(sizeBytes);
+  const magic = MAGIC_BYTES[type];
+  if (magic) {
+    for (let i = 0; i < magic.length && i < sizeBytes; i++) {
+      buffer[i] = magic[i];
+    }
+  }
   return new File([buffer], name, { type });
 }
 

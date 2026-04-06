@@ -4,7 +4,41 @@ import { getResend } from "@/lib/resend";
 import { renderTemplate, DEFAULT_SUBJECT, DEFAULT_BODY, buildEntryDetails } from "@/lib/email-template";
 import { getFieldDef } from "@/lib/form-fields";
 
+// --- IP-based rate limiter ---
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 10; // max submissions per window per IP
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+// Clean up expired entries every 2 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitMap) {
+    if (now > entry.resetAt) rateLimitMap.delete(key);
+  }
+}, 2 * 60_000);
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT_MAX) return false;
+  entry.count++;
+  return true;
+}
+
 export async function POST(request: NextRequest) {
+  // Rate limit check
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { error: "リクエストが多すぎます。しばらくしてから再度お試しください。" },
+      { status: 429 }
+    );
+  }
+
   const { entry, school_name, rule_ids } = await request.json();
 
   // エントリー締め切りチェック
@@ -36,17 +70,10 @@ export async function POST(request: NextRequest) {
   }
 
   if (school_name) {
-    const { data: existing } = await supabaseAdmin
-      .from("dojos")
-      .select("id")
-      .eq("name", school_name)
-      .maybeSingle();
-    if (!existing) {
-      await supabaseAdmin.from("dojos").insert({
-        name: school_name,
-        name_reading: entry.school_name_reading || null,
-      });
-    }
+    await supabaseAdmin.from("dojos").upsert(
+      { name: school_name, name_reading: entry.school_name_reading ?? null },
+      { onConflict: "name", ignoreDuplicates: true }
+    );
   }
 
   const { data: created, error } = await supabaseAdmin
@@ -54,7 +81,7 @@ export async function POST(request: NextRequest) {
     .insert(entry)
     .select("id")
     .single();
-  if (error || !created) return NextResponse.json({ error: error?.message ?? "Failed" }, { status: 500 });
+  if (error || !created) return NextResponse.json({ error: error?.message ?? "エントリーの登録に失敗しました" }, { status: 500 });
 
   if (rule_ids && rule_ids.length > 0) {
     await supabaseAdmin.from("entry_rules").insert(

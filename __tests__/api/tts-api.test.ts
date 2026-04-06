@@ -2,12 +2,29 @@
  * API テスト: /api/tts
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { createHash } from "crypto";
+import { NextRequest } from "next/server";
 
 // OpenAI API をモック
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
 vi.stubEnv("OPENAI_API_KEY", "test-key");
+process.env.ADMIN_PASSWORD = "test-password";
+
+const SALT = "karate-announce-v1";
+const adminToken = createHash("sha256").update("test-password" + SALT).digest("hex");
+
+/** 管理者認証Cookie付きのリクエストを生成 */
+function createAdminTtsRequest(body: unknown) {
+  const req = new NextRequest(new URL("http://localhost:3000/api/tts"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  req.cookies.set("admin_auth", adminToken);
+  return req;
+}
 
 describe("/api/tts", () => {
   let POST: typeof import("@/app/api/tts/route").POST;
@@ -20,11 +37,7 @@ describe("/api/tts", () => {
   });
 
   it("POST: text 未指定で 400 エラー", async () => {
-    const req = new Request("http://localhost:3000/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
+    const req = createAdminTtsRequest({});
     const res = await POST(req as any);
     expect(res.status).toBe(400);
     const json = await res.json();
@@ -37,11 +50,7 @@ describe("/api/tts", () => {
       arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
     });
 
-    const req = new Request("http://localhost:3000/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: "テスト", voice: "invalid-voice", speed: 1.0 }),
-    });
+    const req = createAdminTtsRequest({ text: "テスト", voice: "invalid-voice", speed: 1.0 });
     await POST(req as any);
 
     expect(mockFetch).toHaveBeenCalledOnce();
@@ -55,11 +64,7 @@ describe("/api/tts", () => {
       arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
     });
 
-    const req = new Request("http://localhost:3000/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: "テスト", voice: "nova", speed: 999 }),
-    });
+    const req = createAdminTtsRequest({ text: "テスト", voice: "nova", speed: 999 });
     await POST(req as any);
 
     const fetchBody = JSON.parse(mockFetch.mock.calls[0][1].body);
@@ -72,11 +77,7 @@ describe("/api/tts", () => {
       arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
     });
 
-    const req = new Request("http://localhost:3000/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: "テスト", voice: "nova", speed: "not-a-number" }),
-    });
+    const req = createAdminTtsRequest({ text: "テスト", voice: "nova", speed: "not-a-number" });
     await POST(req as any);
 
     const fetchBody = JSON.parse(mockFetch.mock.calls[0][1].body);
@@ -90,11 +91,7 @@ describe("/api/tts", () => {
       text: () => Promise.resolve("Rate limit exceeded"),
     });
 
-    const req = new Request("http://localhost:3000/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: "テスト", voice: "nova", speed: 1.0 }),
-    });
+    const req = createAdminTtsRequest({ text: "テスト", voice: "nova", speed: 1.0 });
     const res = await POST(req as any);
 
     expect(res.status).toBe(429);
@@ -109,11 +106,7 @@ describe("/api/tts", () => {
       arrayBuffer: () => Promise.resolve(audioData),
     });
 
-    const req = new Request("http://localhost:3000/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: "テスト", voice: "echo", speed: 1.2 }),
-    });
+    const req = createAdminTtsRequest({ text: "テスト", voice: "echo", speed: 1.2 });
     const res = await POST(req as any);
 
     expect(res.status).toBe(200);

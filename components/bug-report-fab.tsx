@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { isDev, getAppVersion } from "@/lib/app-mode";
+import { showToast } from "@/components/toast";
 
 export function BugReportFab() {
   const [open, setOpen] = useState(false);
@@ -30,7 +31,7 @@ export function BugReportFab() {
       }),
     });
     setSending(false);
-    if (!res.ok) { alert("送信に失敗しました"); return; }
+    if (!res.ok) { showToast("送信に失敗しました"); return; }
     setSent(true);
     setWhatDid("");
     setWhatHappened("");

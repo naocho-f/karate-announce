@@ -4,21 +4,7 @@
  * 参加申込フォームの表示・入力バリデーション・送信フローを検証する。
  */
 import { test, expect, type Page } from "@playwright/test";
-
-const ADMIN_USER = process.env.ADMIN_USERNAME ?? "admin";
-const ADMIN_PASS = process.env.ADMIN_PASSWORD!;
-
-// ── ヘルパー ──
-
-async function adminLogin(page: Page) {
-  await page.goto("/admin/login");
-  await page.waitForLoadState("networkidle");
-  await page.locator('input[placeholder="ID"]').fill(ADMIN_USER);
-  await page.locator('input[type="password"]').fill(ADMIN_PASS);
-  await page.locator('button[type="submit"]').click();
-  await page.waitForURL("**/admin", { timeout: 15_000 });
-  await page.waitForLoadState("networkidle");
-}
+import { adminLogin, cleanupEvent } from "./helpers";
 
 /** テスト用イベントを作成してフォーム設定を公開する */
 async function createEventWithForm(page: Page): Promise<string> {
@@ -35,26 +21,16 @@ async function createEventWithForm(page: Page): Promise<string> {
   // フォーム設定取得（初回アクセスで自動初期化）
   const cfgRes = await page.request.get(`/api/admin/form-config?event_id=${eventId}`);
   expect(cfgRes.ok()).toBeTruthy();
-  const { config } = await cfgRes.json();
 
-  // フォームを公開
-  const patchRes = await page.request.patch("/api/admin/form-config", {
-    data: { config_id: config.id },
-  });
-  expect(patchRes.ok()).toBeTruthy();
-
-  // 参加受付を開始
-  await page.request.patch(`/api/admin/events/${eventId}`, {
+  // 参加受付を開始（entry_closed=false にすると is_ready も自動で true になる）
+  const patchRes = await page.request.patch(`/api/admin/events/${eventId}`, {
     data: { entry_closed: false },
   });
+  expect(patchRes.ok()).toBeTruthy();
 
   return eventId;
 }
 
-async function cleanupEvent(page: Page, eventId: string | null) {
-  if (!eventId) return;
-  await page.request.delete(`/api/admin/events/${eventId}`).catch(() => {});
-}
 
 // ── テスト ──
 
@@ -80,7 +56,7 @@ test.describe("エントリーフォーム", () => {
     await expect(page.locator("text=参加申込フォーム")).toBeVisible({ timeout: 10_000 });
   });
 
-  test("必須項目未入力でエラーが表示される", async ({ page }) => {
+  test("必須項目未入力で送信ボタンがグレーアウトする", async ({ page }) => {
     await adminLogin(page);
     eventId = await createEventWithForm(page);
 
@@ -90,11 +66,12 @@ test.describe("エントリーフォーム", () => {
     // フォームが表示されるまで待つ
     await expect(page.locator("form").first()).toBeVisible({ timeout: 30_000 });
 
-    // 送信ボタンが disabled（canSubmit=false）であることを確認
-    // 必須項目が未入力の場合、ボタンは disabled になる
+    // 送信ボタンが表示される
     const submitBtn = page.locator('button:has-text("申し込む")');
     await expect(submitBtn).toBeVisible({ timeout: 10_000 });
-    await expect(submitBtn).toBeDisabled();
+
+    // 必須項目が未入力の場合、ボタンのスタイルがグレー（bg-gray-600）になる
+    await expect(submitBtn).toHaveClass(/bg-gray-600/);
   });
 
   test("メールアドレス確認が一致しないとエラー", async ({ page }) => {
@@ -156,7 +133,6 @@ test.describe("エントリーフォーム", () => {
     // エントリーが作成されていることを管理画面のStep1（参加受付）で確認
     await page.goto(`/admin/events/${eventId}?step=1`);
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3_000);
 
     // 参加者名が表示される
     await expect(page.locator(`text=E2E送信テスト${ts}`)).toBeVisible({ timeout: 10_000 });

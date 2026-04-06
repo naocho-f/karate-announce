@@ -3,34 +3,8 @@
  *
  * 非同期操作を行うボタンに disabled 状態とローディングテキストが表示されることを検証する。
  */
-import { test, expect, type Page } from "@playwright/test";
-
-const ADMIN_USER = process.env.ADMIN_USERNAME ?? "admin";
-const ADMIN_PASS = process.env.ADMIN_PASSWORD!;
-
-// ── ヘルパー ──
-
-async function adminLogin(page: Page) {
-  await page.goto("/admin/login");
-  await page.waitForLoadState("networkidle");
-  await page.locator('input[placeholder="ID"]').fill(ADMIN_USER);
-  await page.locator('input[type="password"]').fill(ADMIN_PASS);
-  await page.locator('button[type="submit"]').click();
-  await page.waitForURL("**/admin", { timeout: 15_000 });
-  await page.waitForLoadState("networkidle");
-}
-
-async function createTestEvent(page: Page): Promise<string> {
-  const res = await page.request.post("/api/admin/events", {
-    data: {
-      name: `E2E ローディングテスト ${Date.now()}`,
-      event_date: "2027-12-01",
-      court_count: 2,
-    },
-  });
-  const { id } = await res.json();
-  return id;
-}
+import { test, expect } from "@playwright/test";
+import { adminLogin, createTestEvent } from "./helpers";
 
 // ── テスト ──
 
@@ -77,7 +51,7 @@ test.describe("ローディング表示", () => {
     const brTab = page.getByRole("button", { name: "振り分けルール" });
     if (await brTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
       await brTab.click();
-      await page.waitForTimeout(1_000);
+      await page.waitForTimeout(500);
     }
 
     // 削除ボタンを探す
@@ -177,7 +151,7 @@ test.describe("ローディング表示", () => {
     const pastBtn = page.getByRole("button", { name: /過去の試合/ });
     if (await pastBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
       await pastBtn.click();
-      await page.waitForTimeout(1_000);
+      await page.waitForTimeout(500);
     }
 
     // 再開するボタンを探す

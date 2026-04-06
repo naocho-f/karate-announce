@@ -9,6 +9,7 @@ import { entryFullName } from "@/lib/types";
 import { getFieldDef, isCustomField } from "@/lib/form-fields";
 import { getGradeOptions, type AgeCategory } from "@/lib/grade-options";
 import { FormConfigPanel } from "@/app/admin/events/[id]/form-config-panel";
+import { showToast } from "@/components/toast";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 function supabaseStorageUrl(path: string): string {
@@ -271,7 +272,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
 
   async function deleteTestEntries() {
     const testEntries = entries.filter((e) => e.is_test);
-    if (testEntries.length === 0) { alert("テストデータがありません"); return; }
+    if (testEntries.length === 0) { showToast("テストデータがありません"); return; }
     if (!confirm(`テストデータ ${testEntries.length} 名を削除しますか？`)) return;
     setGenerating(true);
     await Promise.all(testEntries.map((e) => fetch(`/api/admin/entries/${e.id}`, { method: "DELETE" })));
@@ -281,7 +282,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
 
   // ── CSV ダウンロード ──────────────────────────────────────────────────
   async function downloadCsv() {
-    if (entries.length === 0) { alert("参加者がいません"); return; }
+    if (entries.length === 0) { showToast("参加者がいません"); return; }
     setDownloading(true);
     try {
       // フォーム設定取得
@@ -459,7 +460,7 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error("CSV download error:", e);
-      alert("CSVのダウンロードに失敗しました");
+      showToast("CSVのダウンロードに失敗しました");
     } finally {
       setDownloading(false);
     }
@@ -733,7 +734,7 @@ function AddEntryForm({ eventId, eventRules, ageCategories, onAdded }: {
       }),
     });
     setSaving(false);
-    if (!res.ok) { alert("参加者の追加に失敗しました"); return; }
+    if (!res.ok) { showToast("参加者の追加に失敗しました"); return; }
     setFamilyName(""); setGivenName(""); setFamilyReading(""); setGivenReading("");
     setSchoolName(""); setSchoolNameReading(""); setDojoName(""); setDojoNameReading("");
     setWeight(""); setHeight(""); setAge(""); setGrade(""); setExperience("");
@@ -851,7 +852,7 @@ function EmailSettingsPanel({ event, onUpdate }: { event: Event; onUpdate: (u: P
       body: JSON.stringify(body),
     });
     setSaving(false);
-    if (!res.ok) { alert("保存に失敗しました"); return; }
+    if (!res.ok) { showToast("保存に失敗しました"); return; }
     onUpdate(body as Partial<Event>);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);

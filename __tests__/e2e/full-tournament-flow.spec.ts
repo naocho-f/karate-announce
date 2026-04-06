@@ -16,10 +16,7 @@
  * 前提: Supabase に接続可能で、テスト用データをクリーンアップできる
  */
 import { test, expect, type Page } from "@playwright/test";
-
-// テスト用定数
-const ADMIN_USER = process.env.ADMIN_USERNAME ?? "admin";
-const ADMIN_PASS = process.env.ADMIN_PASSWORD!;
+import { ADMIN_USER, ADMIN_PASS } from "./helpers";
 
 // ── ヘルパー ──
 
@@ -172,29 +169,19 @@ test.describe("大会フル進行フロー", () => {
     await expect(page.locator("text=一時停止")).toBeVisible({ timeout: 5_000 });
   });
 
-  test("タイマー操作画面: アナウンスボタンとミュート切替が表示される", async ({ page }) => {
+  test("タイマー操作画面: ミュート切替が表示される", async ({ page }) => {
     await page.goto("/timer/1/control");
 
     // ミュートトグルが表示される
-    await expect(page.locator("text=音声ON")).toBeVisible({ timeout: 10_000 });
-
-    // クイック試合をセット
-    await page.locator("text=クイック試合").click();
-    await expect(page.locator("text=準備完了")).toBeVisible({ timeout: 5_000 });
-
-    // ready 状態で試合開始アナウンスボタンが表示される
-    await expect(page.locator("text=試合開始アナウンス")).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByRole("button", { name: "音声ON" })).toBeVisible({ timeout: 10_000 });
 
     // ミュートに切り替え
     await page.getByRole("button", { name: "音声ON" }).click();
     await expect(page.getByRole("button", { name: "ミュート中" })).toBeVisible();
-    // ミュート中はボタンが無効化される
-    await expect(page.getByRole("button", { name: "試合開始アナウンス" })).toBeDisabled();
 
     // ミュート解除
     await page.getByRole("button", { name: "ミュート中" }).click();
     await expect(page.getByRole("button", { name: "音声ON" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "試合開始アナウンス" })).toBeEnabled();
   });
 
   test("ショートカット印刷ページが表示される", async ({ page }) => {

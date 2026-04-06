@@ -44,10 +44,13 @@ export default function AdminPage() {
           <LogoutButton />
         </div>
 
-        <div className="grid grid-cols-4 gap-2 mb-6">
+        <div role="tablist" aria-label="管理画面タブ" className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
           {(["home", "events", "settings", "guide"] as const).map((t) => (
             <button
               key={t}
+              role="tab"
+              aria-selected={tab === t}
+              aria-label={`${TAB_LABELS[t]}タブ`}
               onClick={() => navigateTab(t)}
               className={`py-2 rounded-lg text-sm font-medium transition text-center ${
                 tab === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
@@ -58,10 +61,12 @@ export default function AdminPage() {
           ))}
         </div>
 
+        <div role="tabpanel">
         {tab === "home"     && <HomeDashboardPanel onNavigate={navigateTab} />}
         {tab === "events"   && <EventsPanel />}
         {tab === "settings" && <SettingsPanel />}
         {tab === "guide"    && <GuidePanel onNavigate={navigateTab} />}
+        </div>
 
         {/* バージョン表示（タブコンテンツが描画された後に遅延表示） */}
         <DelayedVersion />

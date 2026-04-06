@@ -13,9 +13,12 @@ import {
   createMockSupabase,
   mockResult,
   createRequest,
+  createAdminRequest,
   createParams,
   resetAll,
 } from "../helpers/supabase-mock";
+
+process.env.ADMIN_PASSWORD = "test-password";
 
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: createMockSupabase() }));
 // Resend をモック
@@ -28,7 +31,7 @@ describe("/api/court/entries/[id]", () => {
 
   it("PATCH: 欠場フラグを更新できる", async () => {
     const { PATCH } = await import("@/app/api/court/entries/[id]/route");
-    const req = createRequest("PATCH", "/api/court/entries/e1", {
+    const req = createAdminRequest("PATCH", "/api/court/entries/e1", {
       body: { is_withdrawn: true },
     });
     const res = await PATCH(req, createParams({ id: "e1" }));
@@ -41,7 +44,7 @@ describe("/api/court/matches/[id]", () => {
 
   it("PATCH: action=start で試合開始", async () => {
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: { action: "start", tournamentId: "t1" },
     });
     const res = await PATCH(req, createParams({ id: "m1" }));
@@ -53,7 +56,7 @@ describe("/api/court/matches/[id]", () => {
       data: { id: "next-m", fighter1_id: null, fighter2_id: "f2" },
     });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: {
         action: "set_winner",
         winnerId: "f1",
@@ -69,7 +72,7 @@ describe("/api/court/matches/[id]", () => {
 
   it("PATCH: action=set_winner 決勝でトーナメント完了", async () => {
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m-final", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m-final", {
       body: {
         action: "set_winner",
         winnerId: "f1",
@@ -83,12 +86,57 @@ describe("/api/court/matches/[id]", () => {
     expect(res.status).toBe(200);
   });
 
+  it("PATCH: action=set_winner matchUpdatedAt不一致で 409", async () => {
+    mockResult("matches", "select", {
+      data: { updated_at: "2026-01-01T00:00:00.000Z" },
+    });
+    const { PATCH } = await import("@/app/api/court/matches/[id]/route");
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
+      body: {
+        action: "set_winner",
+        winnerId: "f1",
+        tournamentId: "t1",
+        round: 1,
+        rounds: 3,
+        position: 0,
+        matchUpdatedAt: "2025-12-31T00:00:00.000Z",
+      },
+    });
+    const res = await PATCH(req, createParams({ id: "m1" }));
+    expect(res.status).toBe(409);
+    const json = await res.json();
+    expect(json.error).toContain("既に更新されています");
+  });
+
+  it("PATCH: action=finish_timer matchUpdatedAt不一致で 409", async () => {
+    mockResult("matches", "select", {
+      data: { updated_at: "2026-01-01T00:00:00.000Z" },
+    });
+    const { PATCH } = await import("@/app/api/court/matches/[id]/route");
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
+      body: {
+        action: "finish_timer",
+        winnerId: "f1",
+        tournamentId: "t1",
+        round: 1,
+        rounds: 3,
+        position: 0,
+        resultMethod: "ippon",
+        matchUpdatedAt: "2025-12-31T00:00:00.000Z",
+      },
+    });
+    const res = await PATCH(req, createParams({ id: "m1" }));
+    expect(res.status).toBe(409);
+    const json = await res.json();
+    expect(json.error).toContain("既に更新されています");
+  });
+
   it("PATCH: action=replace で選手差し替え", async () => {
     mockResult("matches", "select", {
       data: { fighter1_id: "f1", fighter2_id: "f2" },
     });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: { action: "replace", slot: "f1", newFighterId: "f-new" },
     });
     const res = await PATCH(req, createParams({ id: "m1" }));
@@ -98,7 +146,7 @@ describe("/api/court/matches/[id]", () => {
   it("PATCH: action=replace で match が見つからない場合 404", async () => {
     mockResult("matches", "select", { data: null });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: { action: "replace", slot: "f1", newFighterId: "f-new" },
     });
     const res = await PATCH(req, createParams({ id: "m1" }));
@@ -107,7 +155,7 @@ describe("/api/court/matches/[id]", () => {
 
   it("PATCH: action=edit で試合情報編集", async () => {
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: { action: "edit", matchLabel: "第10試合", rules: "ルールA" },
     });
     const res = await PATCH(req, createParams({ id: "m1" }));
@@ -119,7 +167,7 @@ describe("/api/court/matches/[id]", () => {
       data: { id: "next-m", status: "waiting", fighter1_id: null, fighter2_id: null },
     });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: {
         action: "correct_winner",
         winnerId: "f2",
@@ -138,7 +186,7 @@ describe("/api/court/matches/[id]", () => {
       data: { id: "next-m", status: "ongoing", fighter1_id: "f1", fighter2_id: "f2" },
     });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: {
         action: "correct_winner",
         winnerId: "f2",
@@ -157,7 +205,7 @@ describe("/api/court/matches/[id]", () => {
       data: { id: "next-m", status: "done", fighter1_id: "f1", fighter2_id: "f2" },
     });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: {
         action: "correct_winner",
         winnerId: "f2",
@@ -176,7 +224,7 @@ describe("/api/court/matches/[id]", () => {
       data: { id: "next-m", fighter1_id: null, fighter2_id: "f2" },
     });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: {
         action: "finish_timer",
         winnerId: "f1",
@@ -194,7 +242,7 @@ describe("/api/court/matches/[id]", () => {
 
   it("PATCH: action=finish_timer 決勝でトーナメント完了", async () => {
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m-final", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m-final", {
       body: {
         action: "finish_timer",
         winnerId: "f1",
@@ -214,7 +262,7 @@ describe("/api/court/matches/[id]", () => {
       data: { id: "next-m", fighter1_id: null, fighter2_id: "f2" },
     });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: {
         action: "finish_timer",
         winnerId: "f1",
@@ -235,7 +283,7 @@ describe("/api/court/matches/[id]", () => {
       data: { id: "next-m", fighter1_id: null, fighter2_id: "f2" },
     });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: {
         action: "finish_timer",
         winnerId: "f1",
@@ -253,7 +301,7 @@ describe("/api/court/matches/[id]", () => {
 
   it("PATCH: action=finish_timer 勝者なし（引き分け）", async () => {
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: {
         action: "finish_timer",
         winnerId: null,
@@ -271,7 +319,7 @@ describe("/api/court/matches/[id]", () => {
   it("PATCH: action=swap_with で試合入れ替え", async () => {
     mockResult("matches", "select", { data: { position: 0 } });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: { action: "swap_with", otherMatchId: "m2" },
     });
     const res = await PATCH(req, createParams({ id: "m1" }));
@@ -280,7 +328,7 @@ describe("/api/court/matches/[id]", () => {
 
   it("PATCH: action=swap_with で otherMatchId 未指定は 400", async () => {
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: { action: "swap_with" },
     });
     const res = await PATCH(req, createParams({ id: "m1" }));
@@ -289,7 +337,7 @@ describe("/api/court/matches/[id]", () => {
 
   it("PATCH: 不明な action で 400", async () => {
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
-    const req = createRequest("PATCH", "/api/court/matches/m1", {
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: { action: "unknown_action" },
     });
     const res = await PATCH(req, createParams({ id: "m1" }));
@@ -423,7 +471,7 @@ describe("/api/tts", () => {
 
   it("POST: text 未指定で 400", async () => {
     const { POST } = await import("@/app/api/tts/route");
-    const req = createRequest("POST", "/api/tts", {
+    const req = createAdminRequest("POST", "/api/tts", {
       body: {},
     });
     const res = await POST(req);
@@ -438,7 +486,7 @@ describe("/api/tts", () => {
     vi.stubGlobal("fetch", mockFetch);
 
     const { POST } = await import("@/app/api/tts/route");
-    const req = createRequest("POST", "/api/tts", {
+    const req = createAdminRequest("POST", "/api/tts", {
       body: { text: "テスト音声", voice: "nova", speed: 1.0 },
     });
     const res = await POST(req);
@@ -456,7 +504,7 @@ describe("/api/tts", () => {
     vi.stubGlobal("fetch", mockFetch);
 
     const { POST } = await import("@/app/api/tts/route");
-    const req = createRequest("POST", "/api/tts", {
+    const req = createAdminRequest("POST", "/api/tts", {
       body: { text: "テスト", voice: "invalid_voice", speed: 99 },
     });
     await POST(req);
@@ -478,7 +526,7 @@ describe("/api/tts", () => {
     vi.stubGlobal("fetch", mockFetch);
 
     const { POST } = await import("@/app/api/tts/route");
-    const req = createRequest("POST", "/api/tts", {
+    const req = createAdminRequest("POST", "/api/tts", {
       body: { text: "テスト" },
     });
     const res = await POST(req);

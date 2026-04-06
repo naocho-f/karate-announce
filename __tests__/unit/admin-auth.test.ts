@@ -31,13 +31,23 @@ describe("admin-auth", () => {
     delete process.env.ADMIN_PASSWORD;
   });
 
-  it("ADMIN_PASSWORD 未設定 → 常に許可（開発用）", async () => {
+  it("ADMIN_PASSWORD 未設定（dev）→ デフォルトパスワード 'dev' で認証", async () => {
     delete process.env.ADMIN_PASSWORD;
     const mod = await import("@/lib/admin-auth");
     verifyAdminAuth = mod.verifyAdminAuth as typeof verifyAdminAuth;
 
-    const req = { cookies: { get: () => undefined } };
-    expect(verifyAdminAuth(req as never)).toBe(true);
+    // 正しい dev パスワードの Cookie → 許可
+    const devToken = createHash("sha256").update("dev" + SALT).digest("hex");
+    const reqOk = { cookies: { get: (name: string) => name === "admin_auth" ? { value: devToken } : undefined } };
+    expect(verifyAdminAuth(reqOk as never)).toBe(true);
+
+    // Cookie なし → 拒否
+    const reqNoCookie = { cookies: { get: () => undefined } };
+    expect(verifyAdminAuth(reqNoCookie as never)).toBe(false);
+
+    // 不正な Cookie → 拒否
+    const reqWrong = { cookies: { get: (name: string) => name === "admin_auth" ? { value: "wrong" } : undefined } };
+    expect(verifyAdminAuth(reqWrong as never)).toBe(false);
   });
 
   it("正しい Cookie → 許可", async () => {

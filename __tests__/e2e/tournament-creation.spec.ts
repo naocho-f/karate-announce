@@ -4,34 +4,7 @@
  * テスト参加者の追加、対戦表自動生成、振り分けルール、ワンマッチ作成、対戦表削除を検証する。
  */
 import { test, expect, type Page } from "@playwright/test";
-
-const ADMIN_USER = process.env.ADMIN_USERNAME ?? "admin";
-const ADMIN_PASS = process.env.ADMIN_PASSWORD!;
-
-// ── ヘルパー ──
-
-async function adminLogin(page: Page) {
-  await page.goto("/admin/login");
-  await page.waitForLoadState("networkidle");
-  await page.locator('input[placeholder="ID"]').fill(ADMIN_USER);
-  await page.locator('input[type="password"]').fill(ADMIN_PASS);
-  await page.locator('button[type="submit"]').click();
-  await page.waitForURL("**/admin", { timeout: 15_000 });
-  await page.waitForLoadState("networkidle");
-}
-
-async function createTestEvent(page: Page): Promise<string> {
-  const res = await page.request.post("/api/admin/events", {
-    data: {
-      name: `E2E 対戦表テスト ${Date.now()}`,
-      event_date: "2027-12-01",
-      court_count: 2,
-    },
-  });
-  expect(res.ok()).toBeTruthy();
-  const { id } = await res.json();
-  return id;
-}
+import { adminLogin, createTestEvent, cleanupEvent } from "./helpers";
 
 async function createTestEntries(page: Page, eventId: string, count: number): Promise<string[]> {
   const ids: string[] = [];
@@ -61,14 +34,6 @@ async function createTestEntries(page: Page, eventId: string, count: number): Pr
   return ids;
 }
 
-async function cleanupEvent(page: Page, eventId: string | null) {
-  if (!eventId) return;
-  await page.request.patch(`/api/admin/events/${eventId}`, {
-    data: { is_active: false },
-  }).catch(() => {});
-  await page.request.delete(`/api/admin/events/${eventId}`).catch(() => {});
-}
-
 // ── テスト ──
 
 test.describe("対戦表作成", () => {
@@ -89,7 +54,6 @@ test.describe("対戦表作成", () => {
     // イベント管理画面のStep1（参加受付）を直接開く
     await page.goto(`/admin/events/${eventId}?step=1`);
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3_000);
 
     // テスト参加者が一覧に表示されていることを確認
     await expect(page.locator("text=対戦テスト1")).toBeVisible({ timeout: 10_000 });
@@ -126,7 +90,6 @@ test.describe("対戦表作成", () => {
     const bracketTab = subTabGrid.locator('button:has-text("振り分けルール")');
     await expect(bracketTab).toBeVisible({ timeout: 10_000 });
     await bracketTab.click();
-    await page.waitForTimeout(2_000);
 
     // 振り分けルールが表示される
     await expect(page.locator("text=E2Eテスト振り分け")).toBeVisible({ timeout: 10_000 });
@@ -181,10 +144,8 @@ test.describe("対戦表作成", () => {
     // コート画面でワンマッチが表示されることを確認
     await page.goto("/court/1");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(5_000);
 
-    const bodyText = await page.textContent("main");
-    expect(bodyText).toBeTruthy();
+    await expect(page.locator("main")).toBeVisible({ timeout: 5_000 });
 
     // クリーンアップ
     await page.request.delete(`/api/admin/tournaments/${tournamentId}`).catch(() => {});
@@ -246,7 +207,6 @@ test.describe("対戦表作成", () => {
     await page.goto(`/admin/events/${eventId}?step=2`);
     await page.waitForLoadState("networkidle");
     await expect(page.locator("text=② 対戦表作成")).toBeVisible({ timeout: 15_000 });
-    await page.waitForTimeout(3_000);
 
     // 試合数フィルタセレクトが存在することを確認
     const matchCountLabel = page.locator("text=試合数");
@@ -286,7 +246,6 @@ test.describe("対戦表作成", () => {
     await page.goto(`/admin/events/${eventId}?step=2`);
     await page.waitForLoadState("networkidle");
     await expect(page.locator("text=② 対戦表作成")).toBeVisible({ timeout: 15_000 });
-    await page.waitForTimeout(3_000);
 
     // 体重差入力欄のデフォルト値が5であることを確認
     const weightDiffInput = page.locator("input[type='number'][step='0.5']").first();
@@ -370,11 +329,15 @@ test.describe("対戦表作成", () => {
     expect(res2.ok()).toBeTruthy();
     const { id: t2Id } = await res2.json();
 
-    // コート1の画面でトーナメントの順序を確認
-    await page.goto("/court/1");
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(5_000);
-
+    // コート1の画面でトーナメントの順序を確認（is_active競合をリトライで吸収）
+    await expect(async () => {
+      await page.request.patch(`/api/admin/events/${eventId}`, {
+        data: { is_active: true },
+      });
+      await page.goto("/court/1");
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("text=先に作成").first()).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 15_000, intervals: [2_000, 3_000] });
     const bodyText = await page.textContent("main");
     if (bodyText) {
       const idx1 = bodyText.indexOf("先に作成");
@@ -435,7 +398,6 @@ test.describe("対戦表作成", () => {
     await page.goto(`/admin/events/${eventId}?step=3`);
     await page.waitForLoadState("networkidle");
     await expect(page.locator("text=③ 試合番号設定")).toBeVisible({ timeout: 15_000 });
-    await page.waitForTimeout(2_000);
 
     // コートタブが表示されている（court_count=2 なので3つのタブ: 全コート + コート1 + コート2）
     const allTab = page.locator('button:has-text("全コート")');
@@ -451,14 +413,12 @@ test.describe("対戦表作成", () => {
 
     // コート1タブをクリック→コート1のみ表示
     await court1Tab.click();
-    await page.waitForTimeout(1_000);
-    await expect(page.locator("text=コート1トーナメント")).toBeVisible();
+    await expect(page.locator("text=コート1トーナメント")).toBeVisible({ timeout: 5_000 });
     await expect(page.locator("text=コート2トーナメント")).not.toBeVisible();
 
     // コート2タブをクリック→コート2のみ表示
     await court2Tab.click();
-    await page.waitForTimeout(1_000);
-    await expect(page.locator("text=コート2トーナメント")).toBeVisible();
+    await expect(page.locator("text=コート2トーナメント")).toBeVisible({ timeout: 5_000 });
     await expect(page.locator("text=コート1トーナメント")).not.toBeVisible();
 
     // クリーンアップ

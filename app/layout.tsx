@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BugReportFab } from "@/components/bug-report-fab";
+import { ToastContainer } from "@/components/toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,6 +39,7 @@ export default function RootLayout({
       >
         {children}
         <BugReportFab />
+        <ToastContainer />
       </body>
     </html>
   );

@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import type { FormFieldConfig, FormNotice, FormNoticeImage, CustomFieldDef } from "@/lib/types";
 import { FIELD_POOL, getFieldDef, isKanaField, isCustomField, customFieldToPoolItem } from "@/lib/form-fields";
 import type { FieldPoolItem } from "@/lib/form-fields";
+import { showToast } from "@/components/toast";
 
 type Props = { eventId: string };
 
@@ -156,7 +157,7 @@ export function FormConfigPanel({ eventId }: Props) {
           deleted_image_ids: deletedImageIds,
         }),
       });
-      if (!res.ok) { alert("保存に失敗しました"); return; }
+      if (!res.ok) { showToast("保存に失敗しました"); return; }
       await load(false);
       showSaveMessage("保存しました");
     } finally {
@@ -176,7 +177,7 @@ export function FormConfigPanel({ eventId }: Props) {
       body: JSON.stringify({ source_event_id: sourceEventId, target_config_id: config.id }),
     });
     if (!res.ok) {
-      alert("フォーム設定のコピーに失敗しました");
+      showToast("フォーム設定のコピーに失敗しました");
       setCopying(false);
       return;
     }
@@ -365,14 +366,14 @@ export function FormConfigPanel({ eventId }: Props) {
   }
 
   async function uploadImage(noticeId: string, file: File) {
-    if (noticeId.startsWith("temp_")) { alert("先に保存してから画像を追加してください"); return; }
+    if (noticeId.startsWith("temp_")) { showToast("先に保存してから画像を追加してください"); return; }
     addBusy(noticeId);
     const fd = new FormData();
     fd.append("file", file);
     fd.append("notice_id", noticeId);
     const res = await fetch("/api/admin/form-config/image-upload", { method: "POST", credentials: "include", body: fd });
     removeBusy(noticeId);
-    if (!res.ok) { alert("画像アップロードに失敗しました"); return; }
+    if (!res.ok) { showToast("画像アップロードに失敗しました"); return; }
     const img = await res.json();
     setNotices((prev) => prev.map((n) => n.id === noticeId ? { ...n, images: [...(n.images ?? []), img] } : n));
     setDirty(true);
@@ -1156,8 +1157,8 @@ function AddCustomFieldForm({ onAdd }: { onAdd: (label: string, fieldType: strin
   const needsChoices = fieldType === "select" || fieldType === "checkbox";
 
   function handleAdd() {
-    if (!label.trim()) { alert("ラベルを入力してください"); return; }
-    if (needsChoices && !choicesText.trim()) { alert("選択肢を入力してください"); return; }
+    if (!label.trim()) { showToast("ラベルを入力してください"); return; }
+    if (needsChoices && !choicesText.trim()) { showToast("選択肢を入力してください"); return; }
     const choices = needsChoices
       ? choicesText.split("\n").filter((l) => l.trim()).map((l) => ({ label: l.trim(), value: l.trim().toLowerCase().replace(/\s+/g, "_") }))
       : null;

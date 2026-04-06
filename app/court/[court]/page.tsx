@@ -12,6 +12,8 @@ import { announceMatchStart, announceWinner, buildMatchStartText, prefetchTts, D
 import { BracketView } from "@/lib/bracket-view";
 import { matchLabelNum } from "@/lib/match-utils";
 import Link from "next/link";
+import { showToast } from "@/components/toast";
+import { useConnectionStatus, ConnectionStatusBanner } from "@/components/connection-status";
 
 type Props = { params: Promise<{ court: string }> };
 
@@ -143,12 +145,14 @@ export default function CourtPage({ params }: Props) {
     setFighterEntryMap(entryMap);
   }, [court]);
 
-  useEffect(() => { load(); }, [load]);
+  const { isOffline, wrappedFetch } = useConnectionStatus(load);
+
+  useEffect(() => { wrappedFetch(); }, [wrappedFetch]);
   useEffect(() => {
-    const timer = setInterval(load, 3000);
+    const timer = setInterval(wrappedFetch, 3000);
 
     function handleVisibility() {
-      if (document.visibilityState === "visible") load();
+      if (document.visibilityState === "visible") wrappedFetch();
     }
     document.addEventListener("visibilitychange", handleVisibility);
 
@@ -156,7 +160,7 @@ export default function CourtPage({ params }: Props) {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [load]);
+  }, [wrappedFetch]);
 
   useEffect(() => {
     fetch("/api/admin/settings")
@@ -190,7 +194,7 @@ export default function CourtPage({ params }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "start", tournamentId }),
     });
-    if (!res.ok) { endProcessing(matchId); alert("試合開始に失敗しました"); return; }
+    if (!res.ok) { endProcessing(matchId); showToast("試合開始に失敗しました"); return; }
     await load();
     endProcessing(matchId);
 
@@ -233,7 +237,7 @@ export default function CourtPage({ params }: Props) {
         position: match.position,
       }),
     });
-    if (!res.ok) { endProcessing(matchId); alert("勝者設定に失敗しました"); return; }
+    if (!res.ok) { endProcessing(matchId); showToast("勝者設定に失敗しました"); return; }
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
@@ -252,7 +256,7 @@ export default function CourtPage({ params }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_withdrawn: withdrawn }),
     });
-    if (!res.ok) { endProcessing(matchId); alert("欠場切替に失敗しました"); return; }
+    if (!res.ok) { endProcessing(matchId); showToast("欠場切替に失敗しました"); return; }
     await load();
     endProcessing(matchId);
   }
@@ -287,7 +291,7 @@ export default function CourtPage({ params }: Props) {
         position: match.position,
       }),
     });
-    if (!res.ok) { endProcessing(matchId); alert("勝者訂正に失敗しました"); return; }
+    if (!res.ok) { endProcessing(matchId); showToast("勝者訂正に失敗しました"); return; }
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
@@ -350,7 +354,7 @@ export default function CourtPage({ params }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "swap_with", otherMatchId: nextMatch.id }),
     });
-    if (!res.ok) { endProcessing(matchId); endProcessing(nextMatch.id); alert("試合入替に失敗しました"); return; }
+    if (!res.ok) { endProcessing(matchId); endProcessing(nextMatch.id); showToast("試合入替に失敗しました"); return; }
     await load();
     endProcessing(matchId);
     endProcessing(nextMatch.id);
@@ -358,6 +362,7 @@ export default function CourtPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-main-bg text-white p-4">
+      <ConnectionStatusBanner isOffline={isOffline} />
       <div className="max-w-5xl mx-auto">
         {/* ヘッダー */}
         <div className="flex items-center gap-3 mb-4">

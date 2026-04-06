@@ -4,33 +4,11 @@
  * コート画面での試合開始・勝者設定・次ラウンド進出・勝者訂正を検証する。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { adminLogin, createTestEvent as _createTestEvent, cleanupEvent } from "./helpers";
 
-const ADMIN_USER = process.env.ADMIN_USERNAME ?? "admin";
-const ADMIN_PASS = process.env.ADMIN_PASSWORD!;
-
-// ── ヘルパー ──
-
-async function adminLogin(page: Page) {
-  await page.goto("/admin/login");
-  await page.waitForLoadState("networkidle");
-  await page.locator('input[placeholder="ID"]').fill(ADMIN_USER);
-  await page.locator('input[type="password"]').fill(ADMIN_PASS);
-  await page.locator('button[type="submit"]').click();
-  await page.waitForURL("**/admin", { timeout: 15_000 });
-  await page.waitForLoadState("networkidle");
-}
-
-async function createTestEvent(page: Page): Promise<string> {
-  const res = await page.request.post("/api/admin/events", {
-    data: {
-      name: `E2E 試合進行テスト ${Date.now()}`,
-      event_date: "2027-12-01",
-      court_count: 2,
-    },
-  });
-  expect(res.ok()).toBeTruthy();
-  const { id } = await res.json();
-  // アクティブにする
+/** テスト用イベントを作成してアクティブにする */
+async function createTestEventAndActivate(page: Page): Promise<string> {
+  const id = await _createTestEvent(page, `E2E 試合進行テスト ${Date.now()}`);
   await page.request.patch(`/api/admin/events/${id}`, {
     data: { is_active: true },
   });
@@ -111,13 +89,6 @@ async function createTournament(
   return { tournamentId, matchIds: [] };
 }
 
-async function cleanupEvent(page: Page, eventId: string | null) {
-  if (!eventId) return;
-  await page.request.patch(`/api/admin/events/${eventId}`, {
-    data: { is_active: false },
-  }).catch(() => {});
-  await page.request.delete(`/api/admin/events/${eventId}`).catch(() => {});
-}
 
 // ── テスト ──
 
@@ -132,31 +103,27 @@ test.describe("試合進行", () => {
 
   test("コート画面で試合を開始して勝者を設定できる", async ({ page }) => {
     await adminLogin(page);
-    eventId = await createTestEvent(page);
+    eventId = await createTestEventAndActivate(page);
     const entryIds = await createTestEntries(page, eventId, 2);
     await createTournament(page, eventId, entryIds);
 
     // コート画面にアクセス
     await page.goto("/court/1");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3_000);
 
     // 試合開始ボタンを探してクリック
     const startBtn = page.locator('button:has-text("試合開始"), button:has-text("▶")').first();
     if (await startBtn.isVisible({ timeout: 10_000 }).catch(() => false)) {
       await startBtn.click();
-      await page.waitForTimeout(2_000);
 
       // 選手名が表示されていることを確認
-      const bodyText = await page.textContent("body");
-      expect(bodyText).toContain("進行テスト");
+      await expect(page.locator("text=進行テスト").first()).toBeVisible({ timeout: 5_000 });
 
       // 勝者を設定（選手枠をクリック）
       // 最初の選手名を含む要素をクリック
       const fighterEl = page.locator('text=進行テスト1 選手').first();
       if (await fighterEl.isVisible({ timeout: 5_000 }).catch(() => false)) {
         await fighterEl.click();
-        await page.waitForTimeout(2_000);
 
         // 確認ダイアログ（勝利確定）が出る場合
         const confirmBtn = page.locator('button:has-text("確定"), button:has-text("勝利")').first();
@@ -169,7 +136,7 @@ test.describe("試合進行", () => {
 
   test("勝者設定後に次ラウンドに進出する", async ({ page }) => {
     await adminLogin(page);
-    eventId = await createTestEvent(page);
+    eventId = await createTestEventAndActivate(page);
     const entryIds = await createTestEntries(page, eventId, 4);
     await createTournament(page, eventId, entryIds);
 
@@ -193,31 +160,28 @@ test.describe("試合進行", () => {
 
   test("勝者を訂正できる", async ({ page }) => {
     await adminLogin(page);
-    eventId = await createTestEvent(page);
+    eventId = await createTestEventAndActivate(page);
     const entryIds = await createTestEntries(page, eventId, 2);
     await createTournament(page, eventId, entryIds);
 
     // コート画面にアクセス
     await page.goto("/court/1");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3_000);
 
     // 試合開始
     const startBtn = page.locator('button:has-text("試合開始"), button:has-text("▶")').first();
     if (await startBtn.isVisible({ timeout: 10_000 }).catch(() => false)) {
       await startBtn.click();
-      await page.waitForTimeout(2_000);
+      await expect(page.locator("text=進行テスト").first()).toBeVisible({ timeout: 5_000 });
 
       // 勝者設定
       const fighterEl = page.locator('text=進行テスト1 選手').first();
       if (await fighterEl.isVisible({ timeout: 5_000 }).catch(() => false)) {
         await fighterEl.click();
-        await page.waitForTimeout(1_000);
 
         const confirmBtn = page.locator('button:has-text("確定"), button:has-text("勝利")').first();
         if (await confirmBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
           await confirmBtn.click();
-          await page.waitForTimeout(2_000);
         }
       }
 
@@ -225,10 +189,8 @@ test.describe("試合進行", () => {
       const correctBtn = page.locator('button:has-text("訂正")').first();
       if (await correctBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
         await correctBtn.click();
-        await page.waitForTimeout(1_000);
         // 訂正UIが表示されることを確認
-        const bodyText = await page.textContent("body");
-        expect(bodyText).toBeTruthy();
+        await expect(page.locator("body")).toBeVisible({ timeout: 5_000 });
       }
     }
   });

@@ -3,22 +3,8 @@
  *
  * ルール・流派の CRUD とアナウンス設定の変更を検証する。
  */
-import { test, expect, type Page } from "@playwright/test";
-
-const ADMIN_USER = process.env.ADMIN_USERNAME ?? "admin";
-const ADMIN_PASS = process.env.ADMIN_PASSWORD!;
-
-// ── ヘルパー ──
-
-async function adminLogin(page: Page) {
-  await page.goto("/admin/login");
-  await page.waitForLoadState("networkidle");
-  await page.locator('input[placeholder="ID"]').fill(ADMIN_USER);
-  await page.locator('input[type="password"]').fill(ADMIN_PASS);
-  await page.locator('button[type="submit"]').click();
-  await page.waitForURL("**/admin", { timeout: 15_000 });
-  await page.waitForLoadState("networkidle");
-}
+import { test, expect } from "@playwright/test";
+import { adminLogin } from "./helpers";
 
 // ── テスト ──
 
@@ -44,11 +30,9 @@ test.describe("設定", () => {
     await page.waitForLoadState("networkidle");
 
     await page.getByRole("button", { name: "ルール", exact: true }).click();
-    await page.waitForTimeout(2_000);
 
     // ルール名が表示されることを確認
-    const bodyText = await page.textContent("body");
-    expect(bodyText).toContain(ruleName);
+    await expect(page.locator(`text=${ruleName}`).first()).toBeVisible({ timeout: 5_000 });
 
     // ルールを取得して ID を得る（削除に使用）
     // 設定画面に表示されたルールを見つけて削除
@@ -65,7 +49,6 @@ test.describe("設定", () => {
     const deleteBtn = ruleRow.locator('button:has-text("削除"), button[aria-label*="削除"]').first();
     if (await deleteBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await deleteBtn.click();
-      await page.waitForTimeout(2_000);
 
       // 削除後にルールが消えることを確認
       await expect(page.locator(`text=${ruleName}`)).not.toBeVisible({ timeout: 5_000 });
@@ -92,11 +75,9 @@ test.describe("設定", () => {
     await page.waitForLoadState("networkidle");
 
     await page.getByRole("button", { name: "流派", exact: true }).click();
-    await page.waitForTimeout(2_000);
 
     // 流派名が表示されることを確認
-    const bodyText = await page.textContent("body");
-    expect(bodyText).toContain(dojoName);
+    await expect(page.locator(`text=${dojoName}`).first()).toBeVisible({ timeout: 5_000 });
 
     // 削除
     page.on("dialog", (dialog) => dialog.accept());
@@ -105,7 +86,6 @@ test.describe("設定", () => {
     const deleteBtn = dojoRow.locator('button:has-text("削除"), button[aria-label*="削除"]').first();
     if (await deleteBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await deleteBtn.click();
-      await page.waitForTimeout(2_000);
 
       await expect(page.locator(`text=${dojoName}`)).not.toBeVisible({ timeout: 5_000 });
     }
@@ -118,7 +98,8 @@ test.describe("設定", () => {
     await page.goto("/admin?tab=settings");
     await page.waitForLoadState("networkidle");
 
-    // アナウンス設定サブタブ（デフォルト表示）
+    // アナウンス設定サブタブをクリック（デフォルトはルール）
+    await page.getByRole("button", { name: "アナウンス設定", exact: true }).click();
     await expect(page.locator("text=音声設定")).toBeVisible({ timeout: 10_000 });
 
     // TTS音声の選択ドロップダウンが表示されることを確認

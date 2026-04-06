@@ -11,14 +11,18 @@ import {
   toggleNewaza, newazaTimeUp, adjustNewazaCount,
   undo, finishManual, markResultWritten, cancelResult, resetToIdle,
   tick, getDisplayMs, getNewazaElapsedMs, getNewazaDisplayMs,
-  type TimerState, type FighterSide, type ResultMethod, type FighterInfo,
+  type TimerState, type FighterSide, type FighterInfo,
 } from "@/lib/timer-state";
 import { playBuzzer, preloadCustomBuzzer } from "@/lib/timer-buzzer";
 import { fighterFullName, fighterFullReading } from "@/lib/types";
 import type { TimerPreset, Fighter, Match, Tournament } from "@/lib/types";
 import { announceMatchStart, announceWinner, buildMatchStartText, prefetchTts, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
 import { roundName } from "@/lib/tournament";
+import { showToast } from "@/components/toast";
 import { flushTimerLogs } from "@/lib/timer-log-flush";
+import ScoringPanel from "./_scoring-panel";
+import ResultPanel from "./_result-panel";
+import ShortcutPanel from "./_shortcut-panel";
 
 // ── フォーマット ──────────────────────────────────────────────
 
@@ -687,7 +691,7 @@ export default function TimerControlPage() {
       // 試合リストを更新
       loadTournamentData();
     } else {
-      alert("結果の書き戻しに失敗しました");
+      showToast("結果の書き戻しに失敗しました");
     }
     setWritingBack(false);
   };
@@ -1080,103 +1084,15 @@ export default function TimerControlPage() {
 
           {/* スコア操作 */}
           {(phase === "running" || phase === "paused" || phase === "time_up") && (
-            <section>
-              <h3 className="text-sm font-bold text-gray-400 mb-2">スコア操作</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {/* 左側（通常=赤、入替時=白） */}
-                {(() => {
-                  const side = swapSides ? "white" : "red";
-                  const otherSide = swapSides ? "red" : "white";
-                  const label = swapSides ? "白" : "赤";
-                  const name = swapSides ? state.white.name : state.red.name;
-                  const score = swapSides ? state.whiteScore : state.redScore;
-                  const bgClass = swapSides ? "bg-gray-700/50 hover:bg-gray-600/60 text-gray-200" : "bg-red-900/50 hover:bg-red-800/60 text-red-300";
-                  const labelColor = swapSides ? "text-gray-200" : "text-red-400";
-                  const keys = swapSides ? { pt: "I", wz: "O", fl: "P", ip: "L" } : { pt: "Q", wz: "W", fl: "E", ip: "R" };
-                  return (
-                    <div className="space-y-2">
-                      <p className={`${labelColor} font-bold text-center text-sm`}>{label} ({name || label})</p>
-                      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${[p?.show_points, p?.show_wazaari, p?.show_fouls].filter(Boolean).length || 1}, 1fr)` }}>
-                        {p?.show_points && (
-                          <button onClick={() => update((s) => addPoint(s, side))}
-                            className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
-                            +1pt [{keys.pt}]
-                          </button>
-                        )}
-                        {p?.show_wazaari && (
-                          <button onClick={() => update((s) => addWazaari(s, side))}
-                            className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
-                            技あり [{keys.wz}]
-                          </button>
-                        )}
-                        {p?.show_fouls && (
-                          <button onClick={() => update((s) => addFoul(s, side))}
-                            className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
-                            反則 [{keys.fl}]
-                          </button>
-                        )}
-                      </div>
-                      {p?.show_ippon && (
-                        <button onClick={() => setIpponConfirmSide(side)}
-                          className={`w-full py-4 rounded ${bgClass} text-sm font-bold transition`}>
-                          一本 [{keys.ip}]
-                        </button>
-                      )}
-                      <div className="text-center text-xs text-gray-500">
-                        {score.points}pt / 技{score.wazaari} / 反{score.fouls}
-                        {score.ippon > 0 && ` / 一本${score.ippon}`}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* 右側（通常=白、入替時=赤） */}
-                {(() => {
-                  const side = swapSides ? "red" : "white";
-                  const label = swapSides ? "赤" : "白";
-                  const name = swapSides ? state.red.name : state.white.name;
-                  const score = swapSides ? state.redScore : state.whiteScore;
-                  const bgClass = swapSides ? "bg-red-900/50 hover:bg-red-800/60 text-red-300" : "bg-gray-700/50 hover:bg-gray-600/60 text-gray-200";
-                  const labelColor = swapSides ? "text-red-400" : "text-gray-200";
-                  const keys = swapSides ? { pt: "Q", wz: "W", fl: "E", ip: "R" } : { pt: "I", wz: "O", fl: "P", ip: "L" };
-                  return (
-                    <div className="space-y-2">
-                      <p className={`${labelColor} font-bold text-center text-sm`}>{label} ({name || label})</p>
-                      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${[p?.show_points, p?.show_wazaari, p?.show_fouls].filter(Boolean).length || 1}, 1fr)` }}>
-                        {p?.show_points && (
-                          <button onClick={() => update((s) => addPoint(s, side))}
-                            className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
-                            +1pt [{keys.pt}]
-                          </button>
-                        )}
-                        {p?.show_wazaari && (
-                          <button onClick={() => update((s) => addWazaari(s, side))}
-                            className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
-                            技あり [{keys.wz}]
-                          </button>
-                        )}
-                        {p?.show_fouls && (
-                          <button onClick={() => update((s) => addFoul(s, side))}
-                            className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
-                            反則 [{keys.fl}]
-                          </button>
-                        )}
-                      </div>
-                      {p?.show_ippon && (
-                        <button onClick={() => setIpponConfirmSide(side)}
-                          className={`w-full py-4 rounded ${bgClass} text-sm font-bold transition`}>
-                          一本 [{keys.ip}]
-                        </button>
-                      )}
-                      <div className="text-center text-xs text-gray-500">
-                        {score.points}pt / 技{score.wazaari} / 反{score.fouls}
-                        {score.ippon > 0 && ` / 一本${score.ippon}`}
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            </section>
+            <ScoringPanel
+              state={state}
+              preset={p}
+              swapSides={swapSides}
+              onAddPoint={(side) => update((s) => addPoint(s, side))}
+              onAddWazaari={(side) => update((s) => addWazaari(s, side))}
+              onAddFoul={(side) => update((s) => addFoul(s, side))}
+              onIpponConfirm={(side) => setIpponConfirmSide(side)}
+            />
           )}
 
           {/* 一本確認ダイアログ */}
@@ -1278,100 +1194,22 @@ export default function TimerControlPage() {
 
           {/* 試合結果 */}
           {(phase === "time_up" || phase === "finished") && (
-            <section>
-              <h3 className="text-sm font-bold text-gray-400 mb-2">試合結果</h3>
-              {phase === "time_up" && !selectingResultFor && (
-                <div className="space-y-2">
-                  <div className={`grid gap-2 ${p?.allow_draw ? "grid-cols-3" : "grid-cols-2"}`}>
-                    <button
-                      onClick={() => setSelectingResultFor(swapSides ? "white" : "red")}
-                      className={`py-5 rounded-lg font-bold text-sm transition ${swapSides ? "bg-gray-700 hover:bg-gray-600" : "bg-red-800 hover:bg-red-700"} text-white`}
-                    >
-                      {swapSides ? "白" : "赤"} 勝利 ({swapSides ? (state.white.name || "白") : (state.red.name || "赤")})
-                    </button>
-                    <button
-                      onClick={() => setSelectingResultFor(swapSides ? "red" : "white")}
-                      className={`py-5 rounded-lg font-bold text-sm transition ${swapSides ? "bg-red-800 hover:bg-red-700" : "bg-gray-700 hover:bg-gray-600"} text-white`}
-                    >
-                      {swapSides ? "赤" : "白"} 勝利 ({swapSides ? (state.red.name || "赤") : (state.white.name || "白")})
-                    </button>
-                    {p?.allow_draw && (
-                      <button
-                        onClick={() => update((s) => finishManual(s, null, "draw"))}
-                        className="py-5 rounded-lg bg-gray-600 hover:bg-gray-500 text-white font-bold text-sm transition"
-                      >
-                        引き分け
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-              {phase === "time_up" && selectingResultFor && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-300 font-bold">
-                      {selectingResultFor === "red" ? `赤 (${state.red.name || "赤"})` : `白 (${state.white.name || "白"})`} の勝利方法を選択
-                    </p>
-                    <button onClick={() => setSelectingResultFor(null)} className="text-xs text-gray-500 hover:text-gray-300">← 戻る</button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {RESULT_METHODS.map((rm) => (
-                      <button
-                        key={rm.value}
-                        onClick={() => {
-                          update((s) => finishManual(s, selectingResultFor, rm.value));
-                          setSelectingResultFor(null);
-                        }}
-                        className="py-4 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold text-sm transition"
-                      >
-                        {rm.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {phase === "finished" && (
-                <div className="space-y-3">
-                  <div className="text-center p-4 rounded-lg bg-gray-800">
-                    <p className="text-2xl font-bold mb-1">
-                      {state.winnerSide === "red" ? (
-                        <span className="text-red-400">{state.red.name || "赤"} 勝利</span>
-                      ) : state.winnerSide === "white" ? (
-                        <span className="text-gray-200">{state.white.name || "白"} 勝利</span>
-                      ) : (
-                        <span className="text-gray-400">引き分け</span>
-                      )}
-                    </p>
-                    <p className="text-green-400 font-bold text-lg">{resultMethodLabel(state.resultMethod)}</p>
-                  </div>
-                  {!state.resultWritten && (
-                    <>
-                      <button onClick={handleWriteBack} disabled={writingBack}
-                        className="w-full py-5 rounded-lg bg-green-700 hover:bg-green-600 text-white font-bold text-lg transition disabled:opacity-50">
-                        {writingBack ? "書き戻し中..." : "確定する"}
-                      </button>
-                      <button onClick={() => update(cancelResult)}
-                        className="w-full py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
-                        訂正する
-                      </button>
-                    </>
-                  )}
-                  {state.resultWritten && (
-                    <p className="text-center text-green-400 text-sm font-bold">結果を書き戻しました</p>
-                  )}
-                  {state.resultWritten && (
-                    <button onClick={() => {
-                      update(resetToIdle);
-                      loadTournamentData();
-                      setShouldScrollToNext(true);
-                    }}
-                      className="w-full py-5 rounded-lg bg-blue-700 hover:bg-blue-600 text-white font-bold text-sm transition">
-                      次の試合へ
-                    </button>
-                  )}
-                </div>
-              )}
-            </section>
+            <ResultPanel
+              state={state}
+              preset={p}
+              swapSides={swapSides}
+              selectingResultFor={selectingResultFor}
+              writingBack={writingBack}
+              onSelectingResultFor={setSelectingResultFor}
+              onFinishManual={(side, method) => update((s) => finishManual(s, side, method))}
+              onWriteBack={handleWriteBack}
+              onCancelResult={() => update(cancelResult)}
+              onResetToIdle={() => {
+                update(resetToIdle);
+                loadTournamentData();
+                setShouldScrollToNext(true);
+              }}
+            />
           )}
 
           {/* 棄権・負傷（running/paused 中） */}
@@ -1407,65 +1245,9 @@ export default function TimerControlPage() {
         </div>
 
         {/* ── ショートカット参照パネル ── */}
-        <div className="w-52 shrink-0 bg-gray-900 border-l border-gray-800 p-3 overflow-y-auto hidden lg:block">
-          <h3 className="text-xs font-bold text-gray-500 mb-2">ショートカット</h3>
-          <ShortcutList />
-          <a href="/timer/shortcuts" target="_blank" className="block mt-3 text-xs text-blue-400 hover:underline">
-            印刷用ページ
-          </a>
-        </div>
+        <ShortcutPanel />
       </div>
     </div>
   );
 }
 
-// ── 勝利方法リスト ──────────────────────────────────────────
-
-const RESULT_METHODS: { value: ResultMethod; label: string }[] = [
-  { value: "point", label: "ポイント" },
-  { value: "wazaari", label: "技あり優勢" },
-  { value: "ippon", label: "一本" },
-  { value: "combined_ippon", label: "合わせ一本" },
-  { value: "foul", label: "反則勝ち" },
-  { value: "decision", label: "判定" },
-  { value: "withdraw", label: "棄権勝ち" },
-  { value: "injury", label: "負傷勝ち" },
-];
-
-function resultMethodLabel(method: ResultMethod | null): string {
-  if (!method) return "";
-  const found = RESULT_METHODS.find((rm) => rm.value === method);
-  if (found) return found.label;
-  if (method === "draw") return "引き分け";
-  if (method === "sudden_death") return "延長戦";
-  return method;
-}
-
-const SHORTCUTS = [
-  { key: "Space", desc: "開始/停止/再開" },
-  { key: "G", desc: "寝技 開始/解除" },
-  { key: "Q", desc: "赤 +1pt" },
-  { key: "W", desc: "赤 技あり" },
-  { key: "E", desc: "赤 反則" },
-  { key: "R", desc: "赤 一本" },
-  { key: "I", desc: "白 +1pt" },
-  { key: "O", desc: "白 技あり" },
-  { key: "P", desc: "白 反則" },
-  { key: "L", desc: "白 一本" },
-  { key: "← →", desc: "±10秒" },
-  { key: "B", desc: "ブザー" },
-  { key: "Esc", desc: "取消(Undo)" },
-];
-
-function ShortcutList() {
-  return (
-    <div className="space-y-1">
-      {SHORTCUTS.map((s) => (
-        <div key={s.key} className="flex justify-between text-xs">
-          <kbd className="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded font-mono text-[10px]">{s.key}</kbd>
-          <span className="text-gray-500">{s.desc}</span>
-        </div>
-      ))}
-    </div>
-  );
-}

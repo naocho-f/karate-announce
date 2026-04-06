@@ -11,7 +11,9 @@ import {
   MATCH_VARS, WINNER_VARS, SAMPLE_MATCH_VARS, SAMPLE_WINNER_VARS, type AnnounceTemplates,
 } from "@/lib/speech";
 import { TimerPresetsPanel } from "@/components/timer-presets-panel";
-import { FIXED_GRADE_OPTIONS, DEFAULT_AGE_CATEGORIES, type AgeCategory } from "@/lib/grade-options";
+import { showToast } from "@/components/toast";
+import AgeCategoriesPanel from "@/components/age-categories-panel";
+import BugReportsPanel from "@/components/bug-reports-panel";
 
 // ── 流派 ──────────────────────────────────────────────────────────────────
 
@@ -40,7 +42,7 @@ function DojoPanel() {
       body: JSON.stringify({ name: name.trim(), name_reading: reading.trim() || null }),
     });
     setAdding(false);
-    if (!res.ok) { alert("追加に失敗しました"); return; }
+    if (!res.ok) { showToast("追加に失敗しました"); return; }
     setName(""); setReading("");
     load();
   }
@@ -51,7 +53,7 @@ function DojoPanel() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name_reading: value.trim() || null }),
     });
-    if (!res.ok) { alert("読み仮名の更新に失敗しました"); return; }
+    if (!res.ok) { showToast("読み仮名の更新に失敗しました"); return; }
     load();
   }
 
@@ -60,7 +62,7 @@ function DojoPanel() {
     setRemovingId(id);
     const res = await fetch(`/api/admin/dojos/${id}`, { method: "DELETE" });
     setRemovingId(null);
-    if (!res.ok) { alert("削除に失敗しました"); return; }
+    if (!res.ok) { showToast("削除に失敗しました"); return; }
     load();
   }
 
@@ -147,7 +149,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ timer_preset_id: presetId }),
     });
-    if (!res.ok) { alert("タイマーの設定に失敗しました"); }
+    if (!res.ok) { showToast("タイマーの設定に失敗しました"); }
     await load();
     setLinkingRuleId(null);
     setSelectingRuleId(null);
@@ -162,7 +164,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
       body: JSON.stringify({ name: name.trim(), name_reading: reading.trim() || null, description: description.trim() || null }),
     });
     setAdding(false);
-    if (!res.ok) { alert("追加に失敗しました"); return; }
+    if (!res.ok) { showToast("追加に失敗しました"); return; }
     setName(""); setReading(""); setDescription("");
     load();
   }
@@ -173,7 +175,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name_reading: value.trim() || null }),
     });
-    if (!res.ok) { alert("読み仮名の更新に失敗しました"); return; }
+    if (!res.ok) { showToast("読み仮名の更新に失敗しました"); return; }
     load();
   }
 
@@ -183,7 +185,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description: value.trim() || null }),
     });
-    if (!res.ok) { alert("説明の更新に失敗しました"); return; }
+    if (!res.ok) { showToast("説明の更新に失敗しました"); return; }
     load();
   }
 
@@ -192,7 +194,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
     setRemovingId(id);
     const res = await fetch(`/api/admin/rules/${id}`, { method: "DELETE" });
     setRemovingId(null);
-    if (!res.ok) { alert("削除に失敗しました"); return; }
+    if (!res.ok) { showToast("削除に失敗しました"); return; }
     load();
   }
 
@@ -705,412 +707,6 @@ function DescriptionInput({ value, onSave }: {
   );
 }
 
-// ── 年代区分設定 ─────────────────────────────────────────────────────────────
-
-function AgeCategoriesPanel() {
-  const [categories, setCategories] = useState<AgeCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/admin/settings");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.age_categories && Array.isArray(data.age_categories)) {
-            setCategories(data.age_categories);
-          } else {
-            setCategories(DEFAULT_AGE_CATEGORIES);
-          }
-        } else {
-          setCategories(DEFAULT_AGE_CATEGORIES);
-        }
-      } catch {
-        setCategories(DEFAULT_AGE_CATEGORIES);
-      }
-      setLoading(false);
-    })();
-  }, []);
-
-  function addCategory() {
-    setCategories((prev) => [...prev, { label: "", minAge: 0, maxAge: null }]);
-  }
-
-  function removeCategory(idx: number) {
-    setCategories((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  function updateCategory(idx: number, field: keyof AgeCategory, value: string) {
-    setCategories((prev) => prev.map((cat, i) => {
-      if (i !== idx) return cat;
-      if (field === "label") return { ...cat, label: value };
-      if (field === "minAge") return { ...cat, minAge: value === "" ? 0 : parseInt(value, 10) };
-      if (field === "maxAge") return { ...cat, maxAge: value === "" ? null : parseInt(value, 10) };
-      return cat;
-    }));
-  }
-
-  async function save() {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/admin/settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "age_categories", value: categories }),
-      });
-      if (!res.ok) {
-        alert("保存に失敗しました");
-      } else {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
-    } catch {
-      alert("保存に失敗しました");
-    }
-    setSaving(false);
-  }
-
-  function resetToDefaults() {
-    setCategories(DEFAULT_AGE_CATEGORIES);
-  }
-
-  const inp = "bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500";
-
-  if (loading) return <div className="text-center text-gray-400 py-8">読み込み中...</div>;
-
-  return (
-    <div className="space-y-6">
-      {/* 固定区分（表示のみ） */}
-      <div>
-        <h3 className="text-sm font-medium text-gray-300 mb-2">固定区分（幼稚園〜中学）</h3>
-        <div className="flex flex-wrap gap-2">
-          {FIXED_GRADE_OPTIONS.map((opt) => (
-            <span key={opt.value} className="px-2 py-1 bg-gray-700 rounded text-xs text-gray-300">
-              {opt.label}
-            </span>
-          ))}
-        </div>
-        <p className="text-xs text-gray-500 mt-1">これらの区分は固定です。エントリーフォームと対戦表フィルタで使用されます。</p>
-      </div>
-
-      {/* 年齢ベース区分（編集可能） */}
-      <div>
-        <h3 className="text-sm font-medium text-gray-300 mb-2">年齢ベース区分</h3>
-        <p className="text-xs text-gray-500 mb-3">高校生以上の年齢区分を設定します。ラベル・最小年齢・最大年齢を指定してください。</p>
-
-        <div className="space-y-2">
-          {categories.map((cat, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <input
-                value={cat.label}
-                onChange={(e) => updateCategory(idx, "label", e.target.value)}
-                placeholder="ラベル（例: 一般）"
-                className={`w-32 ${inp}`}
-              />
-              <input
-                type="number"
-                value={cat.minAge}
-                onChange={(e) => updateCategory(idx, "minAge", e.target.value)}
-                placeholder="最小年齢"
-                min="0"
-                className={`w-20 ${inp}`}
-              />
-              <span className="text-xs text-gray-500">〜</span>
-              <input
-                type="number"
-                value={cat.maxAge ?? ""}
-                onChange={(e) => updateCategory(idx, "maxAge", e.target.value)}
-                placeholder="上限なし"
-                min="0"
-                className={`w-20 ${inp}`}
-              />
-              <span className="text-xs text-gray-500">歳</span>
-              <button
-                onClick={() => removeCategory(idx)}
-                className="text-red-400 hover:text-red-300 text-sm px-1"
-                title="削除"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex gap-2 mt-3">
-          <button onClick={addCategory} className="text-sm text-blue-400 hover:text-blue-300">
-            + 区分を追加
-          </button>
-          <button onClick={resetToDefaults} className="text-sm text-gray-400 hover:text-gray-300">
-            デフォルトに戻す
-          </button>
-        </div>
-      </div>
-
-      <button
-        onClick={save}
-        disabled={saving}
-        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-4 py-2 rounded text-sm font-medium transition"
-      >
-        {saving ? "保存中..." : saved ? "保存しました" : "保存"}
-      </button>
-    </div>
-  );
-}
-
-// ── 不具合報告 ───────────────────────────────────────────────────────────────
-
-type BugReport = {
-  id: string;
-  what_did: string;
-  what_happened: string;
-  what_expected: string | null;
-  page_url: string;
-  user_agent: string | null;
-  viewport: string | null;
-  app_version: string | null;
-  status: "open" | "in_progress" | "resolved" | "wontfix";
-  resolution: string | null;
-  fixed_in_version: string | null;
-  created_at: string;
-};
-
-function relativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "たった今";
-  if (mins < 60) return `${mins}分前`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}時間前`;
-  const days = Math.floor(hours / 24);
-  return `${days}日前`;
-}
-
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  open: { label: "未対応", cls: "bg-red-900 text-red-300" },
-  in_progress: { label: "修正中", cls: "bg-yellow-900 text-yellow-300" },
-  resolved: { label: "対応済み", cls: "bg-green-900 text-green-300" },
-  wontfix: { label: "対応しない", cls: "bg-gray-700 text-gray-400" },
-};
-
-function BugReportsPanel() {
-  const [reports, setReports] = useState<BugReport[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "open" | "in_progress" | "resolved" | "wontfix">("all");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [editStatus, setEditStatus] = useState("");
-  const [editResolution, setEditResolution] = useState("");
-  const [editFixedVersion, setEditFixedVersion] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    loadReports();
-  }, []);
-
-  async function loadReports() {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/bug-reports");
-      if (res.ok) {
-        const data = await res.json();
-        setReports(data);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function toggleExpand(report: BugReport) {
-    if (expandedId === report.id) {
-      setExpandedId(null);
-    } else {
-      setExpandedId(report.id);
-      setEditStatus(report.status);
-      setEditResolution(report.resolution ?? "");
-      setEditFixedVersion(report.fixed_in_version ?? "");
-    }
-  }
-
-  async function saveReport(id: string) {
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/bug-reports/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: editStatus,
-          resolution: editResolution || null,
-          fixed_in_version: editFixedVersion || null,
-        }),
-      });
-      if (res.ok) {
-        setReports((prev) =>
-          prev.map((r) =>
-            r.id === id
-              ? { ...r, status: editStatus as BugReport["status"], resolution: editResolution || null, fixed_in_version: editFixedVersion || null }
-              : r,
-          ),
-        );
-      } else {
-        alert("保存に失敗しました");
-      }
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const filtered = reports.filter((r) => filter === "all" || r.status === filter);
-
-  const FILTER_BUTTONS: { key: typeof filter; label: string }[] = [
-    { key: "all", label: "全件" },
-    { key: "open", label: "未対応" },
-    { key: "in_progress", label: "修正中" },
-    { key: "resolved", label: "対応済み" },
-    { key: "wontfix", label: "対応しない" },
-  ];
-
-  return (
-    <div className="space-y-3">
-      {/* Header */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <h2 className="text-lg font-bold">不具合報告</h2>
-        <span className="text-xs text-gray-400">{filtered.length}件</span>
-        {reports.some((r) => r.status === "open") && (
-          <a
-            href={process.env.NEXT_PUBLIC_AGENT_DASHBOARD_URL || "http://localhost:3456"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs bg-purple-700 hover:bg-purple-600 text-white px-3 py-1 rounded-lg transition"
-          >
-            Agent で自動修正 →
-          </a>
-        )}
-        <div className="flex gap-1 ml-auto">
-          {FILTER_BUTTONS.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`px-2 py-0.5 rounded-full text-xs transition ${
-                filter === f.key ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {loading && <p className="text-sm text-gray-500">読み込み中...</p>}
-
-      {!loading && filtered.length === 0 && (
-        <p className="text-sm text-gray-500">報告はありません</p>
-      )}
-
-      {/* Report list */}
-      {filtered.map((report) => {
-        const badge = STATUS_BADGE[report.status] ?? STATUS_BADGE.open;
-        const isExpanded = expandedId === report.id;
-
-        return (
-          <div key={report.id} className="bg-gray-800 rounded-lg overflow-hidden">
-            {/* Header (always visible) */}
-            <button
-              onClick={() => toggleExpand(report)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-750 transition"
-            >
-              <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${badge.cls}`}>
-                {badge.label}
-              </span>
-              <span className="text-sm text-gray-200 truncate flex-1">
-                {report.what_did.length > 30 ? report.what_did.slice(0, 30) + "…" : report.what_did}
-              </span>
-              <span className="text-xs text-gray-500 whitespace-nowrap">{relativeTime(report.created_at)}</span>
-              {report.app_version && (
-                <span className="text-[10px] bg-gray-700 text-gray-400 px-1 py-0.5 rounded">
-                  {report.app_version}
-                </span>
-              )}
-            </button>
-
-            {/* Expanded detail */}
-            {isExpanded && (
-              <div className="px-3 pb-3 space-y-3 border-t border-gray-700">
-                {/* Full text */}
-                <div className="space-y-2 pt-2">
-                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase">やったこと</p>
-                    <p className="text-sm text-gray-300">{report.what_did}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase">起きたこと</p>
-                    <p className="text-sm text-gray-300">{report.what_happened}</p>
-                  </div>
-                  {report.what_expected && (
-                    <div>
-                      <p className="text-[10px] text-gray-500 uppercase">期待した動作</p>
-                      <p className="text-sm text-gray-300">{report.what_expected}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Meta */}
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                  <a href={report.page_url} target="_blank" rel="noreferrer" className="hover:text-blue-400 underline">
-                    {report.page_url}
-                  </a>
-                  {report.viewport && <span>viewport: {report.viewport}</span>}
-                  <span>{new Date(report.created_at).toLocaleString("ja-JP")}</span>
-                </div>
-
-                {/* Edit section */}
-                <div className="space-y-2 bg-gray-900 rounded p-2">
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-400">ステータス</label>
-                    <select
-                      value={editStatus}
-                      onChange={(e) => setEditStatus(e.target.value)}
-                      className="bg-gray-700 text-sm text-white rounded px-2 py-1 outline-none"
-                    >
-                      <option value="open">未対応</option>
-                      <option value="resolved">対応済み</option>
-                      <option value="wontfix">対応しない</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400">対応内容（原因と修正内容）</label>
-                    <textarea
-                      value={editResolution}
-                      onChange={(e) => setEditResolution(e.target.value)}
-                      rows={2}
-                      className="w-full bg-gray-700 rounded px-2 py-1 text-sm text-white outline-none resize-none mt-1"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-400">修正バージョン</label>
-                    <input
-                      value={editFixedVersion}
-                      onChange={(e) => setEditFixedVersion(e.target.value)}
-                      className="bg-gray-700 rounded px-2 py-1 text-sm text-white outline-none"
-                      placeholder="例: abc1234"
-                    />
-                  </div>
-                  <button
-                    onClick={() => saveReport(report.id)}
-                    disabled={saving}
-                    className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 px-3 py-1 rounded"
-                  >
-                    {saving ? "保存中..." : "保存"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 // ── メインの SettingsPanel ──────────────────────────────────────────────────
 

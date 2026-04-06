@@ -47,6 +47,7 @@ export default function AdminLoginPage() {
               autoFocus
               autoComplete="username"
               placeholder="ID"
+              aria-label="ユーザーID"
               className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition"
             />
           </div>
@@ -58,6 +59,7 @@ export default function AdminLoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               placeholder="••••••••"
+              aria-label="パスワード"
               className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition"
             />
           </div>
@@ -69,6 +71,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading || !username || !password}
+            aria-label="ログイン"
             className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-3 rounded-xl font-semibold transition"
           >
             {loading ? "ログイン中..." : "ログイン"}

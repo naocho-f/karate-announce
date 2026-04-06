@@ -14,6 +14,7 @@ import { getEventPhase } from "@/lib/event-phase";
 import { ParticipantSection } from "@/components/participant-section";
 import { BracketSection } from "@/components/bracket-section";
 import { MatchLabelSection } from "@/components/match-label-section";
+import { showToast } from "@/components/toast";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -163,7 +164,7 @@ export default function EventDetailPage({ params }: Props) {
       body: JSON.stringify(updates),
     });
     setSavingMeta(false);
-    if (!res.ok) { alert("保存に失敗しました"); return; }
+    if (!res.ok) { showToast("保存に失敗しました"); return; }
     setEvent((prev) => prev ? { ...prev, ...updates } : prev);
     setEditingMeta(false);
   }
@@ -177,7 +178,7 @@ export default function EventDetailPage({ params }: Props) {
       body: JSON.stringify({ entry_closed: newVal }),
     });
     setTogglingClosed(false);
-    if (!res.ok) { alert("受付状態の変更に失敗しました"); return; }
+    if (!res.ok) { showToast("受付状態の変更に失敗しました"); return; }
     setEvent((prev) => prev ? { ...prev, entry_closed: newVal } : prev);
     if (newVal) setShowClosedGuide(true);
   }
@@ -191,7 +192,7 @@ export default function EventDetailPage({ params }: Props) {
       body: JSON.stringify({ entry_close_at: utc }),
     });
     setSavingCloseAt(false);
-    if (!res.ok) { alert("保存に失敗しました"); return; }
+    if (!res.ok) { showToast("保存に失敗しました"); return; }
     setEvent((prev) => prev ? { ...prev, entry_close_at: utc } : prev);
   }
 
@@ -204,7 +205,7 @@ export default function EventDetailPage({ params }: Props) {
       body: JSON.stringify({ entry_close_at: null }),
     });
     setSavingCloseAt(false);
-    if (!res.ok) { alert("クリアに失敗しました"); return; }
+    if (!res.ok) { showToast("クリアに失敗しました"); return; }
     setEvent((prev) => prev ? { ...prev, entry_close_at: null } : prev);
   }
 
@@ -222,7 +223,7 @@ export default function EventDetailPage({ params }: Props) {
     form.append("file", file);
     const res = await fetch(`/api/admin/events/${id}/${type}`, { method: "POST", body: form });
     setLoading(false);
-    if (!res.ok) { alert("アップロードに失敗しました"); return; }
+    if (!res.ok) { showToast("アップロードに失敗しました"); return; }
     const data = await res.json();
     const key = type === "banner" ? "banner_image_path" : "ogp_image_path";
     setEvent((prev) => prev ? { ...prev, [key]: data.path } : prev);
@@ -233,7 +234,7 @@ export default function EventDetailPage({ params }: Props) {
     setDeletingImageType(type);
     const res = await fetch(`/api/admin/events/${id}/${type}`, { method: "DELETE" });
     setDeletingImageType(null);
-    if (!res.ok) { alert("削除に失敗しました"); return; }
+    if (!res.ok) { showToast("削除に失敗しました"); return; }
     const key = type === "banner" ? "banner_image_path" : "ogp_image_path";
     setEvent((prev) => prev ? { ...prev, [key]: null } : prev);
   }
@@ -265,7 +266,7 @@ export default function EventDetailPage({ params }: Props) {
     if (res.ok) {
       setEntries((prev) => prev.filter((e) => e.id !== entryId));
     } else {
-      alert("削除に失敗しました");
+      showToast("削除に失敗しました");
     }
     setProcessingEntryIds((prev) => { const next = new Set(prev); next.delete(entryId); return next; });
   }

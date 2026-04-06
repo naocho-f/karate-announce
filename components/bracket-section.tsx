@@ -13,6 +13,7 @@ import { BracketView, roundLabel } from "@/lib/bracket-view";
 import { BracketRulesPanel } from "@/components/bracket-rules-panel";
 import { AutoCreateDialog } from "@/components/auto-create-dialog";
 import { computeSuggestions } from "@/lib/suggestions";
+import { showToast } from "@/components/toast";
 import { buildRuleGroups } from "@/lib/rule-grouping";
 import type { AutoGroup } from "@/lib/auto-bracket";
 import { getGradeOptions, gradeToNumber, type AgeCategory } from "@/lib/grade-options";
@@ -1186,7 +1187,7 @@ function TournamentEditor({ eventId, entries, entryRuleIds, eventRules, tourname
     const failedRes = responses.find((r) => !r.ok);
     if (failedRes) {
       const err = await failedRes.json();
-      alert(err.error || "保存に失敗しました");
+      showToast(err.error || "保存に失敗しました");
       setConfirming(false);
       return;
     }
@@ -1718,7 +1719,7 @@ function ExistingTournamentSection({ tournament, eventId, entries, rules, mismat
     if (!confirm(`「${tournament.name}」を削除して組み直しますか？\n進行中・完了済みのデータもすべて失われます。`)) return;
     setDeleting(true);
     const res = await fetch(`/api/admin/tournaments/${tournament.id}`, { method: "DELETE" });
-    if (!res.ok) { alert("削除に失敗しました"); setDeleting(false); return; }
+    if (!res.ok) { showToast("削除に失敗しました"); setDeleting(false); return; }
     onDeleted();
   }
 

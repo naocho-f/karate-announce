@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { BracketRule, Rule } from "@/lib/types";
 import { getGradeOptions, type AgeCategory } from "@/lib/grade-options";
+import { showToast } from "@/components/toast";
 
 type Props = {
   eventId: string;
@@ -138,7 +139,7 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
 
   async function handleSave() {
     if (!form.name.trim()) {
-      alert("名前を入力してください");
+      showToast("名前を入力してください");
       return;
     }
     setSaving(true);
@@ -152,7 +153,7 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
         });
         if (!res.ok) {
           const err = await res.json();
-          alert(err.error || "保存に失敗しました");
+          showToast(err.error || "保存に失敗しました");
           return;
         }
       } else {
@@ -164,7 +165,7 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
         });
         if (!res.ok) {
           const err = await res.json();
-          alert(err.error || "作成に失敗しました");
+          showToast(err.error || "作成に失敗しました");
           return;
         }
       }
@@ -181,7 +182,7 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
     setDeletingId(id);
     const res = await fetch(`/api/admin/bracket-rules/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      alert("削除に失敗しました");
+      showToast("削除に失敗しました");
       setDeletingId(null);
       return;
     }
