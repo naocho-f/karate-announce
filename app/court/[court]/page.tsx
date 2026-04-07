@@ -145,19 +145,18 @@ export default function CourtPage({ params }: Props) {
     setFighterEntryMap(entryMap);
   }, [court]);
 
-  const { isOffline, wrappedFetch } = useConnectionStatus(load);
+  const { isOffline, wrappedFetch } = useConnectionStatus(load, {
+    baseInterval: 3000,
+  });
 
   useEffect(() => { wrappedFetch(); }, [wrappedFetch]);
   useEffect(() => {
-    const timer = setInterval(wrappedFetch, 3000);
-
     function handleVisibility() {
       if (document.visibilityState === "visible") wrappedFetch();
     }
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
-      clearInterval(timer);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [wrappedFetch]);

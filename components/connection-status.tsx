@@ -1,39 +1,158 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type ConnectionQuality,
+  determineConnectionQuality,
+  calcBackoffInterval,
+} from "@/lib/connection-logic";
 
-export function useConnectionStatus(fetchFn: () => Promise<void>) {
-  const [isOffline, setIsOffline] = useState(false);
+interface UseConnectionStatusOptions {
+  /** 基本ポーリング間隔 (ms) */
+  baseInterval: number;
+  /** オンライン復帰時のコールバック */
+  onReconnect?: () => void;
+}
+
+interface UseConnectionStatusReturn {
+  /** 接続品質（3段階） */
+  quality: ConnectionQuality;
+  /** 後方互換: quality === "offline" */
+  isOffline: boolean;
+  /** ポーリング実行関数（バックオフ対応済み。呼び出し元で setInterval に渡す） */
+  wrappedFetch: () => Promise<void>;
+  /** 操作リトライが発生したことを通知する（不安定バナー表示用） */
+  notifyOperationRetry: () => void;
+}
+
+export function useConnectionStatus(
+  fetchFn: () => Promise<void>,
+  options?: UseConnectionStatusOptions,
+): UseConnectionStatusReturn {
+  const baseInterval = options?.baseInterval ?? 3000;
+  const onReconnectRef = useRef(options?.onReconnect);
+  onReconnectRef.current = options?.onReconnect;
+
+  const [quality, setQuality] = useState<ConnectionQuality>("normal");
   const failCountRef = useRef(0);
+  const hasOperationRetryRef = useRef(false);
+  const prevQualityRef = useRef<ConnectionQuality>("normal");
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    const goOnline = () => { failCountRef.current = 0; setIsOffline(false); };
-    const goOffline = () => setIsOffline(true);
-    window.addEventListener("online", goOnline);
-    window.addEventListener("offline", goOffline);
-    if (!navigator.onLine) setIsOffline(true);
-    return () => { window.removeEventListener("online", goOnline); window.removeEventListener("offline", goOffline); };
+  // 接続品質を更新するヘルパー
+  const updateQuality = useCallback(() => {
+    const newQuality = determineConnectionQuality({
+      consecutiveFailures: failCountRef.current,
+      hasOperationRetry: hasOperationRetryRef.current,
+      navigatorOnLine: typeof navigator !== "undefined" ? navigator.onLine : true,
+    });
+
+    setQuality(newQuality);
+
+    // offline/unstable → normal に復帰したら onReconnect を呼ぶ
+    if (prevQualityRef.current !== "normal" && newQuality === "normal") {
+      onReconnectRef.current?.();
+    }
+    prevQualityRef.current = newQuality;
   }, []);
+
+  // ポーリング間隔を動的に調整
+  const reschedule = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    const interval = calcBackoffInterval(baseInterval, failCountRef.current);
+    intervalRef.current = setInterval(() => {
+      wrappedFetchRef.current();
+    }, interval);
+  }, [baseInterval]);
+
+  const wrappedFetchRef = useRef<() => Promise<void>>(async () => {});
 
   const wrappedFetch = useCallback(async () => {
     try {
       await fetchFn();
+      const wasOffline = failCountRef.current >= 3;
       failCountRef.current = 0;
-      setIsOffline(false);
+      hasOperationRetryRef.current = false;
+      updateQuality();
+      // オフライン→成功に復帰したらポーリング間隔をリセット
+      if (wasOffline) reschedule();
     } catch {
       failCountRef.current += 1;
-      if (failCountRef.current >= 2) setIsOffline(true);
+      updateQuality();
+      // 失敗が増えたらバックオフ間隔に更新
+      reschedule();
     }
-  }, [fetchFn]);
+  }, [fetchFn, updateQuality, reschedule]);
 
-  return { isOffline, wrappedFetch };
+  wrappedFetchRef.current = wrappedFetch;
+
+  // 操作リトライ通知（resilient-fetch のリトライ発生時に呼ぶ）
+  const notifyOperationRetry = useCallback(() => {
+    hasOperationRetryRef.current = true;
+    updateQuality();
+  }, [updateQuality]);
+
+  // navigator online/offline イベント
+  useEffect(() => {
+    const goOnline = () => {
+      failCountRef.current = 0;
+      hasOperationRetryRef.current = false;
+      updateQuality();
+      reschedule();
+    };
+    const goOffline = () => {
+      updateQuality();
+    };
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    if (!navigator.onLine) updateQuality();
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, [updateQuality, reschedule]);
+
+  // 初回ポーリング開始
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      wrappedFetchRef.current();
+    }, baseInterval);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [baseInterval]);
+
+  return {
+    quality,
+    isOffline: quality === "offline",
+    wrappedFetch,
+    notifyOperationRetry,
+  };
 }
 
-export function ConnectionStatusBanner({ isOffline }: { isOffline: boolean }) {
-  if (!isOffline) return null;
+export function ConnectionStatusBanner({
+  quality,
+  isOffline,
+}: {
+  quality?: ConnectionQuality;
+  isOffline?: boolean;
+}) {
+  // quality が渡されればそちらを使用、なければ isOffline で後方互換
+  const q: ConnectionQuality = quality ?? (isOffline ? "offline" : "normal");
+
+  if (q === "normal") return null;
+
+  if (q === "unstable") {
+    return (
+      <div className="sticky top-0 z-50 bg-yellow-500 text-white text-center px-4 py-2 text-sm font-medium shadow-lg">
+        ⚠ 接続が不安定です
+      </div>
+    );
+  }
+
   return (
-    <div className="sticky top-0 z-50 bg-orange-600 text-white text-center px-4 py-2 text-sm font-medium shadow-lg">
-      ⚠ 接続が不安定です。データが最新でない可能性があります。
+    <div className="sticky top-0 z-50 bg-red-600 text-white text-center px-4 py-2 text-sm font-medium shadow-lg">
+      ⚠ オフラインです
     </div>
   );
 }

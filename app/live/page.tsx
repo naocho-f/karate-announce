@@ -83,20 +83,27 @@ export default function LivePage() {
     }
   }, []);
 
-  const { isOffline, wrappedFetch } = useConnectionStatus(load);
+  const { isOffline, wrappedFetch } = useConnectionStatus(load, {
+    baseInterval: 5000,
+  });
 
   useEffect(() => { wrappedFetch(); }, [wrappedFetch]);
 
   useEffect(() => {
-    const timer = setInterval(wrappedFetch, 5000);
-
     // Supabase Realtime: matches テーブルの変更を即座に検知
     const channel = supabase
       .channel("live-matches")
       .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => {
         wrappedFetch();
       })
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === "SUBSCRIBED") {
+          wrappedFetch();
+        }
+        if (status === "CLOSED" || status === "TIMED_OUT") {
+          console.warn(`Realtime ${status}`, err);
+        }
+      });
 
     // バックグラウンドタブ復帰時に即座にリロード（Android等でsetIntervalが停止するため）
     function handleVisibility() {
@@ -105,7 +112,6 @@ export default function LivePage() {
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
-      clearInterval(timer);
       supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
