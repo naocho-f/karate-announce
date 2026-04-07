@@ -221,6 +221,8 @@ async function speak(text: string): Promise<void> {
  * 次の試合のアナウンスを先にリクエストしておくことで、
  * 試合開始時の音声再生を高速化する。
  * オフラインモードでもキャッシュ済みの音声を再生可能にする。
+ *
+ * 呼び出し時に前回のキャッシュを全削除するため、常に最新の1件のみ保持される。
  */
 export async function prefetchTts(text: string): Promise<void> {
   if (!text) return;
@@ -230,6 +232,11 @@ export async function prefetchTts(text: string): Promise<void> {
   // 既にキャッシュ済みならスキップ
   const cached = await getCachedTts(cacheKey);
   if (cached) return;
+
+  // 前回のキャッシュを全削除（試合ごとにクリア。容量が溜まらない）
+  try {
+    await caches.delete(TTS_CACHE_NAME);
+  } catch { /* ignore */ }
 
   try {
     const res = await fetch("/api/tts", {
