@@ -557,6 +557,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **最終整合性修正（2026-04-07）**: 未実装機能の統合（cacheData/offlineMode/UnifiedStatusBar）、dead export削除、仕様書のステータス更新、各画面仕様書にオフライン参照追加、CLAUDE.mdにエクスポート確認チェックリスト追加
 - **レビュー指摘修正: dead code削除・enqueue追加・テスト補完（2026-04-07）**: ConnectionStatusBanner削除、court-index-clientにenqueue追加、resilient-fetchにofflineModeテスト、offline-queueに401/ネットワークエラーテスト追加
 - **E2Eテスト修正（2026-04-07）**: entry-form-autosaveテストをテストイベント作成方式に修正、SWテストに開発環境スキップ追加
+- **テストカバレッジ補完（2026-04-08）**: 画像アップロードAPI 3件・アナウンスコア関数・BracketView純粋関数のテスト追加（864→911テスト）
 - **SPEC.md整合性修正（2026-04-07）**: ANNOUNCE_SPEC.md・INFRA_SPEC.md・OFFLINE_SPEC.mdへの参照追加、非機能要件にオフライン/PWA記載追加
 - **Phase 4-6: 端末事前準備チェックリスト（2026-04-07）**: 管理画面ホームにSW登録+キャッシュ構築状況の確認セクション追加
 - **Phase 4-4: swap_withトランザクション化（2026-04-07）**: Supabase RPC swap_match_positionsでアトミック実行。3ステップ非アトミック更新を廃止

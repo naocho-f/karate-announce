@@ -42,7 +42,7 @@ function pendingSlotLabel(round: number, position: number, slot: 0 | 1, totalRou
 }
 
 /** 勝利方法を表示テキストに変換 */
-function formatResultMethod(method: string | null | undefined, detail: BracketMatch["result_detail"]): string | null {
+export function formatResultMethod(method: string | null | undefined, detail: BracketMatch["result_detail"]): string | null {
   if (!method) return null;
   const d = detail ?? {};
   switch (method) {

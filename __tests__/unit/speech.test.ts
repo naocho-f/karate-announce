@@ -26,6 +26,9 @@ const {
   splitAffiliationParts,
   buildMatchStartText,
   prefetchTts,
+  announceMatchStart,
+  announceWinner,
+  announceCustom,
   DEFAULT_TEMPLATES,
   TTS_VOICES,
   MATCH_VARS,
@@ -309,5 +312,173 @@ describe("prefetchTts", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network error"));
     await expect(prefetchTts("テスト")).resolves.toBeUndefined();
     fetchSpy.mockRestore();
+  });
+});
+
+// ── speak / announce 系関数のテスト ─────────────────────────────────────
+
+/**
+ * speak() の内部で使われる fetch + Audio を一括モックするヘルパー。
+ * Audio.play() → onended を即座に呼ぶことで非同期再生を高速に完了させる。
+ */
+function mockSpeakDeps() {
+  const audioBlob = new Blob(["fake-audio"], { type: "audio/mpeg" });
+  const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    new Response(audioBlob, { status: 200, headers: { "Content-Type": "audio/mpeg" } }),
+  );
+
+  // Audio モック: play() 呼び出し時に即座に onended を発火
+  const audioInstances: { onended: (() => void) | null; onerror: (() => void) | null }[] = [];
+  const AudioMock = vi.fn().mockImplementation(() => {
+    const instance = {
+      onended: null as (() => void) | null,
+      onerror: null as (() => void) | null,
+      play: vi.fn().mockImplementation(() => {
+        // microtask で onended を呼ぶ（Promise チェーンの後に発火）
+        queueMicrotask(() => instance.onended?.());
+        return Promise.resolve();
+      }),
+    };
+    audioInstances.push(instance);
+    return instance;
+  });
+  vi.stubGlobal("Audio", AudioMock);
+
+  // URL.createObjectURL / revokeObjectURL
+  vi.stubGlobal("URL", {
+    ...globalThis.URL,
+    createObjectURL: vi.fn().mockReturnValue("blob:mock-url"),
+    revokeObjectURL: vi.fn(),
+  });
+
+  return {
+    fetchSpy,
+    AudioMock,
+    audioInstances,
+    cleanup: () => {
+      fetchSpy.mockRestore();
+      vi.unstubAllGlobals();
+      vi.stubGlobal("localStorage", localStorageMock);
+    },
+  };
+}
+
+describe("announceMatchStart", () => {
+  it("テキストを組み立てて TTS API を呼び出す", async () => {
+    const deps = mockSpeakDeps();
+    store.clear();
+
+    await announceMatchStart(
+      "山田太郎", "極真会　本部道場",
+      "鈴木一郎", "正道会館",
+      "決勝",
+    );
+
+    // fetch が /api/tts に POST で呼ばれたことを検証
+    expect(deps.fetchSpy).toHaveBeenCalledWith("/api/tts", expect.objectContaining({
+      method: "POST",
+    }));
+    // fetch の body にテンプレート展開済みテキストが含まれる
+    const callBody = JSON.parse((deps.fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+    expect(callBody.text).toContain("けっしょう");
+    expect(callBody.text).toContain("山田太郎");
+
+    // Audio が生成されて play() が呼ばれたことを検証
+    expect(deps.AudioMock).toHaveBeenCalled();
+    deps.cleanup();
+  });
+
+  it("読み仮名が指定されている場合はそちらを使う", async () => {
+    const deps = mockSpeakDeps();
+    store.clear();
+
+    await announceMatchStart(
+      "山田太郎", "極真会　本部道場",
+      "鈴木一郎", "正道会館",
+      "決勝",
+      "やまだたろう", "きょくしんかい、ほんぶどうじょう",
+      "すずきいちろう", "せいどうかいかん",
+    );
+
+    const callBody = JSON.parse((deps.fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+    expect(callBody.text).toContain("やまだたろう");
+    expect(callBody.text).toContain("すずきいちろう");
+    expect(callBody.text).not.toContain("山田太郎");
+    deps.cleanup();
+  });
+});
+
+describe("announceWinner", () => {
+  it("勝者テンプレートを展開して TTS API を呼び出す", async () => {
+    const deps = mockSpeakDeps();
+    store.clear();
+
+    await announceWinner("山田太郎", "極真会　本部道場");
+
+    expect(deps.fetchSpy).toHaveBeenCalledWith("/api/tts", expect.objectContaining({
+      method: "POST",
+    }));
+    const callBody = JSON.parse((deps.fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+    expect(callBody.text).toContain("山田太郎");
+    expect(callBody.text).toContain("勝ち");
+    deps.cleanup();
+  });
+
+  it("読み仮名優先で展開する", async () => {
+    const deps = mockSpeakDeps();
+    store.clear();
+
+    await announceWinner(
+      "山田太郎", "極真会　本部道場",
+      "やまだたろう", "きょくしんかい、ほんぶどうじょう",
+    );
+
+    const callBody = JSON.parse((deps.fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+    expect(callBody.text).toContain("やまだたろう");
+    expect(callBody.text).not.toContain("山田太郎");
+    deps.cleanup();
+  });
+});
+
+describe("announceCustom", () => {
+  it("任意テキストで TTS API を呼び出す", async () => {
+    const deps = mockSpeakDeps();
+    store.clear();
+
+    await announceCustom("テスト音声です");
+
+    const callBody = JSON.parse((deps.fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+    expect(callBody.text).toBe("テスト音声です");
+    deps.cleanup();
+  });
+});
+
+describe("speak（内部関数の間接テスト）", () => {
+  it("TTS API エラー時もエラーを投げない", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, { status: 500 }),
+    );
+    vi.stubGlobal("URL", { ...globalThis.URL, createObjectURL: vi.fn(), revokeObjectURL: vi.fn() });
+    store.clear();
+
+    // announceCustom は speak を呼ぶ。エラーでも reject しない
+    await expect(announceCustom("エラーテスト")).resolves.toBeUndefined();
+
+    fetchSpy.mockRestore();
+    vi.unstubAllGlobals();
+    vi.stubGlobal("localStorage", localStorageMock);
+  });
+
+  it("TTS 設定の voice/speed が fetch に渡される", async () => {
+    const deps = mockSpeakDeps();
+    store.set("tts_voice", "onyx");
+    store.set("tts_speed", "1.5");
+
+    await announceCustom("テスト");
+
+    const callBody = JSON.parse((deps.fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+    expect(callBody.voice).toBe("onyx");
+    expect(callBody.speed).toBe(1.5);
+    deps.cleanup();
   });
 });

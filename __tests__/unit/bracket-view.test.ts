@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { roundLabel, formatResultMethod } from "@/lib/bracket-view";
 
 // bracket-view.tsx から抽出した定数・計算ロジック（コンポーネント内にインライン定義のため直接テスト）
 const BRACKET_CARD_W = 172;
@@ -92,5 +93,102 @@ describe("BracketView レイアウト計算", () => {
     const totalWidth = maxRound * BRACKET_COL_W - BRACKET_GAP_W;
     expect(totalHeight).toBe(480);
     expect(totalWidth).toBe(384);
+  });
+});
+
+describe("roundLabel", () => {
+  it("最終ラウンドは「決勝」", () => {
+    expect(roundLabel(4, 4)).toBe("決勝");
+  });
+
+  it("最終ラウンドの1つ前は「準決勝」", () => {
+    expect(roundLabel(3, 4)).toBe("準決勝");
+  });
+
+  it("最終ラウンドの2つ前は「準々決勝」", () => {
+    expect(roundLabel(2, 4)).toBe("準々決勝");
+  });
+
+  it("それ以外は「第N回戦」形式", () => {
+    expect(roundLabel(1, 4)).toBe("第1回戦");
+  });
+
+  it("2ラウンドのトーナメントの1回戦", () => {
+    expect(roundLabel(1, 2)).toBe("準決勝");
+  });
+
+  it("1ラウンドのみのトーナメント", () => {
+    expect(roundLabel(1, 1)).toBe("決勝");
+  });
+
+  it("5ラウンドの1回戦", () => {
+    expect(roundLabel(1, 5)).toBe("第1回戦");
+  });
+
+  it("5ラウンドの2回戦", () => {
+    expect(roundLabel(2, 5)).toBe("第2回戦");
+  });
+});
+
+describe("formatResultMethod", () => {
+  it("null の場合は null を返す", () => {
+    expect(formatResultMethod(null, null)).toBeNull();
+  });
+
+  it("undefined の場合は null を返す", () => {
+    expect(formatResultMethod(undefined, null)).toBeNull();
+  });
+
+  it("一本", () => {
+    expect(formatResultMethod("ippon", null)).toBe("一本");
+  });
+
+  it("合わせ一本（技あり数つき）", () => {
+    expect(formatResultMethod("combined_ippon", { red_wazaari: 2, white_wazaari: 0 })).toBe("合わせ一本 (技2)");
+  });
+
+  it("合わせ一本（detail なし）", () => {
+    expect(formatResultMethod("combined_ippon", null)).toBe("合わせ一本 (技0)");
+  });
+
+  it("技あり優勢", () => {
+    expect(formatResultMethod("wazaari", { red_wazaari: 1, white_wazaari: 0 })).toBe("技あり優勢 (技1-0)");
+  });
+
+  it("ポイント", () => {
+    expect(formatResultMethod("point", { red_points: 3, white_points: 1, red_wazaari: 1, white_wazaari: 0 }))
+      .toBe("ポイント (3-1 技1-0)");
+  });
+
+  it("ポイント（detail なし）", () => {
+    expect(formatResultMethod("point", null)).toBe("ポイント (0-0 技0-0)");
+  });
+
+  it("反則勝ち", () => {
+    expect(formatResultMethod("foul", null)).toBe("反則勝ち");
+  });
+
+  it("判定", () => {
+    expect(formatResultMethod("decision", null)).toBe("判定");
+  });
+
+  it("延長戦", () => {
+    expect(formatResultMethod("sudden_death", null)).toBe("延長戦");
+  });
+
+  it("棄権勝ち", () => {
+    expect(formatResultMethod("withdraw", null)).toBe("棄権勝ち");
+  });
+
+  it("負傷勝ち", () => {
+    expect(formatResultMethod("injury", null)).toBe("負傷勝ち");
+  });
+
+  it("引き分け", () => {
+    expect(formatResultMethod("draw", null)).toBe("引き分け");
+  });
+
+  it("未知の method はそのまま返す", () => {
+    expect(formatResultMethod("unknown_method", null)).toBe("unknown_method");
   });
 });
