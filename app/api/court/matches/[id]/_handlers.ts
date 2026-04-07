@@ -53,28 +53,14 @@ export async function handleSetWinner(id: string, body: MatchBody, supabaseAdmin
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
   const { winnerId, tournamentId, round, rounds, position } = body;
-  await supabaseAdmin.from("matches").update({ winner_id: winnerId, status: "done", updated_at: new Date().toISOString() }).eq("id", id);
-
-  if (round! < rounds!) {
-    const nextPosition = Math.floor(position! / 2);
-    const field = position! % 2 === 0 ? "fighter1_id" : "fighter2_id";
-    const { data: nextMatch } = await supabaseAdmin
-      .from("matches")
-      .select("id, fighter1_id, fighter2_id")
-      .eq("tournament_id", tournamentId)
-      .eq("round", round! + 1)
-      .eq("position", nextPosition)
-      .single();
-    const otherFilled = nextMatch && (position! % 2 === 0 ? nextMatch.fighter2_id : nextMatch.fighter1_id);
-    await supabaseAdmin
-      .from("matches")
-      .update({ [field]: winnerId, status: otherFilled ? "ready" : "waiting" })
-      .eq("tournament_id", tournamentId)
-      .eq("round", round! + 1)
-      .eq("position", nextPosition);
-  } else if (tournamentId) {
-    await supabaseAdmin.from("tournaments").update({ status: "finished" }).eq("id", tournamentId);
-  }
+  await supabaseAdmin.rpc("set_match_winner", {
+    p_match_id: id,
+    p_winner_id: winnerId,
+    p_tournament_id: tournamentId,
+    p_round: round,
+    p_rounds: rounds,
+    p_position: position,
+  });
   return NextResponse.json({ ok: true });
 }
 
@@ -140,36 +126,28 @@ export async function handleFinishTimer(id: string, body: MatchBody, supabaseAdm
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
   const { winnerId, tournamentId, round, rounds, position, resultMethod, resultDetail } = body;
-  // タイマーから結果を書き戻し: winner_id, status, result_method, result_detail
-  await supabaseAdmin.from("matches").update({
-    winner_id: winnerId ?? null,
-    status: "done",
-    result_method: resultMethod ?? null,
-    result_detail: resultDetail ?? null,
-    updated_at: new Date().toISOString(),
-  }).eq("id", id);
 
-  // 勝者がいる場合、次ラウンドへ進出させる
-  if (winnerId && round != null && rounds != null && position != null && round < rounds) {
-    const nextPosition = Math.floor(position / 2);
-    const field = position % 2 === 0 ? "fighter1_id" : "fighter2_id";
-    const { data: nextMatch } = await supabaseAdmin
-      .from("matches")
-      .select("id, fighter1_id, fighter2_id")
-      .eq("tournament_id", tournamentId)
-      .eq("round", round + 1)
-      .eq("position", nextPosition)
-      .single();
-    const otherFilled = nextMatch && (position % 2 === 0 ? nextMatch.fighter2_id : nextMatch.fighter1_id);
-    await supabaseAdmin
-      .from("matches")
-      .update({ [field]: winnerId, status: otherFilled ? "ready" : "waiting" })
-      .eq("tournament_id", tournamentId)
-      .eq("round", round + 1)
-      .eq("position", nextPosition);
-  } else if (winnerId && round != null && rounds != null && round >= rounds && tournamentId) {
-    // 決勝 → トーナメント完了
-    await supabaseAdmin.from("tournaments").update({ status: "finished" }).eq("id", tournamentId);
+  if (winnerId && round != null && rounds != null && position != null) {
+    // 勝者あり → RPC でアトミック実行（match 更新 + 次ラウンド配置）
+    await supabaseAdmin.rpc("set_match_winner", {
+      p_match_id: id,
+      p_winner_id: winnerId,
+      p_tournament_id: tournamentId,
+      p_round: round,
+      p_rounds: rounds,
+      p_position: position,
+      p_result_method: resultMethod ?? null,
+      p_result_detail: resultDetail ?? null,
+    });
+  } else {
+    // 勝者なし（引き分け等）→ match のステータスのみ更新
+    await supabaseAdmin.from("matches").update({
+      winner_id: winnerId ?? null,
+      status: "done",
+      result_method: resultMethod ?? null,
+      result_detail: resultDetail ?? null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", id);
   }
   return NextResponse.json({ ok: true });
 }
