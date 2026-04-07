@@ -25,6 +25,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "柔空会 - 試合管理 ＆ AI アナウンス",
   description: "試合管理・参加受付・対戦表作成・AI アナウンス",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSerwist } from "@serwist/turbopack";
 
 const nextConfig: NextConfig = {
   images: {
@@ -8,4 +9,8 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const isDisabled =
+  process.env.NODE_ENV === "development" ||
+  process.env.VERCEL_ENV === "preview";
+
+export default isDisabled ? nextConfig : withSerwist(nextConfig);

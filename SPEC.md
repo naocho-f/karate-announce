@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-06（SPEC.mdドキュメント修正・セキュリティ強化・UI/UX改善・コード品質向上）
+> 最終更新: 2026-04-07（オフライン対応 Phase 1a: Service Worker + PWA + offlineページ）
 
 ---
 
@@ -53,6 +53,7 @@
 | 参加者詳細 | `/admin/events/[id]/entries/[entryId]` | Cookie | [EVENT_ADMIN_SPEC.md](docs/EVENT_ADMIN_SPEC.md) |
 | タイマー管理 | `/admin/timer-presets` | Cookie | [TIMER_SPEC.md](docs/TIMER_SPEC.md) |
 | 仕様書 | `/admin/spec` | なし（dev） | — |
+| オフラインフォールバック | `/offline` | なし | [OFFLINE_SPEC.md](docs/OFFLINE_SPEC.md) |
 
 ---
 
@@ -550,6 +551,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **再読み上げ（2026-03-23）**: 試合中のカードフッターに「📢 再読」ボタン（試合開始アナウンス再読）、終了済みカードに「📢 再読」ボタン（勝者アナウンス再読）を追加
 - **勝者訂正（2026-03-23）**: 終了済みカードフッターの「訂正」ボタンでカードをオレンジ枠の訂正モードに切り替え。選手スロットをタップして勝者を変更。API `correct_winner` アクションで winner_id を更新し、次ラウンドのマッチが done/ongoing でない場合は選手も差し替え。キャンセルボタンで訂正モード解除
 - **棄権バッジ即時反映（2026-03-23）**: 変化検知を `allMatches` のみから `{ allMatches, allEntries }` に拡張。棄権トグル後（matches は変化しない）もポーリングで検知して状態が即時反映されるように修正
+- **オフライン対応 Phase 1a: Service Worker + PWA + offlineページ（2026-04-07）**: Serwist によるApp Shellキャッシュ、PWAマニフェスト、オフラインフォールバックページを追加。画面一覧に /offline を追記
 - **SPEC.mdドキュメント修正（2026-04-06）**: §5.2 court API認証記述を修正、§5.5 TTS API認証記述を追加、§5.6 不具合報告APIを追記
 - **品質レビュー2回目（2026-04-05）**: supabase_schema.sqlにbuzzer新カラム5つを反映、buzzer_soundデフォルト値を修正
 - **品質レビュー対応（2026-04-05）**: court API/TTS APIに認証追加、buzzer旧ID統一、console.log整理、未使用format-other削除、TIMER_SPEC DB定義更新
