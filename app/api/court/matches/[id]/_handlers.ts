@@ -153,15 +153,14 @@ export async function handleFinishTimer(id: string, body: MatchBody, supabaseAdm
 }
 
 export async function handleSwapWith(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
+  const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
+  if (conflict) return conflict;
   const { otherMatchId } = body;
   if (!otherMatchId) return NextResponse.json({ error: "otherMatchId required" }, { status: 400 });
-  const { data: m1 } = await supabaseAdmin.from("matches").select("position").eq("id", id).single();
-  const { data: m2 } = await supabaseAdmin.from("matches").select("position").eq("id", otherMatchId).single();
-  if (!m1 || !m2) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  // unique(tournament_id, round, position) 制約を回避するため3ステップで交換
-  const tmpPos = 99999;
-  await supabaseAdmin.from("matches").update({ position: tmpPos }).eq("id", id);
-  await supabaseAdmin.from("matches").update({ position: m1.position }).eq("id", otherMatchId);
-  await supabaseAdmin.from("matches").update({ position: m2.position }).eq("id", id);
+  // RPC でアトミックに position を交換（FOR UPDATE でロック取得）
+  await supabaseAdmin.rpc("swap_match_positions", {
+    match_a_id: id,
+    match_b_id: otherMatchId,
+  });
   return NextResponse.json({ ok: true });
 }
