@@ -7,9 +7,12 @@ import {
   getSnapshot,
   subscribeForReact,
   setMode,
+  getMode,
+  testConnection,
+  shouldShowRecoveryPrompt,
 } from "@/lib/offline-mode";
 import { getPendingCount } from "@/lib/offline-queue";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /** アプリ全体のモード状態を取得するフック */
 export function useOfflineMode(): {
@@ -18,6 +21,58 @@ export function useOfflineMode(): {
 } {
   const mode = useSyncExternalStore(subscribeForReact, getSnapshot, () => "online" as const);
   return { mode, setMode };
+}
+
+/**
+ * オフラインモード中にネットワーク復帰を自動検知するフック。
+ * navigator.onLine の online イベント → 接続テスト → 復帰提案を表示。
+ * 「いいえ」後は5分間再提案しない。
+ */
+export function useAutoRecovery(mode: NetworkMode): {
+  showRecoveryPrompt: boolean;
+  acceptRecovery: () => void;
+  declineRecovery: () => void;
+} {
+  const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
+  const lastDeclinedRef = useRef<number | null>(null);
+
+  const acceptRecovery = useCallback(() => {
+    setShowRecoveryPrompt(false);
+    setMode("online");
+  }, []);
+
+  const declineRecovery = useCallback(() => {
+    lastDeclinedRef.current = Date.now();
+    setShowRecoveryPrompt(false);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (mode !== "offline") {
+      setShowRecoveryPrompt(false);
+      return;
+    }
+
+    const handleOnline = async () => {
+      // モードが既に変わっていたら無視
+      if (getMode() !== "offline") return;
+      // クールダウンチェック
+      if (!shouldShowRecoveryPrompt(lastDeclinedRef.current)) return;
+      // 接続テスト
+      const ok = await testConnection("/");
+      if (!ok) return;
+      // テスト後にまだオフラインモードか再確認
+      if (getMode() !== "offline") return;
+      setShowRecoveryPrompt(true);
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [mode]);
+
+  return { showRecoveryPrompt, acceptRecovery, declineRecovery };
 }
 
 interface UnifiedStatusBarProps {
@@ -29,6 +84,12 @@ interface UnifiedStatusBarProps {
   pendingCount: number;
   /** モード切替コールバック */
   onToggleOfflineMode: () => void;
+  /** 自動復帰確認を表示中か */
+  showRecoveryPrompt?: boolean;
+  /** 復帰を承認 */
+  onAcceptRecovery?: () => void;
+  /** 復帰を拒否（5分クールダウン） */
+  onDeclineRecovery?: () => void;
 }
 
 /**
@@ -42,9 +103,32 @@ export function UnifiedStatusBar({
   mode,
   pendingCount,
   onToggleOfflineMode,
+  showRecoveryPrompt,
+  onAcceptRecovery,
+  onDeclineRecovery,
 }: UnifiedStatusBarProps) {
   // ── オフラインモード ──
   if (mode === "offline") {
+    // 自動復帰確認バナー
+    if (showRecoveryPrompt && onAcceptRecovery && onDeclineRecovery) {
+      return (
+        <div className="sticky top-0 z-50 bg-green-600 text-white text-center px-4 py-2 text-sm font-medium shadow-lg flex items-center justify-center gap-3">
+          <span>ネットワーク接続が回復しました。オンラインに切り替えますか？</span>
+          <button
+            onClick={onAcceptRecovery}
+            className="bg-green-800 hover:bg-green-900 px-3 py-1 rounded text-xs"
+          >
+            はい
+          </button>
+          <button
+            onClick={onDeclineRecovery}
+            className="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-xs"
+          >
+            いいえ
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="sticky top-0 z-50 bg-blue-600 text-white text-center px-4 py-2 text-sm font-medium shadow-lg flex items-center justify-center gap-3">
         <span>

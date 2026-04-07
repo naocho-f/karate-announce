@@ -66,3 +66,62 @@ describe("offline-mode", () => {
     expect(calls).toEqual(["offline", "online"]);
   });
 });
+
+const {
+  shouldShowRecoveryPrompt,
+  RECOVERY_COOLDOWN_MS,
+  testConnection,
+} = await import("@/lib/offline-mode");
+
+describe("shouldShowRecoveryPrompt", () => {
+  it("一度も拒否していない場合は true を返す", () => {
+    expect(shouldShowRecoveryPrompt(null)).toBe(true);
+  });
+
+  it("拒否直後は false を返す", () => {
+    const now = Date.now();
+    expect(shouldShowRecoveryPrompt(now, now)).toBe(false);
+  });
+
+  it("拒否から4分59秒後は false を返す", () => {
+    const now = Date.now();
+    const declinedAt = now - (RECOVERY_COOLDOWN_MS - 1000);
+    expect(shouldShowRecoveryPrompt(declinedAt, now)).toBe(false);
+  });
+
+  it("拒否から5分後は true を返す", () => {
+    const now = Date.now();
+    const declinedAt = now - RECOVERY_COOLDOWN_MS;
+    expect(shouldShowRecoveryPrompt(declinedAt, now)).toBe(true);
+  });
+
+  it("拒否から10分後は true を返す", () => {
+    const now = Date.now();
+    const declinedAt = now - RECOVERY_COOLDOWN_MS * 2;
+    expect(shouldShowRecoveryPrompt(declinedAt, now)).toBe(true);
+  });
+});
+
+describe("testConnection", () => {
+  it("fetch成功（200）で true を返す", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
+    expect(await testConnection("/")).toBe(true);
+    vi.unstubAllGlobals();
+    // localStorage を再スタブ（unstubAllGlobals で消えるため）
+    vi.stubGlobal("localStorage", localStorageMock);
+  });
+
+  it("fetch失敗（500）で false を返す", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
+    expect(await testConnection("/")).toBe(false);
+    vi.unstubAllGlobals();
+    vi.stubGlobal("localStorage", localStorageMock);
+  });
+
+  it("ネットワークエラーで false を返す", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+    expect(await testConnection("/")).toBe(false);
+    vi.unstubAllGlobals();
+    vi.stubGlobal("localStorage", localStorageMock);
+  });
+});

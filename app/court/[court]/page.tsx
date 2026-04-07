@@ -14,7 +14,7 @@ import { matchLabelNum } from "@/lib/match-utils";
 import Link from "next/link";
 import { showToast } from "@/components/toast";
 import { useConnectionStatus } from "@/components/connection-status";
-import { UnifiedStatusBar, useOfflineMode, usePendingCount } from "@/components/unified-status-bar";
+import { UnifiedStatusBar, useOfflineMode, usePendingCount, useAutoRecovery } from "@/components/unified-status-bar";
 import { resilientFetch } from "@/lib/resilient-fetch";
 import { enqueue, cacheData, getCachedData } from "@/lib/offline-queue";
 import { setMode } from "@/lib/offline-mode";
@@ -155,6 +155,7 @@ export default function CourtPage({ params }: Props) {
 
   const { mode: offlineMode } = useOfflineMode();
   const pendingCount = usePendingCount();
+  const { showRecoveryPrompt, acceptRecovery, declineRecovery } = useAutoRecovery(offlineMode);
   const { isOffline, quality, wrappedFetch } = useConnectionStatus(load, {
     baseInterval: 3000,
     enabled: offlineMode === "online",
@@ -405,6 +406,9 @@ export default function CourtPage({ params }: Props) {
         mode={offlineMode}
         pendingCount={pendingCount}
         onToggleOfflineMode={() => setMode(offlineMode === "online" ? "offline" : "online")}
+        showRecoveryPrompt={showRecoveryPrompt}
+        onAcceptRecovery={acceptRecovery}
+        onDeclineRecovery={declineRecovery}
       />
       <div className="max-w-5xl mx-auto">
         {/* ヘッダー */}

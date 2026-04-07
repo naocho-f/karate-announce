@@ -40,6 +40,37 @@ export function getSnapshot(): NetworkMode {
   return getMode();
 }
 
+/** 自動復帰検知のクールダウン時間（5分） */
+export const RECOVERY_COOLDOWN_MS = 5 * 60 * 1000;
+
+/**
+ * 復帰確認ダイアログを表示すべきか判定する。
+ * ユーザーが「いいえ」を選んでから5分以上経過していれば true。
+ */
+export function shouldShowRecoveryPrompt(
+  lastDeclinedAt: number | null,
+  now: number = Date.now(),
+): boolean {
+  if (lastDeclinedAt === null) return true;
+  return now - lastDeclinedAt >= RECOVERY_COOLDOWN_MS;
+}
+
+/**
+ * 軽量エンドポイントへの接続テスト。
+ * 成功（2xx）なら true、失敗・タイムアウト・ネットワークエラーなら false。
+ */
+export async function testConnection(url = "/"): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(url, { method: "HEAD", signal: controller.signal });
+    clearTimeout(timeout);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 /** useSyncExternalStore 用の subscribe（storage イベントでタブ間同期） */
 export function subscribeForReact(callback: () => void): () => void {
   const wrappedListener = () => callback();

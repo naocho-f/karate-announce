@@ -11,7 +11,7 @@ import { BracketView } from "@/lib/bracket-view";
 import { resilientFetch } from "@/lib/resilient-fetch";
 import { addPendingWinner, removePendingWinner } from "@/lib/optimistic-update";
 import { enqueue } from "@/lib/offline-queue";
-import { UnifiedStatusBar, useOfflineMode, usePendingCount } from "@/components/unified-status-bar";
+import { UnifiedStatusBar, useOfflineMode, usePendingCount, useAutoRecovery } from "@/components/unified-status-bar";
 import { setMode } from "@/lib/offline-mode";
 
 // ── 単一コートのパネルコンポーネント ─────────────────────────────────────────
@@ -417,6 +417,7 @@ export default function CourtIndexClient() {
 
   const { mode: offlineMode } = useOfflineMode();
   const pendingCount = usePendingCount();
+  const { showRecoveryPrompt, acceptRecovery, declineRecovery } = useAutoRecovery(offlineMode);
 
   return (
     <main className="min-h-screen bg-main-bg text-white p-4">
@@ -425,6 +426,9 @@ export default function CourtIndexClient() {
         mode={offlineMode}
         pendingCount={pendingCount}
         onToggleOfflineMode={() => setMode(offlineMode === "online" ? "offline" : "online")}
+        showRecoveryPrompt={showRecoveryPrompt}
+        onAcceptRecovery={acceptRecovery}
+        onDeclineRecovery={declineRecovery}
       />
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-3 mb-6">

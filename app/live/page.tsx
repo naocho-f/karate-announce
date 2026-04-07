@@ -8,7 +8,7 @@ import type { Event, FighterInfo, Match, Tournament } from "@/lib/types";
 import { matchLabelNum } from "@/lib/match-utils";
 import { checkWatchNotifications, type WatchNotification } from "@/lib/watch-notify";
 import { useConnectionStatus } from "@/components/connection-status";
-import { UnifiedStatusBar, useOfflineMode, usePendingCount } from "@/components/unified-status-bar";
+import { UnifiedStatusBar, useOfflineMode, usePendingCount, useAutoRecovery } from "@/components/unified-status-bar";
 import { setMode } from "@/lib/offline-mode";
 
 type CourtData = {
@@ -87,6 +87,7 @@ export default function LivePage() {
 
   const { mode: offlineMode } = useOfflineMode();
   const pendingCount = usePendingCount();
+  const { showRecoveryPrompt, acceptRecovery, declineRecovery } = useAutoRecovery(offlineMode);
   const { isOffline, quality, wrappedFetch } = useConnectionStatus(load, {
     baseInterval: 5000,
     enabled: offlineMode === "online",
@@ -202,6 +203,9 @@ export default function LivePage() {
         mode={offlineMode}
         pendingCount={pendingCount}
         onToggleOfflineMode={() => setMode(offlineMode === "online" ? "offline" : "online")}
+        showRecoveryPrompt={showRecoveryPrompt}
+        onAcceptRecovery={acceptRecovery}
+        onDeclineRecovery={declineRecovery}
       />
       {/* ヘッダー（sticky: タイトル + タブ + 試合中カード） */}
       <div className="sticky top-0 z-10 bg-gray-900 backdrop-blur border-b border-gray-700/60">

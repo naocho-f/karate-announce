@@ -11,7 +11,7 @@
 空手大会の試合管理・AI アナウンスシステム。
 試合の参加受付から対戦表作成、コート進行、結果配信までを一貫して管理する。
 
-**技術スタック**
+**技術スタック**（詳細は [INFRA_SPEC.md](docs/INFRA_SPEC.md) を参照）
 - フレームワーク: Next.js 16 (App Router) + TypeScript
 - スタイリング: Tailwind CSS 4
 - データベース: Supabase (PostgreSQL)
@@ -435,6 +435,8 @@ form_notice_images (
 
 ## 6. アナウンス機能仕様
 
+> 詳細は [ANNOUNCE_SPEC.md](docs/ANNOUNCE_SPEC.md) を参照。
+
 ### 6.1 TTS 設定
 
 LocalStorage に保存。
@@ -524,6 +526,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 | ブラウザ互換性 | PostCSS プラグイン `postcss-unwrap-layer.mjs` で Tailwind CSS 4 の `@layer` を除去し Chrome < 99 でもユーティリティクラスが動作。`browserslist` 設定（Chrome >= 80）で `color-mix()` を HEX fallback + `@supports` 段階的強化に自動変換。`globals.css` の CSS 変数フォールバックも安全策として維持。`lang="ja"` + 日本語システムフォント明示指定で CJK 混在テキストのフォント切り替え安定化 |
 | カスタムカラー | メイン背景色 `--color-main-bg: #101828`（gray-900 相当）。Tailwind の `bg-main-bg` で全ページ共通使用。カード背景は `bg-gray-800`、ボーダーは `border-gray-700`（参加申込フォームの入力欄は `border-gray-600`）。注意書きは外枠線なし・左ボーダーのみ（`border-l-2 border-yellow-600/40`）で項目の補足情報として表示 |
 | LocalStorage 利用 | TTS設定、アナウンステンプレート（試合順序は DB 管理に移行） |
+| オフライン対応 | PWA（Serwist による Service Worker）。App Shell キャッシュ + API リクエストキューイング + 楽観的更新。詳細は [OFFLINE_SPEC.md](docs/OFFLINE_SPEC.md) |
 | デプロイ | Vercel（karate.naocho.net） |
 
 ---
@@ -554,6 +557,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **最終整合性修正（2026-04-07）**: 未実装機能の統合（cacheData/offlineMode/UnifiedStatusBar）、dead export削除、仕様書のステータス更新、各画面仕様書にオフライン参照追加、CLAUDE.mdにエクスポート確認チェックリスト追加
 - **レビュー指摘修正: dead code削除・enqueue追加・テスト補完（2026-04-07）**: ConnectionStatusBanner削除、court-index-clientにenqueue追加、resilient-fetchにofflineModeテスト、offline-queueに401/ネットワークエラーテスト追加
 - **E2Eテスト修正（2026-04-07）**: entry-form-autosaveテストをテストイベント作成方式に修正、SWテストに開発環境スキップ追加
+- **SPEC.md整合性修正（2026-04-07）**: ANNOUNCE_SPEC.md・INFRA_SPEC.md・OFFLINE_SPEC.mdへの参照追加、非機能要件にオフライン/PWA記載追加
 - **Phase 4-6: 端末事前準備チェックリスト（2026-04-07）**: 管理画面ホームにSW登録+キャッシュ構築状況の確認セクション追加
 - **Phase 4-4: swap_withトランザクション化（2026-04-07）**: Supabase RPC swap_match_positionsでアトミック実行。3ステップ非アトミック更新を廃止
 - **OFFLINE_SPEC全体更新（2026-04-07）**: Phase 1〜3+S実施済みを反映。ステータス・受け入れ基準・スケジュールを更新。Phase 4を4-4/4-6確定・他不要に整理
