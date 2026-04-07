@@ -13,8 +13,11 @@ import { BracketView } from "@/lib/bracket-view";
 import { matchLabelNum } from "@/lib/match-utils";
 import Link from "next/link";
 import { showToast } from "@/components/toast";
-import { useConnectionStatus, ConnectionStatusBanner } from "@/components/connection-status";
+import { useConnectionStatus } from "@/components/connection-status";
+import { UnifiedStatusBar, useOfflineMode, usePendingCount } from "@/components/unified-status-bar";
 import { resilientFetch } from "@/lib/resilient-fetch";
+import { enqueue } from "@/lib/offline-queue";
+import { setMode } from "@/lib/offline-mode";
 
 type Props = { params: Promise<{ court: string }> };
 
@@ -146,8 +149,11 @@ export default function CourtPage({ params }: Props) {
     setFighterEntryMap(entryMap);
   }, [court]);
 
-  const { isOffline, wrappedFetch } = useConnectionStatus(load, {
+  const { mode: offlineMode } = useOfflineMode();
+  const pendingCount = usePendingCount();
+  const { isOffline, quality, wrappedFetch } = useConnectionStatus(load, {
     baseInterval: 3000,
+    enabled: offlineMode === "online",
   });
 
   useEffect(() => { wrappedFetch(); }, [wrappedFetch]);
@@ -196,7 +202,10 @@ export default function CourtPage({ params }: Props) {
         body: JSON.stringify({ action: "start", tournamentId }),
       }, { maxRetries: 3, timeout: 5000 });
       if (!res.ok) { endProcessing(matchId); showToast("試合開始に失敗しました"); return; }
-    } catch { endProcessing(matchId); showToast("試合開始に失敗しました（通信エラー）"); return; }
+    } catch {
+      await enqueue({ action: "start", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "start", tournamentId }, createdAt: new Date().toISOString(), tabId: "court" });
+      endProcessing(matchId); showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました"); return;
+    }
     await load();
     endProcessing(matchId);
 
@@ -241,7 +250,10 @@ export default function CourtPage({ params }: Props) {
         }),
       }, { maxRetries: 3, timeout: 5000 });
       if (!res.ok) { endProcessing(matchId); showToast("勝者設定に失敗しました"); return; }
-    } catch { endProcessing(matchId); showToast("勝者設定に失敗しました（通信エラー）"); return; }
+    } catch {
+      await enqueue({ action: "set_winner", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }, createdAt: new Date().toISOString(), tabId: "court" });
+      endProcessing(matchId); showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました"); return;
+    }
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
@@ -262,7 +274,10 @@ export default function CourtPage({ params }: Props) {
         body: JSON.stringify({ is_withdrawn: withdrawn }),
       }, { maxRetries: 3, timeout: 5000 });
       if (!res.ok) { endProcessing(matchId); showToast("欠場切替に失敗しました"); return; }
-    } catch { endProcessing(matchId); showToast("欠場切替に失敗しました（通信エラー）"); return; }
+    } catch {
+      // 棄権切替はcourtエンドポイントだが同様にキュー保存
+      endProcessing(matchId); showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました"); return;
+    }
     await load();
     endProcessing(matchId);
   }
@@ -299,7 +314,10 @@ export default function CourtPage({ params }: Props) {
         }),
       }, { maxRetries: 3, timeout: 5000 });
       if (!res.ok) { endProcessing(matchId); showToast("勝者訂正に失敗しました"); return; }
-    } catch { endProcessing(matchId); showToast("勝者訂正に失敗しました（通信エラー）"); return; }
+    } catch {
+      await enqueue({ action: "correct_winner", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "correct_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }, createdAt: new Date().toISOString(), tabId: "court" });
+      endProcessing(matchId); showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました"); return;
+    }
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
@@ -364,7 +382,10 @@ export default function CourtPage({ params }: Props) {
         body: JSON.stringify({ action: "swap_with", otherMatchId: nextMatch.id }),
       }, { maxRetries: 3, timeout: 5000 });
       if (!res.ok) { endProcessing(matchId); endProcessing(nextMatch.id); showToast("試合入替に失敗しました"); return; }
-    } catch { endProcessing(matchId); endProcessing(nextMatch.id); showToast("試合入替に失敗しました（通信エラー）"); return; }
+    } catch {
+      await enqueue({ action: "swap_with", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "swap_with", otherMatchId: nextMatch.id }, createdAt: new Date().toISOString(), tabId: "court" });
+      endProcessing(matchId); endProcessing(nextMatch.id); showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました"); return;
+    }
     await load();
     endProcessing(matchId);
     endProcessing(nextMatch.id);
@@ -372,7 +393,12 @@ export default function CourtPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-main-bg text-white p-4">
-      <ConnectionStatusBanner isOffline={isOffline} />
+      <UnifiedStatusBar
+        quality={quality}
+        mode={offlineMode}
+        pendingCount={pendingCount}
+        onToggleOfflineMode={() => setMode(offlineMode === "online" ? "offline" : "online")}
+      />
       <div className="max-w-5xl mx-auto">
         {/* ヘッダー */}
         <div className="flex items-center gap-3 mb-4">

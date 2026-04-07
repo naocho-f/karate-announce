@@ -7,7 +7,9 @@ import { supabase } from "@/lib/supabase";
 import type { Event, FighterInfo, Match, Tournament } from "@/lib/types";
 import { matchLabelNum } from "@/lib/match-utils";
 import { checkWatchNotifications, type WatchNotification } from "@/lib/watch-notify";
-import { useConnectionStatus, ConnectionStatusBanner } from "@/components/connection-status";
+import { useConnectionStatus } from "@/components/connection-status";
+import { UnifiedStatusBar, useOfflineMode, usePendingCount } from "@/components/unified-status-bar";
+import { setMode } from "@/lib/offline-mode";
 
 type CourtData = {
   courtNum: number;
@@ -83,8 +85,11 @@ export default function LivePage() {
     }
   }, []);
 
-  const { isOffline, wrappedFetch } = useConnectionStatus(load, {
+  const { mode: offlineMode } = useOfflineMode();
+  const pendingCount = usePendingCount();
+  const { isOffline, quality, wrappedFetch } = useConnectionStatus(load, {
     baseInterval: 5000,
+    enabled: offlineMode === "online",
   });
 
   useEffect(() => { wrappedFetch(); }, [wrappedFetch]);
@@ -192,7 +197,12 @@ export default function LivePage() {
 
   return (
     <main className="min-h-screen bg-main-bg text-white">
-      <ConnectionStatusBanner isOffline={isOffline} />
+      <UnifiedStatusBar
+        quality={quality}
+        mode={offlineMode}
+        pendingCount={pendingCount}
+        onToggleOfflineMode={() => setMode(offlineMode === "online" ? "offline" : "online")}
+      />
       {/* ヘッダー（sticky: タイトル + タブ + 試合中カード） */}
       <div className="sticky top-0 z-10 bg-gray-900 backdrop-blur border-b border-gray-700/60">
         <div className="max-w-lg mx-auto px-3 py-2.5 flex items-center justify-between gap-2">

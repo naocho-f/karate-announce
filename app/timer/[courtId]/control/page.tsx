@@ -21,6 +21,7 @@ import { roundName } from "@/lib/tournament";
 import { showToast } from "@/components/toast";
 import { flushTimerLogs } from "@/lib/timer-log-flush";
 import { resilientFetch } from "@/lib/resilient-fetch";
+import { enqueue } from "@/lib/offline-queue";
 import ScoringPanel from "./_scoring-panel";
 import ResultPanel from "./_result-panel";
 import ShortcutPanel from "./_shortcut-panel";
@@ -697,7 +698,16 @@ export default function TimerControlPage() {
         showToast("結果の書き戻しに失敗しました");
       }
     } catch {
-      showToast("結果の書き戻しに失敗しました（通信エラー）");
+      await enqueue({
+        action: "finish_timer",
+        endpoint: `/api/court/matches/${s.matchId}`,
+        method: "PATCH",
+        payload: { action: "finish_timer", winnerId: s.winnerId, tournamentId: s.tournamentId, round: matchData?.round, rounds, position: matchData?.position, resultMethod: s.resultMethod, resultDetail: s.resultDetail },
+        createdAt: new Date().toISOString(),
+        tabId: "timer",
+      });
+      update(markResultWritten);
+      showToast("結果を保存しました。オンライン復帰後に自動送信します");
     }
     setWritingBack(false);
   };
