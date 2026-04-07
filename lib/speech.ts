@@ -149,18 +149,58 @@ export function normalizeMatchLabelForTts(label: string): string {
 
 let speaking = false;
 
+const TTS_CACHE_NAME = "karate-tts-cache";
+
+/** TTS キャッシュのキーを生成 */
+function ttsCacheKey(text: string, voice: string, speed: number): string {
+  return `tts:${voice}:${speed}:${text}`;
+}
+
+/** Cache API から TTS 音声を取得。キャッシュミスなら null */
+async function getCachedTts(key: string): Promise<Response | null> {
+  try {
+    const cache = await caches.open(TTS_CACHE_NAME);
+    const cached = await cache.match(key);
+    return cached ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Cache API に TTS 音声を保存 */
+async function cacheTts(key: string, response: Response): Promise<void> {
+  try {
+    const cache = await caches.open(TTS_CACHE_NAME);
+    await cache.put(key, response);
+  } catch {
+    // キャッシュ保存失敗は無視
+  }
+}
+
 async function speak(text: string): Promise<void> {
   // 再生中なら新しい再生要求を無視
   if (speaking) return;
   speaking = true;
   const { voice, speed } = getTtsSettings();
   try {
-    const res = await fetch("/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, voice, speed }),
-    });
-    if (!res.ok) throw new Error("TTS API error");
+    const cacheKey = ttsCacheKey(text, voice, speed);
+
+    // 1. Cache API から取得を試みる
+    let res = await getCachedTts(cacheKey);
+
+    // 2. キャッシュミスなら API 呼び出し
+    if (!res) {
+      const apiRes = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, voice, speed }),
+      });
+      if (!apiRes.ok) throw new Error("TTS API error");
+      // レスポンスを clone して1つをキャッシュに保存、もう1つを再生に使う
+      await cacheTts(cacheKey, apiRes.clone());
+      res = apiRes;
+    }
+
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
@@ -177,21 +217,29 @@ async function speak(text: string): Promise<void> {
 }
 
 /**
- * TTS 音声を事前生成してブラウザにキャッシュする（再生はしない）。
+ * TTS 音声を事前生成して Cache API に保存する（再生はしない）。
  * 次の試合のアナウンスを先にリクエストしておくことで、
  * 試合開始時の音声再生を高速化する。
+ * オフラインモードでもキャッシュ済みの音声を再生可能にする。
  */
 export async function prefetchTts(text: string): Promise<void> {
   if (!text) return;
   const { voice, speed } = getTtsSettings();
+  const cacheKey = ttsCacheKey(text, voice, speed);
+
+  // 既にキャッシュ済みならスキップ
+  const cached = await getCachedTts(cacheKey);
+  if (cached) return;
+
   try {
-    await fetch("/api/tts", {
+    const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, voice, speed }),
     });
-    // レスポンスは読み捨てる（サーバー側でキャッシュされるか、
-    // ブラウザの HTTP キャッシュに乗ることを期待）
+    if (res.ok) {
+      await cacheTts(cacheKey, res);
+    }
   } catch {
     // prefetch の失敗は無視する
   }
