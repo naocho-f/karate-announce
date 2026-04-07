@@ -8,6 +8,7 @@ import { fighterFullName, fighterFullReading } from "@/lib/types";
 import { roundName } from "@/lib/tournament";
 import { announceMatchStart, announceWinner, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
 import { BracketView } from "@/lib/bracket-view";
+import { resilientFetch } from "@/lib/resilient-fetch";
 
 // ── 単一コートのパネルコンポーネント ─────────────────────────────────────────
 
@@ -137,11 +138,13 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
 
     startProcessing(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
-    await fetch(`/api/court/matches/${matchId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "start", tournamentId }),
-    });
+    try {
+      await resilientFetch(`/api/court/matches/${matchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start", tournamentId }),
+      }, { maxRetries: 3, timeout: 5000 });
+    } catch { endProcessing(matchId); return; }
     await load();
     endProcessing(matchId);
 
@@ -171,11 +174,13 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
 
     startProcessing(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
-    await fetch(`/api/court/matches/${matchId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }),
-    });
+    try {
+      await resilientFetch(`/api/court/matches/${matchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }),
+      }, { maxRetries: 3, timeout: 5000 });
+    } catch { endProcessing(matchId); return; }
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
@@ -189,11 +194,13 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
 
   async function toggleWithdrawal(matchId: string, entryId: string, withdrawn: boolean) {
     startProcessing(matchId);
-    await fetch(`/api/court/entries/${entryId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_withdrawn: withdrawn }),
-    });
+    try {
+      await resilientFetch(`/api/court/entries/${entryId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_withdrawn: withdrawn }),
+      }, { maxRetries: 3, timeout: 5000 });
+    } catch { endProcessing(matchId); return; }
     await load();
     endProcessing(matchId);
   }
@@ -216,11 +223,13 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
 
     startProcessing(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
-    await fetch(`/api/court/matches/${matchId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "correct_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }),
-    });
+    try {
+      await resilientFetch(`/api/court/matches/${matchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "correct_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }),
+      }, { maxRetries: 3, timeout: 5000 });
+    } catch { endProcessing(matchId); return; }
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
@@ -276,11 +285,13 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
     const nextMatch = roundMatches[idx + 1];
     startProcessing(matchId);
     startProcessing(nextMatch.id);
-    await fetch(`/api/court/matches/${matchId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "swap_with", otherMatchId: nextMatch.id }),
-    });
+    try {
+      await resilientFetch(`/api/court/matches/${matchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "swap_with", otherMatchId: nextMatch.id }),
+      }, { maxRetries: 3, timeout: 5000 });
+    } catch { endProcessing(matchId); endProcessing(nextMatch.id); return; }
     await load();
     endProcessing(matchId);
     endProcessing(nextMatch.id);
@@ -353,7 +364,7 @@ export default function CourtIndexClient() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/admin/settings")
+    resilientFetch("/api/admin/settings", {}, { maxRetries: 2, timeout: 5000 })
       .then((r) => r.json())
       .then((d) => {
         if (d.announce_templates) setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...d.announce_templates });

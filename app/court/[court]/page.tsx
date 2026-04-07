@@ -14,6 +14,7 @@ import { matchLabelNum } from "@/lib/match-utils";
 import Link from "next/link";
 import { showToast } from "@/components/toast";
 import { useConnectionStatus, ConnectionStatusBanner } from "@/components/connection-status";
+import { resilientFetch } from "@/lib/resilient-fetch";
 
 type Props = { params: Promise<{ court: string }> };
 
@@ -162,7 +163,7 @@ export default function CourtPage({ params }: Props) {
   }, [wrappedFetch]);
 
   useEffect(() => {
-    fetch("/api/admin/settings")
+    resilientFetch("/api/admin/settings", {}, { maxRetries: 2, timeout: 5000 })
       .then((r) => r.json())
       .then((d) => {
         if (d.announce_templates) setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...d.announce_templates });
@@ -188,12 +189,14 @@ export default function CourtPage({ params }: Props) {
 
     startProcessing(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
-    const res = await fetch(`/api/court/matches/${matchId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "start", tournamentId }),
-    });
-    if (!res.ok) { endProcessing(matchId); showToast("試合開始に失敗しました"); return; }
+    try {
+      const res = await resilientFetch(`/api/court/matches/${matchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start", tournamentId }),
+      }, { maxRetries: 3, timeout: 5000 });
+      if (!res.ok) { endProcessing(matchId); showToast("試合開始に失敗しました"); return; }
+    } catch { endProcessing(matchId); showToast("試合開始に失敗しました（通信エラー）"); return; }
     await load();
     endProcessing(matchId);
 
@@ -224,19 +227,21 @@ export default function CourtPage({ params }: Props) {
 
     startProcessing(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
-    const res = await fetch(`/api/court/matches/${matchId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "set_winner",
-        winnerId,
-        tournamentId,
-        round: match.round,
-        rounds,
-        position: match.position,
-      }),
-    });
-    if (!res.ok) { endProcessing(matchId); showToast("勝者設定に失敗しました"); return; }
+    try {
+      const res = await resilientFetch(`/api/court/matches/${matchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "set_winner",
+          winnerId,
+          tournamentId,
+          round: match.round,
+          rounds,
+          position: match.position,
+        }),
+      }, { maxRetries: 3, timeout: 5000 });
+      if (!res.ok) { endProcessing(matchId); showToast("勝者設定に失敗しました"); return; }
+    } catch { endProcessing(matchId); showToast("勝者設定に失敗しました（通信エラー）"); return; }
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
@@ -250,12 +255,14 @@ export default function CourtPage({ params }: Props) {
 
   async function toggleWithdrawal(matchId: string, entryId: string, withdrawn: boolean) {
     startProcessing(matchId);
-    const res = await fetch(`/api/court/entries/${entryId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_withdrawn: withdrawn }),
-    });
-    if (!res.ok) { endProcessing(matchId); showToast("欠場切替に失敗しました"); return; }
+    try {
+      const res = await resilientFetch(`/api/court/entries/${entryId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_withdrawn: withdrawn }),
+      }, { maxRetries: 3, timeout: 5000 });
+      if (!res.ok) { endProcessing(matchId); showToast("欠場切替に失敗しました"); return; }
+    } catch { endProcessing(matchId); showToast("欠場切替に失敗しました（通信エラー）"); return; }
     await load();
     endProcessing(matchId);
   }
@@ -278,19 +285,21 @@ export default function CourtPage({ params }: Props) {
 
     startProcessing(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
-    const res = await fetch(`/api/court/matches/${matchId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "correct_winner",
-        winnerId,
-        tournamentId,
-        round: match.round,
-        rounds,
-        position: match.position,
-      }),
-    });
-    if (!res.ok) { endProcessing(matchId); showToast("勝者訂正に失敗しました"); return; }
+    try {
+      const res = await resilientFetch(`/api/court/matches/${matchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "correct_winner",
+          winnerId,
+          tournamentId,
+          round: match.round,
+          rounds,
+          position: match.position,
+        }),
+      }, { maxRetries: 3, timeout: 5000 });
+      if (!res.ok) { endProcessing(matchId); showToast("勝者訂正に失敗しました"); return; }
+    } catch { endProcessing(matchId); showToast("勝者訂正に失敗しました（通信エラー）"); return; }
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
@@ -348,12 +357,14 @@ export default function CourtPage({ params }: Props) {
     const nextMatch = roundMatches[idx + 1];
     startProcessing(matchId);
     startProcessing(nextMatch.id);
-    const res = await fetch(`/api/court/matches/${matchId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "swap_with", otherMatchId: nextMatch.id }),
-    });
-    if (!res.ok) { endProcessing(matchId); endProcessing(nextMatch.id); showToast("試合入替に失敗しました"); return; }
+    try {
+      const res = await resilientFetch(`/api/court/matches/${matchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "swap_with", otherMatchId: nextMatch.id }),
+      }, { maxRetries: 3, timeout: 5000 });
+      if (!res.ok) { endProcessing(matchId); endProcessing(nextMatch.id); showToast("試合入替に失敗しました"); return; }
+    } catch { endProcessing(matchId); endProcessing(nextMatch.id); showToast("試合入替に失敗しました（通信エラー）"); return; }
     await load();
     endProcessing(matchId);
     endProcessing(nextMatch.id);

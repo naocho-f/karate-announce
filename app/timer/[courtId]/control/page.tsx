@@ -20,6 +20,7 @@ import { announceMatchStart, announceWinner, buildMatchStartText, prefetchTts, D
 import { roundName } from "@/lib/tournament";
 import { showToast } from "@/components/toast";
 import { flushTimerLogs } from "@/lib/timer-log-flush";
+import { resilientFetch } from "@/lib/resilient-fetch";
 import ScoringPanel from "./_scoring-panel";
 import ResultPanel from "./_result-panel";
 import ShortcutPanel from "./_shortcut-panel";
@@ -196,8 +197,8 @@ export default function TimerControlPage() {
     setEventId(activeEvent.id);
 
     // プリセット取得
-    const presetsRes = await fetch("/api/admin/timer-presets");
-    if (presetsRes.ok) {
+    const presetsRes = await resilientFetch("/api/admin/timer-presets", {}, { maxRetries: 2, timeout: 5000 }).catch(() => null);
+    if (presetsRes?.ok) {
       const allPresets: TimerPreset[] = await presetsRes.json();
       // イベント用 or 汎用
       const filtered = allPresets.filter(
@@ -307,7 +308,7 @@ export default function TimerControlPage() {
 
   // ── アナウンステンプレート・ルール読み仮名の取得 ──
   useEffect(() => {
-    fetch("/api/admin/settings")
+    resilientFetch("/api/admin/settings", {}, { maxRetries: 2, timeout: 5000 })
       .then((r) => r.json())
       .then((d) => {
         if (d.announce_templates) setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...d.announce_templates });
@@ -565,10 +566,12 @@ export default function TimerControlPage() {
     });
 
     // 試合開始 API（status を ongoing に）
-    fetch(`/api/court/matches/${candidate.match.id}`, {
+    resilientFetch(`/api/court/matches/${candidate.match.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "start", tournamentId: candidate.tournament.id }),
+    }, { maxRetries: 3, timeout: 5000 }).catch(() => {
+      showToast("試合開始の通知に失敗しました");
     });
 
     // アナウンス選択画面を表示
@@ -671,27 +674,30 @@ export default function TimerControlPage() {
 
     const rounds = allMatches ? Math.max(...allMatches.map((m) => m.round), 1) : 1;
 
-    const res = await fetch(`/api/court/matches/${s.matchId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "finish_timer",
-        winnerId: s.winnerId,
-        tournamentId: s.tournamentId,
-        round: matchData?.round,
-        rounds,
-        position: matchData?.position,
-        resultMethod: s.resultMethod,
-        resultDetail: s.resultDetail,
-      }),
-    });
+    try {
+      const res = await resilientFetch(`/api/court/matches/${s.matchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "finish_timer",
+          winnerId: s.winnerId,
+          tournamentId: s.tournamentId,
+          round: matchData?.round,
+          rounds,
+          position: matchData?.position,
+          resultMethod: s.resultMethod,
+          resultDetail: s.resultDetail,
+        }),
+      }, { maxRetries: 3, timeout: 5000 });
 
-    if (res.ok) {
-      update(markResultWritten);
-      // 試合リストを更新
-      loadTournamentData();
-    } else {
-      showToast("結果の書き戻しに失敗しました");
+      if (res.ok) {
+        update(markResultWritten);
+        loadTournamentData();
+      } else {
+        showToast("結果の書き戻しに失敗しました");
+      }
+    } catch {
+      showToast("結果の書き戻しに失敗しました（通信エラー）");
     }
     setWritingBack(false);
   };
