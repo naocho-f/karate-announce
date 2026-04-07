@@ -18,6 +18,7 @@ import { UnifiedStatusBar, useOfflineMode, usePendingCount } from "@/components/
 import { resilientFetch } from "@/lib/resilient-fetch";
 import { enqueue } from "@/lib/offline-queue";
 import { setMode } from "@/lib/offline-mode";
+import { addPendingWinner, removePendingWinner, hasPendingWinner, shouldBlockNextRoundStart } from "@/lib/optimistic-update";
 
 type Props = { params: Promise<{ court: string }> };
 
@@ -235,6 +236,7 @@ export default function CourtPage({ params }: Props) {
     if (!winner) return;
 
     startProcessing(matchId);
+    addPendingWinner(matchId); // 確定待ち状態に追加
     const rounds = Math.max(...matches.map((m) => m.round), 1);
     try {
       const res = await resilientFetch(`/api/court/matches/${matchId}`, {
@@ -249,12 +251,14 @@ export default function CourtPage({ params }: Props) {
           position: match.position,
         }),
       }, { maxRetries: 3, timeout: 5000 });
-      if (!res.ok) { endProcessing(matchId); showToast("勝者設定に失敗しました"); return; }
+      if (!res.ok) { endProcessing(matchId); removePendingWinner(matchId); showToast("勝者設定に失敗しました"); return; }
     } catch {
       await enqueue({ action: "set_winner", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }, createdAt: new Date().toISOString(), tabId: "court" });
       endProcessing(matchId); showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました"); return;
+      // 確定待ち状態は維持（キューに入っているため）
     }
     await load();
+    removePendingWinner(matchId); // サーバー反映完了で解除
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
       await announceWinner(

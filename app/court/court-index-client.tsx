@@ -9,6 +9,7 @@ import { roundName } from "@/lib/tournament";
 import { announceMatchStart, announceWinner, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
 import { BracketView } from "@/lib/bracket-view";
 import { resilientFetch } from "@/lib/resilient-fetch";
+import { addPendingWinner, removePendingWinner } from "@/lib/optimistic-update";
 
 // ── 単一コートのパネルコンポーネント ─────────────────────────────────────────
 
@@ -173,6 +174,7 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
     if (!winner) return;
 
     startProcessing(matchId);
+    addPendingWinner(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
     try {
       await resilientFetch(`/api/court/matches/${matchId}`, {
@@ -182,6 +184,7 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
       }, { maxRetries: 3, timeout: 5000 });
     } catch { endProcessing(matchId); return; }
     await load();
+    removePendingWinner(matchId);
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
       await announceWinner(
