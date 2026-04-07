@@ -1,0 +1,47 @@
+#!/bin/sh
+# SPEC.md がステージされていないコミットをブロック
+if ! git diff --cached --name-only | grep -q '^SPEC.md$'; then
+  echo ""
+  echo "ERROR: SPEC.md がコミットに含まれていません。"
+  echo "SPEC.md を更新してから git add SPEC.md してください。"
+  echo ""
+  exit 1
+fi
+
+# SPEC.md ヘッダーの「最終更新」日付が当日か確認
+TODAY=$(date +%Y-%m-%d)
+SPEC_DATE=$(grep '最終更新:' SPEC.md | head -1 | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
+if [ -n "$SPEC_DATE" ] && [ "$SPEC_DATE" != "$TODAY" ]; then
+  echo ""
+  echo "ERROR: SPEC.md の最終更新日が古いです（${SPEC_DATE}）。"
+  echo "ヘッダーの日付を ${TODAY} に更新してください。"
+  echo ""
+  exit 1
+fi
+
+# RPC 整合性チェック: コード内の rpc() 呼び出しに対応するマイグレーションがあるか
+RPC_MISSING=""
+for rpc_name in $(grep -roh 'supabase\.rpc("[^"]*"' app/ lib/ 2>/dev/null | sed 's/.*rpc("//;s/"//' | sort -u); do
+  if ! grep -rql "FUNCTION.*${rpc_name}" supabase/migrations/ 2>/dev/null; then
+    RPC_MISSING="${RPC_MISSING}  - ${rpc_name}\n"
+  fi
+done
+if [ -n "$RPC_MISSING" ]; then
+  echo ""
+  echo "ERROR: 以下の RPC 関数にマイグレーションファイルがありません:"
+  printf "$RPC_MISSING"
+  echo "supabase/migrations/ に CREATE OR REPLACE FUNCTION を追加してください。"
+  echo ""
+  exit 1
+fi
+
+# TypeScript 型チェック（GitHub Actions と同じチェック）
+echo "Running tsc --noEmit..."
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "ERROR: TypeScript 型チェックに失敗しました。"
+  echo "npx tsc --noEmit のエラーを修正してからコミットしてください。"
+  echo ""
+  exit 1
+fi
