@@ -13,8 +13,10 @@ export interface ResilientFetchOptions {
   timeout: number;
   /** 外部からのキャンセル用（ページ遷移時に abort） */
   signal?: AbortSignal;
-  /** Phase 2 でキュー保存に使用。Phase 1 では未使用。 */
-  onQueueFallback?: (req: unknown) => void;
+  /** リトライ全失敗時にキューに保存するコールバック。設定されていれば throw せずキューに入れる */
+  onQueueFallback?: (url: string, init: RequestInit) => void;
+  /** オフラインモード時に true。fetch を呼ばず即座に onQueueFallback を呼ぶ */
+  offlineMode?: boolean;
 }
 
 class ResilientFetchError extends Error {
@@ -41,7 +43,14 @@ export async function resilientFetch(
   init: RequestInit,
   options: ResilientFetchOptions,
 ): Promise<Response> {
-  const { maxRetries, timeout, signal } = options;
+  const { maxRetries, timeout, signal, onQueueFallback, offlineMode } = options;
+
+  // オフラインモード: fetch を呼ばず即座にキューへ
+  if (offlineMode && onQueueFallback) {
+    onQueueFallback(url, init);
+    // 呼び出し元が結果を待たないようダミーレスポンスを返す
+    return new Response('{"queued":true}', { status: 202 });
+  }
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     // abort 済みなら即座に中断
@@ -64,6 +73,10 @@ export async function resilientFetch(
       }
 
       // 最大リトライ到達
+      if (onQueueFallback) {
+        onQueueFallback(url, init);
+        return new Response('{"queued":true}', { status: 202 });
+      }
       throw new ResilientFetchError(
         `Server error ${res.status} after ${maxRetries} retries`,
         res,
@@ -85,6 +98,10 @@ export async function resilientFetch(
         continue;
       }
 
+      if (onQueueFallback) {
+        onQueueFallback(url, init);
+        return new Response('{"queued":true}', { status: 202 });
+      }
       throw new ResilientFetchError(
         `Network error after ${maxRetries} retries: ${error instanceof Error ? error.message : String(error)}`,
       );

@@ -77,6 +77,96 @@ export async function clearAll(): Promise<void> {
   sequenceCounter = 0;
 }
 
+// ── キュー再送（flush） ──
+
+export interface FlushResult {
+  sent: number;
+  failed: number;
+  conflict: boolean;
+}
+
+/** 操作のステータスを更新 */
+async function updateStatus(id: string, status: QueuedOperation["status"]): Promise<void> {
+  const op = await get<QueuedOperation>(id, queueStore);
+  if (op) {
+    await set(id, { ...op, status }, queueStore);
+  }
+}
+
+/**
+ * キューの pending 操作を FIFO 順で送信する。
+ * Web Locks API でタブ間排他を実現（未対応環境では排他なし、冪等性キーで安全性担保）。
+ */
+export async function flush(): Promise<FlushResult> {
+  const doFlush = async (): Promise<FlushResult> => {
+    const ops = await getAll();
+    const pending = ops.filter((op) => op.status === "pending");
+
+    if (pending.length === 0) {
+      return { sent: 0, failed: 0, conflict: false };
+    }
+
+    let sent = 0;
+    let failed = 0;
+
+    for (const op of pending) {
+      await updateStatus(op.id, "sending");
+
+      try {
+        const res = await fetch(op.endpoint, {
+          method: op.method,
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": op.id,
+          },
+          body: JSON.stringify(op.payload),
+        });
+
+        if (res.ok) {
+          await remove(op.id);
+          sent++;
+          continue;
+        }
+
+        if (res.status === 409) {
+          // 409 Conflict: この操作をスキップし、以降のキューも全破棄
+          await clearQueue();
+          return { sent, failed, conflict: true };
+        }
+
+        if (res.status === 401) {
+          // 401: pending に戻して中断（再ログイン必要）
+          await updateStatus(op.id, "pending");
+          return { sent, failed: failed + 1, conflict: false };
+        }
+
+        // 5xx 等: pending に戻して中断（次回 flush で再挑戦）
+        await updateStatus(op.id, "pending");
+        failed++;
+        return { sent, failed, conflict: false };
+      } catch {
+        // ネットワークエラー: pending に戻して中断
+        await updateStatus(op.id, "pending");
+        failed++;
+        return { sent, failed, conflict: false };
+      }
+    }
+
+    return { sent, failed, conflict: false };
+  };
+
+  // Web Locks API でタブ間排他
+  if (typeof navigator !== "undefined" && navigator.locks) {
+    return navigator.locks.request("offline-queue-flush", doFlush);
+  }
+  return doFlush();
+}
+
+/** キュー内の操作のみ削除（データキャッシュは残す） */
+async function clearQueue(): Promise<void> {
+  await clear(queueStore);
+}
+
 // ── データキャッシュ ──
 
 /** ポーリングデータをキャッシュに保存 */

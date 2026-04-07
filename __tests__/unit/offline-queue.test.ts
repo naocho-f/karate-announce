@@ -4,7 +4,7 @@
  * IndexedDB ベースの操作キューとデータキャッシュを検証する。
  * fake-indexeddb により IndexedDB をポリフィル済み（vitest.config.ts の setupFiles）。
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   enqueue,
   getPendingCount,
@@ -13,6 +13,8 @@ import {
   clearAll,
   cacheData,
   getCachedData,
+  flush,
+  type FlushResult,
 } from "@/lib/offline-queue";
 
 beforeEach(async () => {
@@ -126,5 +128,95 @@ describe("データキャッシュ", () => {
     await cacheData("key1", { v: 2 });
     const cached = await getCachedData("key1");
     expect(cached).toEqual({ v: 2 });
+  });
+});
+
+describe("flush（キュー再送）", () => {
+  const mockFetch = vi.fn();
+  vi.stubGlobal("fetch", mockFetch);
+
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
+  it("pending の操作を FIFO 順で送信し、成功したらキューから削除する", async () => {
+    mockFetch.mockResolvedValue(new Response('{"ok":true}', { status: 200 }));
+
+    await enqueue({
+      action: "start",
+      endpoint: "/api/court/matches/m1",
+      method: "PATCH",
+      payload: { action: "start", tournamentId: "t1" },
+      createdAt: new Date().toISOString(),
+      tabId: "tab-1",
+    });
+    await enqueue({
+      action: "set_winner",
+      endpoint: "/api/court/matches/m2",
+      method: "PATCH",
+      payload: { action: "set_winner", winnerId: "f1" },
+      createdAt: new Date().toISOString(),
+      tabId: "tab-1",
+    });
+
+    const result = await flush();
+    expect(result.sent).toBe(2);
+    expect(result.failed).toBe(0);
+    expect(await getPendingCount()).toBe(0);
+    // Idempotency-Key ヘッダが付与されていること
+    expect(mockFetch.mock.calls[0][1].headers["Idempotency-Key"]).toBeTruthy();
+  });
+
+  it("409 Conflict で該当操作をスキップしキューを全破棄する", async () => {
+    mockFetch.mockResolvedValueOnce(new Response('{"error":"conflict"}', { status: 409 }));
+
+    await enqueue({
+      action: "start",
+      endpoint: "/api/court/matches/m1",
+      method: "PATCH",
+      payload: {},
+      createdAt: new Date().toISOString(),
+      tabId: "tab-1",
+    });
+    await enqueue({
+      action: "set_winner",
+      endpoint: "/api/court/matches/m2",
+      method: "PATCH",
+      payload: {},
+      createdAt: new Date().toISOString(),
+      tabId: "tab-1",
+    });
+
+    const result = await flush();
+    expect(result.conflict).toBe(true);
+    // 409 で全キュー破棄
+    expect(await getPendingCount()).toBe(0);
+    // 2件目は送信されない（1件目の 409 で中断）
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("5xx エラーで flush を中断し、操作を pending に戻す", async () => {
+    mockFetch.mockResolvedValue(new Response("error", { status: 503 }));
+
+    await enqueue({
+      action: "start",
+      endpoint: "/api/court/matches/m1",
+      method: "PATCH",
+      payload: {},
+      createdAt: new Date().toISOString(),
+      tabId: "tab-1",
+    });
+
+    const result = await flush();
+    expect(result.failed).toBe(1);
+    // pending のまま残っている（次回 flush で再挑戦）
+    expect(await getPendingCount()).toBe(1);
+  });
+
+  it("キューが空の場合は何もしない", async () => {
+    const result = await flush();
+    expect(result.sent).toBe(0);
+    expect(result.failed).toBe(0);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });
