@@ -121,13 +121,17 @@ export function useConnectionStatus(
       if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
       return;
     }
+    // enabled が true に戻った時、バックオフカウンタをリセットして正常状態から再開
+    failCountRef.current = 0;
+    hasOperationRetryRef.current = false;
+    updateQuality();
     intervalRef.current = setInterval(() => {
       wrappedFetchRef.current();
     }, baseInterval);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [baseInterval, enabled]);
+  }, [baseInterval, enabled, updateQuality]);
 
   return {
     quality,

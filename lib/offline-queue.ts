@@ -33,10 +33,20 @@ export interface QueuedOperation {
 
 type EnqueueInput = Omit<QueuedOperation, "id" | "sequenceNum" | "status">;
 
-let sequenceCounter = 0;
+let sequenceCounter = -1; // -1 = 未初期化
+
+/** 既存キューの最大 sequenceNum からカウンタを初期化（リロード対策） */
+async function ensureSequenceCounter(): Promise<void> {
+  if (sequenceCounter >= 0) return;
+  const allOps = await getAll();
+  sequenceCounter = allOps.length > 0
+    ? Math.max(...allOps.map((op) => op.sequenceNum))
+    : 0;
+}
 
 /** キューに操作を追加する。返り値は生成された UUID（冪等性キー兼用） */
 export async function enqueue(input: EnqueueInput): Promise<string> {
+  await ensureSequenceCounter();
   const id = crypto.randomUUID();
   const op: QueuedOperation = {
     ...input,
@@ -74,7 +84,7 @@ export async function remove(id: string): Promise<void> {
 export async function clearAll(): Promise<void> {
   await clear(queueStore);
   await clear(cacheStore);
-  sequenceCounter = 0;
+  sequenceCounter = -1;
 }
 
 // ── キュー再送（flush） ──

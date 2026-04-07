@@ -156,15 +156,16 @@ function backoff(attempt: number, signal?: AbortSignal): Promise<void> {
       return;
     }
 
-    const timeoutId = setTimeout(resolve, delayMs);
+    const onAbort = () => {
+      clearTimeout(timeoutId);
+      reject(new ResilientFetchError("Request aborted"));
+    };
 
-    signal?.addEventListener(
-      "abort",
-      () => {
-        clearTimeout(timeoutId);
-        reject(new ResilientFetchError("Request aborted"));
-      },
-      { once: true },
-    );
+    const timeoutId = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, delayMs);
+
+    signal?.addEventListener("abort", onAbort, { once: true });
   });
 }
