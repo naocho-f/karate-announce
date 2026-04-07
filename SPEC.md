@@ -551,6 +551,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **再読み上げ（2026-03-23）**: 試合中のカードフッターに「📢 再読」ボタン（試合開始アナウンス再読）、終了済みカードに「📢 再読」ボタン（勝者アナウンス再読）を追加
 - **勝者訂正（2026-03-23）**: 終了済みカードフッターの「訂正」ボタンでカードをオレンジ枠の訂正モードに切り替え。選手スロットをタップして勝者を変更。API `correct_winner` アクションで winner_id を更新し、次ラウンドのマッチが done/ongoing でない場合は選手も差し替え。キャンセルボタンで訂正モード解除
 - **棄権バッジ即時反映（2026-03-23）**: 変化検知を `allMatches` のみから `{ allMatches, allEntries }` に拡張。棄権トグル後（matches は変化しない）もポーリングで検知して状態が即時反映されるように修正
+- **最終整合性修正（2026-04-07）**: 未実装機能の統合（cacheData/offlineMode/UnifiedStatusBar）、dead export削除、仕様書のステータス更新、各画面仕様書にオフライン参照追加、CLAUDE.mdにエクスポート確認チェックリスト追加
 - **レビュー指摘修正: dead code削除・enqueue追加・テスト補完（2026-04-07）**: ConnectionStatusBanner削除、court-index-clientにenqueue追加、resilient-fetchにofflineModeテスト、offline-queueに401/ネットワークエラーテスト追加
 - **E2Eテスト修正（2026-04-07）**: entry-form-autosaveテストをテストイベント作成方式に修正、SWテストに開発環境スキップ追加
 - **Phase 4-6: 端末事前準備チェックリスト（2026-04-07）**: 管理画面ホームにSW登録+キャッシュ構築状況の確認セクション追加

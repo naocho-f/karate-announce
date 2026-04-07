@@ -344,3 +344,12 @@ const isBye = (m: BracketMatch) =>
 ## 14. 未決事項
 
 （現時点でなし）
+
+
+---
+
+## オフライン対応
+
+詳細は [OFFLINE_SPEC.md](OFFLINE_SPEC.md) を参照。
+
+勝者設定操作時の「確定待ち」表示（addPendingWinner/removePendingWinner）。サーバー応答前でもローカルで確定待ち状態を表示。

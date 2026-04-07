@@ -444,3 +444,12 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 ## 12. 未決事項
 
 （現時点でなし）
+
+
+---
+
+## オフライン対応
+
+詳細は [OFFLINE_SPEC.md](OFFLINE_SPEC.md) を参照。
+
+sessionStorage によるフォーム入力の自動保存/復元。デバウンス 500ms で保存。リロード時に復元。送信成功後にクリア。タブを閉じたら消える（個人情報保護）。

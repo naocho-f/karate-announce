@@ -30,11 +30,6 @@ export function clearAllPendingWinners(): void {
   pendingWinners.clear();
 }
 
-/** 確定待ちの matchId 一覧 */
-export function getPendingWinnerIds(): Set<string> {
-  return new Set(pendingWinners);
-}
-
 interface MatchInfo {
   id: string;
   round: number;

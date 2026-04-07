@@ -23,8 +23,6 @@ interface UseConnectionStatusReturn {
   isOffline: boolean;
   /** ポーリング実行関数（バックオフ対応済み。呼び出し元で setInterval に渡す） */
   wrappedFetch: () => Promise<void>;
-  /** 操作リトライが発生したことを通知する（不安定バナー表示用） */
-  notifyOperationRetry: () => void;
 }
 
 export function useConnectionStatus(
@@ -89,11 +87,7 @@ export function useConnectionStatus(
 
   wrappedFetchRef.current = wrappedFetch;
 
-  // 操作リトライ通知（resilient-fetch のリトライ発生時に呼ぶ）
-  const notifyOperationRetry = useCallback(() => {
-    hasOperationRetryRef.current = true;
-    updateQuality();
-  }, [updateQuality]);
+
 
   // navigator online/offline イベント
   useEffect(() => {
@@ -137,7 +131,6 @@ export function useConnectionStatus(
     quality,
     isOffline: quality === "offline",
     wrappedFetch,
-    notifyOperationRetry,
   };
 }
 

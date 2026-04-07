@@ -11,6 +11,8 @@ import { BracketView } from "@/lib/bracket-view";
 import { resilientFetch } from "@/lib/resilient-fetch";
 import { addPendingWinner, removePendingWinner } from "@/lib/optimistic-update";
 import { enqueue } from "@/lib/offline-queue";
+import { UnifiedStatusBar, useOfflineMode, usePendingCount } from "@/components/unified-status-bar";
+import { setMode } from "@/lib/offline-mode";
 
 // ── 単一コートのパネルコンポーネント ─────────────────────────────────────────
 
@@ -26,6 +28,7 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
   const [withdrawnFighterIds, setWithdrawnFighterIds] = useState<Set<string>>(new Set());
   const [fighterEntryMap, setFighterEntryMap] = useState<Record<string, string>>({});
   const [processingMatchIds, setProcessingMatchIds] = useState<Set<string>>(new Set());
+  const { mode: offlineMode } = useOfflineMode();
   const [mutedMatchIds, setMutedMatchIds] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     try {
@@ -145,7 +148,7 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "start", tournamentId }),
-      }, { maxRetries: 3, timeout: 5000 });
+      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
     } catch {
       await enqueue({ action: "start", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "start", tournamentId }, createdAt: new Date().toISOString(), tabId: "court-index" });
       endProcessing(matchId); return;
@@ -181,11 +184,12 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
     addPendingWinner(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
     try {
-      await resilientFetch(`/api/court/matches/${matchId}`, {
+      const res = await resilientFetch(`/api/court/matches/${matchId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }),
-      }, { maxRetries: 3, timeout: 5000 });
+      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
+      if (!res.ok) { endProcessing(matchId); removePendingWinner(matchId); return; }
     } catch {
       await enqueue({ action: "set_winner", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }, createdAt: new Date().toISOString(), tabId: "court-index" });
       endProcessing(matchId); return;
@@ -209,7 +213,7 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_withdrawn: withdrawn }),
-      }, { maxRetries: 3, timeout: 5000 });
+      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
     } catch {
       endProcessing(matchId); return;
     }
@@ -240,7 +244,7 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "correct_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }),
-      }, { maxRetries: 3, timeout: 5000 });
+      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
     } catch {
       await enqueue({ action: "correct_winner", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "correct_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }, createdAt: new Date().toISOString(), tabId: "court-index" });
       endProcessing(matchId); return;
@@ -305,7 +309,7 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "swap_with", otherMatchId: nextMatch.id }),
-      }, { maxRetries: 3, timeout: 5000 });
+      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
     } catch {
       await enqueue({ action: "swap_with", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "swap_with", otherMatchId: nextMatch.id }, createdAt: new Date().toISOString(), tabId: "court-index" });
       endProcessing(matchId); endProcessing(nextMatch.id); return;
@@ -411,8 +415,17 @@ export default function CourtIndexClient() {
     );
   }
 
+  const { mode: offlineMode } = useOfflineMode();
+  const pendingCount = usePendingCount();
+
   return (
     <main className="min-h-screen bg-main-bg text-white p-4">
+      <UnifiedStatusBar
+        quality="normal"
+        mode={offlineMode}
+        pendingCount={pendingCount}
+        onToggleOfflineMode={() => setMode(offlineMode === "online" ? "offline" : "online")}
+      />
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>

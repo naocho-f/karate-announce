@@ -16,7 +16,7 @@ import { showToast } from "@/components/toast";
 import { useConnectionStatus } from "@/components/connection-status";
 import { UnifiedStatusBar, useOfflineMode, usePendingCount } from "@/components/unified-status-bar";
 import { resilientFetch } from "@/lib/resilient-fetch";
-import { enqueue } from "@/lib/offline-queue";
+import { enqueue, cacheData, getCachedData } from "@/lib/offline-queue";
 import { setMode } from "@/lib/offline-mode";
 import { addPendingWinner, removePendingWinner } from "@/lib/optimistic-update";
 
@@ -121,6 +121,9 @@ export default function CourtPage({ params }: Props) {
     if (serialized === prevDataRef.current) return;
     prevDataRef.current = serialized;
 
+    // データキャッシュに保存（変化時のみ。オフライン時のフォールバック用）
+    cacheData(`court-data-${eventId}-${court}`, { tourns, allMatches, allEntries }).catch(() => {});
+
     const byTournament: Record<string, Match[]> = {};
     tournIds.forEach((id) => { byTournament[id] = []; });
     (allMatches ?? []).forEach((m) => { byTournament[m.tournament_id]?.push(m); });
@@ -201,7 +204,7 @@ export default function CourtPage({ params }: Props) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "start", tournamentId }),
-      }, { maxRetries: 3, timeout: 5000 });
+      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
       if (!res.ok) { endProcessing(matchId); showToast("試合開始に失敗しました"); return; }
     } catch {
       await enqueue({ action: "start", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "start", tournamentId }, createdAt: new Date().toISOString(), tabId: "court" });
@@ -250,7 +253,7 @@ export default function CourtPage({ params }: Props) {
           rounds,
           position: match.position,
         }),
-      }, { maxRetries: 3, timeout: 5000 });
+      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
       if (!res.ok) { endProcessing(matchId); removePendingWinner(matchId); showToast("勝者設定に失敗しました"); return; }
     } catch {
       await enqueue({ action: "set_winner", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }, createdAt: new Date().toISOString(), tabId: "court" });
@@ -276,7 +279,7 @@ export default function CourtPage({ params }: Props) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_withdrawn: withdrawn }),
-      }, { maxRetries: 3, timeout: 5000 });
+      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
       if (!res.ok) { endProcessing(matchId); showToast("欠場切替に失敗しました"); return; }
     } catch {
       // 棄権切替はcourtエンドポイントだが同様にキュー保存
@@ -316,7 +319,7 @@ export default function CourtPage({ params }: Props) {
           rounds,
           position: match.position,
         }),
-      }, { maxRetries: 3, timeout: 5000 });
+      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
       if (!res.ok) { endProcessing(matchId); showToast("勝者訂正に失敗しました"); return; }
     } catch {
       await enqueue({ action: "correct_winner", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "correct_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }, createdAt: new Date().toISOString(), tabId: "court" });
@@ -384,7 +387,7 @@ export default function CourtPage({ params }: Props) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "swap_with", otherMatchId: nextMatch.id }),
-      }, { maxRetries: 3, timeout: 5000 });
+      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
       if (!res.ok) { endProcessing(matchId); endProcessing(nextMatch.id); showToast("試合入替に失敗しました"); return; }
     } catch {
       await enqueue({ action: "swap_with", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "swap_with", otherMatchId: nextMatch.id }, createdAt: new Date().toISOString(), tabId: "court" });

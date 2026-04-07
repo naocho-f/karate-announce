@@ -1072,3 +1072,12 @@ function tick() {
 ## 未決事項
 
 （現時点でなし。実装開始可能。）
+
+
+---
+
+## オフライン対応
+
+詳細は [OFFLINE_SPEC.md](OFFLINE_SPEC.md) を参照。
+
+finish_timer の IndexedDB キューイング（オフライン時はキューに保存し復帰後に自動送信）、BroadcastChannel によるタイマー同期はオフラインでも動作。
