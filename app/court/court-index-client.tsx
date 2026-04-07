@@ -10,6 +10,7 @@ import { announceMatchStart, announceWinner, DEFAULT_TEMPLATES, type AnnounceTem
 import { BracketView } from "@/lib/bracket-view";
 import { resilientFetch } from "@/lib/resilient-fetch";
 import { addPendingWinner, removePendingWinner } from "@/lib/optimistic-update";
+import { enqueue } from "@/lib/offline-queue";
 
 // ── 単一コートのパネルコンポーネント ─────────────────────────────────────────
 
@@ -145,7 +146,10 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "start", tournamentId }),
       }, { maxRetries: 3, timeout: 5000 });
-    } catch { endProcessing(matchId); return; }
+    } catch {
+      await enqueue({ action: "start", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "start", tournamentId }, createdAt: new Date().toISOString(), tabId: "court-index" });
+      endProcessing(matchId); return;
+    }
     await load();
     endProcessing(matchId);
 
@@ -182,7 +186,10 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }),
       }, { maxRetries: 3, timeout: 5000 });
-    } catch { endProcessing(matchId); return; }
+    } catch {
+      await enqueue({ action: "set_winner", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }, createdAt: new Date().toISOString(), tabId: "court-index" });
+      endProcessing(matchId); return;
+    }
     await load();
     removePendingWinner(matchId);
     endProcessing(matchId);
@@ -203,7 +210,9 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_withdrawn: withdrawn }),
       }, { maxRetries: 3, timeout: 5000 });
-    } catch { endProcessing(matchId); return; }
+    } catch {
+      endProcessing(matchId); return;
+    }
     await load();
     endProcessing(matchId);
   }
@@ -232,7 +241,10 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "correct_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }),
       }, { maxRetries: 3, timeout: 5000 });
-    } catch { endProcessing(matchId); return; }
+    } catch {
+      await enqueue({ action: "correct_winner", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "correct_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }, createdAt: new Date().toISOString(), tabId: "court-index" });
+      endProcessing(matchId); return;
+    }
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
@@ -294,7 +306,10 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "swap_with", otherMatchId: nextMatch.id }),
       }, { maxRetries: 3, timeout: 5000 });
-    } catch { endProcessing(matchId); endProcessing(nextMatch.id); return; }
+    } catch {
+      await enqueue({ action: "swap_with", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "swap_with", otherMatchId: nextMatch.id }, createdAt: new Date().toISOString(), tabId: "court-index" });
+      endProcessing(matchId); endProcessing(nextMatch.id); return;
+    }
     await load();
     endProcessing(matchId);
     endProcessing(nextMatch.id);

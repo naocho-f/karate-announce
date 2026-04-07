@@ -162,4 +162,30 @@ describe("resilientFetch", () => {
     expect(res.status).toBe(200);
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
+
+  it("offlineMode=true で onQueueFallback が設定されている場合、fetch を呼ばず即座にキューへ", async () => {
+    vi.useRealTimers();
+    const fallback = vi.fn();
+
+    const res = await resilientFetch("/api/test", {
+      method: "PATCH",
+    }, { maxRetries: 3, timeout: 5000, offlineMode: true, onQueueFallback: fallback });
+
+    expect(res.status).toBe(202);
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(fallback).toHaveBeenCalledWith("/api/test", expect.objectContaining({ method: "PATCH" }));
+  });
+
+  it("onQueueFallback が設定されている場合、リトライ全失敗で throw せずキューへ", async () => {
+    vi.useRealTimers();
+    const fallback = vi.fn();
+    mockFetch.mockResolvedValue(serverError());
+
+    const res = await resilientFetch("/api/test", {
+      method: "PATCH",
+    }, { maxRetries: 0, timeout: 5000, onQueueFallback: fallback });
+
+    expect(res.status).toBe(202);
+    expect(fallback).toHaveBeenCalledWith("/api/test", expect.objectContaining({ method: "PATCH" }));
+  });
 });

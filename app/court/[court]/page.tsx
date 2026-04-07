@@ -18,7 +18,7 @@ import { UnifiedStatusBar, useOfflineMode, usePendingCount } from "@/components/
 import { resilientFetch } from "@/lib/resilient-fetch";
 import { enqueue } from "@/lib/offline-queue";
 import { setMode } from "@/lib/offline-mode";
-import { addPendingWinner, removePendingWinner, hasPendingWinner, shouldBlockNextRoundStart } from "@/lib/optimistic-update";
+import { addPendingWinner, removePendingWinner } from "@/lib/optimistic-update";
 
 type Props = { params: Promise<{ court: string }> };
 

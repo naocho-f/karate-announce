@@ -213,6 +213,40 @@ describe("flush（キュー再送）", () => {
     expect(await getPendingCount()).toBe(1);
   });
 
+  it("401 エラーで flush を中断し、操作を pending に戻す", async () => {
+    mockFetch.mockResolvedValue(new Response('{"error":"Unauthorized"}', { status: 401 }));
+
+    await enqueue({
+      action: "start",
+      endpoint: "/api/court/matches/m1",
+      method: "PATCH",
+      payload: {},
+      createdAt: new Date().toISOString(),
+      tabId: "tab-1",
+    });
+
+    const result = await flush();
+    expect(result.failed).toBe(1);
+    expect(await getPendingCount()).toBe(1);
+  });
+
+  it("ネットワークエラーで flush を中断し、操作を pending に戻す", async () => {
+    mockFetch.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    await enqueue({
+      action: "start",
+      endpoint: "/api/court/matches/m1",
+      method: "PATCH",
+      payload: {},
+      createdAt: new Date().toISOString(),
+      tabId: "tab-1",
+    });
+
+    const result = await flush();
+    expect(result.failed).toBe(1);
+    expect(await getPendingCount()).toBe(1);
+  });
+
   it("キューが空の場合は何もしない", async () => {
     const result = await flush();
     expect(result.sent).toBe(0);

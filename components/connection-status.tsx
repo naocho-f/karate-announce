@@ -141,29 +141,4 @@ export function useConnectionStatus(
   };
 }
 
-export function ConnectionStatusBanner({
-  quality,
-  isOffline,
-}: {
-  quality?: ConnectionQuality;
-  isOffline?: boolean;
-}) {
-  // quality が渡されればそちらを使用、なければ isOffline で後方互換
-  const q: ConnectionQuality = quality ?? (isOffline ? "offline" : "normal");
-
-  if (q === "normal") return null;
-
-  if (q === "unstable") {
-    return (
-      <div className="sticky top-0 z-50 bg-yellow-500 text-white text-center px-4 py-2 text-sm font-medium shadow-lg">
-        ⚠ 接続が不安定です
-      </div>
-    );
-  }
-
-  return (
-    <div className="sticky top-0 z-50 bg-red-600 text-white text-center px-4 py-2 text-sm font-medium shadow-lg">
-      ⚠ オフラインです
-    </div>
-  );
-}
+// ConnectionStatusBanner は UnifiedStatusBar に置き換え済み（Phase 2c）。削除済み。

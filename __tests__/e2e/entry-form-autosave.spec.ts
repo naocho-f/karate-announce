@@ -52,8 +52,8 @@ test.describe("エントリーフォーム自動保存", () => {
     expect(hasData).toBe(true);
   });
 
-  test("送信成功後にsessionStorageがクリアされる", async ({ page }) => {
-    // sessionStorage の操作を直接検証
+  test("sessionStorageの保存キーが正しく機能する", async ({ page }) => {
+    // sessionStorage の set/get/remove を検証（送信成功フローのE2E再現は複雑なため直接操作で代替）
     await page.goto(`/entry/${eventId}`);
     await page.waitForLoadState("networkidle");
 
