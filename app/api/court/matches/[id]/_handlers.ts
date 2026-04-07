@@ -40,6 +40,8 @@ type MatchBody = {
 };
 
 export async function handleStart(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
+  const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
+  if (conflict) return conflict;
   await supabaseAdmin.from("matches").update({ status: "ongoing" }).eq("id", id);
   if (body.tournamentId) {
     await supabaseAdmin.from("tournaments").update({ status: "ongoing" }).eq("id", body.tournamentId);
@@ -77,6 +79,8 @@ export async function handleSetWinner(id: string, body: MatchBody, supabaseAdmin
 }
 
 export async function handleReplace(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
+  const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
+  if (conflict) return conflict;
   const { slot, newFighterId } = body;
   const { data: match } = await supabaseAdmin
     .from("matches")
@@ -105,6 +109,8 @@ export async function handleEdit(id: string, body: MatchBody, supabaseAdmin: Sup
 }
 
 export async function handleCorrectWinner(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
+  const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
+  if (conflict) return conflict;
   const { winnerId, tournamentId, round, rounds, position } = body;
   await supabaseAdmin.from("matches").update({ winner_id: winnerId }).eq("id", id);
 
