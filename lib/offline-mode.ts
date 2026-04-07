@@ -1,0 +1,62 @@
+/**
+ * オフラインモード管理
+ *
+ * オンライン/オフラインモードの状態を localStorage で永続化し、
+ * タブ間同期（storage イベント）と React 連携（useSyncExternalStore）を提供する。
+ */
+
+export type NetworkMode = "online" | "offline";
+
+export const STORAGE_KEY = "karate-offline-mode";
+
+type Listener = (mode: NetworkMode) => void;
+
+const listeners = new Set<Listener>();
+
+/** 現在のモードを取得 */
+export function getMode(): NetworkMode {
+  if (typeof localStorage === "undefined") return "online";
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored === "offline") return "offline";
+  return "online";
+}
+
+/** モードを設定（localStorage に永続化 + リスナー通知） */
+export function setMode(mode: NetworkMode): void {
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem(STORAGE_KEY, mode);
+  }
+  listeners.forEach((fn) => fn(mode));
+}
+
+/** モード変更を購読する。返り値は unsubscribe 関数 */
+export function subscribe(listener: Listener): () => void {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+
+/** useSyncExternalStore 用のスナップショット取得 */
+export function getSnapshot(): NetworkMode {
+  return getMode();
+}
+
+/** useSyncExternalStore 用の subscribe（storage イベントでタブ間同期） */
+export function subscribeForReact(callback: () => void): () => void {
+  const wrappedListener = () => callback();
+  listeners.add(wrappedListener);
+
+  // 他タブからの変更を検知
+  const handleStorage = (e: StorageEvent) => {
+    if (e.key === STORAGE_KEY) callback();
+  };
+  if (typeof window !== "undefined") {
+    window.addEventListener("storage", handleStorage);
+  }
+
+  return () => {
+    listeners.delete(wrappedListener);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("storage", handleStorage);
+    }
+  };
+}

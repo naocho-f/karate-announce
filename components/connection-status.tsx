@@ -12,6 +12,8 @@ interface UseConnectionStatusOptions {
   baseInterval: number;
   /** オンライン復帰時のコールバック */
   onReconnect?: () => void;
+  /** false でポーリングを停止（オフラインモード時に使用）。デフォルト true */
+  enabled?: boolean;
 }
 
 interface UseConnectionStatusReturn {
@@ -30,6 +32,7 @@ export function useConnectionStatus(
   options?: UseConnectionStatusOptions,
 ): UseConnectionStatusReturn {
   const baseInterval = options?.baseInterval ?? 3000;
+  const enabled = options?.enabled ?? true;
   const onReconnectRef = useRef(options?.onReconnect);
   onReconnectRef.current = options?.onReconnect;
 
@@ -112,15 +115,19 @@ export function useConnectionStatus(
     };
   }, [updateQuality, reschedule]);
 
-  // 初回ポーリング開始
+  // 初回ポーリング開始（enabled=false で停止）
   useEffect(() => {
+    if (!enabled) {
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+      return;
+    }
     intervalRef.current = setInterval(() => {
       wrappedFetchRef.current();
     }, baseInterval);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [baseInterval]);
+  }, [baseInterval, enabled]);
 
   return {
     quality,
