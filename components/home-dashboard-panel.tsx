@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Event } from "@/lib/types";
 import Link from "next/link";
+import { DeviceReadiness } from "@/components/device-readiness";
 
 export type AdminTab = "home" | "events" | "settings" | "guide";
 
@@ -272,6 +273,8 @@ export function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: AdminTab)
           ))}
         </div>
       </section>
+
+      <DeviceReadiness />
     </div>
   );
 }
