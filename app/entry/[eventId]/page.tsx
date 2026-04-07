@@ -210,6 +210,61 @@ export default function EntryPage({ params }: Props) {
     if (checked) setFieldErrors((prev) => { const k = `consent_${id}`; if (!prev[k]) return prev; const next = { ...prev }; delete next[k]; return next; });
   }, []);
 
+  // ── sessionStorage 自動保存/復元 ──
+  const DRAFT_KEY = `entry-draft-${eventId}`;
+  const restoredRef = useRef(false);
+
+  // 復元（マウント時に1回だけ）
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (draft.values) setValues(draft.values);
+      if (draft.multiValues) {
+        const restored: Record<string, Set<string>> = {};
+        for (const [k, v] of Object.entries(draft.multiValues)) {
+          restored[k] = new Set(v as string[]);
+        }
+        setMultiValues(restored);
+      }
+      if (draft.otherValues) setOtherValues(draft.otherValues);
+      if (draft.consents) setConsents(draft.consents);
+      if (draft.selectedRules) setSelectedRules(new Set(draft.selectedRules));
+      if (draft.emailConfirm) setEmailConfirm(draft.emailConfirm);
+    } catch {
+      // 復元失敗は無視
+    }
+  }, [DRAFT_KEY]);
+
+  // 保存（デバウンス500ms）
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    // 送信済みなら保存しない
+    if (submitted) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      try {
+        const draft = {
+          values,
+          multiValues: Object.fromEntries(
+            Object.entries(multiValues).map(([k, v]) => [k, [...v]])
+          ),
+          otherValues,
+          consents,
+          selectedRules: [...selectedRules],
+          emailConfirm,
+        };
+        sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      } catch {
+        // sessionStorage 書き込み失敗は無視
+      }
+    }, 500);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [values, multiValues, otherValues, consents, selectedRules, emailConfirm, submitted, DRAFT_KEY]);
+
   // ── イベント情報取得 ──
   useEffect(() => {
     async function load() {
@@ -585,6 +640,8 @@ export default function EntryPage({ params }: Props) {
     setEmailSent(!!resData.email_sent);
     setSubmitting(false);
     setSubmitted(true);
+    // 送信成功後に下書きをクリア
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
   }
 
   function resetForm() {
