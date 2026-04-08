@@ -86,3 +86,14 @@ if [ $? -ne 0 ]; then
   echo ""
   exit 1
 fi
+
+# テスト実行
+echo "Running vitest..."
+npx vitest run
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "ERROR: テストが失敗しました。"
+  echo "npx vitest run のエラーを修正してからコミットしてください。"
+  echo ""
+  exit 1
+fi
