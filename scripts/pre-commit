@@ -102,14 +102,11 @@ fi
 LIB_MISSING=""
 for libfile in lib/*.ts lib/*.tsx; do
   [ -f "$libfile" ] || continue
-  basename=$(basename "$libfile" | sed 's/\.\(ts\|tsx\)$//')
+  libname=$(basename "$libfile" .ts)
+  libname=$(echo "$libname" | sed 's/\.tsx$//')
   # supabase クライアント初期化ファイルはテスト対象外
-  case "$basename" in supabase|supabase-admin) continue;; esac
-  found=false
-  for ext in test.ts test.tsx; do
-    [ -f "__tests__/unit/${basename}.${ext}" ] && found=true
-  done
-  if ! $found; then
+  case "$libname" in supabase|supabase-admin) continue;; esac
+  if [ ! -f "__tests__/unit/${libname}.test.ts" ] && [ ! -f "__tests__/unit/${libname}.test.tsx" ]; then
     LIB_MISSING="${LIB_MISSING}  - ${libfile}\n"
   fi
 done
