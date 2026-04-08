@@ -214,6 +214,7 @@ export type Match = {
   rules: string | null;
   result_method: string | null;
   result_detail: ResultDetail | null;
+  updated_at?: string | null;
   fighter1?: Fighter | null;
   fighter2?: Fighter | null;
   winner?: Fighter | null;

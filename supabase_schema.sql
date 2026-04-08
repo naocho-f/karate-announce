@@ -188,7 +188,8 @@ create table matches (
   match_label text,
   rules text,
   result_method text,
-  result_detail jsonb
+  result_detail jsonb,
+  updated_at timestamptz default now()
 );
 
 create table rules (

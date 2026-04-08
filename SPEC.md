@@ -556,6 +556,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **最終整合性修正（2026-04-07）**: 未実装機能の統合（cacheData/offlineMode/UnifiedStatusBar）、dead export削除、仕様書のステータス更新、各画面仕様書にオフライン参照追加、CLAUDE.mdにエクスポート確認チェックリスト追加
 - **レビュー指摘修正: dead code削除・enqueue追加・テスト補完（2026-04-07）**: ConnectionStatusBanner削除、court-index-clientにenqueue追加、resilient-fetchにofflineModeテスト、offline-queueに401/ネットワークエラーテスト追加
 - **E2Eテスト修正（2026-04-07）**: entry-form-autosaveテストをテストイベント作成方式に修正、SWテストに開発環境スキップ追加
+- **スキーマ網羅チェック完了（2026-04-08）**: matches.updated_atをスキーマ+型定義に追記。全20テーブル・全カラムの照合完了
 - **スキーマ乖離の再発防止ルール追加（2026-04-08）**: CLAUDE.mdにsupabase_schema.sql同時更新必須を明記
 - **レビュー修正3件（2026-04-08）**: supabase_schema.sqlカラム追記、SW APIキャッシュをNetworkOnlyに修正、matchesRule混合学年比較実装+テスト4件
 - **データ整合性修正8件（2026-04-08）**: flush()呼出追加、409キュー全消失防止、is_activeアトミック化RPC、フォーム楽観ロック、README更新、依存脆弱性修正、CI audit追加
