@@ -118,6 +118,63 @@ if [ -n "$LIB_MISSING" ]; then
   echo ""
 fi
 
+# 逆方向チェック: SPEC.md のAPI一覧に載っているパスが実際に route.ts として存在するか
+SPEC_API_STALE=""
+grep -oE '`/api/[^`]+`' SPEC.md | sed 's/`//g;s/\?.*//;s/#.*//' | sort -u | while read api_path; do
+  # /api/admin/events/[id] → app/api/admin/events/[id]/route.ts
+  route_file="app${api_path}/route.ts"
+  if [ ! -f "$route_file" ]; then
+    echo "$api_path" >> /tmp/pre-commit-stale-apis
+  fi
+done
+if [ -f /tmp/pre-commit-stale-apis ]; then
+  SPEC_API_STALE=$(cat /tmp/pre-commit-stale-apis)
+  rm -f /tmp/pre-commit-stale-apis
+  if [ -n "$SPEC_API_STALE" ]; then
+    echo ""
+    echo "ERROR: SPEC.md に記載されているが存在しない API ルートがあります:"
+    echo "$SPEC_API_STALE" | while read line; do echo "  - $line"; done
+    echo "SPEC.md から削除��るか、ルートを作成してください。"
+    echo ""
+    exit 1
+  fi
+fi
+rm -f /tmp/pre-commit-stale-apis
+
+# ページ→SPEC.md チェック: app/ の page.tsx が SPEC.md 画面一覧に記載されているか
+PAGE_MISSING=""
+for pagefile in $(find app -name 'page.tsx' -not -path '*/api/*' 2>/dev/null); do
+  # app/court/[court]/page.tsx → /court/[court]
+  page_path=$(echo "$pagefile" | sed 's|^app||;s|/page\.tsx$||')
+  [ -z "$page_path" ] && page_path="/"
+  if ! grep -Fq "$page_path" SPEC.md; then
+    # ブラケット除去して再チェック
+    page_clean=$(echo "$page_path" | sed 's/\[.*\]//g;s|/$||')
+    if ! grep -Fq "$page_clean" SPEC.md; then
+      PAGE_MISSING="${PAGE_MISSING}  - ${page_path} (${pagefile})\n"
+    fi
+  fi
+done
+if [ -n "$PAGE_MISSING" ]; then
+  echo ""
+  echo "ERROR: 以下のページが SPEC.md 画面一覧に記載されていません:"
+  printf "$PAGE_MISSING"
+  echo "SPEC.md Section 3 に追加してください。"
+  echo ""
+  exit 1
+fi
+
+# hook 同期チェック: scripts/pre-commit と .git/hooks/pre-commit が一致するか
+if [ -f "scripts/pre-commit" ]; then
+  if ! diff -q scripts/pre-commit .git/hooks/pre-commit > /dev/null 2>&1; then
+    echo ""
+    echo "ERROR: scripts/pre-commit と .git/hooks/pre-commit が一致しません。"
+    echo "cp scripts/pre-commit .git/hooks/pre-commit で同期してください。"
+    echo ""
+    exit 1
+  fi
+fi
+
 # TypeScript 型チェック
 echo "Running tsc --noEmit..."
 npx tsc --noEmit
