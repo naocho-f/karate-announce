@@ -106,11 +106,15 @@ export default function LivePage() {
   const { isOffline, quality, wrappedFetch } = useConnectionStatus(load, {
     baseInterval: 5000,
     enabled: offlineMode === "online",
+    onReconnect: () => { flush().catch(() => {}); },
   });
 
   useEffect(() => { wrappedFetch(); }, [wrappedFetch]);
 
   useEffect(() => {
+    // オフラインモード時は Realtime を接続しない
+    if (offlineMode === "offline") return;
+
     // Supabase Realtime: matches テーブルの変更を即座に検知
     const channel = supabase
       .channel("live-matches")
@@ -136,7 +140,7 @@ export default function LivePage() {
       supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [wrappedFetch]);
+  }, [wrappedFetch, offlineMode]);
 
   // courts が更新されたらウォッチ判定
   useEffect(() => {

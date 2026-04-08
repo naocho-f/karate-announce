@@ -2,13 +2,13 @@
 
 export default function OfflinePage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-main-bg px-4">
       <div className="text-center">
         <div className="mb-6 text-6xl">📡</div>
-        <h1 className="mb-4 text-2xl font-bold text-gray-800">
+        <h1 className="mb-4 text-2xl font-bold text-white">
           オフラインです
         </h1>
-        <p className="mb-8 text-gray-600">
+        <p className="mb-8 text-gray-400">
           ネットワークに接続してから、下のボタンを押してください。
         </p>
         <button
