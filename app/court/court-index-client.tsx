@@ -11,6 +11,7 @@ import { BracketView } from "@/lib/bracket-view";
 import { resilientFetch } from "@/lib/resilient-fetch";
 import { addPendingWinner, removePendingWinner } from "@/lib/optimistic-update";
 import { enqueue } from "@/lib/offline-queue";
+import { useConnectionStatus } from "@/components/connection-status";
 import { UnifiedStatusBar, useOfflineMode, usePendingCount, useAutoRecovery } from "@/components/unified-status-bar";
 import { setMode } from "@/lib/offline-mode";
 
@@ -418,11 +419,15 @@ export default function CourtIndexClient() {
   const { mode: offlineMode } = useOfflineMode();
   const pendingCount = usePendingCount();
   const { showRecoveryPrompt, acceptRecovery, declineRecovery } = useAutoRecovery(offlineMode);
+  const { quality } = useConnectionStatus(
+    useCallback(async () => {}, []),
+    { baseInterval: 5000, enabled: offlineMode === "online" },
+  );
 
   return (
     <main className="min-h-screen bg-main-bg text-white p-4">
       <UnifiedStatusBar
-        quality="normal"
+        quality={quality}
         mode={offlineMode}
         pendingCount={pendingCount}
         onToggleOfflineMode={() => setMode(offlineMode === "online" ? "offline" : "online")}

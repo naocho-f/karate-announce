@@ -46,7 +46,7 @@
 ## 環境変数
 - `.env.local` で管理。`.gitignore` 済み。
 - 新しい環境変数を追加する場合は、Vercel の Environment Variables にも追加すること。
-- 必要な変数: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `ADMIN_PASSWORD`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_MODE`
+- 必要な変数: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_MODE`
 
 ## Vercel デプロイ時の注意事項
 - **レート制限**: 公開エントリーAPIのレート制限はin-memory Map実装。Vercelのサーバーレス関数はコールドスタートでメモリがリセットされるため、トラフィック集中時にレート制限が効かない場合がある。大会当日に大量申込が予想される場合は、Supabase RLS や外部レート制限サービス（Upstash等）への移行を検討すること。
@@ -148,8 +148,6 @@
 - Supabase 固有機能に依存していないか（PostgreSQL 標準の範囲で書く）
 - 将来 `tenant_id` で分離できる構造になっているか
 
-**DB/RPC 整合性確認（supabase.rpc() を使用する場合）** ※ pre-commit hook で自動チェック済み
-- コミット時に hook が自動検出するが、**RPC を追加した時点で**マイグレーションファイルも同時に作成すること（コミット時に初めて気づくのでは遅い）
 
 ### Step 5: セルフレビュー（繰り返し）
 
