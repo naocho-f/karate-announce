@@ -118,13 +118,12 @@ if [ -n "$LIB_MISSING" ]; then
   echo ""
 fi
 
-# TypeScript 型チェック（GitHub Actions と同じチェック）
+# TypeScript 型チェック
 echo "Running tsc --noEmit..."
 npx tsc --noEmit
 if [ $? -ne 0 ]; then
   echo ""
   echo "ERROR: TypeScript 型チェックに失敗しました。"
-  echo "npx tsc --noEmit のエラーを修正してからコミットしてください。"
   echo ""
   exit 1
 fi
@@ -135,7 +134,16 @@ npx vitest run
 if [ $? -ne 0 ]; then
   echo ""
   echo "ERROR: テストが失敗しました。"
-  echo "npx vitest run のエラーを修正してからコミットしてください。"
+  echo ""
+  exit 1
+fi
+
+# ビルド
+echo "Running build..."
+npm run build
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "ERROR: ビルドに失敗しました。"
   echo ""
   exit 1
 fi
