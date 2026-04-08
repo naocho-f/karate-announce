@@ -178,12 +178,10 @@ else
 fi
 
 # ── Phase 3: 動的チェック（ブロック） ─────────────────────────
+# build は CI と Vercel が担当するため pre-commit では実行しない（高速化）
 
 echo "Running tsc --noEmit..."
 npx tsc --noEmit || { echo ""; echo "ERROR: TypeScript 型チェック失敗"; exit 1; }
 
 echo "Running vitest..."
 npx vitest run || { echo ""; echo "ERROR: テスト失敗"; exit 1; }
-
-echo "Running build..."
-npm run build || { echo ""; echo "ERROR: ビルド失敗"; exit 1; }

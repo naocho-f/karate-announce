@@ -213,14 +213,19 @@
 - **フィールド追加・変更時は影響範囲を網羅的に確認する。** DB（カラム）→ 型定義 → API（受け取り・保存）→ UI（入力・表示）→ ロジック（フィルタ・計算）→ テスト、の全レイヤーを漏れなく修正する。1箇所でも漏れるとデータが保存されない・表示されない不具合になる。
 - **あらゆる追記・変更時の確認**: CLAUDE.md・settings.json・Memory 等、どのファイルへの追記・変更でも、既存内容との重複・矛盾・競合がないか毎回確認すること。
 
-## Pre-commit Hook（自動整合性チェック）
-- ソース: `scripts/pre-commit`（Git 管理）→ `.git/hooks/pre-commit` にコピーして使用
-- **チェック内容**:
-  1. SPEC.md がコミットに含まれているか
-  2. SPEC.md ヘッダーの「最終更新」日付が当日か
-  3. コード内の全 `rpc()` 呼び出しに対応するマイグレーションファイルが存在するか
-  4. TypeScript 型チェック（`tsc --noEmit`）
-- hook を更新したら `scripts/pre-commit` も同期すること。新環境では `cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit` で設定
+## 品質チェックの役割分担
+3層で役割を分けている。同じチェックを複数層で重複させない。
+| 層 | タイミング | 担当 | 所要時間 |
+|---|----------|------|---------|
+| **pre-commit hook** | コミット前（ローカル） | 静的チェック + tsc + vitest | ~10秒 |
+| **GitHub Actions CI** | プッシュ後（GitHub） | 静的チェック + tsc + vitest + build | ~70秒 |
+| **Vercel** | デプロイ時 | build | 自動 |
+
+- pre-commit は高速であること最優先。build は CI と Vercel に任せる。
+- CI は hook バイパス時の安全網。hook と同じ静的チェックに加え build も実行。
+- ソース: `scripts/pre-commit`（Git 管理）。`npm install` 時に `prepare` スクリプトで自動インストール。
+- hook を更新したら `scripts/pre-commit` も同期すること（hook 同期チェックでブロックされる）。
+- 警告のベースライン: `.warnings-baseline`。新規追加分のみ表示し、既知の警告による疲れを防止。
 
 ## UIスタイルガイド（随時追記）
 - **タブのレイアウト**: サブタブは `grid grid-cols-{タブ数}` で横幅を均等割にする。`flex` で左寄せにしない。
