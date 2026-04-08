@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getResend } from "@/lib/resend";
 import { renderTemplate, DEFAULT_SUBJECT, DEFAULT_BODY, buildEntryDetails } from "@/lib/email-template";
 import { getFieldDef } from "@/lib/form-fields";
+import { dbError } from "@/lib/api-utils";
 
 // --- IP-based rate limiter ---
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     .insert(entry)
     .select("id")
     .single();
-  if (error || !created) return NextResponse.json({ error: error?.message ?? "エントリーの登録に失敗しました" }, { status: 500 });
+  if (error || !created) return dbError(error, "エントリーの登録に失敗しました");
 
   if (rule_ids && rule_ids.length > 0) {
     await supabaseAdmin.from("entry_rules").insert(
@@ -197,6 +198,6 @@ async function sendConfirmationEmail(
   });
   if (error) {
     console.error("[email] Resend API error:", JSON.stringify(error));
-    throw new Error(`Resend API error: ${error.message ?? JSON.stringify(error)}`);
+    throw new Error("メール送信に失敗しました");
   }
 }

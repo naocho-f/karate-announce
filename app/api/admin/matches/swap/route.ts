@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
+import { dbError } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
@@ -9,6 +10,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "match1_id and match2_id are required" }, { status: 400 });
   }
   const { error } = await supabaseAdmin.rpc("swap_match_positions", { match1_id, match2_id });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error);
   return NextResponse.json({ ok: true });
 }

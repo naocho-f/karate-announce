@@ -41,13 +41,14 @@ describe("管理系 CRUD API", () => {
 
   describe("/api/admin/dojos", () => {
     it("POST: 道場を作成できる", async () => {
+      mockResult("dojos", "insert", { data: { id: "dojo-new" } });
       const { POST } = await import("@/app/api/admin/dojos/route");
       const req = createAdminRequest("POST", "/api/admin/dojos", {
         body: { name: "テスト道場", name_reading: "てすとどうじょう" },
       });
       const res = await POST(req);
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual({ ok: true });
+      expect(await res.json()).toEqual({ id: "dojo-new" });
     });
 
     // 認証テストは admin-login.test.ts と admin-auth.test.ts でカバー済み
@@ -75,12 +76,14 @@ describe("管理系 CRUD API", () => {
 
   describe("/api/admin/fighters", () => {
     it("POST: 選手を作成できる", async () => {
+      mockResult("fighters", "insert", { data: { id: "f-new" } });
       const { POST } = await import("@/app/api/admin/fighters/route");
       const req = createAdminRequest("POST", "/api/admin/fighters", {
         body: { name: "田中太郎", dojo_id: "d1" },
       });
       const res = await POST(req);
       expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ id: "f-new" });
     });
   });
 
@@ -106,12 +109,14 @@ describe("管理系 CRUD API", () => {
 
   describe("/api/admin/rules", () => {
     it("POST: ルールを作成できる", async () => {
+      mockResult("rules", "insert", { data: { id: "r-new" } });
       const { POST } = await import("@/app/api/admin/rules/route");
       const req = createAdminRequest("POST", "/api/admin/rules", {
         body: { name: "テストルール" },
       });
       const res = await POST(req);
       expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ id: "r-new" });
     });
   });
 

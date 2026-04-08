@@ -685,29 +685,29 @@ export default function EntryPage({ params }: Props) {
           </p>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <label className="text-xs text-gray-400">姓{isReq && <span className="text-red-400 ml-1">*</span>}</label>
-              <input value={values["family_name"] ?? ""} onChange={(e) => setValue("family_name", e.target.value)}
+              <label htmlFor="field-family_name" className="text-xs text-gray-400">姓{isReq && <span className="text-red-400 ml-1">*</span>}</label>
+              <input id="field-family_name" value={values["family_name"] ?? ""} onChange={(e) => setValue("family_name", e.target.value)}
                 placeholder="山田" className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`} required={isReq} />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-gray-400">名{isReq && <span className="text-red-400 ml-1">*</span>}</label>
-              <input value={values["given_name"] ?? ""} onChange={(e) => setValue("given_name", e.target.value)}
+              <label htmlFor="field-given_name" className="text-xs text-gray-400">名{isReq && <span className="text-red-400 ml-1">*</span>}</label>
+              <input id="field-given_name" value={values["given_name"] ?? ""} onChange={(e) => setValue("given_name", e.target.value)}
                 placeholder="太郎" className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`} required={isReq} />
             </div>
             {showKana && (
               <>
                 <div className="space-y-1">
-                  <label className="text-xs text-gray-400">
+                  <label htmlFor="field-family_name_reading" className="text-xs text-gray-400">
                     姓（読み）{kanaRequired && <span className="text-red-400 ml-1">*</span>}
                   </label>
-                  <input value={values["family_name_reading"] ?? ""} onChange={(e) => setValue("family_name_reading", e.target.value)}
+                  <input id="field-family_name_reading" value={values["family_name_reading"] ?? ""} onChange={(e) => setValue("family_name_reading", e.target.value)}
                     placeholder="やまだ" className={`${inp} ${fieldErrors["kana"] ? "border-red-500" : ""}`} required={kanaRequired} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-gray-400">
+                  <label htmlFor="field-given_name_reading" className="text-xs text-gray-400">
                     名（読み）{kanaRequired && <span className="text-red-400 ml-1">*</span>}
                   </label>
-                  <input value={values["given_name_reading"] ?? ""} onChange={(e) => setValue("given_name_reading", e.target.value)}
+                  <input id="field-given_name_reading" value={values["given_name_reading"] ?? ""} onChange={(e) => setValue("given_name_reading", e.target.value)}
                     placeholder="たろう" className={`${inp} ${fieldErrors["kana"] ? "border-red-500" : ""}`} required={kanaRequired} />
                 </div>
               </>
@@ -748,11 +748,12 @@ export default function EntryPage({ params }: Props) {
           />
           {showKana && (
             <div className="space-y-1">
-              <label className="text-xs text-gray-400">
+              <label htmlFor="field-organization_kana" className="text-xs text-gray-400">
                 {kanaConfig?.config.custom_label || (getFieldDef("organization_kana")?.label ?? "よみがな")}
                 {kanaRequired && <span className="text-red-400 ml-1">*</span>}
               </label>
               <input
+                id="field-organization_kana"
                 value={values["organization_kana"] ?? ""}
                 onChange={(e) => setValue("organization_kana", e.target.value)}
                 placeholder={getFieldDef("organization_kana")?.placeholder}
@@ -790,11 +791,12 @@ export default function EntryPage({ params }: Props) {
           />
           {showKana && (
             <div className="space-y-1">
-              <label className="text-xs text-gray-400">
+              <label htmlFor="field-branch_kana" className="text-xs text-gray-400">
                 {kanaConfig?.config.custom_label || (getFieldDef("branch_kana")?.label ?? "よみがな")}
                 {kanaRequired && <span className="text-red-400 ml-1">*</span>}
               </label>
               <input
+                id="field-branch_kana"
                 value={values["branch_kana"] ?? ""}
                 onChange={(e) => setValue("branch_kana", e.target.value)}
                 placeholder={getFieldDef("branch_kana")?.placeholder}
@@ -970,8 +972,9 @@ export default function EntryPage({ params }: Props) {
             />
             {def.hasConfirmInput && (
               <div className="space-y-1">
-                <label className="text-xs text-gray-400">メールアドレス（確認）</label>
+                <label htmlFor="field-email-confirm" className="text-xs text-gray-400">メールアドレス（確認）</label>
                 <input
+                  id="field-email-confirm"
                   type="email"
                   value={emailConfirm}
                   onChange={(e) => setEmailConfirm(e.target.value)}

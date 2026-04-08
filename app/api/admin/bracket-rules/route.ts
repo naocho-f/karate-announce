@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
+import { dbError } from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     .select("*")
     .eq("event_id", eventId)
     .order("sort_order", { ascending: true });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error);
   return NextResponse.json(data);
 }
 
@@ -49,6 +50,6 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error);
   return NextResponse.json(data);
 }

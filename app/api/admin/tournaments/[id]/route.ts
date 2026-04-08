@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 import { ensureFighterFromEntry } from "@/lib/ensure-fighter";
 import type { Entry } from "@/lib/types";
+import { dbError } from "@/lib/api-utils";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -76,7 +77,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     })
     .eq("id", id);
 
-  if (tErr) return NextResponse.json({ error: tErr.message }, { status: 500 });
+  if (tErr) return dbError(tErr);
 
   // ペア解決（fighter 確保）
   const resolvedPairs = await Promise.all(
@@ -180,7 +181,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     .from("tournaments")
     .update(updates)
     .eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error);
   return NextResponse.json({ ok: true });
 }
 
@@ -192,7 +193,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   await supabaseAdmin.from("matches").delete().eq("tournament_id", id);
 
   const { error } = await supabaseAdmin.from("tournaments").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error);
 
   return NextResponse.json({ ok: true });
 }

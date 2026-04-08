@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 import { ensureFighterFromEntry } from "@/lib/ensure-fighter";
 import type { Entry } from "@/lib/types";
+import { dbError } from "@/lib/api-utils";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -35,6 +36,6 @@ export async function POST(request: NextRequest, { params }: Params) {
     .update({ [field]: fighterId, status: hasOpponent ? "ready" : "waiting" })
     .eq("id", id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error);
   return NextResponse.json({ ok: true });
 }

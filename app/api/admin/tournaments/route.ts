@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 import { ensureFighterFromEntry } from "@/lib/ensure-fighter";
 import type { Entry } from "@/lib/types";
+import { dbError } from "@/lib/api-utils";
 
 type PairInput = {
   e1: Entry;
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (tErr || !t) return NextResponse.json({ error: tErr?.message ?? "トーナメントの作成に失敗しました" }, { status: 500 });
+  if (tErr || !t) return dbError(tErr, "トーナメントの作成に失敗しました");
 
   const resolvedPairs = await Promise.all(
     pairs.map(async (p) => ({

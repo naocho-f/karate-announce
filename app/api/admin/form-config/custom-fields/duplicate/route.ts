@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
+import { dbError } from "@/lib/api-utils";
 
 /** POST — カスタムフィールドを複製 */
 export async function POST(request: NextRequest) {
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     })
     .select()
     .single();
-  if (defErr) return NextResponse.json({ error: defErr.message }, { status: 500 });
+  if (defErr) return dbError(defErr);
 
   // form_field_configs に複製
   const { data: fieldConfig, error: fcErr } = await supabaseAdmin
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
     })
     .select()
     .single();
-  if (fcErr) return NextResponse.json({ error: fcErr.message }, { status: 500 });
+  if (fcErr) return dbError(fcErr);
 
   return NextResponse.json({ def, fieldConfig });
 }

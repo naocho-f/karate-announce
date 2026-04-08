@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
+import { dbError } from "@/lib/api-utils";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -30,7 +31,7 @@ export async function POST(
   const { error: uploadError } = await supabaseAdmin.storage
     .from("form-notice-images")
     .upload(storagePath, buffer, { contentType: file.type });
-  if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  if (uploadError) return dbError(uploadError, "画像のアップロードに失敗しました");
 
   await supabaseAdmin.from("events").update({ banner_image_path: storagePath }).eq("id", id);
 

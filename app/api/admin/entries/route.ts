@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
+import { dbError } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     .insert(entry)
     .select("id")
     .single();
-  if (error || !created) return NextResponse.json({ error: error?.message ?? "Failed" }, { status: 500 });
+  if (error || !created) return dbError(error, "Failed");
 
   if (rule_ids && rule_ids.length > 0) {
     await supabaseAdmin.from("entry_rules").insert(

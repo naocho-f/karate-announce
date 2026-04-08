@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 import { FIELD_POOL, DEFAULT_CUSTOM_FIELDS } from "@/lib/form-fields";
 import { deleteNoticeWithImages, deleteImageById } from "@/lib/form-config-utils";
+import { dbError } from "@/lib/api-utils";
 
 // ──────────────────────────────────────────────
 // デフォルトフォーム設定（Google Forms の実績フォームを再現）
@@ -219,7 +220,7 @@ export async function GET(request: NextRequest) {
       .insert({ event_id: eventId })
       .select()
       .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return dbError(error);
     config = created;
 
     // デフォルトのフィールド設定を一括作成（画像のGoogleFormsフォームを再現する順序）

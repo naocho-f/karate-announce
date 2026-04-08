@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { dbError } from "@/lib/api-utils";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest, ctx: Ctx) {
   const { error: uploadErr } = await supabaseAdmin.storage
     .from("form-notice-images") // 既存バケットを再利用
     .upload(storagePath, buf, { contentType: file.type, upsert: true });
-  if (uploadErr) return NextResponse.json({ error: uploadErr.message }, { status: 500 });
+  if (uploadErr) return dbError(uploadErr);
 
   const { data: urlData } = supabaseAdmin.storage
     .from("form-notice-images")
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest, ctx: Ctx) {
     .from("timer_presets")
     .update({ buzzer_sound: "custom", buzzer_custom_path: urlData.publicUrl, updated_at: new Date().toISOString() })
     .eq("id", id);
-  if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
+  if (updateErr) return dbError(updateErr);
 
   return NextResponse.json({ url: urlData.publicUrl }, { status: 201 });
 }
@@ -69,6 +70,6 @@ export async function DELETE(request: NextRequest, ctx: Ctx) {
     .from("timer_presets")
     .update({ buzzer_sound: "mid-square-single", buzzer_custom_path: null, updated_at: new Date().toISOString() })
     .eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return dbError(error);
   return NextResponse.json({ ok: true });
 }

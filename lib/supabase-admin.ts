@@ -12,8 +12,10 @@ function getClient(): SupabaseClient {
 }
 
 // Proxy を使って遅延初期化（ビルド時に env vars がなくてもクラッシュしない）
-export const supabaseAdmin = new Proxy({} as SupabaseClient, {
-  get(_target, prop) {
-    return (getClient() as unknown as Record<string | symbol, unknown>)[prop];
+export const supabaseAdmin: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_target, prop, receiver) {
+    const client = getClient();
+    const value = Reflect.get(client, prop, receiver);
+    return typeof value === "function" ? value.bind(client) : value;
   },
 });

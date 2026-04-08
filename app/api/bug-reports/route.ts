@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 import { isDev } from "@/lib/app-mode";
+import { dbError } from "@/lib/api-utils";
 
 function withCors(res: NextResponse): NextResponse {
   if (isDev()) {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     viewport: viewport || null,
     app_version: app_version || null,
   });
-  if (error) return withCors(NextResponse.json({ error: error.message }, { status: 500 }));
+  if (error) return withCors(dbError(error));
   return withCors(NextResponse.json({ ok: true }, { status: 201 }));
 }
 
@@ -44,6 +45,6 @@ export async function GET(request: NextRequest) {
     .from("bug_reports")
     .select("*")
     .order("created_at", { ascending: false });
-  if (error) return withCors(NextResponse.json({ error: error.message }, { status: 500 }));
+  if (error) return withCors(dbError(error));
   return withCors(NextResponse.json(data));
 }
