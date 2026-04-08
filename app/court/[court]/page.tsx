@@ -53,11 +53,16 @@ export default function CourtPage({ params }: Props) {
 
   const load = useCallback(async () => {
     // アクティブなイベントを独立して確認
-    const { data: activeEvent } = await supabase
+    const { data: activeEvent, error: eventError } = await supabase
       .from("events")
       .select("id, court_names, is_active")
       .eq("is_active", true)
       .maybeSingle();
+
+    if (eventError) {
+      // DB接続エラー: ローディング状態を維持（ポーリングで再取得を試行）
+      return;
+    }
 
     if (!activeEvent) {
       setIsEventActive(false);

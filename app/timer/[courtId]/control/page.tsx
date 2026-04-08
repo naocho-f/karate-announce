@@ -21,7 +21,9 @@ import { roundName } from "@/lib/tournament";
 import { showToast } from "@/components/toast";
 import { flushTimerLogs } from "@/lib/timer-log-flush";
 import { resilientFetch } from "@/lib/resilient-fetch";
-import { enqueue } from "@/lib/offline-queue";
+import { enqueue, flush } from "@/lib/offline-queue";
+import { useOfflineMode } from "@/components/unified-status-bar";
+import { setMode } from "@/lib/offline-mode";
 import ScoringPanel from "./_scoring-panel";
 import ResultPanel from "./_result-panel";
 import ShortcutPanel from "./_shortcut-panel";
@@ -125,6 +127,7 @@ type MatchCandidate = {
 
 export default function TimerControlPage() {
   const { courtId } = useParams<{ courtId: string }>();
+  const { mode: offlineMode } = useOfflineMode();
   const [state, setState] = useState<TimerState>(createInitialState);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -756,6 +759,12 @@ export default function TimerControlPage() {
 
   return (
     <div className="min-h-screen h-screen bg-gray-950 text-gray-100 flex flex-col">
+      {offlineMode === "offline" && (
+        <div className="bg-blue-600 text-white text-center px-3 py-1 text-xs font-medium flex items-center justify-center gap-2">
+          <span>オフラインモード</span>
+          <button onClick={() => { setMode("online"); flush().catch(() => {}); }} className="bg-blue-800 hover:bg-blue-900 px-2 py-0.5 rounded text-xs">オンラインに切り替え</button>
+        </div>
+      )}
       {/* ── ミニプレビュー ── */}
       <div className="bg-black border-b border-gray-800 p-3">
         <div className="flex items-center justify-between mb-2">
@@ -958,7 +967,7 @@ export default function TimerControlPage() {
                   })()}
                 </div>
               ) : (
-                <p className="text-gray-600 text-sm">開始可能な試合がありません</p>
+                <p className="text-gray-600 text-sm">開始可能な試合がありません（コートにトーナメントが割り当てられていない可能性があります）</p>
               )}
 
               {/* テスト用 */}

@@ -295,7 +295,10 @@ export default function EntryPage({ params }: Props) {
         setFormConfig(data);
         setFormLoading(false);
       })
-      .catch(() => setFormLoading(false));
+      .catch(() => {
+        setFormConfig({ ready: false, fetchError: true } as FormConfigResponse);
+        setFormLoading(false);
+      });
   }, [eventId]);
 
   // ── 道場マスタ取得（organizationフィールド用） ──
@@ -1182,15 +1185,25 @@ export default function EntryPage({ params }: Props) {
     );
   }
 
-  // ── 準備中表示 ──
+  // ── 準備中 or エラー表示 ──
   if (!formConfig?.ready) {
+    const isFetchError = (formConfig as Record<string, unknown>)?.fetchError === true;
     return (
       <main className="min-h-screen bg-main-bg text-white flex items-center justify-center p-6">
         <div className="max-w-sm w-full text-center space-y-4">
-          <div className="text-5xl">🔧</div>
+          <div className="text-5xl">{isFetchError ? "⚠" : "🔧"}</div>
           <h1 className="text-xl font-bold">{event.name}</h1>
-          <p className="text-gray-400">参加申込フォームは準備中です。</p>
-          <p className="text-gray-500 text-xs">しばらくお待ちください。</p>
+          {isFetchError ? (
+            <>
+              <p className="text-gray-400">フォーム情報の取得に失敗しました。</p>
+              <button onClick={() => window.location.reload()} className="text-blue-400 underline text-sm">再読み込み</button>
+            </>
+          ) : (
+            <>
+              <p className="text-gray-400">参加申込フォームは準備中です。</p>
+              <p className="text-gray-500 text-xs">しばらくお待ちください。</p>
+            </>
+          )}
         </div>
       </main>
     );
