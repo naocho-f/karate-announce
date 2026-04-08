@@ -402,7 +402,15 @@ export default function CourtIndexClient() {
     });
   }, []);
 
-  if (activeEvent === undefined) return <div className="min-h-screen bg-main-bg" />;
+  const { mode: offlineMode } = useOfflineMode();
+  const pendingCount = usePendingCount();
+  const { showRecoveryPrompt, acceptRecovery, declineRecovery } = useAutoRecovery(offlineMode);
+  const { quality } = useConnectionStatus(
+    useCallback(async () => {}, []),
+    { baseInterval: 5000, enabled: offlineMode === "online" },
+  );
+
+  if (activeEvent === undefined) return <div className="min-h-screen bg-main-bg flex items-center justify-center"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>;
 
   if (!activeEvent) {
     return (
@@ -415,14 +423,6 @@ export default function CourtIndexClient() {
       </main>
     );
   }
-
-  const { mode: offlineMode } = useOfflineMode();
-  const pendingCount = usePendingCount();
-  const { showRecoveryPrompt, acceptRecovery, declineRecovery } = useAutoRecovery(offlineMode);
-  const { quality } = useConnectionStatus(
-    useCallback(async () => {}, []),
-    { baseInterval: 5000, enabled: offlineMode === "online" },
-  );
 
   return (
     <main className="min-h-screen bg-main-bg text-white p-4">

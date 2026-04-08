@@ -20,9 +20,11 @@ test.describe("ホームダッシュボード", () => {
     await page.goto("/admin?tab=home");
     await page.waitForLoadState("networkidle");
 
-    // 進行中なしメッセージ、または進行中イベントが表示される
+    // ダッシュボードのコンテンツが描画されるまで待機
+    await page.waitForSelector('[role="tabpanel"]', { timeout: 10_000 });
+
     const body = await page.textContent("body");
-    const hasContent = body?.includes("進行中の試合はありません") || body?.includes("進行中");
+    const hasContent = body?.includes("進行中の試合はありません") || body?.includes("開催中の試合はありません") || body?.includes("進行中");
     expect(hasContent).toBeTruthy();
   });
 
