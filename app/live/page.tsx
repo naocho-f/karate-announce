@@ -53,28 +53,42 @@ export default function LivePage() {
     setActiveEvent(ae ?? null);
     if (!ae) return;
 
+    // バッチクエリ: 全トーナメント→全マッチを一括取得（N+1 回避）
+    const { data: allTourns } = await supabase
+      .from("tournaments")
+      .select("*")
+      .eq("event_id", ae.id)
+      .neq("status", "finished")
+      .order("sort_order")
+      .order("created_at");
+
+    const tournIds = (allTourns ?? []).map((t) => t.id);
+    const { data: allMatches } = tournIds.length > 0
+      ? await supabase
+          .from("matches")
+          .select("*, fighter1:fighters!fighter1_id(id,name), fighter2:fighters!fighter2_id(id,name), winner:fighters!winner_id(id,name)")
+          .in("tournament_id", tournIds)
+          .order("round")
+          .order("position")
+      : { data: [] };
+
+    // マッチをトーナメント ID でグループ化
+    const matchesByTourn = new Map<string, Match[]>();
+    for (const m of (allMatches ?? []) as Match[]) {
+      const list = matchesByTourn.get(m.tournament_id) ?? [];
+      list.push(m);
+      matchesByTourn.set(m.tournament_id, list);
+    }
+
+    // コートごとに整理
     const courtData: CourtData[] = [];
     for (let c = 1; c <= ae.court_count; c++) {
       const courtName = ae.court_names?.[c - 1]?.trim() || `コート${c}`;
-      const { data: tourns } = await supabase
-        .from("tournaments")
-        .select("*")
-        .eq("event_id", ae.id)
-        .eq("court", String(c))
-        .neq("status", "finished")
-        .order("sort_order")
-        .order("created_at");
-
-      const tournData: CourtData["tournaments"] = [];
-      for (const t of tourns ?? []) {
-        const { data: ms } = await supabase
-          .from("matches")
-          .select("*, fighter1:fighters!fighter1_id(id,name), fighter2:fighters!fighter2_id(id,name), winner:fighters!winner_id(id,name)")
-          .eq("tournament_id", t.id)
-          .order("round")
-          .order("position");
-        tournData.push({ tournament: t, matches: (ms ?? []) as Match[] });
-      }
+      const courtTourns = (allTourns ?? []).filter((t) => t.court === String(c));
+      const tournData: CourtData["tournaments"] = courtTourns.map((t) => ({
+        tournament: t,
+        matches: matchesByTourn.get(t.id) ?? [],
+      }));
       courtData.push({ courtNum: c, courtName, tournaments: tournData });
     }
     const serialized = JSON.stringify(courtData);

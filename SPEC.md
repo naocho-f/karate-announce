@@ -556,6 +556,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **最終整合性修正（2026-04-07）**: 未実装機能の統合（cacheData/offlineMode/UnifiedStatusBar）、dead export削除、仕様書のステータス更新、各画面仕様書にオフライン参照追加、CLAUDE.mdにエクスポート確認チェックリスト追加
 - **レビュー指摘修正: dead code削除・enqueue追加・テスト補完（2026-04-07）**: ConnectionStatusBanner削除、court-index-clientにenqueue追加、resilient-fetchにofflineModeテスト、offline-queueに401/ネットワークエラーテスト追加
 - **E2Eテスト修正（2026-04-07）**: entry-form-autosaveテストをテストイベント作成方式に修正、SWテストに開発環境スキップ追加
+- **ライブ速報N+1クエリ修正（2026-04-08）**: /live のポーリングをバッチクエリに変更（17逐次→3クエリ）
 - **総合レビュー・ブラッシュアップ（2026-04-08）**: court-index-clientのquality修正、SPEC.md Section 4テーブル追記、Section 9をCHANGELOGに移動、CLAUDE.md冗長ルール削除、ベースライン修正
 - **品質チェック3層役割分担（2026-04-08）**: pre-commit(静的+tsc+vitest)→CI(+build)→Vercel(build)。pre-commitからbuild除去で高速化
 - **GitHub Actions CI 静的整合性チェック追加・Node 22対応（2026-04-08）**: pre-commit hook の静的チェックをCIにも実装。hook 未インストールでもプッシュ後に検出
