@@ -557,9 +557,10 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **最終整合性修正（2026-04-07）**: 未実装機能の統合（cacheData/offlineMode/UnifiedStatusBar）、dead export削除、仕様書のステータス更新、各画面仕様書にオフライン参照追加、CLAUDE.mdにエクスポート確認チェックリスト追加
 - **レビュー指摘修正: dead code削除・enqueue追加・テスト補完（2026-04-07）**: ConnectionStatusBanner削除、court-index-clientにenqueue追加、resilient-fetchにofflineModeテスト、offline-queueに401/ネットワークエラーテスト追加
 - **E2Eテスト修正（2026-04-07）**: entry-form-autosaveテストをテストイベント作成方式に修正、SWテストに開発環境スキップ追加
-- **pre-commit hook 整合性チェ��ク追加（2026-04-08）**: SPEC.md日付・RPCマイグレーション存在確認を自動化。scripts/pre-commitとして管理
+- **impact-check導入・Step 1/5強化（2026-04-08）**: 変更ファイルの影響範囲を自動列挙するスクリプト追加。Step 1で事前把握、Step 5で関連ファイル確認を必須化
+- **pre-commit hook 整合性チェック追加（2026-04-08）**: SPEC.md日付・RPCマイグレーション存在確認を自動化。scripts/pre-commitとして管理
 - **set_match_winner RPCマイグレーション記録（2026-04-08）**: 本番DBに存在するがマイグレーション未記録だったRPC関数をファイル化
-- **テストカ��レッジ補完（2026-04-08）**: 画像アップロードAPI 3件・アナウンスコア関数・BracketView純粋関数のテス���追加（864→911��スト）
+- **テストカバレッジ補完（2026-04-08）**: 画像アップロードAPI 3件・アナウンスコア関数・BracketView純粋関数のテスト追加（864→911テスト）
 - **SPEC.md整合性修正（2026-04-07）**: ANNOUNCE_SPEC.md・INFRA_SPEC.md・OFFLINE_SPEC.mdへの参照追加、非機能要件にオフライン/PWA記載追加
 - **Phase 4-6: 端末事前準備チェックリスト（2026-04-07）**: 管理画面ホームにSW登録+キャッシュ構築状況の確認セクション追加
 - **Phase 4-4: swap_withトランザクション化（2026-04-07）**: Supabase RPC swap_match_positionsでアトミック実行。3ステップ非アトミック更新を廃止
