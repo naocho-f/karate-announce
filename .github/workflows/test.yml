@@ -20,6 +20,58 @@ jobs:
 
       - run: npm ci
 
+      - name: 静的整合性チェック
+        run: |
+          # SPEC.md 日付チェック（CIでは当日チェックをスキップ）
+
+          # RPC → マイグレーション存在
+          for rpc_name in $(grep -roh 'supabase\.rpc("[^"]*"' app/ lib/ 2>/dev/null | sed 's/.*rpc("//;s/"//' | sort -u); do
+            grep -rql "FUNCTION.*${rpc_name}" supabase/migrations/ || { echo "ERROR: RPC '${rpc_name}' のマイグレーションがありません"; exit 1; }
+          done
+
+          # docs/*_SPEC.md → SPEC.md 参照
+          for spec in docs/*_SPEC.md; do
+            [ -f "$spec" ] || continue
+            grep -q "$(basename "$spec")" SPEC.md || { echo "ERROR: $(basename "$spec") が SPEC.md から参照されていません"; exit 1; }
+          done
+
+          # SPEC.md リンク切れ
+          for docpath in $(grep -oE '\(docs/[^)]+\)' SPEC.md | sed 's/[()]//g' | sort -u); do
+            [ -f "$docpath" ] || { echo "ERROR: SPEC.md のリンク先 ${docpath} が存在しません"; exit 1; }
+          done
+
+          # route.ts → SPEC.md API一覧
+          for route in $(find app/api -name 'route.ts'); do
+            url_path=$(echo "$route" | sed 's|^app||;s|/route\.ts$||')
+            if ! grep -Fq "$url_path" SPEC.md; then
+              url_no_bracket=$(echo "$url_path" | sed 's/\[.*\]//g;s|/$||')
+              grep -Fq "$url_no_bracket" SPEC.md || { echo "ERROR: API ${url_path} が SPEC.md に未記載"; exit 1; }
+            fi
+          done
+
+          # SPEC.md API一覧 → route.ts 存在
+          for api_path in $(grep -oE '`/api/[^`]+`' SPEC.md | sed 's/`//g;s/\?.*//;s/#.*//' | sort -u); do
+            [ -f "app${api_path}/route.ts" ] || { echo "ERROR: SPEC.md の API ${api_path} が存在しません"; exit 1; }
+          done
+
+          # page.tsx → SPEC.md 画面一覧
+          for pagefile in $(find app -name 'page.tsx' -not -path '*/api/*'); do
+            page_path=$(echo "$pagefile" | sed 's|^app||;s|/page\.tsx$||')
+            [ -z "$page_path" ] && page_path="/"
+            if ! grep -Fq "$page_path" SPEC.md; then
+              page_clean=$(echo "$page_path" | sed 's/\[.*\]//g;s|/$||')
+              grep -Fq "$page_clean" SPEC.md || { echo "ERROR: ページ ${page_path} が SPEC.md に未記載"; exit 1; }
+            fi
+          done
+
+          # admin/court API → verifyAdminAuth
+          for route in $(find app/api/admin app/api/court -name 'route.ts'); do
+            case "$route" in */login/*) continue;; esac
+            grep -q 'verifyAdminAuth' "$route" || { echo "ERROR: ${route} で verifyAdminAuth 未呼出"; exit 1; }
+          done
+
+          echo "All static checks passed."
+
       - name: TypeScript 型チェック
         run: npx tsc --noEmit
 
