@@ -60,9 +60,9 @@ for route in $(find app/api -name 'route.ts' 2>/dev/null); do
   import_path=$(echo "$route" | sed 's|\.ts$||')
   # URLパス（/api/...）を構築してブラケット除去
   url_path=$(echo "$route" | sed 's|^app/api|/api|;s|/route\.ts$||;s/\[.*\]//g;s|/$||')
-  # テストファイル内にimportパスまたはURLパスへの参照があるか
-  if ! grep -rql "@/${import_path}" __tests__/ 2>/dev/null; then
-    if ! grep -rql "${url_path}" __tests__/ 2>/dev/null; then
+  # テストファイル内にimportパスまたはURLパスへの参照があるか（-F: 固定文字列、[id]等をエスケープ不要に）
+  if ! grep -rFql "@/${import_path}" __tests__/ 2>/dev/null; then
+    if ! grep -rFql "${url_path}" __tests__/ 2>/dev/null; then
       ROUTE_MISSING="${ROUTE_MISSING}  - ${route}\n"
     fi
   fi
