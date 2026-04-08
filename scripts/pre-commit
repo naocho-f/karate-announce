@@ -175,6 +175,99 @@ if [ -f "scripts/pre-commit" ]; then
   fi
 fi
 
+# SPEC.md 画面一覧→page.tsx 逆方向チェック: 仕様に載っているがページが削除されていないか
+# Section 3 の画面一覧テーブルからパスを抽出（| パス | 形式）
+grep -oE '\| `/[^`]+`' SPEC.md | sed 's/| `//;s/`//' | grep -v '^/api/' | sort -u | while read page_path; do
+  # 動的セグメントを含むパスをファイルパスに変換
+  # /admin/events/[id] → app/admin/events/[id]/page.tsx
+  pagefile="app${page_path}/page.tsx"
+  if [ ! -f "$pagefile" ]; then
+    # /timer/[courtId]/control のような深いパスも対象
+    echo "$page_path" >> /tmp/pre-commit-stale-pages
+  fi
+done
+if [ -f /tmp/pre-commit-stale-pages ]; then
+  stale_pages=$(cat /tmp/pre-commit-stale-pages)
+  rm -f /tmp/pre-commit-stale-pages
+  if [ -n "$stale_pages" ]; then
+    echo ""
+    echo "WARNING: SPEC.md に記載されているが存在しないページがあります:"
+    echo "$stale_pages" | while read line; do echo "  - $line"; done
+    echo ""
+  fi
+fi
+rm -f /tmp/pre-commit-stale-pages
+
+# SPEC.md 仕様書リンク切れチェック: SPEC.md 内のリンク先ファイルが存在するか
+LINK_BROKEN=""
+grep -oE '\(docs/[^)]+\)' SPEC.md | sed 's/[()]//g' | sort -u | while read docpath; do
+  if [ ! -f "$docpath" ]; then
+    echo "$docpath" >> /tmp/pre-commit-broken-links
+  fi
+done
+if [ -f /tmp/pre-commit-broken-links ]; then
+  broken=$(cat /tmp/pre-commit-broken-links)
+  rm -f /tmp/pre-commit-broken-links
+  if [ -n "$broken" ]; then
+    echo ""
+    echo "ERROR: SPEC.md 内のリンク先が存在しません:"
+    echo "$broken" | while read line; do echo "  - $line"; done
+    echo ""
+    exit 1
+  fi
+fi
+rm -f /tmp/pre-commit-broken-links
+
+# セキュリティチェック: admin/court API が verifyAdminAuth を呼んでいるか
+AUTH_MISSING=""
+for route in $(find app/api/admin app/api/court -name 'route.ts' 2>/dev/null); do
+  # login エンドポイントは認証不要（認証する側なので）
+  case "$route" in */login/*) continue;; esac
+  if ! grep -q 'verifyAdminAuth' "$route"; then
+    AUTH_MISSING="${AUTH_MISSING}  - ${route}\n"
+  fi
+done
+if [ -n "$AUTH_MISSING" ]; then
+  echo ""
+  echo "ERROR: 以下の認証必須 API で verifyAdminAuth が呼ばれていません:"
+  printf "$AUTH_MISSING"
+  echo ""
+  exit 1
+fi
+
+# 環境変数チェック: コード内の process.env 参照が CLAUDE.md に記載されているか
+ENV_MISSING=""
+for envvar in $(grep -roh 'process\.env\.\w\+' app/ lib/ 2>/dev/null | sed 's/process\.env\.//' | sort -u); do
+  # NEXT_PUBLIC_ や NODE_ENV 等の標準変数はスキップ
+  case "$envvar" in NODE_ENV|__NEXT*|TZ) continue;; esac
+  if ! grep -Fq "$envvar" CLAUDE.md; then
+    ENV_MISSING="${ENV_MISSING}  - ${envvar}\n"
+  fi
+done
+if [ -n "$ENV_MISSING" ]; then
+  echo ""
+  echo "WARNING: 以下の環境変数が CLAUDE.md に記載されていません:"
+  printf "$ENV_MISSING"
+  echo "CLAUDE.md の環境変数セクションに追加してください。"
+  echo ""
+fi
+
+# components/ テストファイル存在チェック
+COMP_MISSING=""
+for compfile in components/*.tsx; do
+  [ -f "$compfile" ] || continue
+  compname=$(basename "$compfile" .tsx)
+  if [ ! -f "__tests__/unit/${compname}.test.ts" ] && [ ! -f "__tests__/unit/${compname}.test.tsx" ]; then
+    COMP_MISSING="${COMP_MISSING}  - ${compfile}\n"
+  fi
+done
+if [ -n "$COMP_MISSING" ]; then
+  echo ""
+  echo "WARNING: 以下のコンポーネントにテストがありません:"
+  printf "$COMP_MISSING"
+  echo ""
+fi
+
 # TypeScript 型チェック
 echo "Running tsc --noEmit..."
 npx tsc --noEmit
