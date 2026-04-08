@@ -28,3 +28,11 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
   if (error) return withCors(dbError(error));
   return withCors(NextResponse.json({ ok: true }));
 }
+
+export async function DELETE(request: NextRequest, ctx: Ctx) {
+  if (!verifyAdminAuth(request)) return withCors(unauthorized());
+  const { id } = await ctx.params;
+  const { error } = await supabaseAdmin.from("bug_reports").delete().eq("id", id);
+  if (error) return withCors(dbError(error));
+  return withCors(NextResponse.json({ ok: true }));
+}

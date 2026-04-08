@@ -97,9 +97,7 @@ test.describe("不具合報告", () => {
     // 投稿した報告が一覧に表示される
     await expect(page.locator(`text=E2Eテスト操作 ${ts}`).first()).toBeVisible({ timeout: 5_000 });
 
-    // クリーンアップ: ステータスを wontfix に更新（削除APIがないため）
-    await page.request.patch(`/api/bug-reports/${report.id}`, {
-      data: { status: "wontfix", resolution: "E2Eテスト用" },
-    });
+    // クリーンアップ: テストデータを削除
+    await page.request.delete(`/api/bug-reports/${report.id}`);
   });
 });

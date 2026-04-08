@@ -448,6 +448,7 @@ settings (
 | POST | `/api/bug-reports` | 不具合報告の投稿（公開、認証不要） |
 | GET | `/api/bug-reports` | 一覧取得（認証必須） |
 | PATCH | `/api/bug-reports/[id]` | ステータス更新（認証必須） |
+| DELETE | `/api/bug-reports/[id]` | 不具合報告削除（認証必須） |
 
 ---
 
@@ -557,6 +558,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **レビュー指摘修正: dead code削除・enqueue追加・テスト補完（2026-04-07）**: ConnectionStatusBanner削除、court-index-clientにenqueue追加、resilient-fetchにofflineModeテスト、offline-queueに401/ネットワークエラーテスト追加
 - **E2Eテスト修正（2026-04-07）**: entry-form-autosaveテストをテストイベント作成方式に修正、SWテストに開発環境スキップ追加
 - **E2Eテスト修正・全通過（2026-04-08）**: court-index-clientフック順序修正、home-and-courtテストテキスト修正・flaky安定化。100 passed / 0 failed
+- **E2Eテストデータクリーンアップ修正（2026-04-08）**: bug-reports DELETE API追加、E2Eテストで作成したデータを確実に削除するよう修正
 - **UXポリシー準拠修正（2026-04-08）**: shortcuts印刷ページダークテーマ化、entry detailスピナー追加、生年月日label紐付け
 - **UXポリシー策定（2026-04-08）**: ローディング・エラー区別・テーマ統一・オフライン・a11yの5項目をCLAUDE.mdに記録。Step 4チェックリストに追加
 - **レビュー修正4件（2026-04-08）**: タイマー操作画面オフライン対応統合、コート画面DBエラー表示改善、エントリーフォームエラー/準備中区別、タイマー空コート表示改善
