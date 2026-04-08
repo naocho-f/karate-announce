@@ -557,6 +557,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **最終整合性修正（2026-04-07）**: 未実装機能の統合（cacheData/offlineMode/UnifiedStatusBar）、dead export削除、仕様書のステータス更新、各画面仕様書にオフライン参照追加、CLAUDE.mdにエクスポート確認チェックリスト追加
 - **レビュー指摘修正: dead code削除・enqueue追加・テスト補完（2026-04-07）**: ConnectionStatusBanner削除、court-index-clientにenqueue追加、resilient-fetchにofflineModeテスト、offline-queueに401/ネットワークエラーテスト追加
 - **E2Eテスト修正（2026-04-07）**: entry-form-autosaveテストをテストイベント作成方式に修正、SWテストに開発環境スキップ追加
+- **pre-commit hookにlib/テスト存在チェック追加（2026-04-08）**: lib/*.tsに対応するテストファイルがなければ警告
 - **pre-commit hookにAPI一覧完全性チェック追加（2026-04-08）**: route.tsのURLパスがSPEC.mdに記載されていなければブロック
 - **pre-commit hookにvitest追加（2026-04-08）**: テスト失敗時のコミットをブロック。テスト追加が実効性を持つ前提条件
 - **レビュー恒久対策プロセス確立（2026-04-08）**: 指摘→テストorHookに変換。仕様書参照・APIテスト存在チェックをhook追加。Step 5簡素化

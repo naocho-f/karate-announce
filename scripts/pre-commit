@@ -98,6 +98,29 @@ if [ -n "$API_MISSING" ]; then
   exit 1
 fi
 
+# lib/ テストファイル存在チェック: lib/*.ts に対応する __tests__/unit/*.test.ts があるか
+LIB_MISSING=""
+for libfile in lib/*.ts lib/*.tsx; do
+  [ -f "$libfile" ] || continue
+  basename=$(basename "$libfile" | sed 's/\.\(ts\|tsx\)$//')
+  # supabase クライアント初期化ファイルはテスト対象外
+  case "$basename" in supabase|supabase-admin) continue;; esac
+  found=false
+  for ext in test.ts test.tsx; do
+    [ -f "__tests__/unit/${basename}.${ext}" ] && found=true
+  done
+  if ! $found; then
+    LIB_MISSING="${LIB_MISSING}  - ${libfile}\n"
+  fi
+done
+if [ -n "$LIB_MISSING" ]; then
+  echo ""
+  echo "WARNING: 以下の lib/ ファイルにテストがありません:"
+  printf "$LIB_MISSING"
+  echo "__tests__/unit/ にテストを追加してください。"
+  echo ""
+fi
+
 # TypeScript 型チェック（GitHub Actions と同じチェック）
 echo "Running tsc --noEmit..."
 npx tsc --noEmit
