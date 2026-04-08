@@ -1,299 +1,189 @@
 #!/bin/sh
-# SPEC.md がステージされていないコミットをブロック
+# ============================================================
+# pre-commit hook — 品質チェック
+#
+# ソース: scripts/pre-commit（Git管理）
+# 自動インストール: npm install 時に prepare スクリプトが実行
+#
+# 構成:
+#   Phase 1: 静的チェック（grep系、即座に完了）→ ERRORでブロック
+#   Phase 2: 警告チェック（grep系）→ 新規分のみ表示
+#   Phase 3: 動的チェック（tsc→vitest→build）→ ERRORでブロック
+# ============================================================
+
+set -e
+
+# ── Phase 1: 静的チェック（ブロック） ─────────────────────────
+
+# 1. SPEC.md がコミットに含まれるか
 if ! git diff --cached --name-only | grep -q '^SPEC.md$'; then
-  echo ""
-  echo "ERROR: SPEC.md がコミットに含まれていません。"
-  echo "SPEC.md を更新してから git add SPEC.md してください。"
-  echo ""
+  echo ""; echo "ERROR: SPEC.md がコミットに含まれていません。"; echo ""
   exit 1
 fi
 
-# SPEC.md ヘッダーの「最終更新」日付が当日か確認
+# 2. SPEC.md 日付が当日か
 TODAY=$(date +%Y-%m-%d)
 SPEC_DATE=$(grep '最終更新:' SPEC.md | head -1 | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
 if [ -n "$SPEC_DATE" ] && [ "$SPEC_DATE" != "$TODAY" ]; then
-  echo ""
-  echo "ERROR: SPEC.md の最終更新日が古いです（${SPEC_DATE}）。"
-  echo "ヘッダーの日付を ${TODAY} に更新してください。"
-  echo ""
+  echo ""; echo "ERROR: SPEC.md の最終更新日が古いです（${SPEC_DATE} → ${TODAY}）"; echo ""
   exit 1
 fi
 
-# RPC 整合性チェック: コード内の rpc() 呼び出しに対応するマイグレーションがあるか
-RPC_MISSING=""
+# 3. rpc() → マイグレーション存在
 for rpc_name in $(grep -roh 'supabase\.rpc("[^"]*"' app/ lib/ 2>/dev/null | sed 's/.*rpc("//;s/"//' | sort -u); do
   if ! grep -rql "FUNCTION.*${rpc_name}" supabase/migrations/ 2>/dev/null; then
-    RPC_MISSING="${RPC_MISSING}  - ${rpc_name}\n"
+    echo ""; echo "ERROR: RPC '${rpc_name}' のマイグレーションがありません"; echo ""
+    exit 1
   fi
 done
-if [ -n "$RPC_MISSING" ]; then
-  echo ""
-  echo "ERROR: 以下の RPC 関数にマイグレーションファイルがありません:"
-  printf "$RPC_MISSING"
-  echo "supabase/migrations/ に CREATE OR REPLACE FUNCTION を追加してください。"
-  echo ""
-  exit 1
-fi
 
-# 仕様書参照チェック: docs/ の全 *_SPEC.md が SPEC.md から参照されているか
-SPEC_MISSING=""
+# 4. docs/*_SPEC.md → SPEC.md 参照あり
 for spec in docs/*_SPEC.md; do
   [ -f "$spec" ] || continue
-  specname=$(basename "$spec")
-  if ! grep -q "$specname" SPEC.md; then
-    SPEC_MISSING="${SPEC_MISSING}  - ${specname}\n"
+  if ! grep -q "$(basename "$spec")" SPEC.md; then
+    echo ""; echo "ERROR: $(basename "$spec") が SPEC.md から参照されていません"; echo ""
+    exit 1
   fi
 done
-if [ -n "$SPEC_MISSING" ]; then
-  echo ""
-  echo "ERROR: 以下の仕様書が SPEC.md から参照されていません:"
-  printf "$SPEC_MISSING"
-  echo "SPEC.md にリンクを追加してください。"
-  echo ""
-  exit 1
-fi
 
-# APIルートのテスト存在チェック: app/api/ の全 route.ts に対応するテストがあるか
-ROUTE_MISSING=""
-for route in $(find app/api -name 'route.ts' 2>/dev/null); do
-  # ルートのimportパス（@/app/api/...）を構築
-  import_path=$(echo "$route" | sed 's|\.ts$||')
-  # URLパス（/api/...）を構築してブラケット除去
-  url_path=$(echo "$route" | sed 's|^app/api|/api|;s|/route\.ts$||;s/\[.*\]//g;s|/$||')
-  # テストファイル内にimportパスまたはURLパスへの参照があるか（-F: 固定文字列、[id]等をエスケープ不要に）
-  if ! grep -rFql "@/${import_path}" __tests__/ 2>/dev/null; then
-    if ! grep -rFql "${url_path}" __tests__/ 2>/dev/null; then
-      ROUTE_MISSING="${ROUTE_MISSING}  - ${route}\n"
-    fi
+# 5. SPEC.md 仕様書リンク → docs/ファイル存在
+for docpath in $(grep -oE '\(docs/[^)]+\)' SPEC.md | sed 's/[()]//g' | sort -u); do
+  if [ ! -f "$docpath" ]; then
+    echo ""; echo "ERROR: SPEC.md のリンク先 ${docpath} が存在しません"; echo ""
+    exit 1
   fi
 done
-if [ -n "$ROUTE_MISSING" ]; then
-  echo ""
-  echo "WARNING: 以下の API ルートにテストがありません:"
-  printf "$ROUTE_MISSING"
-  echo "__tests__/api/ にテストを追加してください。"
-  echo ""
-  # WARNING: テスト不足はブロックせず警告のみ（既存ルートに段階的に対応するため）
-fi
 
-# SPEC.md API一覧の完全性チェック: 全 route.ts のURLパスが SPEC.md に記載されているか
-API_MISSING=""
+# 6. route.ts → SPEC.md API一覧に記載
 for route in $(find app/api -name 'route.ts' 2>/dev/null); do
-  # URLパスを構築（/api/admin/events/[id] → /api/admin/events/[id]）
   url_path=$(echo "$route" | sed 's|^app||;s|/route\.ts$||')
   if ! grep -Fq "$url_path" SPEC.md; then
-    # [id] をワイルドカードに置換して再チェック（SPEC.md では [id] 表記のはず）
     url_no_bracket=$(echo "$url_path" | sed 's/\[.*\]//g;s|/$||')
     if ! grep -Fq "$url_no_bracket" SPEC.md; then
-      API_MISSING="${API_MISSING}  - ${url_path}\n"
+      echo ""; echo "ERROR: API ${url_path} が SPEC.md に記載されていません"; echo ""
+      exit 1
     fi
   fi
 done
-if [ -n "$API_MISSING" ]; then
-  echo ""
-  echo "ERROR: 以下の API ルートが SPEC.md に記載されていません:"
-  printf "$API_MISSING"
-  echo "SPEC.md Section 5 に追加してください。"
-  echo ""
-  exit 1
+
+# 7. SPEC.md API一覧 → route.ts 存在（逆方向）
+for api_path in $(grep -oE '`/api/[^`]+`' SPEC.md | sed 's/`//g;s/\?.*//;s/#.*//' | sort -u); do
+  if [ ! -f "app${api_path}/route.ts" ]; then
+    echo ""; echo "ERROR: SPEC.md に記載の API ${api_path} が存在しません"; echo ""
+    exit 1
+  fi
+done
+
+# 8. page.tsx → SPEC.md 画面一覧に記載
+for pagefile in $(find app -name 'page.tsx' -not -path '*/api/*' 2>/dev/null); do
+  page_path=$(echo "$pagefile" | sed 's|^app||;s|/page\.tsx$||')
+  [ -z "$page_path" ] && page_path="/"
+  if ! grep -Fq "$page_path" SPEC.md; then
+    page_clean=$(echo "$page_path" | sed 's/\[.*\]//g;s|/$||')
+    if ! grep -Fq "$page_clean" SPEC.md; then
+      echo ""; echo "ERROR: ページ ${page_path} が SPEC.md に記載されていません"; echo ""
+      exit 1
+    fi
+  fi
+done
+
+# 9. admin/court API → verifyAdminAuth 呼出
+for route in $(find app/api/admin app/api/court -name 'route.ts' 2>/dev/null); do
+  case "$route" in */login/*) continue;; esac
+  if ! grep -q 'verifyAdminAuth' "$route"; then
+    echo ""; echo "ERROR: ${route} で verifyAdminAuth が呼ばれていません"; echo ""
+    exit 1
+  fi
+done
+
+# 10. scripts/pre-commit == .git/hooks/pre-commit
+if [ -f "scripts/pre-commit" ]; then
+  if ! diff -q scripts/pre-commit .git/hooks/pre-commit > /dev/null 2>&1; then
+    echo ""; echo "ERROR: scripts/pre-commit と .git/hooks/pre-commit が一致しません"; echo ""
+    exit 1
+  fi
 fi
 
-# lib/ テストファイル存在チェック: lib/*.ts に対応する __tests__/unit/*.test.ts があるか
-LIB_MISSING=""
+echo "Static checks passed."
+
+# ── Phase 2: 警告（新規分のみ表示） ──────────────────────────
+
+WARN_FILE="/tmp/pre-commit-warnings-$$"
+BASELINE=".warnings-baseline"
+
+# テスト存在チェック（API routes）
+for route in $(find app/api -name 'route.ts' 2>/dev/null); do
+  import_path=$(echo "$route" | sed 's|\.ts$||')
+  url_path=$(echo "$route" | sed 's|^app/api|/api|;s|/route\.ts$||;s/\[.*\]//g;s|/$||')
+  if ! grep -rFql "@/${import_path}" __tests__/ 2>/dev/null; then
+    if ! grep -rFql "${url_path}" __tests__/ 2>/dev/null; then
+      echo "API_NO_TEST: ${route}" >> "$WARN_FILE"
+    fi
+  fi
+done
+
+# テスト存在チェック（lib/）
 for libfile in lib/*.ts lib/*.tsx; do
   [ -f "$libfile" ] || continue
   libname=$(basename "$libfile" .ts)
   libname=$(echo "$libname" | sed 's/\.tsx$//')
-  # supabase クライアント初期化ファイルはテスト対象外
   case "$libname" in supabase|supabase-admin) continue;; esac
   if [ ! -f "__tests__/unit/${libname}.test.ts" ] && [ ! -f "__tests__/unit/${libname}.test.tsx" ]; then
-    LIB_MISSING="${LIB_MISSING}  - ${libfile}\n"
+    echo "LIB_NO_TEST: ${libfile}" >> "$WARN_FILE"
   fi
 done
-if [ -n "$LIB_MISSING" ]; then
-  echo ""
-  echo "WARNING: 以下の lib/ ファイルにテストがありません:"
-  printf "$LIB_MISSING"
-  echo "__tests__/unit/ にテストを追加してください。"
-  echo ""
-fi
 
-# 逆方向チェック: SPEC.md のAPI一覧に載っているパスが実際に route.ts として存在するか
-SPEC_API_STALE=""
-grep -oE '`/api/[^`]+`' SPEC.md | sed 's/`//g;s/\?.*//;s/#.*//' | sort -u | while read api_path; do
-  # /api/admin/events/[id] → app/api/admin/events/[id]/route.ts
-  route_file="app${api_path}/route.ts"
-  if [ ! -f "$route_file" ]; then
-    echo "$api_path" >> /tmp/pre-commit-stale-apis
-  fi
-done
-if [ -f /tmp/pre-commit-stale-apis ]; then
-  SPEC_API_STALE=$(cat /tmp/pre-commit-stale-apis)
-  rm -f /tmp/pre-commit-stale-apis
-  if [ -n "$SPEC_API_STALE" ]; then
-    echo ""
-    echo "ERROR: SPEC.md に記載されているが存在しない API ルートがあります:"
-    echo "$SPEC_API_STALE" | while read line; do echo "  - $line"; done
-    echo "SPEC.md から削除��るか、ルートを作成してください。"
-    echo ""
-    exit 1
-  fi
-fi
-rm -f /tmp/pre-commit-stale-apis
-
-# ページ→SPEC.md チェック: app/ の page.tsx が SPEC.md 画面一覧に記載されているか
-PAGE_MISSING=""
-for pagefile in $(find app -name 'page.tsx' -not -path '*/api/*' 2>/dev/null); do
-  # app/court/[court]/page.tsx → /court/[court]
-  page_path=$(echo "$pagefile" | sed 's|^app||;s|/page\.tsx$||')
-  [ -z "$page_path" ] && page_path="/"
-  if ! grep -Fq "$page_path" SPEC.md; then
-    # ブラケット除去して再チェック
-    page_clean=$(echo "$page_path" | sed 's/\[.*\]//g;s|/$||')
-    if ! grep -Fq "$page_clean" SPEC.md; then
-      PAGE_MISSING="${PAGE_MISSING}  - ${page_path} (${pagefile})\n"
-    fi
-  fi
-done
-if [ -n "$PAGE_MISSING" ]; then
-  echo ""
-  echo "ERROR: 以下のページが SPEC.md 画面一覧に記載されていません:"
-  printf "$PAGE_MISSING"
-  echo "SPEC.md Section 3 に追加してください。"
-  echo ""
-  exit 1
-fi
-
-# hook 同期チェック: scripts/pre-commit と .git/hooks/pre-commit が一致するか
-if [ -f "scripts/pre-commit" ]; then
-  if ! diff -q scripts/pre-commit .git/hooks/pre-commit > /dev/null 2>&1; then
-    echo ""
-    echo "ERROR: scripts/pre-commit と .git/hooks/pre-commit が一致しません。"
-    echo "cp scripts/pre-commit .git/hooks/pre-commit で同期してください。"
-    echo ""
-    exit 1
-  fi
-fi
-
-# SPEC.md 画面一覧→page.tsx 逆方向チェック: 仕様に載っているがページが削除されていないか
-# Section 3 の画面一覧テーブルからパスを抽出（| パス | 形式）
-grep -oE '\| `/[^`]+`' SPEC.md | sed 's/| `//;s/`//' | grep -v '^/api/' | sort -u | while read page_path; do
-  # 動的セグメントを含むパスをファイルパスに変換
-  # /admin/events/[id] → app/admin/events/[id]/page.tsx
-  pagefile="app${page_path}/page.tsx"
-  if [ ! -f "$pagefile" ]; then
-    # /timer/[courtId]/control のような深いパスも対象
-    echo "$page_path" >> /tmp/pre-commit-stale-pages
-  fi
-done
-if [ -f /tmp/pre-commit-stale-pages ]; then
-  stale_pages=$(cat /tmp/pre-commit-stale-pages)
-  rm -f /tmp/pre-commit-stale-pages
-  if [ -n "$stale_pages" ]; then
-    echo ""
-    echo "WARNING: SPEC.md に記載されているが存在しないページがあります:"
-    echo "$stale_pages" | while read line; do echo "  - $line"; done
-    echo ""
-  fi
-fi
-rm -f /tmp/pre-commit-stale-pages
-
-# SPEC.md 仕様書リンク切れチェック: SPEC.md 内のリンク先ファイルが存在するか
-LINK_BROKEN=""
-grep -oE '\(docs/[^)]+\)' SPEC.md | sed 's/[()]//g' | sort -u | while read docpath; do
-  if [ ! -f "$docpath" ]; then
-    echo "$docpath" >> /tmp/pre-commit-broken-links
-  fi
-done
-if [ -f /tmp/pre-commit-broken-links ]; then
-  broken=$(cat /tmp/pre-commit-broken-links)
-  rm -f /tmp/pre-commit-broken-links
-  if [ -n "$broken" ]; then
-    echo ""
-    echo "ERROR: SPEC.md 内のリンク先が存在しません:"
-    echo "$broken" | while read line; do echo "  - $line"; done
-    echo ""
-    exit 1
-  fi
-fi
-rm -f /tmp/pre-commit-broken-links
-
-# セキュリティチェック: admin/court API が verifyAdminAuth を呼んでいるか
-AUTH_MISSING=""
-for route in $(find app/api/admin app/api/court -name 'route.ts' 2>/dev/null); do
-  # login エンドポイントは認証不要（認証する側なので）
-  case "$route" in */login/*) continue;; esac
-  if ! grep -q 'verifyAdminAuth' "$route"; then
-    AUTH_MISSING="${AUTH_MISSING}  - ${route}\n"
-  fi
-done
-if [ -n "$AUTH_MISSING" ]; then
-  echo ""
-  echo "ERROR: 以下の認証必須 API で verifyAdminAuth が呼ばれていません:"
-  printf "$AUTH_MISSING"
-  echo ""
-  exit 1
-fi
-
-# 環境変数チェック: コード内の process.env 参照が CLAUDE.md に記載されているか
-ENV_MISSING=""
-for envvar in $(grep -roh 'process\.env\.\w\+' app/ lib/ 2>/dev/null | sed 's/process\.env\.//' | sort -u); do
-  # NEXT_PUBLIC_ や NODE_ENV 等の標準変数はスキップ
-  case "$envvar" in NODE_ENV|__NEXT*|TZ) continue;; esac
-  if ! grep -Fq "$envvar" CLAUDE.md; then
-    ENV_MISSING="${ENV_MISSING}  - ${envvar}\n"
-  fi
-done
-if [ -n "$ENV_MISSING" ]; then
-  echo ""
-  echo "WARNING: 以下の環境変数が CLAUDE.md に記載されていません:"
-  printf "$ENV_MISSING"
-  echo "CLAUDE.md の環境変数セクションに追加してください。"
-  echo ""
-fi
-
-# components/ テストファイル存在チェック
-COMP_MISSING=""
+# テスト存在チェック（components/）
 for compfile in components/*.tsx; do
   [ -f "$compfile" ] || continue
   compname=$(basename "$compfile" .tsx)
   if [ ! -f "__tests__/unit/${compname}.test.ts" ] && [ ! -f "__tests__/unit/${compname}.test.tsx" ]; then
-    COMP_MISSING="${COMP_MISSING}  - ${compfile}\n"
+    echo "COMP_NO_TEST: ${compfile}" >> "$WARN_FILE"
   fi
 done
-if [ -n "$COMP_MISSING" ]; then
-  echo ""
-  echo "WARNING: 以下のコンポーネントにテストがありません:"
-  printf "$COMP_MISSING"
-  echo ""
+
+# 環境変数チェック
+for envvar in $(grep -roh 'process\.env\.\w\+' app/ lib/ 2>/dev/null | sed 's/process\.env\.//' | sort -u); do
+  case "$envvar" in NODE_ENV|__NEXT*|TZ) continue;; esac
+  if ! grep -Fq "$envvar" CLAUDE.md; then
+    echo "ENV_UNDOC: ${envvar}" >> "$WARN_FILE"
+  fi
+done
+
+# SPEC.md 画面一覧→page.tsx 逆方向
+for page_path in $(grep -oE '\| `/[^`]+`' SPEC.md | sed 's/| `//;s/`//' | grep -v '^/api/' | sort -u); do
+  if [ ! -f "app${page_path}/page.tsx" ]; then
+    echo "PAGE_STALE: ${page_path}" >> "$WARN_FILE"
+  fi
+done
+
+# ベースラインと比較して新規警告のみ表示
+if [ -f "$WARN_FILE" ]; then
+  if [ -f "$BASELINE" ]; then
+    NEW_WARNINGS=$(diff "$BASELINE" "$WARN_FILE" 2>/dev/null | grep '^>' | sed 's/^> //' || true)
+  else
+    NEW_WARNINGS=$(cat "$WARN_FILE")
+  fi
+  if [ -n "$NEW_WARNINGS" ]; then
+    echo ""
+    echo "=== 新しい警告 ==="
+    echo "$NEW_WARNINGS"
+    echo "==================="
+    echo "(既知の警告を非表示にするには: cp ${WARN_FILE} ${BASELINE})"
+    echo ""
+  fi
+  rm -f "$WARN_FILE"
+else
+  rm -f "$WARN_FILE"
 fi
 
-# TypeScript 型チェック
+# ── Phase 3: 動的チェック（ブロック） ─────────────────────────
+
 echo "Running tsc --noEmit..."
-npx tsc --noEmit
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "ERROR: TypeScript 型チェックに失敗しました。"
-  echo ""
-  exit 1
-fi
+npx tsc --noEmit || { echo ""; echo "ERROR: TypeScript 型チェック失敗"; exit 1; }
 
-# テスト実行
 echo "Running vitest..."
-npx vitest run
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "ERROR: テストが失敗しました。"
-  echo ""
-  exit 1
-fi
+npx vitest run || { echo ""; echo "ERROR: テスト失敗"; exit 1; }
 
-# ビルド
 echo "Running build..."
-npm run build
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "ERROR: ビルドに失敗しました。"
-  echo ""
-  exit 1
-fi
+npm run build || { echo ""; echo "ERROR: ビルド失敗"; exit 1; }

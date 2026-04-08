@@ -12,7 +12,8 @@
     "test:api": "vitest run --include '__tests__/api/**'",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:all": "vitest run && playwright test"
+    "test:all": "vitest run && playwright test",
+    "prepare": "cp scripts/pre-commit .git/hooks/pre-commit 2>/dev/null && chmod +x .git/hooks/pre-commit 2>/dev/null || true"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.1",
