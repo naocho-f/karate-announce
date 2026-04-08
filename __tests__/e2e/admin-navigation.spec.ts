@@ -100,4 +100,19 @@ test.describe("管理画面ナビゲーション", () => {
     // ルール設定ステップが表示される
     await expect(page.getByRole("button", { name: /ルール設定/ })).toBeVisible();
   });
+
+  test("操作説明にオフラインモードのセクションが含まれる", async ({ page }) => {
+    await page.getByRole("tab", { name: /操作説明/ }).click();
+    await expect(page).toHaveURL(/tab=guide/);
+
+    // オフラインモードセクションが表示される
+    const offlineButton = page.getByRole("button", { name: /ネットワーク不安定.*オフラインモード/ });
+    await expect(offlineButton).toBeVisible();
+
+    // クリックで展開
+    await offlineButton.click();
+
+    // 展開後にステータスバーの説明が表示される
+    await expect(page.locator("text=ステータスバーの見方")).toBeVisible({ timeout: 5_000 });
+  });
 });

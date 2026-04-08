@@ -507,7 +507,7 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
           {/* ── 12. 試合速報 ── */}
           <Section
             id="live" openIds={openIds} toggle={toggle}
-            color="border-blue-500" num={7} title="試合速報を観客に共有する"
+            color="border-blue-500" num={7} title="試合速報を観客に共有する" badge="任意"
           >
             <Desc>
               /live ページは観客向けのリアルタイム速報画面です。
@@ -531,6 +531,59 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
                 /live を開く →
               </a>
               <CopyLiveUrlButton />
+            </div>
+          </Section>
+
+          {/* ── 13. オフラインモード ── */}
+          <Section
+            id="offline" openIds={openIds} toggle={toggle}
+            color="border-blue-500" num={8} title="ネットワーク不安定時のオフラインモード"
+          >
+            <Desc>
+              体育館など WiFi が不安定な会場では、操作が失われないようオフラインモードを利用できます。
+              オフラインモード中の操作はすべて端末に保存され、ネットワーク復帰時に自動送信されます。
+            </Desc>
+
+            <div className="text-xs text-gray-400 space-y-3 mt-2">
+              <div>
+                <p className="font-medium text-gray-300">ステータスバーの見方:</p>
+                <div className="space-y-1 mt-1 ml-2">
+                  <p><span className="inline-block w-3 h-3 rounded-sm bg-yellow-500 mr-1.5 align-middle" />黄色「ネットワークが不安定です」 → 通信は可能。操作は自動リトライされます</p>
+                  <p><span className="inline-block w-3 h-3 rounded-sm bg-red-600 mr-1.5 align-middle" />赤「オフラインです」 → 通信不能。操作はローカルに保存されます</p>
+                  <p><span className="inline-block w-3 h-3 rounded-sm bg-blue-600 mr-1.5 align-middle" />青「オフラインモードで動作中」 → 手動でオフラインモードに設定中</p>
+                  <p><span className="inline-block w-3 h-3 rounded-sm bg-green-600 mr-1.5 align-middle" />緑「オンラインに切り替えますか？」 → ネットワーク回復を検知</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="font-medium text-gray-300">オフラインモードの切替:</p>
+                <Steps steps={[
+                  "黄色または赤のバーに表示される「オフラインモードに切り替え」ボタンを押す",
+                  "青いバーに切り替わり、すべての操作がローカルに保存されます",
+                  "ネットワークが回復すると緑のバー「オンラインに切り替えますか？」が自動表示されます",
+                  "「はい」を押すと、保存済みの操作が自動送信されます",
+                ]} />
+              </div>
+
+              <div>
+                <p className="font-medium text-gray-300">WiFi がない会場での運用:</p>
+                <Steps steps={[
+                  "大会前: 全端末でコート画面・タイマー画面を1回開き、データを読み込んでおく",
+                  "試合中: オフラインモードで操作（青バーの「保存済み: N件」を確認）",
+                  "ラウンド終了時: スマートフォンのテザリング等で一時的にオンライン接続",
+                  "保存済み操作が自動送信 → 次ラウンドの選手配置がサーバーで実行される",
+                  "次ラウンドのデータを取得したらオフラインモードに戻す",
+                ]} />
+              </div>
+
+              <Tip>
+                オフラインモード中は次ラウンドへの選手自動配置が行われないため、現在のラウンドの試合のみ進行できます。
+                ラウンドの区切りでオンライン接続して同期してください。
+              </Tip>
+              <Tip>
+                1コートにつき1台の端末で操作してください。同じコートを複数端末で操作すると、復帰時に先に送信された方のみ反映され、
+                もう一方は競合エラーとなります。
+              </Tip>
             </div>
           </Section>
         </div>

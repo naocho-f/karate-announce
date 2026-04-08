@@ -557,6 +557,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **最終整合性修正（2026-04-07）**: 未実装機能の統合（cacheData/offlineMode/UnifiedStatusBar）、dead export削除、仕様書のステータス更新、各画面仕様書にオフライン参照追加、CLAUDE.mdにエクスポート確認チェックリスト追加
 - **レビュー指摘修正: dead code削除・enqueue追加・テスト補完（2026-04-07）**: ConnectionStatusBanner削除、court-index-clientにenqueue追加、resilient-fetchにofflineModeテスト、offline-queueに401/ネットワークエラーテスト追加
 - **E2Eテスト修正（2026-04-07）**: entry-form-autosaveテストをテストイベント作成方式に修正、SWテストに開発環境スキップ追加
+- **操作説明にオフラインモードセクション追加（2026-04-08）**: ステータスバーの見方、切替手順、WiFiなし会場での運用手順を操作説明ガイドに追加
 - **E2Eテスト修正・全通過（2026-04-08）**: court-index-clientフック順序修正、home-and-courtテストテキスト修正・flaky安定化。100 passed / 0 failed
 - **E2Eテストデータクリーンアップ修正（2026-04-08）**: bug-reports DELETE API追加、E2Eテストで作成したデータを確実に削除するよう修正
 - **UXポリシー準拠修正（2026-04-08）**: shortcuts印刷ページダークテーマ化、entry detailスピナー追加、生年月日label紐付け
