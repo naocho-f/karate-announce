@@ -8,7 +8,7 @@
 # 構成:
 #   Phase 1: 静的チェック（grep系、即座に完了）→ ERRORでブロック
 #   Phase 2: 警告チェック（grep系）→ 新規分のみ表示
-#   Phase 3: 動的チェック（tsc→vitest→build）→ ERRORでブロック
+#   Phase 3: 動的チェック（tsc→vitest）→ ERRORでブロック（buildはCI/Vercelが担当）
 # ============================================================
 
 set -e

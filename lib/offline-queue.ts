@@ -118,6 +118,7 @@ export async function flush(): Promise<FlushResult> {
 
     let sent = 0;
     let failed = 0;
+    let hasConflict = false;
 
     for (const op of pending) {
       await updateStatus(op.id, "sending");
@@ -139,9 +140,10 @@ export async function flush(): Promise<FlushResult> {
         }
 
         if (res.status === 409) {
-          // 409 Conflict: この操作をスキップし、以降のキューも全破棄
-          await clearQueue();
-          return { sent, failed, conflict: true };
+          // 409 Conflict: この操作のみスキップし、残りは継続
+          await updateStatus(op.id, "conflict");
+          hasConflict = true;
+          continue;
         }
 
         if (res.status === 401) {
@@ -162,7 +164,7 @@ export async function flush(): Promise<FlushResult> {
       }
     }
 
-    return { sent, failed, conflict: false };
+    return { sent, failed, conflict: hasConflict };
   };
 
   // Web Locks API でタブ間排他

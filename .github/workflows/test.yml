@@ -20,6 +20,9 @@ jobs:
 
       - run: npm install
 
+      - name: 依存関係の脆弱性チェック
+        run: npm audit --audit-level=high
+
       - name: 静的整合性チェック
         run: |
           # SPEC.md 日付チェック（CIでは当日チェックをスキップ）

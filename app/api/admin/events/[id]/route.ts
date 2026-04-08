@@ -18,12 +18,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
   }
 
-  // is_active: true の場合、まず全イベントを非アクティブに
+  // is_active: true の場合、RPC でアトミックに排他制御
   if (body.is_active === true) {
-    await supabaseAdmin
-      .from("events")
-      .update({ is_active: false })
-      .neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabaseAdmin.rpc("activate_event", { p_event_id: id });
+    delete body.is_active; // RPC で処理済みなので body から除外
   }
 
   // 受付開始（entry_closed=false）時にフォームを自動公開
@@ -34,8 +32,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       .eq("event_id", id);
   }
 
-  const { error } = await supabaseAdmin.from("events").update(body).eq("id", id);
-  if (error) return dbError(error);
+  // is_active 以外のフィールドがあれば更新
+  if (Object.keys(body).length > 0) {
+    const { error } = await supabaseAdmin.from("events").update(body).eq("id", id);
+    if (error) return dbError(error);
+  }
   return NextResponse.json({ ok: true });
 }
 

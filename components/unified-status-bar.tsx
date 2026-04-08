@@ -11,7 +11,7 @@ import {
   testConnection,
   shouldShowRecoveryPrompt,
 } from "@/lib/offline-mode";
-import { getPendingCount } from "@/lib/offline-queue";
+import { getPendingCount, flush } from "@/lib/offline-queue";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /** アプリ全体のモード状態を取得するフック */
@@ -39,6 +39,7 @@ export function useAutoRecovery(mode: NetworkMode): {
   const acceptRecovery = useCallback(() => {
     setShowRecoveryPrompt(false);
     setMode("online");
+    flush().catch(() => {});
   }, []);
 
   const declineRecovery = useCallback(() => {

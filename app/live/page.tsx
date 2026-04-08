@@ -10,6 +10,7 @@ import { checkWatchNotifications, type WatchNotification } from "@/lib/watch-not
 import { useConnectionStatus } from "@/components/connection-status";
 import { UnifiedStatusBar, useOfflineMode, usePendingCount, useAutoRecovery } from "@/components/unified-status-bar";
 import { setMode } from "@/lib/offline-mode";
+import { flush } from "@/lib/offline-queue";
 
 type CourtData = {
   courtNum: number;
@@ -216,7 +217,7 @@ export default function LivePage() {
         quality={quality}
         mode={offlineMode}
         pendingCount={pendingCount}
-        onToggleOfflineMode={() => setMode(offlineMode === "online" ? "offline" : "online")}
+        onToggleOfflineMode={() => { const next = offlineMode === "online" ? "offline" : "online"; setMode(next); if (next === "online") flush().catch(() => {}); }}
         showRecoveryPrompt={showRecoveryPrompt}
         onAcceptRecovery={acceptRecovery}
         onDeclineRecovery={declineRecovery}

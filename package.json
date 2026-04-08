@@ -21,7 +21,7 @@
     "esbuild": "^0.27.7",
     "esbuild-wasm": "^0.28.0",
     "idb-keyval": "^6.2.2",
-    "next": "16.1.6",
+    "next": "^16.2.2",
     "qrcode": "^1.5.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",

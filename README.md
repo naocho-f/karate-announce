@@ -30,6 +30,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 OPENAI_API_KEY=
+ADMIN_USERNAME=
 ADMIN_PASSWORD=
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=
@@ -64,6 +65,7 @@ lib/          共通ロジック（DB クライアント、ユーティリティ
 components/   共通 UI コンポーネント
 docs/         機能別の詳細仕様書
 __tests__/    テスト（api/ unit/ e2e/）
+scripts/      Git hook 等の開発支援スクリプト
 public/       静的ファイル
 supabase/     Supabase 関連設定
 ```

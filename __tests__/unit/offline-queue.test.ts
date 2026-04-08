@@ -167,8 +167,10 @@ describe("flush（キュー再送）", () => {
     expect(mockFetch.mock.calls[0][1].headers["Idempotency-Key"]).toBeTruthy();
   });
 
-  it("409 Conflict で該当操作をスキップしキューを全破棄する", async () => {
-    mockFetch.mockResolvedValueOnce(new Response('{"error":"conflict"}', { status: 409 }));
+  it("409 Conflict で該当操作のみスキップし残りは継続する", async () => {
+    mockFetch
+      .mockResolvedValueOnce(new Response('{"error":"conflict"}', { status: 409 }))
+      .mockResolvedValueOnce(new Response('{"ok":true}', { status: 200 }));
 
     await enqueue({
       action: "start",
@@ -189,10 +191,13 @@ describe("flush（キュー再送）", () => {
 
     const result = await flush();
     expect(result.conflict).toBe(true);
-    // 409 で全キュー破棄
-    expect(await getPendingCount()).toBe(0);
-    // 2件目は送信されない（1件目の 409 で中断）
-    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(result.sent).toBe(1);
+    // 2件目も送信される（1件目の 409 で中断しない）
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    // 409 の操作は conflict ステータスで残る
+    const all = await getAll();
+    expect(all.length).toBe(1);
+    expect(all[0].status).toBe("conflict");
   });
 
   it("5xx エラーで flush を中断し、操作を pending に戻す", async () => {

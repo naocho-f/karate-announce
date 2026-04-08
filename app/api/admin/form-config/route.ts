@@ -355,8 +355,23 @@ export async function GET(request: NextRequest) {
 /** PUT — フォーム設定の一括保存（フィールド + 注意書き + カスタムフィールド + 画像削除） */
 export async function PUT(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
-  const { config_id, fields, notices, custom_fields, deleted_image_ids } = await request.json();
+  const { config_id, fields, notices, custom_fields, deleted_image_ids, expectedVersion } = await request.json();
   if (!config_id) return NextResponse.json({ error: "config_id required" }, { status: 400 });
+
+  // ── 楽観ロック: expectedVersion が指定されていれば現在のバージョンと比較 ──
+  if (expectedVersion != null) {
+    const { data: current } = await supabaseAdmin
+      .from("form_configs")
+      .select("version")
+      .eq("id", config_id)
+      .single();
+    if (current && current.version !== expectedVersion) {
+      return NextResponse.json(
+        { error: "フォーム設定が他のユーザーによって更新されています。画面を再読み込みしてください。" },
+        { status: 409 },
+      );
+    }
+  }
 
   // ── Step 1: 画像削除（冪等） ──
   if (deleted_image_ids && Array.isArray(deleted_image_ids)) {

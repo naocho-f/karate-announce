@@ -16,7 +16,7 @@ import { showToast } from "@/components/toast";
 import { useConnectionStatus } from "@/components/connection-status";
 import { UnifiedStatusBar, useOfflineMode, usePendingCount, useAutoRecovery } from "@/components/unified-status-bar";
 import { resilientFetch } from "@/lib/resilient-fetch";
-import { enqueue, cacheData, getCachedData } from "@/lib/offline-queue";
+import { enqueue, cacheData, getCachedData, flush } from "@/lib/offline-queue";
 import { setMode } from "@/lib/offline-mode";
 import { addPendingWinner, removePendingWinner } from "@/lib/optimistic-update";
 
@@ -405,7 +405,7 @@ export default function CourtPage({ params }: Props) {
         quality={quality}
         mode={offlineMode}
         pendingCount={pendingCount}
-        onToggleOfflineMode={() => setMode(offlineMode === "online" ? "offline" : "online")}
+        onToggleOfflineMode={() => { const next = offlineMode === "online" ? "offline" : "online"; setMode(next); if (next === "online") flush().catch(() => {}); }}
         showRecoveryPrompt={showRecoveryPrompt}
         onAcceptRecovery={acceptRecovery}
         onDeclineRecovery={declineRecovery}
