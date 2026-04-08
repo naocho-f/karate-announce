@@ -35,6 +35,47 @@ if [ -n "$RPC_MISSING" ]; then
   exit 1
 fi
 
+# 仕様書参照チェック: docs/ の全 *_SPEC.md が SPEC.md から参照されているか
+SPEC_MISSING=""
+for spec in docs/*_SPEC.md; do
+  [ -f "$spec" ] || continue
+  specname=$(basename "$spec")
+  if ! grep -q "$specname" SPEC.md; then
+    SPEC_MISSING="${SPEC_MISSING}  - ${specname}\n"
+  fi
+done
+if [ -n "$SPEC_MISSING" ]; then
+  echo ""
+  echo "ERROR: 以下の仕様書が SPEC.md から参照されていません:"
+  printf "$SPEC_MISSING"
+  echo "SPEC.md にリンクを追加してください。"
+  echo ""
+  exit 1
+fi
+
+# APIルートのテスト存在チェック: app/api/ の全 route.ts に対応するテストがあるか
+ROUTE_MISSING=""
+for route in $(find app/api -name 'route.ts' 2>/dev/null); do
+  # ルートのimportパス（@/app/api/...）を構築
+  import_path=$(echo "$route" | sed 's|\.ts$||')
+  # URLパス（/api/...）を構築してブラケット除去
+  url_path=$(echo "$route" | sed 's|^app/api|/api|;s|/route\.ts$||;s/\[.*\]//g;s|/$||')
+  # テストファイル内にimportパスまたはURLパスへの参照があるか
+  if ! grep -rql "@/${import_path}" __tests__/ 2>/dev/null; then
+    if ! grep -rql "${url_path}" __tests__/ 2>/dev/null; then
+      ROUTE_MISSING="${ROUTE_MISSING}  - ${route}\n"
+    fi
+  fi
+done
+if [ -n "$ROUTE_MISSING" ]; then
+  echo ""
+  echo "WARNING: 以下の API ルートにテストがありません:"
+  printf "$ROUTE_MISSING"
+  echo "__tests__/api/ にテストを追加してください。"
+  echo ""
+  # WARNING: テスト不足はブロックせず警告のみ（既存ルートに段階的に対応するため）
+fi
+
 # TypeScript 型チェック（GitHub Actions と同じチェック）
 echo "Running tsc --noEmit..."
 npx tsc --noEmit

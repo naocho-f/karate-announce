@@ -49,7 +49,7 @@
 | ショートカット印刷 | `/timer/shortcuts` | なし | [TIMER_SPEC.md](docs/TIMER_SPEC.md) |
 | ログイン | `/admin/login` | — | — |
 | 管理画面ホーム | `/admin` | Cookie | [EVENT_ADMIN_SPEC.md](docs/EVENT_ADMIN_SPEC.md) |
-| 試合詳細 | `/admin/events/[id]` | Cookie | [EVENT_ADMIN_SPEC.md](docs/EVENT_ADMIN_SPEC.md), [BRACKET_SPEC.md](docs/BRACKET_SPEC.md), [MATCH_LABEL_SPEC.md](docs/MATCH_LABEL_SPEC.md) |
+| 試合詳細 | `/admin/events/[id]` | Cookie | [EVENT_ADMIN_SPEC.md](docs/EVENT_ADMIN_SPEC.md), [BRACKET_SPEC.md](docs/BRACKET_SPEC.md), [BRACKET_VIEW_SPEC.md](docs/BRACKET_VIEW_SPEC.md), [MATCH_LABEL_SPEC.md](docs/MATCH_LABEL_SPEC.md), [FORM_CONFIG_SPEC.md](docs/FORM_CONFIG_SPEC.md) |
 | 参加者詳細 | `/admin/events/[id]/entries/[entryId]` | Cookie | [EVENT_ADMIN_SPEC.md](docs/EVENT_ADMIN_SPEC.md) |
 | タイマー管理 | `/admin/timer-presets` | Cookie | [TIMER_SPEC.md](docs/TIMER_SPEC.md) |
 | 仕様書 | `/admin/spec` | なし（dev） | — |
