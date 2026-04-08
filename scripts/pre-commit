@@ -76,6 +76,28 @@ if [ -n "$ROUTE_MISSING" ]; then
   # WARNING: テスト不足はブロックせず警告のみ（既存ルートに段階的に対応するため）
 fi
 
+# SPEC.md API一覧の完全性チェック: 全 route.ts のURLパスが SPEC.md に記載されているか
+API_MISSING=""
+for route in $(find app/api -name 'route.ts' 2>/dev/null); do
+  # URLパスを構築（/api/admin/events/[id] → /api/admin/events/[id]）
+  url_path=$(echo "$route" | sed 's|^app||;s|/route\.ts$||')
+  if ! grep -Fq "$url_path" SPEC.md; then
+    # [id] をワイルドカードに置換して再チェック（SPEC.md では [id] 表記のはず）
+    url_no_bracket=$(echo "$url_path" | sed 's/\[.*\]//g;s|/$||')
+    if ! grep -Fq "$url_no_bracket" SPEC.md; then
+      API_MISSING="${API_MISSING}  - ${url_path}\n"
+    fi
+  fi
+done
+if [ -n "$API_MISSING" ]; then
+  echo ""
+  echo "ERROR: 以下の API ルートが SPEC.md に記載されていません:"
+  printf "$API_MISSING"
+  echo "SPEC.md Section 5 に追加してください。"
+  echo ""
+  exit 1
+fi
+
 # TypeScript 型チェック（GitHub Actions と同じチェック）
 echo "Running tsc --noEmit..."
 npx tsc --noEmit
