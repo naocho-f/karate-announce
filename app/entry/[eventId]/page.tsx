@@ -839,8 +839,9 @@ export default function EntryPage({ params }: Props) {
           </p>
           <div className={`grid ${ageFieldConfig ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-2 items-end`}>
             <div className="space-y-1">
-              {ageFieldConfig && <label className="text-xs text-gray-400">生年月日</label>}
+              {ageFieldConfig && <label htmlFor="field-birth_date" className="text-xs text-gray-400">生年月日</label>}
               <input
+                id="field-birth_date"
                 type="date"
                 value={values[key] ?? ""}
                 onChange={(e) => {

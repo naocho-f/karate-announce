@@ -23,34 +23,34 @@ const SHORTCUTS = [
 
 export default function ShortcutsPage() {
   return (
-    <div className="min-h-screen bg-white text-black p-8 print:p-4">
+    <div className="min-h-screen bg-main-bg text-white p-8 print:bg-white print:text-black print:p-4">
       <h1 className="text-2xl font-bold mb-1">タイマー操作 ショートカット一覧</h1>
-      <p className="text-gray-500 text-sm mb-6 print:mb-4">印刷してタイムキーパー席に置いてください</p>
+      <p className="text-gray-400 print:text-gray-500 text-sm mb-6 print:mb-4">印刷してタイムキーパー席に置いてください</p>
 
       <table className="w-full border-collapse">
         <thead>
-          <tr className="border-b-2 border-black">
+          <tr className="border-b-2 border-gray-600 print:border-black">
             <th className="text-left py-2 px-3 w-24">キー</th>
             <th className="text-left py-2 px-3">操作</th>
-            <th className="text-left py-2 px-3 text-gray-500">備考</th>
+            <th className="text-left py-2 px-3 text-gray-400 print:text-gray-500">備考</th>
           </tr>
         </thead>
         <tbody>
           {SHORTCUTS.map((s) => (
-            <tr key={s.key} className="border-b border-gray-300">
+            <tr key={s.key} className="border-b border-gray-700 print:border-gray-300">
               <td className="py-2 px-3">
-                <kbd className="bg-gray-100 border border-gray-300 rounded px-2 py-1 font-mono text-sm font-bold">
+                <kbd className="bg-gray-800 print:bg-gray-100 border border-gray-600 print:border-gray-300 rounded px-2 py-1 font-mono text-sm font-bold">
                   {s.key}
                 </kbd>
               </td>
               <td className="py-2 px-3 font-medium">{s.desc}</td>
-              <td className="py-2 px-3 text-gray-500 text-sm">{s.note}</td>
+              <td className="py-2 px-3 text-gray-400 print:text-gray-500 text-sm">{s.note}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <div className="mt-8 text-gray-400 text-xs print:mt-4">
+      <div className="mt-8 text-gray-500 text-xs print:text-gray-400 print:mt-4">
         <p>※ 赤 = 左の選手（上）、白 = 右の選手（下）</p>
         <p>※ input 欄にフォーカスがあるときはショートカット無効</p>
       </div>
