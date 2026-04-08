@@ -74,16 +74,27 @@ export function matchesRule(
         if (maxNum != null && entryGradeNum > maxNum) return false;
       }
     } else {
-      // 年齢ベース区分: entry の age でフィルタ
+      // entry が年齢ベース区分（一般、シニア等）の場合
+      const entryAge = getAge(entry);
+      // まずルールの grade が年齢区分かチェック
       const minCat = rule.min_grade ? findAgeCategory(rule.min_grade) : null;
       const maxCat = rule.max_grade ? findAgeCategory(rule.max_grade) : null;
       if (minCat || maxCat) {
-        const entryAge = getAge(entry);
+        // ルールも年齢区分 → 年齢で直接比較
         if (entryAge == null) return false;
         if (minCat && entryAge < minCat.minAge) return false;
         if (maxCat && maxCat.maxAge != null && entryAge > maxCat.maxAge) return false;
       } else {
-        return false;
+        // ルールは数値学年（小1-小6等）→ 推定年齢で比較（gradeToNumber + 5〜6歳）
+        if (entryAge == null) return false;
+        if (rule.min_grade != null) {
+          const minNum = gradeToNumber(rule.min_grade);
+          if (minNum != null && entryAge < minNum + 5) return false;
+        }
+        if (rule.max_grade != null) {
+          const maxNum = gradeToNumber(rule.max_grade);
+          if (maxNum != null && entryAge > maxNum + 6) return false;
+        }
       }
     }
   }

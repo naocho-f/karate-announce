@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import { defaultCache } from "@serwist/turbopack/worker";
-import { Serwist, type SerwistGlobalConfig } from "serwist";
+import { Serwist, NetworkOnly, type SerwistGlobalConfig } from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -20,7 +20,15 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [
+    // /api/* は常にネットワークから取得（OFFLINE_SPEC: Network Only）
+    {
+      matcher: ({ url }: { url: URL }) => url.pathname.startsWith("/api/"),
+      handler: new NetworkOnly(),
+    },
+    // その他はデフォルトキャッシュ戦略
+    ...defaultCache,
+  ],
   fallbacks: {
     entries: [
       {

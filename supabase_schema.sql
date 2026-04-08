@@ -268,6 +268,8 @@ create table timer_presets (
   buzzer_repeat_newaza integer default 1,
   buzzer_custom_path text,
   swap_sides boolean default false,
+  newaza_direction text default 'countup',          -- 寝技カウント方向 ('countup' | 'countdown')
+  combined_ippon_wins boolean default false,         -- 技あり2回で合わせ一本勝ち
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   layout jsonb

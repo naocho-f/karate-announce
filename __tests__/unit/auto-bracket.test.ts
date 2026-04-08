@@ -4,7 +4,7 @@
  * 振り分けルールに基づくグループ分け・コート割り当てロジックを検証する
  */
 import { describe, it, expect } from "vitest";
-import { groupEntriesByRules, assignCourts, type AutoGroup } from "@/lib/auto-bracket";
+import { groupEntriesByRules, assignCourts, matchesRule, type AutoGroup } from "@/lib/auto-bracket";
 import type { Entry, BracketRule } from "@/lib/types";
 
 function makeEntry(id: string, overrides?: Partial<Entry>): Entry {
@@ -334,6 +334,41 @@ describe("groupEntriesByRules", () => {
     expect(groups[0].pairs).toHaveLength(1);
     expect(groups[0].pairs[0].e1).toBeTruthy();
     expect(groups[0].pairs[0].e2).toBeTruthy();
+  });
+});
+
+describe("matchesRule — 数値学年ルール vs 年齢区分エントリー", () => {
+  it("10歳・一般は小1-小6ルールにマッチする", () => {
+    const entry = makeEntry("e1", { grade: "一般", age: 10 });
+    const rule = makeRule("R1", { min_grade: "小1", max_grade: "小6" });
+    expect(matchesRule(entry, rule, { "e1": new Set() })).toBe(true);
+  });
+
+  it("25歳・一般は小1-小6ルールにマッチしない", () => {
+    const entry = makeEntry("e2", { grade: "一般", age: 25 });
+    const rule = makeRule("R1", { min_grade: "小1", max_grade: "小6" });
+    expect(matchesRule(entry, rule, { "e2": new Set() })).toBe(false);
+  });
+
+  it("5歳・一般は小1-小6ルールにマッチしない（下限未満）", () => {
+    const entry = makeEntry("e3", { grade: "一般", age: 5 });
+    const rule = makeRule("R1", { min_grade: "小1", max_grade: "小6" });
+    expect(matchesRule(entry, rule, { "e3": new Set() })).toBe(false);
+  });
+
+  it("groupEntriesByRules 経由でも正しく分類される", () => {
+    const entries = [
+      makeEntry("e1", { grade: "一般", age: 10 }),
+      makeEntry("e2", { grade: "一般", age: 25 }),
+    ];
+    const rules = [
+      makeRule("R1", { name: "小学生", min_grade: "小1", max_grade: "小6", sort_order: 0 }),
+    ];
+    const groups = groupEntriesByRules(entries, rules, { "e1": new Set(), "e2": new Set() });
+    const matched = groups.find((g) => g.name === "小学生");
+    expect(matched).toBeDefined();
+    expect(matched!.entries.some((e) => e.id === "e1")).toBe(true);
+    expect(matched!.entries.some((e) => e.id === "e2")).toBe(false);
   });
 });
 
