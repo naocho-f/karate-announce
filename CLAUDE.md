@@ -189,6 +189,7 @@
 - 実行方法は memory/reference_supabase_sql.md を参照。
 - 既存データのマイグレーションも同時に実行する。
 - **マイグレーションファイル必須**: SQL を Supabase に実行したら、同じ内容を `supabase/migrations/` にも `CREATE OR REPLACE` 形式で保存する。RPC 関数・テーブル変更・インデックス等すべて対象。マイグレーションファイルがないと新環境構築時に再現できない。
+- **`supabase_schema.sql` も同時更新必須**: カラム追加・テーブル作成時は `supabase_schema.sql` にも反映する。`lib/types.ts` の型定義と `supabase_schema.sql` のカラム定義が一致していることを確認する。
 
 ## コミュニケーション
 - 日本語は丁寧語（「〜しました」「〜です」）を使うこと。タメ口・体言止め禁止。
