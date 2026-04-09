@@ -14,6 +14,7 @@ import {
   createAdminRequest,
   createParams,
   resetAll,
+  getCallsFor,
 } from "../helpers/supabase-mock";
 
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: createMockSupabase() }));
@@ -400,6 +401,158 @@ describe("/api/admin/tournaments POST", () => {
     expect(json.error).toContain("同じルール");
     // モックを元に戻す
     mockFn.mockResolvedValue("fighter-new");
+  });
+
+  it("matchLabel・rulesがペアごとに正しく設定される", async () => {
+    mockResult("tournaments", "insert", {
+      data: { id: "t-label", name: "A", court: "1", status: "preparing" },
+    });
+    mockResult("matches", "select", {
+      data: { id: "next-m", fighter1_id: null, fighter2_id: null },
+    });
+    const { POST } = await import("@/app/api/admin/tournaments/route");
+    const req = createAdminRequest("POST", "/api/admin/tournaments", {
+      body: {
+        courtName: "Aコート",
+        courtNum: "1",
+        pairs: [
+          {
+            e1: { id: "e1", family_name: "田中", event_id: "ev1" },
+            e2: { id: "e2", family_name: "鈴木", event_id: "ev1" },
+            matchLabel: "第1試合",
+            ruleName: "本戦2分",
+          },
+          {
+            e1: { id: "e3", family_name: "佐藤", event_id: "ev1" },
+            e2: { id: "e4", family_name: "山田", event_id: "ev1" },
+            matchLabel: "第2試合",
+            ruleName: "延長1分",
+          },
+        ],
+      },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const insertCalls = getCallsFor("matches", "insert");
+    expect(insertCalls.length).toBeGreaterThanOrEqual(1);
+    const firstRound = insertCalls[0].args[0] as Array<Record<string, unknown>>;
+    expect(firstRound[0]).toMatchObject({ match_label: "第1試合", rules: "本戦2分" });
+    expect(firstRound[1]).toMatchObject({ match_label: "第2試合", rules: "延長1分" });
+  });
+
+  it("2ラウンド目以降の空枠が正しく生成される（4ペア→round2=2, round3=1）", async () => {
+    mockResult("tournaments", "insert", {
+      data: { id: "t-rounds", name: "A", court: "1", status: "preparing" },
+    });
+    mockResult("matches", "select", {
+      data: { id: "next-m", fighter1_id: null, fighter2_id: null },
+    });
+    const { POST } = await import("@/app/api/admin/tournaments/route");
+    const pairs = Array.from({ length: 4 }, (_, i) => ({
+      e1: { id: `e${i * 2}`, family_name: `F${i * 2}`, event_id: "ev1" },
+      e2: { id: `e${i * 2 + 1}`, family_name: `F${i * 2 + 1}`, event_id: "ev1" },
+      matchLabel: null,
+      ruleName: null,
+    }));
+    const req = createAdminRequest("POST", "/api/admin/tournaments", {
+      body: { courtName: "A", courtNum: "1", pairs },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const insertCalls = getCallsFor("matches", "insert");
+    // round1: 4試合
+    const round1 = insertCalls[0].args[0] as Array<Record<string, unknown>>;
+    expect(round1).toHaveLength(4);
+    // round2+round3 は一括 insert（allRoundMatches）
+    // 4ペア → roundsFromPairCount(4)=3 → round2=2, round3=1 → 合計3試合
+    expect(insertCalls.length).toBeGreaterThanOrEqual(2);
+    const laterRounds = insertCalls[1].args[0] as Array<Record<string, unknown>>;
+    expect(laterRounds).toHaveLength(3); // round2(2) + round3(1)
+    const round2Matches = laterRounds.filter((m) => m.round === 2);
+    const round3Matches = laterRounds.filter((m) => m.round === 3);
+    expect(round2Matches).toHaveLength(2);
+    expect(round3Matches).toHaveLength(1);
+  });
+
+  it("ready/waitingステータスが正しく設定される", async () => {
+    mockResult("tournaments", "insert", {
+      data: { id: "t-status", name: "A", court: "1", status: "preparing" },
+    });
+    const { POST } = await import("@/app/api/admin/tournaments/route");
+    const req = createAdminRequest("POST", "/api/admin/tournaments", {
+      body: {
+        courtName: "A",
+        courtNum: "1",
+        pairs: [
+          {
+            e1: { id: "e1", family_name: "A", event_id: "ev1" },
+            e2: { id: "e2", family_name: "B", event_id: "ev1" },
+            matchLabel: null, ruleName: null,
+          },
+          {
+            e1: { id: "e3", family_name: "C", event_id: "ev1" },
+            e2: null,
+            matchLabel: null, ruleName: null,
+          },
+        ],
+      },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const insertCalls = getCallsFor("matches", "insert");
+    const firstRound = insertCalls[0].args[0] as Array<Record<string, unknown>>;
+    // 両選手あり → ready
+    expect(firstRound[0].status).toBe("ready");
+    // 片方のみ（不戦勝）→ waiting
+    expect(firstRound[1].status).toBe("waiting");
+  });
+
+  it("positionが0始まりの連番になる", async () => {
+    mockResult("tournaments", "insert", {
+      data: { id: "t-pos", name: "A", court: "1", status: "preparing" },
+    });
+    mockResult("matches", "select", {
+      data: { id: "next-m", fighter1_id: null, fighter2_id: null },
+    });
+    const { POST } = await import("@/app/api/admin/tournaments/route");
+    const pairs = Array.from({ length: 3 }, (_, i) => ({
+      e1: { id: `e${i * 2}`, family_name: `F${i * 2}`, event_id: "ev1" },
+      e2: { id: `e${i * 2 + 1}`, family_name: `F${i * 2 + 1}`, event_id: "ev1" },
+      matchLabel: null, ruleName: null,
+    }));
+    const req = createAdminRequest("POST", "/api/admin/tournaments", {
+      body: { courtName: "A", courtNum: "1", pairs },
+    });
+    await POST(req);
+
+    const insertCalls = getCallsFor("matches", "insert");
+    const firstRound = insertCalls[0].args[0] as Array<Record<string, unknown>>;
+    expect(firstRound[0].position).toBe(0);
+    expect(firstRound[1].position).toBe(1);
+    expect(firstRound[2].position).toBe(2);
+  });
+
+  it("tournaments insert失敗で500エラー", async () => {
+    mockResult("tournaments", "insert", { data: null, error: { message: "DB error" } });
+    const { POST } = await import("@/app/api/admin/tournaments/route");
+    const req = createAdminRequest("POST", "/api/admin/tournaments", {
+      body: {
+        courtName: "A",
+        courtNum: "1",
+        pairs: [
+          {
+            e1: { id: "e1", family_name: "A", event_id: "ev1" },
+            e2: { id: "e2", family_name: "B", event_id: "ev1" },
+            matchLabel: null, ruleName: null,
+          },
+        ],
+      },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(500);
   });
 
   it("不戦勝ありのトーナメントを作成できる", async () => {
