@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-09（テスト専用エクスポート整理）
+> 最終更新: 2026-04-09（トーナメントAPIテスト補強）
 
 ---
 
@@ -577,6 +577,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **pre-commit hook品質チェック完全版（2026-04-08）**: 画面逆方向・リンク切れ・認証チェック・環境変数・コンポーネントテスト存在を追加
 - **pre-commit hook網羅的チェック追加（2026-04-08）**: 全不変条件の機械的検証を完了。API逆方向・ページ一覧・hook同期チェック追加
 - **pre-commit hookにbuild追加（2026-04-08）**: npm run buildをコミット前に実行。ビルド壊れたコードの混入を防止
+- **トーナメントAPIテスト補強（2026-04-09）**: ラウンド構造検証（1/3/8ペア）、不戦勝の次ラウンド進出・done設定検証、複数不戦勝の独立処理検証を追加。デッドコード削除で失われたカバレッジを本番コードのテストで回復
 - **テスト専用エクスポート整理（2026-04-09）**: アプリ未使用のエクスポートを削除（tournament.ts: generateFirstRound/BracketSlot/BracketMatch, pairing.ts: filterDuplicatePairs, compatibility.ts: worstCompatibility）。pairing.ts: nextPowerOf2を非exportに。該当テスト28件を削除
 - **entry-service抽出（2026-04-09）**: public/entry/route.tsのビジネスロジック（締切チェック、年齢計算、道場upsert、エントリーINSERT、ルール紐付け、メール送信）をlib/services/entry-service.tsに分離。route.tsはレート制限+リクエスト解析のみの薄いコントローラーに
 - **デッドコード除去: lib/bracket.ts削除+テスト移植（2026-04-09）**: アプリ未使用のlib/bracket.tsとbracket.test.tsを削除。テストケースをAPI routeテスト（admin-media-tournaments.test.ts）に移植し、本番コードのカバレッジを強化
