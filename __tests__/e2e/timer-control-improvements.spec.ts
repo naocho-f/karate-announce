@@ -22,7 +22,7 @@ test.describe("タイマー操作パネル改善", () => {
   test("#3: ルールラベルが表示される", async ({ page }) => {
     await page.goto("/timer/1/control");
     // プリセット選択のラベルが「ルール」であること
-    const label = page.locator("label", { hasText: "ルール" });
+    const _label = page.locator("label", { hasText: "ルール" });
     // ラベルが存在するか（プリセットがあれば表示される）
     // プリセットがない環境でもエラーにならないことを確認
     await expect(page.locator("body")).toBeVisible({ timeout: 10_000 });

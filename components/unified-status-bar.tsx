@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { type ConnectionQuality } from "@/lib/connection-logic";
 import {
   type NetworkMode,
@@ -12,7 +13,6 @@ import {
   shouldShowRecoveryPrompt,
 } from "@/lib/offline-mode";
 import { getPendingCount, flush } from "@/lib/offline-queue";
-import { useCallback, useEffect, useRef, useState } from "react";
 
 /** アプリ全体のモード状態を取得するフック */
 export function useOfflineMode(): {
@@ -35,6 +35,13 @@ export function useAutoRecovery(mode: NetworkMode): {
 } {
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
   const lastDeclinedRef = useRef<number | null>(null);
+  const [prevMode, setPrevMode] = useState(mode);
+  if (mode !== prevMode) {
+    setPrevMode(mode);
+    if (mode !== "offline") {
+      setShowRecoveryPrompt(false);
+    }
+  }
 
   const acceptRecovery = useCallback(() => {
     setShowRecoveryPrompt(false);
@@ -49,10 +56,7 @@ export function useAutoRecovery(mode: NetworkMode): {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (mode !== "offline") {
-      setShowRecoveryPrompt(false);
-      return;
-    }
+    if (mode !== "offline") return;
 
     const handleOnline = async () => {
       // モードが既に変わっていたら無視

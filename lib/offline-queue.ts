@@ -175,7 +175,7 @@ export async function flush(): Promise<FlushResult> {
 }
 
 /** キュー内の操作のみ削除（データキャッシュは残す） */
-async function clearQueue(): Promise<void> {
+async function _clearQueue(): Promise<void> {
   await clear(queueStore);
 }
 

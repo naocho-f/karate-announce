@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import type { Entry, Event, Fighter, Match, Tournament, Rule, TimerPreset } from "@/lib/types";
 import { entryFullName } from "@/lib/types";
@@ -8,8 +9,8 @@ import {
   checkCompatibility,
   COMPAT_COLORS, COMPAT_LABEL, type CompatibilityLevel, type MismatchSettings,
 } from "@/lib/compatibility";
-import { pairsFromEntries, entryCompatScore, type PairEntry } from "@/lib/pairing";
-import { BracketView, roundLabel } from "@/lib/bracket-view";
+import { pairsFromEntries, entryCompatScore } from "@/lib/pairing";
+import { BracketView } from "@/lib/bracket-view";
 import { BracketRulesPanel } from "@/components/bracket-rules-panel";
 import { AutoCreateDialog } from "@/components/auto-create-dialog";
 import { computeSuggestions } from "@/lib/suggestions";
@@ -18,7 +19,6 @@ import { buildRuleGroups } from "@/lib/rule-grouping";
 import type { AutoGroup } from "@/lib/auto-bracket";
 import { getGradeOptions, gradeToNumber, type AgeCategory } from "@/lib/grade-options";
 import { buildFilterSortComparator, matchCountFilterPredicate, gradeFilterPredicate } from "@/lib/group-filter-sort";
-import Link from "next/link";
 import { estimateMatchMinutes, formatTimeEstimate, countActualMatches, roundedNowHHMM } from "@/lib/time-estimate";
 
 type Pair = {
@@ -429,7 +429,7 @@ function BracketQualityBadge({ pairCount }: { pairCount: number }) {
 
 // ── GroupSection ──────────────────────────────────────────────────────────
 
-function GroupSection({ group, entries, unassigned, allEntries, rules, eventRules, entryRuleIds, defaultRuleId, mismatchSettings, ageCategories, canRemove, getDesiredMatchCount, getTotalMatchCount, existingPairs, onRename, onRemove, onAutoAssign, onUpdateMismatch, onAddPair, onRemovePair, onMovePair, onUpdateE1, onUpdateE2, onUpdateField, onUpdateFilters }: {
+function GroupSection({ group, entries: _entries, unassigned, allEntries: _allEntries, rules: _rules, eventRules, entryRuleIds, defaultRuleId, mismatchSettings: _mismatchSettings, ageCategories, canRemove, getDesiredMatchCount, getTotalMatchCount, existingPairs, onRename, onRemove, onAutoAssign, onUpdateMismatch, onAddPair, onRemovePair, onMovePair, onUpdateE1, onUpdateE2, onUpdateField: _onUpdateField, onUpdateFilters }: {
   group: Group;
   entries: Entry[];
   unassigned: Entry[];
@@ -792,7 +792,6 @@ function GroupSection({ group, entries, unassigned, allEntries, rules, eventRule
                 const compat: CompatibilityLevel = pair.e2
                   ? checkCompatibility(pair.e1, pair.e2, groupMismatch)
                   : "unknown";
-                const defaultRule = rules.find((r) => r.id === defaultRuleId);
                 const e1Options = [pair.e1, ...sortedFilteredUnassigned];
                 // 同じルール内で既に対戦が組まれている相手を除外（自分自身のペアは除く）
                 const isAlreadyPaired = (entryId: string) =>
@@ -1001,7 +1000,7 @@ function TournamentEditor({ eventId, entries, entryRuleIds, eventRules, tourname
   }
 
   /** 全自動対戦表作成: ルールごとにトーナメントを作成しペアリング */
-  function autoCreateAll() {
+  function _autoCreateAll() {
     const displayRules = eventRules.length > 0 ? eventRules : [];
     // 未割当選手を取得（filteredEntries のうち、ルール絞込なしで全員）
     const allUnassigned = entries.filter((e) => {
@@ -1246,7 +1245,6 @@ function TournamentEditor({ eventId, entries, entryRuleIds, eventRules, tourname
 
   const totalPairs = groups.reduce((sum, g) => sum + g.pairs.length, 0);
   const activeGroups = groups.filter((g) => g.pairs.length > 0);
-  const activeGroupCount = activeGroups.length;
   const activeTournamentCount = activeGroups.filter((g) => g.type === "tournament").length;
   const activeOneMatchCount = activeGroups.filter((g) => g.type === "one_match").length;
   const confirmLabel = (() => {
@@ -1304,8 +1302,8 @@ function TournamentEditor({ eventId, entries, entryRuleIds, eventRules, tourname
             existingPairs={[
               // 画面上の未保存ペア
               ...groups.flatMap((g) =>
-                g.pairs.filter((p) => p.e1 && p.e2).map((p) => ({
-                  e1Id: p.e1.id, e2Id: p.e2!.id, ruleId: p.ruleId, pairId: p.id,
+                g.pairs.filter((p): p is Pair & { e2: Entry } => p.e1 != null && p.e2 != null).map((p) => ({
+                  e1Id: p.e1.id, e2Id: p.e2.id, ruleId: p.ruleId, pairId: p.id,
                 }))
               ),
               // DB保存済みペア（fighter_id → entry.id に変換）
@@ -1521,7 +1519,7 @@ function TournamentEditor({ eventId, entries, entryRuleIds, eventRules, tourname
         </div>
       )}
 
-      {(localOrder ? localOrder.map((id) => tournaments.find((t) => t.id === id)!).filter(Boolean) : tournaments).map((t, idx, arr) => {
+      {(localOrder ? localOrder.map((id) => tournaments.find((t) => t.id === id)).filter((t): t is Tournament => t != null) : tournaments).map((t, idx, arr) => {
         if (t.id === editingTournamentId) {
           return <div key={t.id}>{editForm}</div>;
         }
@@ -1641,7 +1639,7 @@ function TournamentEditor({ eventId, entries, entryRuleIds, eventRules, tourname
 
 // ── ExistingTournamentSection ──────────────────────────────────────────
 
-function ExistingTournamentSection({ tournament, eventId, entries, rules, mismatchSettings, courtCount, courtNames, onDeleted, onEdit, onCourtChanged }: {
+function ExistingTournamentSection({ tournament, eventId: _eventId, entries, rules, mismatchSettings: _mismatchSettings, courtCount, courtNames, onDeleted, onEdit, onCourtChanged }: {
   tournament: Tournament;
   eventId: string;
   entries: Entry[];
@@ -1661,7 +1659,7 @@ function ExistingTournamentSection({ tournament, eventId, entries, rules, mismat
   const heightDiff = tournament.max_height_diff;
 
   const withdrawnFighterIds = useMemo(
-    () => new Set(entries.filter((e) => e.is_withdrawn && e.fighter_id).map((e) => e.fighter_id!)),
+    () => new Set(entries.filter((e) => e.is_withdrawn && e.fighter_id).map((e) => e.fighter_id as string)),
     [entries],
   );
   const affectedMatches = useMemo(
@@ -1690,7 +1688,7 @@ function ExistingTournamentSection({ tournament, eventId, entries, rules, mismat
       const { data: fs } = await supabase.from("fighters").select("*").in("id", matchFids);
       setFighterMap(Object.fromEntries((fs ?? []).map((f) => [f.id, f])));
     }
-  }, [tournament.id, eventId]);
+  }, [tournament.id]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -1892,7 +1890,7 @@ function ExistingTournamentSection({ tournament, eventId, entries, rules, mismat
               affiliationMap={Object.fromEntries(
                 Object.entries(fighterMap)
                   .filter(([, f]) => f.affiliation)
-                  .map(([id, f]) => [id, f.affiliation!])
+                  .map(([id, f]) => [id, f.affiliation as string])
               )}
               withdrawnIds={withdrawnFighterIds}
             />
@@ -1958,10 +1956,6 @@ export function BracketSection({
   onLoad,
   onHandleAutoCreateFromDialog,
 }: BracketSectionProps) {
-  function getCourtLabel(courtNum: number): string {
-    return event.court_names?.[courtNum - 1]?.trim() || `コート${courtNum}`;
-  }
-
   return (
     <div className="space-y-6">
       {/* 参加者変更警告 */}

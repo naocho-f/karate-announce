@@ -100,19 +100,19 @@ export async function handleCorrectWinner(id: string, body: MatchBody, supabaseA
   const { winnerId, tournamentId, round, rounds, position } = body;
   await supabaseAdmin.from("matches").update({ winner_id: winnerId }).eq("id", id);
 
-  if (round! < rounds!) {
-    const nextPosition = Math.floor(position! / 2);
-    const field = position! % 2 === 0 ? "fighter1_id" : "fighter2_id";
+  if (round != null && rounds != null && position != null && round < rounds) {
+    const nextPosition = Math.floor(position / 2);
+    const field = position % 2 === 0 ? "fighter1_id" : "fighter2_id";
     const { data: nextMatch } = await supabaseAdmin
       .from("matches")
       .select("id, status, fighter1_id, fighter2_id")
       .eq("tournament_id", tournamentId)
-      .eq("round", round! + 1)
+      .eq("round", round + 1)
       .eq("position", nextPosition)
       .single();
     // 次のラウンドがまだ done/ongoing でなければ選手を差し替え
     if (nextMatch && nextMatch.status !== "done" && nextMatch.status !== "ongoing") {
-      const otherFilled = position! % 2 === 0 ? nextMatch.fighter2_id : nextMatch.fighter1_id;
+      const otherFilled = position % 2 === 0 ? nextMatch.fighter2_id : nextMatch.fighter1_id;
       await supabaseAdmin
         .from("matches")
         .update({ [field]: winnerId, status: otherFilled ? "ready" : "waiting" })

@@ -15,7 +15,7 @@
 - デプロイ: Vercel（Stop hook 経由で自動）
 - パッケージマネージャ: npm
 - ブランチ戦略: **main 直接プッシュ**（feature ブランチは使わない）
-- Lint / Formatter: なし（Next.js ビルトインの型チェック + `npm run build` で検証）
+- Lint: ESLint（eslint-config-next + @typescript-eslint + import）。`npm run lint` で実行。警告 0 を維持すること
 
 ## ディレクトリ構成
 | ディレクトリ | 役割 |
@@ -35,6 +35,8 @@
 | コマンド | 用途 |
 |---------|------|
 | `npm run dev` | 開発サーバー起動 |
+| `npm run lint` | ESLint 実行 |
+| `npm run lint:fix` | ESLint 自動修正 |
 | `npm run build` | ビルド（型チェック含む） |
 | `npx vitest run` | 全ユニット + API テスト |
 | `npm run test:unit` | ユニットテストのみ |

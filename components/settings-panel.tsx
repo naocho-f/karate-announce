@@ -31,6 +31,7 @@ function DojoPanel() {
     setLoading(false);
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch on mount
   useEffect(() => { load(); }, []);
 
   async function add() {
@@ -140,6 +141,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
     await loadPresets();
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- initial data fetch on mount
   useEffect(() => { load(); }, []);
 
   async function linkPreset(ruleId: string, presetId: string | null) {
@@ -338,11 +340,15 @@ function AnnounceSettingsPanel() {
   const [speed, setSpeed] = useState(1.0);
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
-  useEffect(() => {
-    const s = getTtsSettings();
-    setVoice(s.voice);
-    setSpeed(s.speed);
-  }, []);
+  const [initialized, setInitialized] = useState(false);
+  if (!initialized) {
+    if (typeof window !== "undefined") {
+      const s = getTtsSettings();
+      setVoice(s.voice);
+      setSpeed(s.speed);
+    }
+    setInitialized(true);
+  }
 
   function save() {
     saveTtsSettings(voice, speed);

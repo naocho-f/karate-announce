@@ -87,12 +87,12 @@ describe("groupEntriesByRules", () => {
     expect(groups).toHaveLength(2);
 
     const kids = groups.find((g) => g.name === "小学生");
-    expect(kids).toBeTruthy();
-    expect(kids!.entries.map((e) => e.id).sort()).toEqual(["A", "B"]);
+    expect(kids).toBeDefined();
+    expect(kids?.entries.map((e) => e.id).sort()).toEqual(["A", "B"]);
 
     const adults = groups.find((g) => g.name === "大人");
-    expect(adults).toBeTruthy();
-    expect(adults!.entries.map((e) => e.id).sort()).toEqual(["C", "D"]);
+    expect(adults).toBeDefined();
+    expect(adults?.entries.map((e) => e.id).sort()).toEqual(["C", "D"]);
   });
 
   it("体重範囲で振り分け", () => {
@@ -109,10 +109,12 @@ describe("groupEntriesByRules", () => {
     expect(groups).toHaveLength(2);
 
     const light = groups.find((g) => g.name === "軽量級");
-    expect(light!.entries.map((e) => e.id).sort()).toEqual(["A", "B"]);
+    expect(light).toBeDefined();
+    expect(light?.entries.map((e) => e.id).sort()).toEqual(["A", "B"]);
 
     const heavy = groups.find((g) => g.name === "重量級");
-    expect(heavy!.entries.map((e) => e.id)).toEqual(["C"]);
+    expect(heavy).toBeDefined();
+    expect(heavy?.entries.map((e) => e.id)).toEqual(["C"]);
   });
 
   it("性別で振り分け", () => {
@@ -129,9 +131,11 @@ describe("groupEntriesByRules", () => {
     expect(groups).toHaveLength(2);
 
     const male = groups.find((g) => g.name === "男子");
-    expect(male!.entries).toHaveLength(2);
+    expect(male).toBeDefined();
+    expect(male?.entries).toHaveLength(2);
     const female = groups.find((g) => g.name === "女子");
-    expect(female!.entries).toHaveLength(1);
+    expect(female).toBeDefined();
+    expect(female?.entries).toHaveLength(1);
   });
 
   it("競技ルールIDで振り分け", () => {
@@ -148,12 +152,14 @@ describe("groupEntriesByRules", () => {
     const groups = groupEntriesByRules(entries, rules, entryRuleIds);
 
     const kata = groups.find((g) => g.name === "形");
+    expect(kata).toBeDefined();
     // A, C は形にマッチ（sort_order=0 が先に処理されるので A, C が先に取られる）
-    expect(kata!.entries.map((e) => e.id).sort()).toEqual(["A", "C"]);
+    expect(kata?.entries.map((e) => e.id).sort()).toEqual(["A", "C"]);
 
     const kumite = groups.find((g) => g.name === "組手");
+    expect(kumite).toBeDefined();
     // B のみ（Cは形で割当済み）
-    expect(kumite!.entries.map((e) => e.id)).toEqual(["B"]);
+    expect(kumite?.entries.map((e) => e.id)).toEqual(["B"]);
   });
 
   it("sort_order 順に処理される（先に処理されたルールが優先）", () => {
@@ -222,16 +228,16 @@ describe("groupEntriesByRules", () => {
     expect(groups).toHaveLength(3); // 低学年, 高学年, 未分類(中1)
 
     const low = groups.find((g) => g.name === "小学低学年");
-    expect(low).toBeTruthy();
-    expect(low!.entries.map((e) => e.id).sort()).toEqual(["A", "B"]);
+    expect(low).toBeDefined();
+    expect(low?.entries.map((e) => e.id).sort()).toEqual(["A", "B"]);
 
     const high = groups.find((g) => g.name === "小学高学年");
-    expect(high).toBeTruthy();
-    expect(high!.entries.map((e) => e.id)).toEqual(["C"]);
+    expect(high).toBeDefined();
+    expect(high?.entries.map((e) => e.id)).toEqual(["C"]);
 
     const unmatched = groups.find((g) => g.name === "未分類");
-    expect(unmatched).toBeTruthy();
-    expect(unmatched!.entries.map((e) => e.id)).toEqual(["D"]);
+    expect(unmatched).toBeDefined();
+    expect(unmatched?.entries.map((e) => e.id)).toEqual(["D"]);
   });
 
   it("年代範囲: gradeがnullの選手はマッチしない", () => {
@@ -262,8 +268,8 @@ describe("groupEntriesByRules", () => {
     const groups = groupEntriesByRules(entries, rules, {});
     // 小3は小4未満なのでマッチしない、中2(=8)は小4(=4)以上なのでマッチ
     const matched = groups.find((g) => g.name === "小4以上");
-    expect(matched).toBeTruthy();
-    expect(matched!.entries.map((e) => e.id)).toEqual(["B"]);
+    expect(matched).toBeDefined();
+    expect(matched?.entries.map((e) => e.id)).toEqual(["B"]);
   });
 
   it("年代範囲 + 学年差制限の組み合わせ", () => {
@@ -298,9 +304,15 @@ describe("groupEntriesByRules", () => {
     ];
     const groups = groupEntriesByRules(entries, rules, {});
     expect(groups).toHaveLength(3);
-    expect(groups.find((g) => g.name === "小学生男子")!.entries[0].id).toBe("A");
-    expect(groups.find((g) => g.name === "小学生女子")!.entries[0].id).toBe("B");
-    expect(groups.find((g) => g.name === "一般")!.entries[0].id).toBe("C");
+    const maleGroup = groups.find((g) => g.name === "小学生男子");
+    expect(maleGroup).toBeDefined();
+    expect(maleGroup?.entries[0].id).toBe("A");
+    const femaleGroup = groups.find((g) => g.name === "小学生女子");
+    expect(femaleGroup).toBeDefined();
+    expect(femaleGroup?.entries[0].id).toBe("B");
+    const generalGroup = groups.find((g) => g.name === "一般");
+    expect(generalGroup).toBeDefined();
+    expect(generalGroup?.entries[0].id).toBe("C");
   });
 
   it("maxWeightDiff / maxHeightDiff がグループに引き継がれる", () => {
@@ -367,8 +379,8 @@ describe("matchesRule — 数値学年ルール vs 年齢区分エントリー",
     const groups = groupEntriesByRules(entries, rules, { "e1": new Set(), "e2": new Set() });
     const matched = groups.find((g) => g.name === "小学生");
     expect(matched).toBeDefined();
-    expect(matched!.entries.some((e) => e.id === "e1")).toBe(true);
-    expect(matched!.entries.some((e) => e.id === "e2")).toBe(false);
+    expect(matched?.entries.some((e) => e.id === "e1")).toBe(true);
+    expect(matched?.entries.some((e) => e.id === "e2")).toBe(false);
   });
 });
 
@@ -393,8 +405,12 @@ describe("assignCourts", () => {
       makeGroup({ name: "B", courtNum: 2, pairs: Array(3).fill({}) as AutoGroup["pairs"] }),
     ];
     const result = assignCourts(groups, 2);
-    expect(result.find((g) => g.name === "A")!.courtNum).toBe(1);
-    expect(result.find((g) => g.name === "B")!.courtNum).toBe(2);
+    const groupA = result.find((g) => g.name === "A");
+    expect(groupA).toBeDefined();
+    expect(groupA?.courtNum).toBe(1);
+    const groupB = result.find((g) => g.name === "B");
+    expect(groupB).toBeDefined();
+    expect(groupB?.courtNum).toBe(2);
   });
 
   it("courtNum=null のグループは試合数最小のコートに割り当て", () => {
@@ -404,7 +420,9 @@ describe("assignCourts", () => {
     ];
     const result = assignCourts(groups, 2);
     // コート1は5試合、コート2は0試合 → Bはコート2に
-    expect(result.find((g) => g.name === "B")!.courtNum).toBe(2);
+    const flexGroup = result.find((g) => g.name === "B");
+    expect(flexGroup).toBeDefined();
+    expect(flexGroup?.courtNum).toBe(2);
   });
 
   it("複数の flexible グループがバランスよく分散", () => {

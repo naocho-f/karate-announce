@@ -4,7 +4,7 @@
  *
  * タイマーのステートマシン — 状態遷移、スコア計算、自動判定、Undo を検証する。
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   createInitialState,
   setMatch,

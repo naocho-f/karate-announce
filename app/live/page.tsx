@@ -103,7 +103,7 @@ export default function LivePage() {
   const { mode: offlineMode } = useOfflineMode();
   const pendingCount = usePendingCount();
   const { showRecoveryPrompt, acceptRecovery, declineRecovery } = useAutoRecovery(offlineMode);
-  const { isOffline, quality, wrappedFetch } = useConnectionStatus(load, {
+  const { isOffline: _isOffline, quality, wrappedFetch } = useConnectionStatus(load, {
     baseInterval: 5000,
     enabled: offlineMode === "online",
     onReconnect: () => { flush().catch(() => {}); },

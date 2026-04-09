@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { createTimerChannel, loadState } from "@/lib/timer-broadcast";
 import type { TimerState } from "@/lib/timer-state";
@@ -109,7 +109,7 @@ export default function TimerDisplayPage() {
       try {
         const parsed = JSON.parse(saved) as { eventId: string };
         const loaded = loadState(parsed.eventId, courtId);
-        if (loaded) setState(loaded);
+        if (loaded) setState(loaded); // eslint-disable-line react-hooks/set-state-in-effect -- restore persisted state on mount
       } catch {}
     }
   }, [courtId]);
@@ -122,30 +122,29 @@ export default function TimerDisplayPage() {
   }, [courtId]);
 
   const stateRef = useRef(state);
-  stateRef.current = state;
+  useEffect(() => { stateRef.current = state; });
 
   const [displayMs, setDisplayMs] = useState(0);
   const [newazaMs, setNewazaMs] = useState(0);
   const [newazaDispMs, setNewazaDispMs] = useState(0);
 
-  const animateLoop = useCallback(() => {
-    const s = stateRef.current;
-    setDisplayMs(getDisplayMs(s));
-    if (s.newaza.active) {
-      setNewazaMs(getNewazaElapsedMs(s));
-      setNewazaDispMs(getNewazaDisplayMs(s));
+  useEffect(() => {
+    function animateLoop() {
+      const s = stateRef.current;
+      setDisplayMs(getDisplayMs(s));
+      if (s.newaza.active) {
+        setNewazaMs(getNewazaElapsedMs(s));
+        setNewazaDispMs(getNewazaDisplayMs(s));
+      }
+      rafRef.current = requestAnimationFrame(animateLoop);
     }
     rafRef.current = requestAnimationFrame(animateLoop);
+    return () => cancelAnimationFrame(rafRef.current);
   }, []);
 
   useEffect(() => {
-    rafRef.current = requestAnimationFrame(animateLoop);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [animateLoop]);
-
-  useEffect(() => {
     if (state.phase !== "running") {
-      setDisplayMs(getDisplayMs(state));
+      setDisplayMs(getDisplayMs(state)); // eslint-disable-line react-hooks/set-state-in-effect -- sync derived display values from timer state
       const elapsed = state.newaza.active ? getNewazaElapsedMs(state) : state.newaza.elapsedMs;
       setNewazaMs(elapsed);
       setNewazaDispMs(state.newaza.active ? getNewazaDisplayMs(state) : (state.preset?.newaza_direction === "countdown" ? Math.max(0, (state.preset?.newaza_duration ?? 30) * 1000 - elapsed) : elapsed));
@@ -410,7 +409,7 @@ function VictoryOverlay({ color, text, maxFontSizeVh }: { color: string; text: s
       if (textEl.scrollWidth <= container.clientWidth - 16) break; // 16px = px-2 padding
       fs *= 0.85;
     }
-    setFontSize(fs);
+    setFontSize(fs); // eslint-disable-line react-hooks/set-state-in-effect -- DOM measurement requires effect, setState is intentional for layout adjustment
   }, [text, maxFontSizeVh]);
 
   return (

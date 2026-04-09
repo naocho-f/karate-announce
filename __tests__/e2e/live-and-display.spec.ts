@@ -116,7 +116,7 @@ test.describe("ライブ・表示", () => {
       await page.waitForLoadState("networkidle");
       const bodyText = await page.textContent("body");
       expect(bodyText).toBeTruthy();
-      const hasContent = bodyText!.includes("ホームテスト") || bodyText!.includes("コート");
+      const hasContent = bodyText?.includes("ホームテスト") || bodyText?.includes("コート");
       expect(hasContent).toBeTruthy();
     }).toPass({ timeout: 20_000, intervals: [2_000, 3_000, 4_000] });
   });

@@ -12,7 +12,7 @@ import {
   isCustomField,
   customFieldToPoolItem,
 } from "@/lib/form-fields";
-import type { FieldPoolItem, FieldCategory } from "@/lib/form-fields";
+import type { FieldCategory } from "@/lib/form-fields";
 import type { CustomFieldDef } from "@/lib/types";
 
 // ──────────────────────────────────────────────
@@ -64,15 +64,15 @@ describe("FIELD_POOL", () => {
   it("prefecture field should have 47 fixedChoices", () => {
     const pref = FIELD_POOL.find((f) => f.key === "prefecture");
     expect(pref).toBeDefined();
-    expect(pref!.fixedChoices).toHaveLength(47);
-    expect(pref!.fixedChoices![0]).toEqual({ label: "北海道", value: "北海道" });
-    expect(pref!.fixedChoices![46]).toEqual({ label: "沖縄県", value: "沖縄県" });
+    expect(pref?.fixedChoices).toHaveLength(47);
+    expect(pref?.fixedChoices?.[0]).toEqual({ label: "北海道", value: "北海道" });
+    expect(pref?.fixedChoices?.[46]).toEqual({ label: "沖縄県", value: "沖縄県" });
   });
 
   it("sex field should have male/female choices", () => {
     const sex = FIELD_POOL.find((f) => f.key === "sex");
     expect(sex).toBeDefined();
-    expect(sex!.defaultChoices).toEqual([
+    expect(sex?.defaultChoices).toEqual([
       { label: "男性", value: "male" },
       { label: "女性", value: "female" },
     ]);
@@ -81,40 +81,43 @@ describe("FIELD_POOL", () => {
   it("email field should have hasConfirmInput set to true", () => {
     const email = FIELD_POOL.find((f) => f.key === "email");
     expect(email).toBeDefined();
-    expect(email!.hasConfirmInput).toBe(true);
+    expect(email?.hasConfirmInput).toBe(true);
   });
 
   it("organization field should use dojos master", () => {
     const org = FIELD_POOL.find((f) => f.key === "organization");
     expect(org).toBeDefined();
-    expect(org!.useMaster).toBe("dojos");
-    expect(org!.hideKanaOnMasterSelect).toBe(true);
+    expect(org?.useMaster).toBe("dojos");
+    expect(org?.hideKanaOnMasterSelect).toBe(true);
   });
 
   it("height and weight should have step and unit", () => {
     const height = FIELD_POOL.find((f) => f.key === "height");
     const weight = FIELD_POOL.find((f) => f.key === "weight");
-    expect(height!.step).toBe(0.1);
-    expect(height!.unit).toBe("cm");
-    expect(weight!.step).toBe(0.1);
-    expect(weight!.unit).toBe("kg");
+    expect(height).toBeDefined();
+    expect(height?.step).toBe(0.1);
+    expect(height?.unit).toBe("cm");
+    expect(weight).toBeDefined();
+    expect(weight?.step).toBe(0.1);
+    expect(weight?.unit).toBe("kg");
   });
 
   it("martial_arts_experience should have maxLength", () => {
     const exp = FIELD_POOL.find((f) => f.key === "martial_arts_experience");
-    expect(exp!.maxLength).toBe(150);
+    expect(exp).toBeDefined();
+    expect(exp?.maxLength).toBe(150);
   });
 
   it("grade field should be select type with fixedChoices", () => {
     const grade = FIELD_POOL.find((f) => f.key === "grade");
     expect(grade).toBeDefined();
-    expect(grade!.type).toBe("select");
-    expect(grade!.dbColumn).toBe("grade");
-    expect(grade!.label).toBe("年代区分");
-    expect(grade!.fixedChoices).toBeDefined();
-    expect(grade!.fixedChoices!.length).toBeGreaterThan(0);
+    expect(grade?.type).toBe("select");
+    expect(grade?.dbColumn).toBe("grade");
+    expect(grade?.label).toBe("年代区分");
+    expect(grade?.fixedChoices).toBeDefined();
+    expect(grade?.fixedChoices?.length).toBeGreaterThan(0);
     // Should include kindergarten, elementary, middle school, and age-based categories
-    const values = grade!.fixedChoices!.map((c) => c.value);
+    const values = grade?.fixedChoices?.map((c) => c.value);
     expect(values).toContain("年少");
     expect(values).toContain("小1");
     expect(values).toContain("中3");
@@ -130,10 +133,10 @@ describe("getFieldDef", () => {
   it("should return the field definition for a valid key", () => {
     const result = getFieldDef("full_name");
     expect(result).toBeDefined();
-    expect(result!.key).toBe("full_name");
-    expect(result!.label).toBe("参加者フルネーム");
-    expect(result!.type).toBe("text");
-    expect(result!.category).toBe("basic");
+    expect(result?.key).toBe("full_name");
+    expect(result?.label).toBe("参加者フルネーム");
+    expect(result?.type).toBe("text");
+    expect(result?.category).toBe("basic");
   });
 
   it("should return undefined for a non-existent key", () => {
@@ -322,8 +325,8 @@ describe("DEFAULT_CUSTOM_FIELDS", () => {
   it("guardian_name should be text with null choices", () => {
     const guardian = DEFAULT_CUSTOM_FIELDS.find((f) => f.field_key === "guardian_name");
     expect(guardian).toBeDefined();
-    expect(guardian!.field_type).toBe("text");
-    expect(guardian!.choices).toBeNull();
+    expect(guardian?.field_type).toBe("text");
+    expect(guardian?.choices).toBeNull();
   });
 
   it("select/checkbox fields should have non-null choices", () => {
@@ -332,7 +335,7 @@ describe("DEFAULT_CUSTOM_FIELDS", () => {
     );
     for (const field of fieldsWithChoices) {
       expect(field.choices).not.toBeNull();
-      expect(field.choices!.length).toBeGreaterThan(0);
+      expect(field.choices?.length).toBeGreaterThan(0);
     }
   });
 

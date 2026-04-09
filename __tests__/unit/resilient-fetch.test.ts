@@ -109,7 +109,6 @@ describe("resilientFetch", () => {
       .mockResolvedValueOnce(serverError())
       .mockResolvedValueOnce(ok());
 
-    const start = Date.now();
     const promise = resilientFetch("/api/test", {
       method: "PATCH",
     }, { maxRetries: 3, timeout: 5000 });

@@ -1,5 +1,5 @@
-import { createSerwistRoute } from "@serwist/turbopack";
 import { resolve } from "node:path";
+import { createSerwistRoute } from "@serwist/turbopack";
 
 export const { GET, dynamic, dynamicParams, revalidate, generateStaticParams } =
   createSerwistRoute({

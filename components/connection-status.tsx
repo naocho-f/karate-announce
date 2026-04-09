@@ -32,7 +32,21 @@ export function useConnectionStatus(
   const baseInterval = options?.baseInterval ?? 3000;
   const enabled = options?.enabled ?? true;
   const onReconnectRef = useRef(options?.onReconnect);
-  onReconnectRef.current = options?.onReconnect;
+  const fetchFnRef = useRef(fetchFn);
+  const baseIntervalRef = useRef(baseInterval);
+
+  // Sync refs via effect to satisfy react-hooks/refs
+  useEffect(() => {
+    onReconnectRef.current = options?.onReconnect;
+  }, [options?.onReconnect]);
+
+  useEffect(() => {
+    fetchFnRef.current = fetchFn;
+  }, [fetchFn]);
+
+  useEffect(() => {
+    baseIntervalRef.current = baseInterval;
+  }, [baseInterval]);
 
   const [quality, setQuality] = useState<ConnectionQuality>("normal");
   const failCountRef = useRef(0);
@@ -57,20 +71,35 @@ export function useConnectionStatus(
     prevQualityRef.current = newQuality;
   }, []);
 
-  // ポーリング間隔を動的に調整
+  // rescheduleRef を先に宣言し、自己参照を可能にする
+  const rescheduleRef = useRef<() => void>(() => {});
+
   const reschedule = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
-    const interval = calcBackoffInterval(baseInterval, failCountRef.current);
-    intervalRef.current = setInterval(() => {
-      wrappedFetchRef.current();
+    const interval = calcBackoffInterval(baseIntervalRef.current, failCountRef.current);
+    intervalRef.current = setInterval(async () => {
+      try {
+        await fetchFnRef.current();
+        const wasOffline = failCountRef.current >= 3;
+        failCountRef.current = 0;
+        hasOperationRetryRef.current = false;
+        updateQuality();
+        if (wasOffline) rescheduleRef.current();
+      } catch {
+        failCountRef.current += 1;
+        updateQuality();
+        rescheduleRef.current();
+      }
     }, interval);
-  }, [baseInterval]);
+  }, [updateQuality]);
 
-  const wrappedFetchRef = useRef<() => Promise<void>>(async () => {});
+  useEffect(() => {
+    rescheduleRef.current = reschedule;
+  }, [reschedule]);
 
   const wrappedFetch = useCallback(async () => {
     try {
-      await fetchFn();
+      await fetchFnRef.current();
       const wasOffline = failCountRef.current >= 3;
       failCountRef.current = 0;
       hasOperationRetryRef.current = false;
@@ -83,11 +112,7 @@ export function useConnectionStatus(
       // 失敗が増えたらバックオフ間隔に更新
       reschedule();
     }
-  }, [fetchFn, updateQuality, reschedule]);
-
-  wrappedFetchRef.current = wrappedFetch;
-
-
+  }, [updateQuality, reschedule]);
 
   // navigator online/offline イベント
   useEffect(() => {
@@ -119,13 +144,24 @@ export function useConnectionStatus(
     failCountRef.current = 0;
     hasOperationRetryRef.current = false;
     updateQuality();
-    intervalRef.current = setInterval(() => {
-      wrappedFetchRef.current();
+    intervalRef.current = setInterval(async () => {
+      try {
+        await fetchFnRef.current();
+        const wasOffline = failCountRef.current >= 3;
+        failCountRef.current = 0;
+        hasOperationRetryRef.current = false;
+        updateQuality();
+        if (wasOffline) reschedule();
+      } catch {
+        failCountRef.current += 1;
+        updateQuality();
+        reschedule();
+      }
     }, baseInterval);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [baseInterval, enabled, updateQuality]);
+  }, [baseInterval, enabled, updateQuality, reschedule]);
 
   return {
     quality,

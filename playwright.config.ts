@@ -1,6 +1,6 @@
+import path from "path";
 import { defineConfig, devices } from "@playwright/test";
 import dotenv from "dotenv";
-import path from "path";
 
 // .env.local を読み込み（ADMIN_PASSWORD 等を E2E テストで利用）
 dotenv.config({ path: path.resolve(__dirname, ".env.local") });

@@ -30,8 +30,8 @@ export function computeSuggestions(ents: Entry[]): SplitSuggestion[] {
   const weightEntries = active.filter(e => e.weight != null);
   if (weightEntries.length >= 2) {
     for (const t of [45, 50, 55, 60, 65, 70, 75, 80]) {
-      const below = weightEntries.filter(e => e.weight! < t).length;
-      const above = weightEntries.filter(e => e.weight! >= t).length;
+      const below = weightEntries.filter(e => (e.weight as number) < t).length;
+      const above = weightEntries.filter(e => (e.weight as number) >= t).length;
       if (below === 0 || above === 0) continue;
       results.push({ axis: "weight", threshold: t, belowLabel: `${t}kg未満`, aboveLabel: `${t}kg以上`, belowCount: below, aboveCount: above, balance: computeBalance(below, above) });
     }
@@ -41,8 +41,8 @@ export function computeSuggestions(ents: Entry[]): SplitSuggestion[] {
   const ageEntries = active.filter(e => e.age != null);
   if (ageEntries.length >= 2) {
     for (const t of [15, 18, 20, 25, 30, 31, 35, 40, 45]) {
-      const below = ageEntries.filter(e => e.age! < t).length;
-      const above = ageEntries.filter(e => e.age! >= t).length;
+      const below = ageEntries.filter(e => (e.age as number) < t).length;
+      const above = ageEntries.filter(e => (e.age as number) >= t).length;
       if (below === 0 || above === 0) continue;
       results.push({ axis: "age", threshold: t, belowLabel: `${t}歳未満`, aboveLabel: `${t}歳以上`, belowCount: below, aboveCount: above, balance: computeBalance(below, above) });
     }
@@ -62,8 +62,8 @@ export function computeSuggestions(ents: Entry[]): SplitSuggestion[] {
   const heightEntries = active.filter(e => e.height != null);
   if (heightEntries.length >= 2) {
     for (const t of [155, 160, 165, 170, 175, 180]) {
-      const below = heightEntries.filter(e => e.height! < t).length;
-      const above = heightEntries.filter(e => e.height! >= t).length;
+      const below = heightEntries.filter(e => (e.height as number) < t).length;
+      const above = heightEntries.filter(e => (e.height as number) >= t).length;
       if (below === 0 || above === 0) continue;
       results.push({ axis: "height", threshold: t, belowLabel: `${t}cm未満`, aboveLabel: `${t}cm以上`, belowCount: below, aboveCount: above, balance: computeBalance(below, above) });
     }
@@ -76,7 +76,7 @@ export function computeSuggestions(ents: Entry[]): SplitSuggestion[] {
       const m = exp.match(/(\d+)\s*年/);
       return m ? parseInt(m[1], 10) : null;
     };
-    const withYears = expEntries.map(e => ({ entry: e, years: parseExpYears(e.experience!) })).filter(x => x.years != null) as { entry: Entry; years: number }[];
+    const withYears = expEntries.map(e => ({ entry: e, years: parseExpYears(e.experience as string) })).filter(x => x.years != null) as { entry: Entry; years: number }[];
     if (withYears.length >= 2) {
       for (const t of [3, 5, 7, 10]) {
         const below = withYears.filter(x => x.years < t).length;

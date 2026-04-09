@@ -3,20 +3,20 @@
 export const dynamic = "force-dynamic";
 
 import { use, useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { isTimerActive } from "@/lib/timer-broadcast";
 import type { Fighter, Match, Tournament } from "@/lib/types";
 import { fighterFullName, fighterFullReading } from "@/lib/types";
-import { roundName, totalRounds } from "@/lib/tournament";
+import { roundName } from "@/lib/tournament";
 import { announceMatchStart, announceWinner, buildMatchStartText, prefetchTts, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
 import { BracketView } from "@/lib/bracket-view";
 import { matchLabelNum } from "@/lib/match-utils";
-import Link from "next/link";
 import { showToast } from "@/components/toast";
 import { useConnectionStatus } from "@/components/connection-status";
 import { UnifiedStatusBar, useOfflineMode, usePendingCount, useAutoRecovery } from "@/components/unified-status-bar";
 import { resilientFetch } from "@/lib/resilient-fetch";
-import { enqueue, cacheData, getCachedData, flush } from "@/lib/offline-queue";
+import { enqueue, cacheData, flush } from "@/lib/offline-queue";
 import { setMode } from "@/lib/offline-mode";
 import { addPendingWinner, removePendingWinner } from "@/lib/optimistic-update";
 
@@ -161,7 +161,7 @@ export default function CourtPage({ params }: Props) {
   const { mode: offlineMode } = useOfflineMode();
   const pendingCount = usePendingCount();
   const { showRecoveryPrompt, acceptRecovery, declineRecovery } = useAutoRecovery(offlineMode);
-  const { isOffline, quality, wrappedFetch } = useConnectionStatus(load, {
+  const { isOffline: _isOffline, quality, wrappedFetch } = useConnectionStatus(load, {
     baseInterval: 3000,
     enabled: offlineMode === "online",
   });
@@ -528,7 +528,7 @@ function CourtContent({
   const courtNextMatch = courtOngoing ? null : allMatches
     .filter(
       (m) => m.status === "ready" && m.fighter1_id && m.fighter2_id &&
-        !withdrawnFighterIds.has(m.fighter1_id!) && !withdrawnFighterIds.has(m.fighter2_id!)
+        !withdrawnFighterIds.has(m.fighter1_id as string) && !withdrawnFighterIds.has(m.fighter2_id as string)
     )
     .sort((a, b) => {
       const nA = matchLabelNum(a.match_label);

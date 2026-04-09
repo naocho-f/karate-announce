@@ -138,7 +138,7 @@ export default function TimerControlPage() {
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [displayMs, setDisplayMs] = useState(0);
-  const [newazaMs, setNewazaMs] = useState(0);
+  const [_newazaMs, setNewazaMs] = useState(0);
   const [newazaDispMs, setNewazaDispMs] = useState(0);
 
   // ── トーナメント連携 ──
@@ -357,7 +357,7 @@ export default function TimerControlPage() {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (saveIntervalRef.current) clearInterval(saveIntervalRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [courtId, storageEventId]);
 
   // ── 状態変更時に BroadcastChannel で送信 ──

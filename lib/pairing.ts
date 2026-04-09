@@ -50,8 +50,8 @@ export function pairsFromEntries(chunk: Entry[]): PairEntry[] {
   const byeCount = nextPow2 - n;
 
   // 体格の平均を計算
-  const weights = chunk.filter((e) => e.weight != null).map((e) => e.weight!);
-  const heights = chunk.filter((e) => e.height != null).map((e) => e.height!);
+  const weights = chunk.filter((e) => e.weight != null).map((e) => e.weight as number);
+  const heights = chunk.filter((e) => e.height != null).map((e) => e.height as number);
   const avgWeight = weights.length > 0 ? weights.reduce((a, b) => a + b, 0) / weights.length : 0;
   const avgHeight = heights.length > 0 ? heights.reduce((a, b) => a + b, 0) / heights.length : 0;
 
@@ -79,7 +79,8 @@ export function pairsFromEntries(chunk: Entry[]): PairEntry[] {
   // 残りを体重順でソートしてペアリング
   const pool = [...remainingEntries].sort((a, b) => (a.weight ?? 999) - (b.weight ?? 999));
   while (pool.length >= 2) {
-    const e1 = pool.shift()!;
+    const e1 = pool.shift();
+    if (!e1) break;
     let bestIdx = 0;
     let best = Infinity;
     for (let i = 0; i < pool.length; i++) {

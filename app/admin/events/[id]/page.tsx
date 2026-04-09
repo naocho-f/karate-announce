@@ -4,12 +4,12 @@ export const dynamic = "force-dynamic";
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import type { Entry, Event, Tournament, Rule, TimerPreset } from "@/lib/types";
 import type { MismatchSettings } from "@/lib/compatibility";
 import type { AutoGroup } from "@/lib/auto-bracket";
 import type { AgeCategory } from "@/lib/grade-options";
-import Link from "next/link";
 import { getEventPhase } from "@/lib/event-phase";
 import { ParticipantSection } from "@/components/participant-section";
 import { BracketSection } from "@/components/bracket-section";
@@ -27,7 +27,7 @@ export default function EventDetailPage({ params }: Props) {
   const [eventRuleIds, setEventRuleIds] = useState<Set<string>>(new Set());
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
-  const [mismatchSettings, setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: 5, maxHeightDiff: null });
+  const [mismatchSettings, _setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: 5, maxHeightDiff: null });
   const [tournamentMatchFighterIds, setTournamentMatchFighterIds] = useState<Record<string, Set<string>>>({});
   const [savedMatchPairs, setSavedMatchPairs] = useState<Array<{ f1: string; f2: string; rules: string | null }>>([]);
   const [allMatchRows, setAllMatchRows] = useState<Array<{ tournament_id: string; fighter1_id: string | null; fighter2_id: string | null }>>([]);
@@ -150,7 +150,7 @@ export default function EventDetailPage({ params }: Props) {
     if (settingsRows?.value && Array.isArray(settingsRows.value)) {
       setAgeCategories(settingsRows.value as AgeCategory[]);
     }
-  }, [id]);
+  }, [id, router]);
 
   async function saveEventMeta() {
     setSavingMeta(true);
@@ -171,7 +171,7 @@ export default function EventDetailPage({ params }: Props) {
 
   async function toggleEntryClosed() {
     setTogglingClosed(true);
-    const newVal = !event!.entry_closed;
+    const newVal = !event?.entry_closed;
     const res = await fetch(`/api/admin/events/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -209,8 +209,8 @@ export default function EventDetailPage({ params }: Props) {
     setEvent((prev) => prev ? { ...prev, entry_close_at: null } : prev);
   }
 
-  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  function supabaseStorageUrl(path: string): string {
+  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  function _supabaseStorageUrl(path: string): string {
     return `${SUPABASE_URL}/storage/v1/object/public/form-notice-images/${path}`;
   }
 
@@ -309,7 +309,7 @@ export default function EventDetailPage({ params }: Props) {
     return active.length > 0 && active.every(e => e.fighter_id && allFighterIds.has(e.fighter_id));
   }, [entries, tournaments, tournamentMatchFighterIds]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load]); // eslint-disable-line react-hooks/set-state-in-effect -- async data fetch calls setState in callback after await
 
   // form_configs の is_ready 監視は廃止（受付開始時に自動で true に設定される）
 

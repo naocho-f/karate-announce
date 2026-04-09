@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import type { Event } from "@/lib/types";
-import Link from "next/link";
 import { DeviceReadiness } from "@/components/device-readiness";
 
 export type AdminTab = "home" | "events" | "settings" | "guide";
@@ -40,7 +40,8 @@ export function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: AdminTab)
       .catch(() => { setLoading(false); setError(true); });
   }
 
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch on mount
+  useEffect(() => { load(); }, []);  
 
   if (loading) return <p className="text-sm text-gray-500">読み込み中...</p>;
   if (error) return (
@@ -54,7 +55,7 @@ export function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: AdminTab)
   const upcomingEvents = events.filter((e) => e.status !== "finished" && !e.is_active);
   const nextEvent = upcomingEvents
     .filter((e) => e.event_date)
-    .sort((a, b) => new Date(a.event_date!).getTime() - new Date(b.event_date!).getTime())[0];
+    .sort((a, b) => new Date(a.event_date as string).getTime() - new Date(b.event_date as string).getTime())[0];
   const actionNeededEvents = upcomingEvents.filter((e) => (entryCounts[e.id] ?? 0) > 0 && !tournamentEventIds.has(e.id));
 
   const today = new Date();

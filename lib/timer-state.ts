@@ -607,7 +607,8 @@ export function adjustNewazaCount(state: TimerState, delta: number): TimerState 
 export function undo(state: TimerState): TimerState {
   if (state.undoStack.length === 0) return state;
   const s = { ...state };
-  const entry = s.undoStack.pop()!;
+  const entry = s.undoStack.pop();
+  if (!entry) return state;
   s.redScore = entry.prevRedScore;
   s.whiteScore = entry.prevWhiteScore;
   s.newaza = { ...s.newaza, usedCount: entry.prevNewazaUsedCount };
@@ -678,7 +679,7 @@ export function cancelResult(state: TimerState): TimerState {
 }
 
 /** 試合リセット — → idle */
-export function resetToIdle(state: TimerState): TimerState {
+export function resetToIdle(_state: TimerState): TimerState {
   const s = createInitialState();
   log(s, "reset");
   return s;

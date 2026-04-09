@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import { DEFAULT_SUBJECT, DEFAULT_BODY } from "@/lib/email-template";
 import { isDev } from "@/lib/app-mode";
 import { supabase } from "@/lib/supabase";
@@ -11,7 +12,7 @@ import { getGradeOptions, type AgeCategory } from "@/lib/grade-options";
 import { FormConfigPanel } from "@/app/admin/events/[id]/form-config-panel";
 import { showToast } from "@/components/toast";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 function supabaseStorageUrl(path: string): string {
   return `${SUPABASE_URL}/storage/v1/object/public/form-notice-images/${path}`;
 }
@@ -70,6 +71,7 @@ function EntryFormUrl({ eventId }: { eventId: string }) {
       </div>
       {qrDataUrl && (
         <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={qrDataUrl} alt="QR Code" className="w-24 h-24 rounded-lg" />
           <button onClick={downloadQr} className="text-xs text-blue-400 hover:text-blue-300">
             QRコードをダウンロード
@@ -657,7 +659,11 @@ function InlineMemoEditor({ entryId, initialValue, onSaved }: {
   onSaved: () => void;
 }) {
   const [memo, setMemo] = useState(initialValue ?? "");
-  useEffect(() => { setMemo(initialValue ?? ""); }, [initialValue]);
+  const [prevInitialValue, setPrevInitialValue] = useState(initialValue);
+  if (initialValue !== prevInitialValue) {
+    setPrevInitialValue(initialValue);
+    setMemo(initialValue ?? "");
+  }
 
   async function save() {
     const trimmed = memo.trim() || null;
@@ -1137,10 +1143,13 @@ export function ParticipantSection({
             {uploadingBanner && <span className="text-xs text-gray-400">アップロード中...</span>}
             {event.banner_image_path && (
               <>
-                <img
+                <Image
                   src={supabaseStorageUrl(event.banner_image_path)}
                   alt="バナー"
+                  width={128}
+                  height={64}
                   className="h-16 rounded object-cover"
+                  unoptimized
                 />
                 <button onClick={() => onDeleteEventImage("banner")} disabled={deletingImageType === "banner"} className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50">{deletingImageType === "banner" ? "削除中..." : "削除"}</button>
               </>
@@ -1158,10 +1167,13 @@ export function ParticipantSection({
             {uploadingOgp && <span className="text-xs text-gray-400">アップロード中...</span>}
             {event.ogp_image_path ? (
               <>
-                <img
+                <Image
                   src={supabaseStorageUrl(event.ogp_image_path)}
                   alt="OGP"
+                  width={128}
+                  height={64}
                   className="h-16 rounded object-cover"
+                  unoptimized
                 />
                 <button onClick={() => onDeleteEventImage("ogp")} disabled={deletingImageType === "ogp"} className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50">{deletingImageType === "ogp" ? "削除中..." : "削除"}</button>
               </>

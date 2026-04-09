@@ -119,7 +119,7 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
     setFighterEntryMap(entryMap);
   }, [courtNum]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load]); // eslint-disable-line react-hooks/set-state-in-effect -- async data fetch calls setState in callback after await
   useEffect(() => {
     const timer = setInterval(load, 3000);
 

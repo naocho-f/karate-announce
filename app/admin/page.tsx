@@ -4,8 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isDev, getAppVersion } from "@/lib/app-mode";
 import Link from "next/link";
+import { isDev, getAppVersion } from "@/lib/app-mode";
 import { HomeDashboardPanel, type AdminTab } from "@/components/home-dashboard-panel";
 import { EventsPanel } from "@/components/events-panel";
 import { SettingsPanel } from "@/components/settings-panel";
@@ -26,7 +26,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("tab") as Tab | null;
-    if (p && p in TAB_LABELS) setTab(p);
+    if (p && p in TAB_LABELS) setTab(p); // eslint-disable-line react-hooks/set-state-in-effect -- one-time URL param sync on mount
   }, []);
 
   function navigateTab(t: Tab) {

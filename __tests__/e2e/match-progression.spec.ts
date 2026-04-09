@@ -153,7 +153,7 @@ test.describe("試合進行", () => {
       await page.reload();
       await page.waitForLoadState("networkidle");
       const bodyText = await page.textContent("body");
-      const hasContent = bodyText!.includes("進行テスト") || bodyText!.includes("試合開始");
+      const hasContent = bodyText?.includes("進行テスト") || bodyText?.includes("試合開始");
       expect(hasContent).toBeTruthy();
     }).toPass({ timeout: 20_000, intervals: [2_000, 3_000, 4_000] });
   });

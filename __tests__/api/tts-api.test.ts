@@ -1,8 +1,8 @@
 /**
  * API テスト: /api/tts
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createHash } from "crypto";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 // OpenAI API をモック
@@ -38,7 +38,7 @@ describe("/api/tts", () => {
 
   it("POST: text 未指定で 400 エラー", async () => {
     const req = createAdminTtsRequest({});
-    const res = await POST(req as any);
+    const res = await POST(req as NextRequest);
     expect(res.status).toBe(400);
     const json = await res.json();
     expect(json.error).toBe("text required");
@@ -51,7 +51,7 @@ describe("/api/tts", () => {
     });
 
     const req = createAdminTtsRequest({ text: "テスト", voice: "invalid-voice", speed: 1.0 });
-    await POST(req as any);
+    await POST(req as NextRequest);
 
     expect(mockFetch).toHaveBeenCalledOnce();
     const fetchBody = JSON.parse(mockFetch.mock.calls[0][1].body);
@@ -65,7 +65,7 @@ describe("/api/tts", () => {
     });
 
     const req = createAdminTtsRequest({ text: "テスト", voice: "nova", speed: 999 });
-    await POST(req as any);
+    await POST(req as NextRequest);
 
     const fetchBody = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(fetchBody.speed).toBe(1.0);
@@ -78,7 +78,7 @@ describe("/api/tts", () => {
     });
 
     const req = createAdminTtsRequest({ text: "テスト", voice: "nova", speed: "not-a-number" });
-    await POST(req as any);
+    await POST(req as NextRequest);
 
     const fetchBody = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(fetchBody.speed).toBe(1.0);
@@ -92,7 +92,7 @@ describe("/api/tts", () => {
     });
 
     const req = createAdminTtsRequest({ text: "テスト", voice: "nova", speed: 1.0 });
-    const res = await POST(req as any);
+    const res = await POST(req as NextRequest);
 
     expect(res.status).toBe(429);
     const json = await res.json();
@@ -107,7 +107,7 @@ describe("/api/tts", () => {
     });
 
     const req = createAdminTtsRequest({ text: "テスト", voice: "echo", speed: 1.2 });
-    const res = await POST(req as any);
+    const res = await POST(req as NextRequest);
 
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("audio/mpeg");

@@ -227,7 +227,7 @@ export async function GET(request: NextRequest) {
     const fieldConfigs = FIELD_POOL.map((f) => {
       const def = DEFAULT_SORT_MAP.get(f.key);
       return {
-        form_config_id: config!.id,
+        form_config_id: config.id,
         field_key: f.key,
         visible: def?.visible ?? false,
         required: f.defaultRequired,
@@ -242,7 +242,7 @@ export async function GET(request: NextRequest) {
     // デフォルトの自由設問を custom_field_defs + form_field_configs に挿入
     const baseSortOrder = fieldConfigs.length;
     const customDefs = DEFAULT_CUSTOM_FIELDS.map((cf) => ({
-      form_config_id: config!.id,
+      form_config_id: config.id,
       field_key: cf.field_key,
       label: cf.label,
       field_type: cf.field_type,
@@ -254,7 +254,7 @@ export async function GET(request: NextRequest) {
     const customFieldConfigs = DEFAULT_CUSTOM_FIELDS.map((cf, i) => {
       const order = DEFAULT_CUSTOM_FIELD_ORDER.find((o) => o.key === cf.field_key);
       return {
-        form_config_id: config!.id,
+        form_config_id: config.id,
         field_key: cf.field_key,
         visible: order?.visible ?? true,
         required: order?.required ?? false,

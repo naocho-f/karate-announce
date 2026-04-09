@@ -87,8 +87,8 @@ export function FormConfigPanel({ eventId }: Props) {
   const [rules, setRules] = useState<{ id: string; name: string }[]>([]);
   const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
   const [copying, setCopying] = useState(false);
-  const [deletingCustomKey, setDeletingCustomKey] = useState<string | null>(null);
-  const [duplicatingCustomKey, setDuplicatingCustomKey] = useState<string | null>(null);
+  const [deletingCustomKey, _setDeletingCustomKey] = useState<string | null>(null);
+  const [duplicatingCustomKey, _setDuplicatingCustomKey] = useState<string | null>(null);
   const [deletedNoticeIds, setDeletedNoticeIds] = useState<string[]>([]);
   const [deletedCustomFieldKeys, setDeletedCustomFieldKeys] = useState<string[]>([]);
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
@@ -134,7 +134,7 @@ export function FormConfigPanel({ eventId }: Props) {
     setSaving(true);
     try {
       // notices から images/created_at を除外
-      const noticeUpserts = notices.map(({ images, created_at, ...rest }) => rest);
+      const noticeUpserts = notices.map(({ images: _images, created_at: _created_at, ...rest }) => rest);
       // 新規カスタムフィールドを特定
       const newCustomFields = customFieldDefs
         .filter((d) => d.id.startsWith("temp_"))
@@ -440,7 +440,7 @@ export function FormConfigPanel({ eventId }: Props) {
           </button>
 
           {/* 全フィールド（表示/非表示とも） */}
-          {mainFields.map((f, i) => {
+          {mainFields.map((f, _i) => {
             // カスタムフィールドの場合は customFieldDefs から def を生成
             const def = isCustomField(f.field_key)
               ? (() => { const cd = customFieldDefs.find((d) => d.field_key === f.field_key); return cd ? customFieldToPoolItem(cd) : null; })()
@@ -926,7 +926,7 @@ function renderInputPreview(
 // フィールド詳細設定（展開部分）
 // ══════════════════════════════════════════════════════════════
 
-function FieldDetailEditor({ field, def, allFields, onUpdate, onClose }: {
+function FieldDetailEditor({ field, def, allFields: _allFields, onUpdate, onClose }: {
   field: FormFieldConfig;
   def: FieldPoolItem;
   allFields: FormFieldConfig[];
@@ -934,7 +934,7 @@ function FieldDetailEditor({ field, def, allFields, onUpdate, onClose }: {
   onClose: () => void;
 }) {
   const hasChoices = def.type === "radio" || def.type === "checkbox" || (def.type === "select" && !def.fixedChoices);
-  const [editingChoices, setEditingChoices] = useState(hasChoices);
+  const [_editingChoices, _setEditingChoices] = useState(hasChoices);
   const [choicesText, setChoicesText] = useState(() => {
     const choices = field.custom_choices ?? def.defaultChoices ?? [];
     return choices.map((c) => c.label).join("\n");
@@ -1045,6 +1045,7 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
         {(notice.images ?? []).length > 0 && (
           <div className="space-y-2 mt-1">
             {(notice.images ?? []).map((img: FormNoticeImage & { public_url?: string }) => (
+              // eslint-disable-next-line @next/next/no-img-element
               <img key={img.id}
                 src={img.public_url ?? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${img.storage_path}`}
                 alt="" className="w-full rounded-lg" />
@@ -1091,6 +1092,7 @@ function InlineNoticeEditor({ notice, busy, onUpdate, onDelete, onUploadImage, o
         <div className="flex flex-wrap gap-2 mb-1">
           {(notice.images ?? []).map((img: FormNoticeImage & { public_url?: string }) => (
             <div key={img.id} className="relative group/img">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={img.public_url ?? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${img.storage_path}`}
                 alt="" className="h-16 rounded border border-gray-600" />
               <button onClick={() => onDeleteImage(img.id, notice.id)}
@@ -1152,7 +1154,7 @@ function AddCustomFieldForm({ onAdd }: { onAdd: (label: string, fieldType: strin
   const [label, setLabel] = useState("");
   const [fieldType, setFieldType] = useState("text");
   const [choicesText, setChoicesText] = useState("");
-  const [adding, setAdding] = useState(false);
+  const [adding, _setAdding] = useState(false);
 
   const needsChoices = fieldType === "select" || fieldType === "checkbox";
 

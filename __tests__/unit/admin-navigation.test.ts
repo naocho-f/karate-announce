@@ -7,9 +7,9 @@
  * components/events-panel.tsx, components/settings-panel.tsx, components/guide-panel.tsx）
  * に委譲しているため、検証対象はそれらのファイルも含む。
  */
-import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
+import { describe, it, expect } from "vitest";
 
 const ROOT = join(__dirname, "../..");
 const ADMIN_PAGE = readFileSync(join(ROOT, "app/admin/page.tsx"), "utf-8");

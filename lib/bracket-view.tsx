@@ -246,8 +246,8 @@ export function BracketView({
                   "bg-gray-800"
                 }`}
                 style={{ height: BRACKET_FIGHTER_H }}
-                onClick={correctable ? () => { onCorrectWinner!(m.id, fighterId!); setCorrectionMatchId(null); } :
-                         clickable ? () => onSetWinner!(m.id, fighterId!) : undefined}
+                onClick={correctable ? () => { onCorrectWinner?.(m.id, fighterId as string); setCorrectionMatchId(null); } :
+                         clickable ? () => onSetWinner?.(m.id, fighterId as string) : undefined}
               >
                 <div className="flex items-center gap-1 min-w-0 pr-7">
                   <span className={`shrink-0 text-[7px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center ${
@@ -320,7 +320,7 @@ export function BracketView({
                   isDimmed  ? "border-gray-600 opacity-40" :
                               "border-gray-600"
               }`}
-              onClick={isNumberingMode && !isByeMatch ? () => onNumberClick!(m.id) : undefined}
+              onClick={isNumberingMode && !isByeMatch ? () => onNumberClick?.(m.id) : undefined}
               style={{
                 left: cardLeft(m.round),
                 top: cardTop(m.round, m.position),
@@ -414,7 +414,7 @@ export function BracketView({
                     )}
                     {canSwap && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); onSwapWithNext!(m.round, m.id); }}
+                        onClick={(e) => { e.stopPropagation(); onSwapWithNext?.(m.round, m.id); }}
                         className="shrink-0 ml-auto text-[9px] text-gray-500 hover:text-blue-400 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                       >
                         ↕次

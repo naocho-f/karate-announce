@@ -12,7 +12,6 @@ import {
   buildEntryDetails,
 } from "@/lib/email-template";
 import { getFieldDef } from "@/lib/form-fields";
-import { dbError } from "@/lib/api-utils";
 
 // ── 型定義 ──
 

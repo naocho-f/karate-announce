@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { BracketRule, Entry, Rule } from "@/lib/types";
 import { entryFullName } from "@/lib/types";
 import { groupEntriesByRules, assignCourts, type AutoGroup } from "@/lib/auto-bracket";
@@ -32,18 +32,21 @@ export function AutoCreateDialog({
   const [preview, setPreview] = useState<AutoGroup[] | null>(null);
   const [executing, setExecuting] = useState(false);
 
-  const loadRules = useCallback(async () => {
-    setLoading(true);
-    const res = await fetch(`/api/admin/bracket-rules?event_id=${eventId}`);
-    if (res.ok) {
-      const data: BracketRule[] = await res.json();
-      setBracketRules(data);
-      setEnabledIds(new Set(data.map((r) => r.id)));
+  useEffect(() => {
+    let cancelled = false;
+    async function loadRules() {
+      setLoading(true);
+      const res = await fetch(`/api/admin/bracket-rules?event_id=${eventId}`);
+      if (res.ok && !cancelled) {
+        const data: BracketRule[] = await res.json();
+        setBracketRules(data);
+        setEnabledIds(new Set(data.map((r) => r.id)));
+      }
+      if (!cancelled) setLoading(false);
     }
-    setLoading(false);
+    loadRules();
+    return () => { cancelled = true; };
   }, [eventId]);
-
-  useEffect(() => { loadRules(); }, [loadRules]);
 
   function getCourtLabel(num: number): string {
     if (courtNames && courtNames[num - 1]) return courtNames[num - 1];

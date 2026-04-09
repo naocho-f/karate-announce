@@ -156,7 +156,7 @@ export function MatchLabelEditor({ eventId, courtNames, courtCount, selectedCour
       .map((m) => ({
         id: m.id,
         court: matchToCourtMap[m.id] ?? "1",
-        num: parseInt(m.match_label!.match(/第(\d+)試合$/)![1]),
+        num: parseInt((m.match_label?.match(/第(\d+)試合$/) ?? ["", "0"])[1]),
       }));
     if (!preserveOrder && labeled.length > 0) {
       labeled.sort((a, b) => a.court.localeCompare(b.court) || a.num - b.num);

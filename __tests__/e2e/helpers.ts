@@ -6,7 +6,7 @@
 import { expect, type Page } from "@playwright/test";
 
 export const ADMIN_USER = process.env.ADMIN_USERNAME ?? "admin";
-export const ADMIN_PASS = process.env.ADMIN_PASSWORD!;
+export const ADMIN_PASS = process.env.ADMIN_PASSWORD ?? "";
 
 /** API 経由でログインし Cookie を設定 */
 export async function adminLogin(page: Page) {

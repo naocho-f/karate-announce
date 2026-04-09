@@ -52,7 +52,7 @@ async function createTestEvent(page: Page): Promise<string> {
 }
 
 /** テスト用選手を API 経由で登録 */
-async function createTestFighters(page: Page, count: number): Promise<string[]> {
+async function _createTestFighters(page: Page, count: number): Promise<string[]> {
   const ids: string[] = [];
   for (let i = 0; i < count; i++) {
     const res = await page.request.post("/api/admin/fighters", {

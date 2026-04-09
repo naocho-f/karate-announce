@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-09（トーナメントAPIテスト補強）
+> 最終更新: 2026-04-10（ESLint導入）
 
 ---
 
@@ -577,6 +577,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **pre-commit hook品質チェック完全版（2026-04-08）**: 画面逆方向・リンク切れ・認証チェック・環境変数・コンポーネントテスト存在を追加
 - **pre-commit hook網羅的チェック追加（2026-04-08）**: 全不変条件の機械的検証を完了。API逆方向・ページ一覧・hook同期チェック追加
 - **pre-commit hookにbuild追加（2026-04-08）**: npm run buildをコミット前に実行。ビルド壊れたコードの混入を防止
+- **ESLint導入（2026-04-09）**: eslint-config-next + @typescript-eslint + import ルールを導入。全212件の警告・エラーを修正（no-non-null-assertion 133件、no-unused-vars 45件、set-state-in-effect 12件、import/order 13件、no-img-element 7件、no-explicit-any 6件等）。npm run lint / lint:fix コマンド追加
 - **トーナメントAPIテスト補強（2026-04-09）**: ラウンド構造検証（1/3/8ペア）、不戦勝の次ラウンド進出・done設定検証、複数不戦勝の独立処理検証を追加。デッドコード削除で失われたカバレッジを本番コードのテストで回復
 - **テスト専用エクスポート整理（2026-04-09）**: アプリ未使用のエクスポートを削除（tournament.ts: generateFirstRound/BracketSlot/BracketMatch, pairing.ts: filterDuplicatePairs, compatibility.ts: worstCompatibility）。pairing.ts: nextPowerOf2を非exportに。該当テスト28件を削除
 - **entry-service抽出（2026-04-09）**: public/entry/route.tsのビジネスロジック（締切チェック、年齢計算、道場upsert、エントリーINSERT、ルール紐付け、メール送信）をlib/services/entry-service.tsに分離。route.tsはレート制限+リクエスト解析のみの薄いコントローラーに

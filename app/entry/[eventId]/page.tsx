@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Event, FormFieldConfig, FormNotice, CustomFieldDef } from "@/lib/types";
-import { FIELD_POOL, getFieldDef, getKanaFieldKey, isKanaField, isCustomField, customFieldToPoolItem } from "@/lib/form-fields";
+import { getFieldDef, isKanaField, isCustomField, customFieldToPoolItem } from "@/lib/form-fields";
 import type { FieldPoolItem } from "@/lib/form-fields";
 import { getGradeOptions, gradeFromBirthDate, type AgeCategory } from "@/lib/grade-options";
 
@@ -111,6 +111,7 @@ function NoticeRenderer({ notice, consents, onConsent }: {
           {notice.images
             .sort((a, b) => a.sort_order - b.sort_order)
             .map((img) => (
+              /* eslint-disable-next-line @next/next/no-img-element -- dynamic Supabase storage URL */
               <img
                 key={img.id}
                 src={img.public_url}
@@ -309,7 +310,7 @@ export default function EntryPage({ params }: Props) {
   }, []);
 
   // ── 可視フィールド一覧（ソート済み） ──
-  const customFieldDefs = formConfig?.customFieldDefs ?? [];
+  const customFieldDefs = useMemo(() => formConfig?.customFieldDefs ?? [], [formConfig?.customFieldDefs]);
   const visibleFields = useMemo(() => {
     if (!formConfig?.ready || !formConfig.fields) return [];
     return formConfig.fields
@@ -332,7 +333,7 @@ export default function EntryPage({ params }: Props) {
   }, [visibleFields]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 注意書きグルーピング ──
-  const notices = formConfig?.notices ?? [];
+  const notices = useMemo(() => formConfig?.notices ?? [], [formConfig?.notices]);
   const formStartNotices = notices.filter((n) => n.anchor_type === "form_start");
   const formEndNotices = notices.filter((n) => n.anchor_type === "form_end");
   const fieldNotices = useMemo(() => {
@@ -1254,6 +1255,7 @@ export default function EntryPage({ params }: Props) {
       )}
       <div className="max-w-md mx-auto">
         {event.banner_image_path && (
+          // eslint-disable-next-line @next/next/no-img-element -- dynamic Supabase storage URL
           <img
             src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${event.banner_image_path}`}
             alt={event.name}

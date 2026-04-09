@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import type { Event, Rule } from "@/lib/types";
-import Link from "next/link";
 import { showToast } from "@/components/toast";
 
 export function EventsPanel() {
@@ -32,8 +32,6 @@ export function EventsPanel() {
   const [copyEntries, setCopyEntries] = useState(false);
   const [copying, setCopying] = useState(false);
 
-  useEffect(() => { load(); }, []);
-
   async function load() {
     const { data: es } = await supabase.from("events").select("*").order("event_date", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false });
     const { data: rs } = await supabase.from("rules").select("*").order("name");
@@ -41,6 +39,9 @@ export function EventsPanel() {
     setRules(rs ?? []);
     setLoading(false);
   }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch on mount
+  useEffect(() => { load(); }, []);
 
   function toggleRule(id: string) {
     setSelectedRuleIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
@@ -147,7 +148,7 @@ export function EventsPanel() {
   const activeEvents = events.filter((e) => !isPast(e));
   const pastEvents = events.filter((e) => isPast(e));
 
-  const renderEventCard = (e: Event, isPastSection: boolean) => (
+  const renderEventCard = (e: Event, _isPastSection: boolean) => (
     <li key={e.id} className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active ? "ring-2 ring-green-500" : ""}`}>
       <div className="flex items-center gap-2 min-w-0">
         {e.is_active && (

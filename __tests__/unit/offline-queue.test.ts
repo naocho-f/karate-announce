@@ -14,7 +14,6 @@ import {
   cacheData,
   getCachedData,
   flush,
-  type FlushResult,
 } from "@/lib/offline-queue";
 
 beforeEach(async () => {

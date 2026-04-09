@@ -3,7 +3,7 @@
  *
  * メール送信クライアントの初期化ロジックを検証する。
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 
 // Resend のモック（クラスとして振る舞うようにする）
 vi.mock("resend", () => {

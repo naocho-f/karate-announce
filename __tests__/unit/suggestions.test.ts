@@ -72,8 +72,8 @@ describe("computeSuggestions", () => {
     expect(suggestions.length).toBeGreaterThan(0);
     const weightSuggestion = suggestions.find(s => s.axis === "weight");
     expect(weightSuggestion).toBeDefined();
-    expect(weightSuggestion!.belowCount).toBeGreaterThan(0);
-    expect(weightSuggestion!.aboveCount).toBeGreaterThan(0);
+    expect(weightSuggestion?.belowCount).toBeGreaterThan(0);
+    expect(weightSuggestion?.aboveCount).toBeGreaterThan(0);
   });
 
   it("年齢が異なる選手の場合、年齢で分割提案を返す", () => {
@@ -94,8 +94,8 @@ describe("computeSuggestions", () => {
     const suggestions = computeSuggestions(entries);
     const sexSuggestion = suggestions.find(s => s.axis === "sex");
     expect(sexSuggestion).toBeDefined();
-    expect(sexSuggestion!.belowLabel).toBe("男子");
-    expect(sexSuggestion!.aboveLabel).toBe("女子");
+    expect(sexSuggestion?.belowLabel).toBe("男子");
+    expect(sexSuggestion?.aboveLabel).toBe("女子");
   });
 
   it("欠場選手は除外される", () => {

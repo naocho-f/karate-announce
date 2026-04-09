@@ -7,7 +7,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import type { Entry, Rule, CustomFieldDef } from "@/lib/types";
 import { entryFullName } from "@/lib/types";
-import { getFieldDef, FIELD_POOL, isCustomField, customFieldToPoolItem } from "@/lib/form-fields";
+import { getFieldDef, isCustomField } from "@/lib/form-fields";
 
 type Props = { params: Promise<{ id: string; entryId: string }> };
 
@@ -100,31 +100,34 @@ export default function EntryDetailPage({ params }: Props) {
     );
   }
 
+  // entry is guaranteed non-null below the early return above
+  const e = entry;
+
   // フィールド値の解決
   function getFieldValue(key: string): string | null {
     // DB直接カラム
     const def = getFieldDef(key);
     if (def?.dbColumn && key !== "full_name" && key !== "kana") {
-      const val = (entry as Record<string, unknown>)[def.dbColumn];
+      const val = (e as Record<string, unknown>)[def.dbColumn];
       return val != null && val !== "" ? String(val) : null;
     }
     // 特殊フィールド
-    if (key === "full_name") return entryFullName(entry!);
+    if (key === "full_name") return entryFullName(e);
     if (key === "kana") {
-      const r = [entry!.family_name_reading, entry!.given_name_reading].filter(Boolean).join(" ");
+      const r = [e.family_name_reading, e.given_name_reading].filter(Boolean).join(" ");
       return r || null;
     }
-    if (key === "organization") return entry!.school_name;
-    if (key === "organization_kana") return entry!.school_name_reading;
-    if (key === "branch") return entry!.dojo_name;
-    if (key === "branch_kana") return entry!.dojo_name_reading;
+    if (key === "organization") return e.school_name;
+    if (key === "organization_kana") return e.school_name_reading;
+    if (key === "branch") return e.dojo_name;
+    if (key === "branch_kana") return e.dojo_name_reading;
     // rule_preference は entry_rules テーブルに保存されている
     if (key === "rule_preference") {
       const ruleNames = rules.filter((r) => entryRuleIds.includes(r.id)).map((r) => r.name);
       return ruleNames.length > 0 ? ruleNames.join("、") : null;
     }
     // extra_fields
-    const extra = entry!.extra_fields?.[key];
+    const extra = e.extra_fields?.[key];
     if (extra == null || extra === "") return null;
     if (Array.isArray(extra)) return JSON.stringify(extra);
     return String(extra);
@@ -195,7 +198,7 @@ export default function EntryDetailPage({ params }: Props) {
         if (kana) value = `${value}（${kana}）`;
       }
       if (key === "birthday") {
-        const age = entry!.age;
+        const age = e.age;
         if (age != null) value = `${value}（${age}歳）`;
       }
 
