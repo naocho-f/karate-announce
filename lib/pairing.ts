@@ -25,7 +25,7 @@ export function entryCompatScore(e1: Entry, e2: Entry): number {
 }
 
 /** 次の2の累乗を返す（n以上の最小の2の累乗） */
-export function nextPowerOf2(n: number): number {
+function nextPowerOf2(n: number): number {
   if (n <= 1) return 1;
   let p = 1;
   while (p < n) p <<= 1;
@@ -96,17 +96,3 @@ export function pairsFromEntries(chunk: Entry[]): PairEntry[] {
   return result;
 }
 
-/** 既存ペアと重複する対戦を除外する */
-export function filterDuplicatePairs(
-  pairs: PairEntry[],
-  existingPairs: { e1Id: string; e2Id: string }[],
-): PairEntry[] {
-  if (existingPairs.length === 0) return pairs;
-  return pairs.filter((p) => {
-    if (!p.e2) return true; // 不戦勝は除外しない
-    return !existingPairs.some((ep) =>
-      (ep.e1Id === p.e1.id && ep.e2Id === p.e2!.id) ||
-      (ep.e1Id === p.e2!.id && ep.e2Id === p.e1.id)
-    );
-  });
-}

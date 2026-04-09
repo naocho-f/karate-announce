@@ -33,19 +33,6 @@ export function checkCompatibility(
   return "ok";
 }
 
-export function worstCompatibility(
-  fighter: { weight: number | null; height: number | null },
-  others: { weight: number | null; height: number | null }[],
-  settings: MismatchSettings,
-): CompatibilityLevel {
-  if (others.length === 0) return "unknown";
-  const levels = others.map((o) => checkCompatibility(fighter, o, settings));
-  if (levels.includes("ng")) return "ng";
-  if (levels.includes("warn")) return "warn";
-  if (levels.every((l) => l === "unknown")) return "unknown";
-  return "ok";
-}
-
 export const COMPAT_COLORS: Record<CompatibilityLevel, string> = {
   ok:      "text-green-400",
   warn:    "text-yellow-400",

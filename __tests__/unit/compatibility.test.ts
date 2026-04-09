@@ -4,7 +4,6 @@
 import { describe, it, expect } from "vitest";
 import {
   checkCompatibility,
-  worstCompatibility,
   COMPAT_COLORS,
   COMPAT_BG,
   COMPAT_LABEL,
@@ -103,84 +102,6 @@ describe("checkCompatibility", () => {
       settings,
     );
     expect(result).toBe("ok");
-  });
-});
-
-describe("worstCompatibility", () => {
-  it("対戦相手なしで unknown", () => {
-    expect(worstCompatibility({ weight: 60, height: 170 }, [], settings)).toBe("unknown");
-  });
-
-  it("全員 ok なら ok", () => {
-    const result = worstCompatibility(
-      { weight: 60, height: 170 },
-      [
-        { weight: 62, height: 172 },
-        { weight: 58, height: 168 },
-      ],
-      settings,
-    );
-    expect(result).toBe("ok");
-  });
-
-  it("1人でも ng なら ng", () => {
-    const result = worstCompatibility(
-      { weight: 60, height: 170 },
-      [
-        { weight: 62, height: 172 },
-        { weight: 80, height: 170 },
-      ],
-      settings,
-    );
-    expect(result).toBe("ng");
-  });
-
-  it("warn があって ng がなければ warn", () => {
-    const result = worstCompatibility(
-      { weight: 60, height: 170 },
-      [
-        { weight: 62, height: 172 },
-        { weight: 67, height: 170 },
-      ],
-      settings,
-    );
-    expect(result).toBe("warn");
-  });
-
-  it("全員 unknown なら unknown", () => {
-    const result = worstCompatibility(
-      { weight: null, height: null },
-      [
-        { weight: null, height: null },
-        { weight: null, height: null },
-      ],
-      settings,
-    );
-    expect(result).toBe("unknown");
-  });
-
-  it("ok と unknown が混在する場合 ok", () => {
-    const result = worstCompatibility(
-      { weight: 60, height: 170 },
-      [
-        { weight: 62, height: 172 },
-        { weight: null, height: null },
-      ],
-      settings,
-    );
-    expect(result).toBe("ok");
-  });
-
-  it("warn と unknown が混在する場合 warn", () => {
-    const result = worstCompatibility(
-      { weight: 60, height: 170 },
-      [
-        { weight: 67, height: 170 },
-        { weight: null, height: null },
-      ],
-      settings,
-    );
-    expect(result).toBe("warn");
   });
 });
 
