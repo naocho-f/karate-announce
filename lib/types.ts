@@ -399,3 +399,35 @@ export type CustomFieldDef = {
   sort_order: number;
   created_at: string;
 };
+
+// ──────────────────────────────────────────────
+// マルチテナント（Phase 1 準備）
+// ──────────────────────────────────────────────
+
+export type Tenant = {
+  id: string;
+  slug: string;
+  name: string;
+  plan: "free" | "standard" | "pro";
+  custom_domain: string | null;
+  settings: Record<string, unknown>;
+  is_active: boolean;
+  tts_usage_count: number;
+  tts_usage_reset_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TenantMember = {
+  tenant_id: string;
+  user_id: string;
+  role: "owner" | "admin";
+};
+
+export type AppUser = {
+  id: string;
+  email: string;
+  name: string;
+  is_platform_admin: boolean;
+  created_at: string;
+};

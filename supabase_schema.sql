@@ -1,11 +1,26 @@
 -- karate-announce database schema
--- Generated from Supabase: 2026-03-28
+-- Generated from Supabase: 2026-04-09
 -- Project: xkrjltbtikbgeimtjvga
 --
 -- RLS: 全テーブルで RLS 有効。全テーブルに allow_select (USING true) ポリシーあり。
 -- timer_logs は allow_insert (WITH CHECK true) も追加。
 -- INSERT/UPDATE/DELETE は API ルート経由で supabaseAdmin (service_role) を使用。
+-- マルチテナント: tenants テーブル + 11 テーブルに tenant_id カラム（Phase 1）
 
+
+create table tenants (
+  id uuid not null default gen_random_uuid(),
+  slug text unique not null,
+  name text not null,
+  plan text not null default 'free',
+  custom_domain text unique,
+  settings jsonb default '{}',
+  is_active boolean default true,
+  tts_usage_count int default 0,
+  tts_usage_reset_at timestamptz default now(),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
 
 create table bug_reports (
   id uuid not null default gen_random_uuid(),
@@ -19,7 +34,8 @@ create table bug_reports (
   created_at timestamptz default now(),
   status text default 'open'::text,
   resolution text,
-  fixed_in_version text
+  fixed_in_version text,
+  tenant_id uuid not null references tenants(id)
 );
 
 create table custom_field_defs (
@@ -37,7 +53,8 @@ create table dojos (
   id uuid not null default gen_random_uuid(),
   name text not null,
   created_at timestamptz default now(),
-  name_reading text
+  name_reading text,
+  tenant_id uuid not null references tenants(id)
 );
 
 create table entries (
@@ -66,7 +83,8 @@ create table entries (
   is_test boolean not null default false,
   extra_fields jsonb default '{}'::jsonb,
   form_version integer,
-  sex text
+  sex text,
+  tenant_id uuid not null references tenants(id)
 );
 
 create table entry_rules (
@@ -109,7 +127,8 @@ create table events (
   email_subject_template text,
   email_body_template text,
   venue_info text,
-  notification_emails text[]
+  notification_emails text[],
+  tenant_id uuid not null references tenants(id)
 );
 
 create table fighters (
@@ -128,7 +147,8 @@ create table fighters (
   given_name_reading text,
   affiliation text,
   affiliation_reading text,
-  extra_fields jsonb default '{}'::jsonb
+  extra_fields jsonb default '{}'::jsonb,
+  tenant_id uuid not null references tenants(id)
 );
 
 create table form_configs (
@@ -137,7 +157,8 @@ create table form_configs (
   version integer not null default 0,
   is_ready boolean not null default false,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  tenant_id uuid not null references tenants(id)
 );
 
 create table form_field_configs (
@@ -189,7 +210,8 @@ create table matches (
   rules text,
   result_method text,
   result_detail jsonb,
-  updated_at timestamptz default now()
+  updated_at timestamptz default now(),
+  tenant_id uuid not null references tenants(id)
 );
 
 create table rules (
@@ -198,7 +220,8 @@ create table rules (
   created_at timestamptz default now(),
   name_reading text,
   description text,
-  timer_preset_id uuid
+  timer_preset_id uuid,
+  tenant_id uuid not null references tenants(id)
 );
 
 create table settings (
@@ -273,7 +296,8 @@ create table timer_presets (
   combined_ippon_wins boolean default false,         -- 技あり2回で合わせ一本勝ち
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
-  layout jsonb
+  layout jsonb,
+  tenant_id uuid not null references tenants(id)
 );
 
 create table tournaments (
@@ -298,6 +322,7 @@ create table tournaments (
   filter_min_grade text,
   filter_max_grade text,
   filter_min_height real,
-  filter_max_height real
+  filter_max_height real,
+  tenant_id uuid not null references tenants(id)
 );
 
