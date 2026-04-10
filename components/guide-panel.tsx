@@ -925,7 +925,7 @@ function CopyLiveUrlButton() {
   const [copied, setCopied] = useState(false);
   function copy() {
     const url = typeof window !== "undefined" ? `${window.location.origin}/live` : "/live";
-    navigator.clipboard.writeText(url).then(() => {
+    void navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });

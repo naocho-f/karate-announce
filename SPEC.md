@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-10（Prettier導入+eslint-disable全廃止+返事ルール追加）
+> 最終更新: 2026-04-10（no-floating-promises追加）
 
 ---
 
@@ -579,6 +579,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **pre-commit hook品質チェック完全版（2026-04-08）**: 画面逆方向・リンク切れ・認証チェック・環境変数・コンポーネントテスト存在を追加
 - **pre-commit hook網羅的チェック追加（2026-04-08）**: 全不変条件の機械的検証を完了。API逆方向・ページ一覧・hook同期チェック追加
 - **pre-commit hookにbuild追加（2026-04-08）**: npm run buildをコミット前に実行。ビルド壊れたコードの混入を防止
+- **no-floating-promises追加（2026-04-10）**: @typescript-eslint/no-floating-promisesをerrorで追加。24ファイル64件のawait忘れPromiseを修正
 - **Prettier導入+eslint-disable全廃止（2026-04-10）**: Prettier導入（.prettierrc.json）、全170ファイルをフォーマット。eslint-disable コメント22件を全削除し根本原因を修正。pre-commit hookでeslint-disable使用をブロック。CLAUDE.mdにeslint-disable禁止・返事ルールを追記
 - **ESLint pre-commit/CI強制（2026-04-10）**: pre-commit hookとGitHub Actions CIにESLintチェックを追加。--max-warnings 0で警告も0件必須。エラー・警告があるとコミット・CIが失敗する
 - **ESLint導入（2026-04-09）**: eslint-config-next + @typescript-eslint + import ルールを導入。全212件の警告・エラーを修正（no-non-null-assertion 133件、no-unused-vars 45件、set-state-in-effect 12件、import/order 13件、no-img-element 7件、no-explicit-any 6件等）。npm run lint / lint:fix コマンド追加

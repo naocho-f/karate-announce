@@ -42,7 +42,7 @@ function DojoPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       const { data } = await supabase.from("dojos").select("*").order("name");
       if (!cancelled) {
         setDojos(data ?? []);
@@ -69,7 +69,7 @@ function DojoPanel() {
     }
     setName("");
     setReading("");
-    load();
+    void load();
   }
 
   async function updateReading(id: string, value: string) {
@@ -82,7 +82,7 @@ function DojoPanel() {
       showToast("読み仮名の更新に失敗しました");
       return;
     }
-    load();
+    void load();
   }
 
   async function remove(id: string) {
@@ -94,7 +94,7 @@ function DojoPanel() {
       showToast("削除に失敗しました");
       return;
     }
-    load();
+    void load();
   }
 
   return (
@@ -102,7 +102,7 @@ function DojoPanel() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          add();
+          void add();
         }}
         className="space-y-2 mb-4"
       >
@@ -189,7 +189,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       const { data } = await supabase.from("rules").select("*").order("name");
       if (!cancelled) {
         setRules(data ?? []);
@@ -238,7 +238,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
     setName("");
     setReading("");
     setDescription("");
-    load();
+    void load();
   }
 
   async function updateReading(id: string, value: string) {
@@ -251,7 +251,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
       showToast("読み仮名の更新に失敗しました");
       return;
     }
-    load();
+    void load();
   }
 
   async function updateDescription(id: string, value: string) {
@@ -264,7 +264,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
       showToast("説明の更新に失敗しました");
       return;
     }
-    load();
+    void load();
   }
 
   async function remove(id: string) {
@@ -276,7 +276,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
       showToast("削除に失敗しました");
       return;
     }
-    load();
+    void load();
   }
 
   return (
@@ -285,7 +285,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          add();
+          void add();
         }}
         className="space-y-2 mb-4"
       >
@@ -397,9 +397,9 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
                               return;
                             }
                             if (e.target.value) {
-                              linkPreset(r.id, e.target.value);
+                              void linkPreset(r.id, e.target.value);
                             } else {
-                              linkPreset(r.id, null);
+                              void linkPreset(r.id, null);
                             }
                           }}
                           className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 disabled:opacity-50"
@@ -465,7 +465,7 @@ function AnnounceSettingsPanel() {
     saveTtsSettings(voice, speed);
     setPlaying(true);
     await new Promise<void>((resolve) => {
-      announceCustom(
+      void announceCustom(
         "Aコート、男子一般部、準決勝。極真会所属、山田太郎選手。対。正道会館所属、鈴木一郎選手。これより試合を開始します。",
       );
       setTimeout(resolve, 500);
@@ -613,7 +613,7 @@ function TemplateEditor() {
   async function playPreview() {
     setPlaying(true);
     await new Promise<void>((resolve) => {
-      announceCustom(preview);
+      void announceCustom(preview);
       setTimeout(resolve, 500);
     });
     setPlaying(false);
@@ -761,7 +761,7 @@ function ReadingInput({
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        commit();
+        void commit();
       }}
       className="flex gap-1 mt-1"
     >
@@ -822,7 +822,7 @@ function DescriptionInput({ value, onSave }: { value: string; onSave: (v: string
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        commit();
+        void commit();
       }}
       className="mt-1 space-y-1"
     >

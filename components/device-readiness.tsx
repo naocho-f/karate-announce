@@ -42,7 +42,7 @@ export function DeviceReadiness() {
       setStatus({ sw: swStatus, cache: cacheStatus });
     }
 
-    check();
+    void check();
   }, []);
 
   const allReady = status.sw === "ready" && status.cache === "ready";

@@ -113,7 +113,7 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
   }, [eventId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   function getCourtLabel(num: number): string {

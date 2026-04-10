@@ -44,7 +44,7 @@ export function AutoCreateDialog({
       }
       if (!cancelled) setLoading(false);
     }
-    loadRules();
+    void loadRules();
     return () => {
       cancelled = true;
     };

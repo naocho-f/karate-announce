@@ -117,7 +117,7 @@ export default function LivePage() {
   });
 
   useEffect(() => {
-    wrappedFetch();
+    void wrappedFetch();
   }, [wrappedFetch]);
 
   useEffect(() => {
@@ -128,11 +128,11 @@ export default function LivePage() {
     const channel = supabase
       .channel("live-matches")
       .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => {
-        wrappedFetch();
+        void wrappedFetch();
       })
       .subscribe((status, err) => {
         if (status === "SUBSCRIBED") {
-          wrappedFetch();
+          void wrappedFetch();
         }
         if (status === "CLOSED" || status === "TIMED_OUT") {
           console.warn(`Realtime ${status}`, err);
@@ -141,12 +141,12 @@ export default function LivePage() {
 
     // バックグラウンドタブ復帰時に即座にリロード（Android等でsetIntervalが停止するため）
     function handleVisibility() {
-      if (document.visibilityState === "visible") wrappedFetch();
+      if (document.visibilityState === "visible") void wrappedFetch();
     }
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [wrappedFetch, offlineMode]);

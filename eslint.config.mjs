@@ -19,6 +19,7 @@ const eslintConfig = [
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       // --- 修正完了後に error に昇格 ---
       "@typescript-eslint/no-non-null-assertion": "warn",
+      "@typescript-eslint/no-floating-promises": "error",
     },
   },
   // React / Next.js ルール調整

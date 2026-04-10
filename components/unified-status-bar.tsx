@@ -199,7 +199,7 @@ export function usePendingCount(intervalMs = 2000): number {
       const c = await getPendingCount();
       if (mounted) setCount(c);
     };
-    update();
+    void update();
     const timer = setInterval(update, intervalMs);
     return () => {
       mounted = false;

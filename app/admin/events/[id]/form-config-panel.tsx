@@ -132,7 +132,7 @@ export function FormConfigPanel({ eventId }: Props) {
   );
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   useEffect(() => {

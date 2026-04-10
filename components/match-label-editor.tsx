@@ -211,7 +211,7 @@ export function MatchLabelEditor({
   );
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   // matchId → court のマッピング

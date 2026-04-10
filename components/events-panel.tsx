@@ -46,7 +46,7 @@ export function EventsPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       const { data: es } = await supabase
         .from("events")
         .select("*")
@@ -104,7 +104,7 @@ export function EventsPanel() {
       showToast("削除に失敗しました");
       return;
     }
-    load();
+    void load();
   }
 
   async function setActive(id: string, active: boolean) {
@@ -119,7 +119,7 @@ export function EventsPanel() {
       showToast("状態の変更に失敗しました");
       return;
     }
-    load();
+    void load();
   }
 
   async function finishEvent(id: string) {
@@ -135,7 +135,7 @@ export function EventsPanel() {
       showToast("状態の変更に失敗しました");
       return;
     }
-    load();
+    void load();
   }
 
   async function reopenEvent(id: string) {
@@ -150,7 +150,7 @@ export function EventsPanel() {
       showToast("状態の変更に失敗しました");
       return;
     }
-    load();
+    void load();
   }
 
   function openCopyModal(sourceId: string) {

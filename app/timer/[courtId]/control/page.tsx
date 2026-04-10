@@ -311,7 +311,7 @@ export default function TimerControlPage() {
   }, [courtId, selectedPresetId]);
 
   useEffect(() => {
-    loadTournamentData();
+    void loadTournamentData();
     // 10秒ごとに試合リストを更新
     const interval = setInterval(loadTournamentData, 10_000);
     return () => clearInterval(interval);
@@ -427,7 +427,7 @@ export default function TimerControlPage() {
         update((prev) => {
           const next = timeUp(prev);
           if (next.preset?.buzzer_on_time_up === "auto") {
-            playBuzzer(
+            void playBuzzer(
               next.preset.buzzer_sound ?? "mid-square-single",
               next.preset.buzzer_duration ?? 1.5,
               next.preset.buzzer_repeat ?? 1,
@@ -441,7 +441,7 @@ export default function TimerControlPage() {
         update((prev) => {
           const next = newazaTimeUp(prev);
           if (next.preset?.buzzer_on_newaza === "auto") {
-            playBuzzer(
+            void playBuzzer(
               next.preset.buzzer_sound_newaza ?? "mid-square-single",
               next.preset.buzzer_duration_newaza ?? 1.5,
               next.preset.buzzer_repeat_newaza ?? 1,
@@ -558,7 +558,7 @@ export default function TimerControlPage() {
           update((st) => adjustTime(st, e.shiftKey ? 1000 : 10000));
           break;
         case "KeyB":
-          playBuzzer(
+          void playBuzzer(
             s.preset?.buzzer_sound ?? "mid-square-single",
             s.preset?.buzzer_duration ?? 1.5,
             s.preset?.buzzer_repeat ?? 1,
@@ -659,7 +659,7 @@ export default function TimerControlPage() {
       announceTemplates,
       rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
     );
-    prefetchTts(ttsText);
+    void prefetchTts(ttsText);
   };
 
   // ── ルール→タイマーマッピング（rules テーブルの timer_preset_id を使用）──
@@ -766,7 +766,7 @@ export default function TimerControlPage() {
 
       if (res.ok) {
         update(markResultWritten);
-        loadTournamentData();
+        void loadTournamentData();
       } else {
         showToast("結果の書き戻しに失敗しました");
       }
@@ -1130,7 +1130,7 @@ export default function TimerControlPage() {
               onClick={() => {
                 setShowAnnounceSelection(false);
                 update(resetToIdle);
-                loadTournamentData();
+                void loadTournamentData();
               }}
               className="text-sm text-gray-500 hover:text-gray-300 transition"
             >
@@ -1397,7 +1397,7 @@ export default function TimerControlPage() {
               onCancelResult={() => update(cancelResult)}
               onResetToIdle={() => {
                 update(resetToIdle);
-                loadTournamentData();
+                void loadTournamentData();
                 setShouldScrollToNext(true);
               }}
             />

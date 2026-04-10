@@ -66,7 +66,7 @@ export default function EntryDetailPage({ params }: Props) {
       }
       setLoading(false);
     }
-    load();
+    void load();
   }, [eventId, entryId]);
 
   async function saveAdminMemo() {

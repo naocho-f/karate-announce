@@ -2037,7 +2037,7 @@ function TournamentEditor({
                       [newIds[visibleIdx - 1], newIds[visibleIdx]] = [newIds[visibleIdx], newIds[visibleIdx - 1]];
                       setLocalOrder(newIds);
                       setReorderingId(t.id);
-                      Promise.all([
+                      void Promise.all([
                         fetch(`/api/admin/tournaments/${t.id}`, {
                           method: "PATCH",
                           headers: { "Content-Type": "application/json" },
@@ -2065,7 +2065,7 @@ function TournamentEditor({
                       [newIds[visibleIdx + 1], newIds[visibleIdx]] = [newIds[visibleIdx], newIds[visibleIdx + 1]];
                       setLocalOrder(newIds);
                       setReorderingId(t.id);
-                      Promise.all([
+                      void Promise.all([
                         fetch(`/api/admin/tournaments/${t.id}`, {
                           method: "PATCH",
                           headers: { "Content-Type": "application/json" },
@@ -2254,7 +2254,7 @@ function ExistingTournamentSection({
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       const { data } = await supabase
         .from("matches")
         .select(
@@ -2282,7 +2282,7 @@ function ExistingTournamentSection({
   useEffect(() => {
     const pending = affectedMatches.filter((m) => m.status !== "done" && m.winner_id == null);
     if (pending.length === 0) return;
-    Promise.all(
+    void Promise.all(
       pending.map((match) => {
         const f1Withdrawn = !!(match.fighter1_id && withdrawnFighterIds.has(match.fighter1_id));
         const winnerId = f1Withdrawn ? match.fighter2_id : match.fighter1_id;

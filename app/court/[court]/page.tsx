@@ -190,11 +190,11 @@ export default function CourtPage({ params }: Props) {
   });
 
   useEffect(() => {
-    wrappedFetch();
+    void wrappedFetch();
   }, [wrappedFetch]);
   useEffect(() => {
     function handleVisibility() {
-      if (document.visibilityState === "visible") wrappedFetch();
+      if (document.visibilityState === "visible") void wrappedFetch();
     }
     document.addEventListener("visibilitychange", handleVisibility);
 
@@ -731,7 +731,7 @@ function CourtContent({
       announceTemplates,
       rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
     );
-    prefetchTts(text);
+    void prefetchTts(text);
   }, [courtNextMatch, fighters, tournaments, matchesMap, announceTemplates, rulesReadingMap]);
 
   return (

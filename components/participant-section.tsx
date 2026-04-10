@@ -26,13 +26,13 @@ function EntryFormUrl({ eventId }: { eventId: string }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    import("qrcode").then((QRCode) => {
-      QRCode.toDataURL(url, { width: 512, margin: 2 }).then(setQrDataUrl);
+    void import("qrcode").then((QRCode) => {
+      void QRCode.toDataURL(url, { width: 512, margin: 2 }).then(setQrDataUrl);
     });
   }, [url]);
 
   function copy() {
-    navigator.clipboard.writeText(url).then(() => {
+    void navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });

@@ -47,7 +47,7 @@ export default function BugReportsPanel() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadReports();
+    void loadReports();
   }, []);
 
   async function loadReports() {

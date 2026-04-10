@@ -325,7 +325,7 @@ export default function EntryPage({ params }: Props) {
         setEventRules(rs ?? []);
       }
     }
-    load();
+    void load();
   }, [eventId]);
 
   // ── フォーム設定取得 ──

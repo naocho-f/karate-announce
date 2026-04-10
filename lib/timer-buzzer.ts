@@ -140,7 +140,7 @@ function playBuiltinOnce(soundId: string, durationSec: number): number {
 
   try {
     const ctx = getCtx();
-    if (ctx.state === "suspended") ctx.resume();
+    if (ctx.state === "suspended") void ctx.resume();
 
     switch (pattern) {
       case "single":
@@ -233,7 +233,7 @@ export function disposeBuzzer(): void {
   customAudio = null;
   if (audioCtx) {
     try {
-      audioCtx.close();
+      void audioCtx.close();
     } catch {}
     audioCtx = null;
   }

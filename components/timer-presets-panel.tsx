@@ -116,7 +116,7 @@ export function TimerPresetsPanel() {
   }, []);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   // Measure preview container height
@@ -201,7 +201,7 @@ export function TimerPresetsPanel() {
       }
       setEditing(null);
       setEditId(null);
-      load();
+      void load();
     } finally {
       setSaving(false);
     }

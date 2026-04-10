@@ -371,7 +371,7 @@ export default function EventDetailPage({ params }: Props) {
   useEffect(() => {
     let cancelled = false;
     const doLoad = () => {
-      if (!cancelled) load();
+      if (!cancelled) void load();
     };
     doLoad();
     return () => {

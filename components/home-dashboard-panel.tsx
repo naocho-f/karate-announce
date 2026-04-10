@@ -326,7 +326,7 @@ export function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: AdminTab)
           </a>
           <button
             onClick={() => {
-              navigator.clipboard.writeText(`${window.location.origin}/live`);
+              void navigator.clipboard.writeText(`${window.location.origin}/live`);
               setLiveCopied(true);
               setTimeout(() => setLiveCopied(false), 2000);
             }}

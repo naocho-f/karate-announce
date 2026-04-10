@@ -94,7 +94,7 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
     const doLoad = () => {
-      if (!cancelled) load();
+      if (!cancelled) void load();
     };
     doLoad();
     const timer = setInterval(doLoad, 5000);

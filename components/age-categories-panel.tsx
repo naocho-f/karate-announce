@@ -11,7 +11,7 @@ export default function AgeCategoriesPanel() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    (async () => {
+    void (async () => {
       try {
         const res = await fetch("/api/admin/settings");
         if (res.ok) {
