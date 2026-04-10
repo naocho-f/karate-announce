@@ -716,7 +716,7 @@ function EntriesSection({
         <div className="flex items-center gap-2">
           {isDev() && (
             <button
-              onClick={addDemoEntries}
+              onClick={() => void addDemoEntries()}
               disabled={generating}
               title="テスト用のダミー参加者32名を一括登録します（開発環境のみ）"
               className="text-xs text-yellow-400 hover:text-yellow-200 disabled:opacity-50 px-2 py-1.5 rounded-lg border border-yellow-700 hover:border-yellow-500 bg-yellow-900/30 hover:bg-yellow-900/50 transition font-medium"
@@ -726,7 +726,7 @@ function EntriesSection({
           )}
           {isDev() && entries.some((e) => e.is_test) && (
             <button
-              onClick={deleteTestEntries}
+              onClick={() => void deleteTestEntries()}
               disabled={generating}
               title="テスト用に登録したダミー参加者をすべて削除します"
               className="text-xs text-red-500 hover:text-red-300 disabled:opacity-50 px-2 py-1.5 rounded-lg border border-red-900 hover:border-red-700 transition"
@@ -735,14 +735,14 @@ function EntriesSection({
             </button>
           )}
           <button
-            onClick={downloadCsv}
+            onClick={() => void downloadCsv()}
             disabled={downloading || entries.length === 0}
             className="text-xs text-green-400 hover:text-green-200 disabled:opacity-50 px-2 py-1.5 rounded-lg border border-green-800 hover:border-green-600 transition"
           >
             {downloading ? "出力中..." : "CSV出力"}
           </button>
           <button
-            onClick={refresh}
+            onClick={() => void refresh()}
             disabled={refreshing}
             className="text-xs text-gray-400 hover:text-gray-200 disabled:opacity-50 px-2 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition"
           >
@@ -988,7 +988,7 @@ function InlineMemoEditor({
     <textarea
       value={memo}
       onChange={(e) => setMemo(e.target.value)}
-      onBlur={save}
+      onBlur={() => void save()}
       autoFocus
       placeholder="管理者メモ（例: 初試合・怪我注意・誰と当てたい等）"
       rows={2}
@@ -1087,7 +1087,13 @@ function AddEntryForm({
     "flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
 
   return (
-    <form onSubmit={submit} className="border border-blue-700 rounded-lg p-3 space-y-2">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit(e);
+      }}
+      className="border border-blue-700 rounded-lg p-3 space-y-2"
+    >
       <p className="text-xs text-gray-400 font-medium">参加者追加</p>
       <div className="flex gap-2 flex-wrap">
         <input
@@ -1374,7 +1380,7 @@ function EmailSettingsPanel({ event, onUpdate }: { event: Event; onUpdate: (u: P
 
       <div className="flex items-center gap-3">
         <button
-          onClick={save}
+          onClick={() => void save()}
           disabled={saving}
           className="px-4 py-2 bg-blue-700 hover:bg-blue-600 rounded-lg text-sm font-medium disabled:opacity-50"
         >

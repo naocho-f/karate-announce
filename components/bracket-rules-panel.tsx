@@ -244,14 +244,14 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
           <div className="flex items-center gap-2">
             <div className="flex flex-col gap-0.5">
               <button
-                onClick={() => moveOrder(rule.id, "up")}
+                onClick={() => void moveOrder(rule.id, "up")}
                 disabled={idx === 0 || movingId === rule.id}
                 className="text-gray-400 hover:text-white disabled:opacity-50 text-xs leading-none"
               >
                 ▲
               </button>
               <button
-                onClick={() => moveOrder(rule.id, "down")}
+                onClick={() => void moveOrder(rule.id, "down")}
                 disabled={idx === bracketRules.length - 1 || movingId === rule.id}
                 className="text-gray-400 hover:text-white disabled:opacity-50 text-xs leading-none"
               >
@@ -296,7 +296,7 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
               編集
             </button>
             <button
-              onClick={() => handleDelete(rule.id)}
+              onClick={() => void handleDelete(rule.id)}
               disabled={deletingId === rule.id}
               className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
             >
@@ -501,7 +501,7 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
 
           <div className="flex gap-2 pt-1">
             <button
-              onClick={handleSave}
+              onClick={() => void handleSave()}
               disabled={saving}
               className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded transition"
             >

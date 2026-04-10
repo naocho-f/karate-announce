@@ -8,8 +8,7 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function doSubmit() {
     setLoading(true);
     setError("");
 
@@ -26,6 +25,11 @@ export default function AdminLoginPage() {
       setError(data.error ?? "エラーが発生しました");
       setLoading(false);
     }
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    void doSubmit();
   }
 
   return (

@@ -313,7 +313,7 @@ export default function TimerControlPage() {
   useEffect(() => {
     void loadTournamentData();
     // 10秒ごとに試合リストを更新
-    const interval = setInterval(loadTournamentData, 10_000);
+    const interval = setInterval(() => void loadTournamentData(), 10_000);
     return () => clearInterval(interval);
   }, [loadTournamentData]);
 
@@ -932,7 +932,7 @@ export default function TimerControlPage() {
             <section className="space-y-3">
               {/* 赤白入替 */}
               <button
-                onClick={async () => {
+                onClick={() => {
                   setSwapping(true);
                   const next = !swapSides;
                   setSwapSides(next);
@@ -941,8 +941,7 @@ export default function TimerControlPage() {
                     preset: s.preset ? { ...s.preset, swap_sides: next } : s.preset,
                   }));
                   // UIフィードバック用の短い遅延
-                  await new Promise((r) => setTimeout(r, 300));
-                  setSwapping(false);
+                  void new Promise<void>((r) => setTimeout(r, 300)).then(() => setSwapping(false));
                 }}
                 disabled={swapping}
                 className={`w-full py-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2 ${
@@ -1142,9 +1141,9 @@ export default function TimerControlPage() {
           {phase === "ready" && showAnnounceSelection && (
             <section className="space-y-3">
               <button
-                onClick={async () => {
+                onClick={() => {
                   setShowAnnounceSelection(false);
-                  await handleAnnounceStart();
+                  void handleAnnounceStart();
                 }}
                 disabled={isMuted || isPlaying}
                 className="w-full py-4 rounded-lg bg-blue-700 hover:bg-blue-600 text-white font-bold text-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1229,7 +1228,7 @@ export default function TimerControlPage() {
             <section>
               <h3 className="text-sm font-bold text-gray-400 mb-2">アナウンス</h3>
               <button
-                onClick={handleAnnounceWinner}
+                onClick={() => void handleAnnounceWinner()}
                 disabled={isMuted || isPlaying}
                 className="w-full py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-white font-bold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -1304,7 +1303,7 @@ export default function TimerControlPage() {
               <div className="grid grid-cols-5 gap-2">
                 <button
                   onClick={() =>
-                    playBuzzer(
+                    void playBuzzer(
                       p?.buzzer_sound ?? "mid-square-single",
                       p?.buzzer_duration ?? 1.5,
                       p?.buzzer_repeat ?? 1,
@@ -1393,7 +1392,7 @@ export default function TimerControlPage() {
               writingBack={writingBack}
               onSelectingResultFor={setSelectingResultFor}
               onFinishManual={(side, method) => update((s) => finishManual(s, side, method))}
-              onWriteBack={handleWriteBack}
+              onWriteBack={() => void handleWriteBack()}
               onCancelResult={() => update(cancelResult)}
               onResetToIdle={() => {
                 update(resetToIdle);

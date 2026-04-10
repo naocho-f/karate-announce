@@ -20,6 +20,7 @@ const eslintConfig = [
       // --- 修正完了後に error に昇格 ---
       "@typescript-eslint/no-non-null-assertion": "warn",
       "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": "error",
     },
   },
   // React / Next.js ルール調整

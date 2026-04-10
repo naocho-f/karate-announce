@@ -58,17 +58,19 @@ export function useAutoRecovery(mode: NetworkMode): {
     if (typeof window === "undefined") return;
     if (mode !== "offline") return;
 
-    const handleOnline = async () => {
-      // モードが既に変わっていたら無視
-      if (getMode() !== "offline") return;
-      // クールダウンチェック
-      if (!shouldShowRecoveryPrompt(lastDeclinedRef.current)) return;
-      // 接続テスト
-      const ok = await testConnection("/");
-      if (!ok) return;
-      // テスト後にまだオフラインモードか再確認
-      if (getMode() !== "offline") return;
-      setShowRecoveryPrompt(true);
+    const handleOnline = () => {
+      void (async () => {
+        // モードが既に変わっていたら無視
+        if (getMode() !== "offline") return;
+        // クールダウンチェック
+        if (!shouldShowRecoveryPrompt(lastDeclinedRef.current)) return;
+        // 接続テスト
+        const ok = await testConnection("/");
+        if (!ok) return;
+        // テスト後にまだオフラインモードか再確認
+        if (getMode() !== "offline") return;
+        setShowRecoveryPrompt(true);
+      })();
     };
 
     window.addEventListener("online", handleOnline);
@@ -200,7 +202,7 @@ export function usePendingCount(intervalMs = 2000): number {
       if (mounted) setCount(c);
     };
     void update();
-    const timer = setInterval(update, intervalMs);
+    const timer = setInterval(() => void update(), intervalMs);
     return () => {
       mounted = false;
       clearInterval(timer);

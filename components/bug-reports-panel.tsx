@@ -237,7 +237,7 @@ export default function BugReportsPanel() {
                     />
                   </div>
                   <button
-                    onClick={() => saveReport(report.id)}
+                    onClick={() => void saveReport(report.id)}
                     disabled={saving}
                     className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 px-3 py-1 rounded"
                   >

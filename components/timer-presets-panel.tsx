@@ -692,14 +692,14 @@ export function TimerPresetsPanel() {
                   編集
                 </button>
                 <button
-                  onClick={() => handleDuplicate(p.id)}
+                  onClick={() => void handleDuplicate(p.id)}
                   disabled={duplicatingId === p.id}
                   className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs text-gray-300 transition disabled:opacity-50"
                 >
                   {duplicatingId === p.id ? "複製中..." : "複製"}
                 </button>
                 <button
-                  onClick={() => handleDelete(p.id)}
+                  onClick={() => void handleDelete(p.id)}
                   disabled={deletingId === p.id}
                   className="px-2 py-1 rounded bg-red-900/50 hover:bg-red-800/60 text-xs text-red-300 transition disabled:opacity-50"
                 >
@@ -1155,7 +1155,7 @@ export function TimerPresetsPanel() {
 
           <div className="flex gap-2 mt-6">
             <button
-              onClick={handleSave}
+              onClick={() => void handleSave()}
               disabled={saving || !editing.name}
               className="flex-1 py-2 rounded bg-blue-700 hover:bg-blue-600 text-white font-bold transition disabled:opacity-50"
             >
@@ -1262,7 +1262,7 @@ function BuzzerSoundSelector({
               </optgroup>
             </select>
             <button
-              onClick={handlePreview}
+              onClick={() => void handlePreview()}
               disabled={playing}
               className="bg-gray-600 hover:bg-gray-500 disabled:opacity-50 text-white px-2 py-1 rounded text-sm transition shrink-0"
             >
@@ -1306,13 +1306,13 @@ function BuzzerSoundSelector({
               <span className="text-xs text-gray-300 truncate flex-1">アップロード済み</span>
               <div className="flex gap-2 shrink-0">
                 <button
-                  onClick={handlePreview}
+                  onClick={() => void handlePreview()}
                   disabled={playing}
                   className="text-xs text-blue-400 hover:text-blue-300"
                 >
                   {playing ? "再生中..." : "試聴"}
                 </button>
-                <button onClick={handleDelete} className="text-xs text-red-400 hover:text-red-300">
+                <button onClick={() => void handleDelete()} className="text-xs text-red-400 hover:text-red-300">
                   削除
                 </button>
               </div>
@@ -1323,7 +1323,7 @@ function BuzzerSoundSelector({
               <input
                 type="file"
                 accept="audio/mpeg,audio/wav,audio/ogg"
-                onChange={handleUpload}
+                onChange={(e) => void handleUpload(e)}
                 disabled={uploading}
                 className="text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-700 file:text-gray-300 hover:file:bg-gray-600"
               />

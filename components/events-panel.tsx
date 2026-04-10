@@ -219,7 +219,7 @@ export function EventsPanel() {
       <div className="flex items-center gap-2 flex-wrap">
         {e.status === "finished" ? (
           <button
-            onClick={() => reopenEvent(e.id)}
+            onClick={() => void reopenEvent(e.id)}
             disabled={reopeningId === e.id}
             className="text-xs px-3 py-1.5 rounded-lg font-medium bg-gray-700 hover:bg-gray-600 text-gray-300 transition disabled:opacity-50"
           >
@@ -228,7 +228,7 @@ export function EventsPanel() {
         ) : (
           <>
             <button
-              onClick={() => setActive(e.id, !e.is_active)}
+              onClick={() => void setActive(e.id, !e.is_active)}
               disabled={activatingId === e.id}
               className={`text-xs px-3 py-1.5 rounded-lg font-medium transition disabled:opacity-50 ${
                 e.is_active
@@ -239,7 +239,7 @@ export function EventsPanel() {
               {activatingId === e.id ? "処理中..." : e.is_active ? "進行中（クリックで停止）" : "▶ アクティブに設定"}
             </button>
             <button
-              onClick={() => finishEvent(e.id)}
+              onClick={() => void finishEvent(e.id)}
               disabled={finishingId === e.id}
               className="text-xs px-3 py-1.5 rounded-lg font-medium bg-gray-600 hover:bg-gray-500 text-gray-200 transition disabled:opacity-50"
             >
@@ -266,7 +266,7 @@ export function EventsPanel() {
           複製
         </button>
         <button
-          onClick={() => remove(e.id)}
+          onClick={() => void remove(e.id)}
           disabled={removingId === e.id}
           className="text-xs text-red-500 hover:text-red-400 ml-auto transition disabled:opacity-50"
         >
@@ -359,7 +359,7 @@ export function EventsPanel() {
               </div>
             )}
             <button
-              onClick={create}
+              onClick={() => void create()}
               disabled={creating || !name.trim()}
               className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2 rounded-lg text-sm font-medium transition"
             >
@@ -458,7 +458,7 @@ export function EventsPanel() {
                 キャンセル
               </button>
               <button
-                onClick={executeCopy}
+                onClick={() => void executeCopy()}
                 disabled={copying || !copyName.trim()}
                 className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2 rounded-lg text-sm font-medium transition"
               >

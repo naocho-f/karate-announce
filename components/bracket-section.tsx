@@ -1817,7 +1817,7 @@ function TournamentEditor({
           キャンセル
         </button>
         <button
-          onClick={confirm}
+          onClick={() => void confirm()}
           disabled={confirming || totalPairs === 0}
           className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
         >
@@ -1959,7 +1959,7 @@ function TournamentEditor({
             <div className="flex items-center gap-3 text-xs text-orange-400">
               <span>※ コート未割当のトーナメントは見積もりに含まれていません</span>
               <button
-                onClick={autoAssignCourts}
+                onClick={() => void autoAssignCourts()}
                 disabled={autoAssigning}
                 className="bg-orange-700 hover:bg-orange-600 disabled:opacity-50 text-white px-3 py-1 rounded transition"
               >
@@ -2001,7 +2001,7 @@ function TournamentEditor({
         <div className="flex items-center gap-3">
           <span className="text-xs text-orange-400">※ コート未割当のトーナメントがあります</span>
           <button
-            onClick={autoAssignCourts}
+            onClick={() => void autoAssignCourts()}
             disabled={autoAssigning}
             className="text-xs bg-orange-700 hover:bg-orange-600 disabled:opacity-50 text-white px-3 py-1 rounded transition"
           >
@@ -2333,13 +2333,15 @@ function ExistingTournamentSection({
           </span>
           <select
             value={tournament.court}
-            onChange={async (e) => {
-              await fetch(`/api/admin/tournaments/${tournament.id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ court: e.target.value }),
-              });
-              onCourtChanged();
+            onChange={(e) => {
+              void (async () => {
+                await fetch(`/api/admin/tournaments/${tournament.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ court: e.target.value }),
+                });
+                onCourtChanged();
+              })();
             }}
             className="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs text-white"
           >
@@ -2420,7 +2422,7 @@ function ExistingTournamentSection({
             ← 登録前に戻る
           </button>
           <button
-            onClick={handleDelete}
+            onClick={() => void handleDelete()}
             disabled={deleting}
             className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 transition"
           >

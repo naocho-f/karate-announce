@@ -73,19 +73,21 @@ export function useConnectionStatus(
   const reschedule = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     const interval = calcBackoffInterval(baseIntervalRef.current, failCountRef.current);
-    intervalRef.current = setInterval(async () => {
-      try {
-        await fetchFnRef.current();
-        const wasOffline = failCountRef.current >= 3;
-        failCountRef.current = 0;
-        hasOperationRetryRef.current = false;
-        updateQuality();
-        if (wasOffline) rescheduleRef.current();
-      } catch {
-        failCountRef.current += 1;
-        updateQuality();
-        rescheduleRef.current();
-      }
+    intervalRef.current = setInterval(() => {
+      void (async () => {
+        try {
+          await fetchFnRef.current();
+          const wasOffline = failCountRef.current >= 3;
+          failCountRef.current = 0;
+          hasOperationRetryRef.current = false;
+          updateQuality();
+          if (wasOffline) rescheduleRef.current();
+        } catch {
+          failCountRef.current += 1;
+          updateQuality();
+          rescheduleRef.current();
+        }
+      })();
     }, interval);
   }, [updateQuality]);
 
@@ -143,19 +145,21 @@ export function useConnectionStatus(
     failCountRef.current = 0;
     hasOperationRetryRef.current = false;
     updateQuality();
-    intervalRef.current = setInterval(async () => {
-      try {
-        await fetchFnRef.current();
-        const wasOffline = failCountRef.current >= 3;
-        failCountRef.current = 0;
-        hasOperationRetryRef.current = false;
-        updateQuality();
-        if (wasOffline) reschedule();
-      } catch {
-        failCountRef.current += 1;
-        updateQuality();
-        reschedule();
-      }
+    intervalRef.current = setInterval(() => {
+      void (async () => {
+        try {
+          await fetchFnRef.current();
+          const wasOffline = failCountRef.current >= 3;
+          failCountRef.current = 0;
+          hasOperationRetryRef.current = false;
+          updateQuality();
+          if (wasOffline) reschedule();
+        } catch {
+          failCountRef.current += 1;
+          updateQuality();
+          reschedule();
+        }
+      })();
     }, baseInterval);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);

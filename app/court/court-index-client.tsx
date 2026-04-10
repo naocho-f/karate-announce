@@ -474,15 +474,15 @@ function CourtPanel({
                       fighterEntryMap={fighterEntryMap}
                       processingMatchIds={processingMatchIds}
                       mutedMatchIds={mutedMatchIds}
-                      onMatchClick={(matchId) => startMatch(tournament.id, matchId)}
-                      onSetWinner={(matchId, fighterId) => setWinner(tournament.id, matchId, fighterId)}
-                      onCorrectWinner={(matchId, fighterId) => correctWinner(tournament.id, matchId, fighterId)}
-                      onReannounceStart={(matchId) => reannounceStart(tournament.id, matchId)}
-                      onReannounceWinner={(matchId) => reannounceWinner(tournament.id, matchId)}
-                      onWithdrawnToggle={(matchId, fighterId, entryId, withdrawn) =>
-                        toggleWithdrawal(matchId, entryId, withdrawn)
+                      onMatchClick={(matchId) => void startMatch(tournament.id, matchId)}
+                      onSetWinner={(matchId, fighterId) => void setWinner(tournament.id, matchId, fighterId)}
+                      onCorrectWinner={(matchId, fighterId) => void correctWinner(tournament.id, matchId, fighterId)}
+                      onReannounceStart={(matchId) => void reannounceStart(tournament.id, matchId)}
+                      onReannounceWinner={(matchId) => void reannounceWinner(tournament.id, matchId)}
+                      onWithdrawnToggle={(matchId, _fighterId, entryId, withdrawn) =>
+                        void toggleWithdrawal(matchId, entryId, withdrawn)
                       }
-                      onSwapWithNext={(round, matchId) => swapWithNext(tournament.id, round, matchId)}
+                      onSwapWithNext={(round, matchId) => void swapWithNext(tournament.id, round, matchId)}
                       onToggleMute={toggleMute}
                     />
                   )}

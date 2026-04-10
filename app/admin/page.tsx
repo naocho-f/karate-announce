@@ -114,7 +114,7 @@ function LogoutButton() {
 
   return (
     <button
-      onClick={logout}
+      onClick={() => void logout()}
       disabled={loggingOut}
       className="ml-auto text-xs text-gray-500 hover:text-gray-300 transition disabled:opacity-50"
     >

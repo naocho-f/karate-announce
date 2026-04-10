@@ -512,7 +512,7 @@ export default function EventDetailPage({ params }: Props) {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={saveEventMeta}
+                  onClick={() => void saveEventMeta()}
                   disabled={savingMeta}
                   className="px-4 py-1.5 text-sm rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium disabled:opacity-50 flex items-center gap-1.5"
                 >
@@ -564,16 +564,16 @@ export default function EventDetailPage({ params }: Props) {
             deletingImageType={deletingImageType}
             onSetEntrySubTab={setEntrySubTab}
             onSetFormConfigVersion={setFormConfigVersion}
-            onToggleEntryClosed={toggleEntryClosed}
-            onSaveEntryCloseAt={saveEntryCloseAt}
-            onClearEntryCloseAt={clearEntryCloseAt}
+            onToggleEntryClosed={() => void toggleEntryClosed()}
+            onSaveEntryCloseAt={() => void saveEntryCloseAt()}
+            onClearEntryCloseAt={() => void clearEntryCloseAt()}
             onSetEntryCloseAtLocal={setEntryCloseAtLocal}
-            onUploadEventImage={uploadEventImage}
-            onDeleteEventImage={deleteEventImage}
-            onToggleRule={toggleEntryRule}
-            onToggleWithdrawn={toggleWithdrawn}
-            onDeleteEntry={deleteEntry}
-            onLoad={load}
+            onUploadEventImage={(e, type) => void uploadEventImage(e, type)}
+            onDeleteEventImage={(type) => void deleteEventImage(type)}
+            onToggleRule={(entryId, ruleId) => void toggleEntryRule(entryId, ruleId)}
+            onToggleWithdrawn={(entryId, withdrawn) => void toggleWithdrawn(entryId, withdrawn)}
+            onDeleteEntry={(entryId) => void deleteEntry(entryId)}
+            onLoad={() => void load()}
             onNavigateStep={navigateStep}
             onSetEvent={setEvent}
           />
@@ -604,13 +604,13 @@ export default function EventDetailPage({ params }: Props) {
             onSetBracketSubTab={setBracketSubTab}
             onSetShowAutoDialog={setShowAutoDialog}
             onNavigateStep={navigateStep}
-            onLoad={load}
-            onHandleAutoCreateFromDialog={handleAutoCreateFromDialog}
+            onLoad={() => void load()}
+            onHandleAutoCreateFromDialog={(...args) => void handleAutoCreateFromDialog(...args)}
           />
         )}
 
         {/* ③ 試合番号設定 */}
-        {step === 3 && <MatchLabelSection eventId={id} event={event} onLoad={load} />}
+        {step === 3 && <MatchLabelSection eventId={id} event={event} onLoad={() => void load()} />}
       </div>
     </main>
   );

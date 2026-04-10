@@ -153,7 +153,7 @@ export default function AgeCategoriesPanel() {
       </div>
 
       <button
-        onClick={save}
+        onClick={() => void save()}
         disabled={saving}
         className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-4 py-2 rounded text-sm font-medium transition"
       >

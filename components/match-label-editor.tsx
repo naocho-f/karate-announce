@@ -382,7 +382,7 @@ export function MatchLabelEditor({
             {assignedCount} / {totalCount} 件割り当て済み
           </span>
           <button
-            onClick={save}
+            onClick={() => void save()}
             disabled={saving}
             className="text-xs bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white px-3 py-1.5 rounded transition ml-auto"
           >
@@ -433,7 +433,7 @@ export function MatchLabelEditor({
                               nameMap={t.nameMap}
                               assignedNumber={assignedNumbers[t.matches[0].id]}
                               onClick={() => handleNumberClick(t.matches[0].id)}
-                              onSwapFighters={() => handleSwapFighters(t.matches[0].id)}
+                              onSwapFighters={() => void handleSwapFighters(t.matches[0].id)}
                               isSwapping={swappingIds.has(t.matches[0].id)}
                             />
                           ) : (
@@ -442,8 +442,8 @@ export function MatchLabelEditor({
                               nameMap={t.nameMap}
                               assignedNumbers={assignedNumbers}
                               onNumberClick={handleNumberClick}
-                              onSwapWithNext={handleSwapWithNext}
-                              onSwapFighters={handleSwapFighters}
+                              onSwapWithNext={(round, matchId) => void handleSwapWithNext(round, matchId)}
+                              onSwapFighters={(matchId) => void handleSwapFighters(matchId)}
                               processingMatchIds={swappingIds}
                             />
                           )}
@@ -481,7 +481,7 @@ export function MatchLabelEditor({
                                 nameMap={t.nameMap}
                                 assignedNumber={assignedNumbers[t.matches[0].id]}
                                 onClick={() => handleNumberClick(t.matches[0].id)}
-                                onSwapFighters={() => handleSwapFighters(t.matches[0].id)}
+                                onSwapFighters={() => void handleSwapFighters(t.matches[0].id)}
                                 isSwapping={swappingIds.has(t.matches[0].id)}
                               />
                             ) : (
@@ -490,8 +490,8 @@ export function MatchLabelEditor({
                                 nameMap={t.nameMap}
                                 assignedNumbers={assignedNumbers}
                                 onNumberClick={handleNumberClick}
-                                onSwapWithNext={handleSwapWithNext}
-                                onSwapFighters={handleSwapFighters}
+                                onSwapWithNext={(round, matchId) => void handleSwapWithNext(round, matchId)}
+                                onSwapFighters={(matchId) => void handleSwapFighters(matchId)}
                                 processingMatchIds={swappingIds}
                               />
                             )}

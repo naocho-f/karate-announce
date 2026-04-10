@@ -103,7 +103,7 @@ export function BugReportFab() {
             <p className="text-xs text-green-400 font-medium text-center py-2">送信しました！</p>
           ) : (
             <button
-              onClick={submit}
+              onClick={() => void submit()}
               disabled={sending || !whatDid.trim() || !whatHappened.trim()}
               className="w-full py-2 text-xs font-medium bg-red-700 hover:bg-red-600 text-white rounded-lg transition disabled:opacity-50"
             >

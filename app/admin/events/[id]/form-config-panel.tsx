@@ -462,7 +462,7 @@ export function FormConfigPanel({ eventId }: Props) {
             {copying ? "コピー中..." : "過去の大会から読み込む"}
           </button>
           <button
-            onClick={save}
+            onClick={() => void save()}
             disabled={saving || busyNotices.size > 0}
             className={`px-4 py-1.5 text-sm rounded-lg transition font-medium disabled:opacity-50 ${dirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}
           >
@@ -510,7 +510,7 @@ export function FormConfigPanel({ eventId }: Props) {
                 busy={busyNotices.has(n.id)}
                 onUpdate={updateNotice}
                 onDelete={deleteNotice}
-                onUploadImage={uploadImage}
+                onUploadImage={(id, file) => void uploadImage(id, file)}
                 onDeleteImage={deleteImage}
               />
             ))}
@@ -556,7 +556,7 @@ export function FormConfigPanel({ eventId }: Props) {
                 onAddNotice={() => addNotice("field", f.field_key)}
                 onUpdateNotice={updateNotice}
                 onDeleteNotice={deleteNotice}
-                onUploadImage={uploadImage}
+                onUploadImage={(id, file) => void uploadImage(id, file)}
                 onDeleteImage={deleteImage}
                 busyNotices={busyNotices}
                 rules={rules}
@@ -581,7 +581,7 @@ export function FormConfigPanel({ eventId }: Props) {
                 busy={busyNotices.has(n.id)}
                 onUpdate={updateNotice}
                 onDelete={deleteNotice}
-                onUploadImage={uploadImage}
+                onUploadImage={(id, file) => void uploadImage(id, file)}
                 onDeleteImage={deleteImage}
               />
             ))}
@@ -600,7 +600,7 @@ export function FormConfigPanel({ eventId }: Props) {
       {showCopyModal && (
         <CopyModal
           events={pastEvents}
-          onCopy={copyFromEvent}
+          onCopy={(id) => void copyFromEvent(id)}
           onClose={() => setShowCopyModal(false)}
           copying={copying}
         />

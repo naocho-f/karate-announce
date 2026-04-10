@@ -613,13 +613,13 @@ export default function CourtPage({ params }: Props) {
             timerControlActive={timerControlActive}
             announceTemplates={announceTemplates}
             rulesReadingMap={rulesReadingMap}
-            onStartMatch={startMatch}
-            onSetWinner={setWinner}
-            onCorrectWinner={correctWinner}
-            onReannounceStart={reannounceStart}
-            onReannounceWinner={reannounceWinner}
-            onToggleWithdrawal={toggleWithdrawal}
-            onSwapWithNext={swapWithNext}
+            onStartMatch={(tId, mId) => void startMatch(tId, mId)}
+            onSetWinner={(tId, mId, wId) => void setWinner(tId, mId, wId)}
+            onCorrectWinner={(tId, mId, wId) => void correctWinner(tId, mId, wId)}
+            onReannounceStart={(tId, mId) => void reannounceStart(tId, mId)}
+            onReannounceWinner={(tId, mId) => void reannounceWinner(tId, mId)}
+            onToggleWithdrawal={(mId, eId, w) => void toggleWithdrawal(mId, eId, w)}
+            onSwapWithNext={(tId, r, mId) => void swapWithNext(tId, r, mId)}
             onToggleMute={toggleMute}
           />
         )}

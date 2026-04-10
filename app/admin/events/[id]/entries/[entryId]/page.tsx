@@ -297,7 +297,7 @@ export default function EntryDetailPage({ params }: Props) {
             <textarea
               value={adminMemo}
               onChange={(e) => setAdminMemo(e.target.value)}
-              onBlur={saveAdminMemo}
+              onBlur={() => void saveAdminMemo()}
               placeholder="管理者メモ（例: 初試合・怪我注意・誰と当てたい等）"
               rows={3}
               className="w-full bg-gray-700 border border-yellow-700/60 rounded px-3 py-2 text-sm text-yellow-100 placeholder:text-gray-600 outline-none focus:border-yellow-500 resize-none"

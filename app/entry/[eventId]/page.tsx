@@ -658,8 +658,12 @@ export default function EntryPage({ params }: Props) {
     return entry;
   }
 
-  async function handleSubmit(ev: React.FormEvent) {
+  function handleSubmit(ev: React.FormEvent) {
     ev.preventDefault();
+    void doSubmit();
+  }
+
+  async function doSubmit() {
     if (submitting) return;
     if (!validate()) return;
     setSubmitting(true);

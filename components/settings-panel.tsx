@@ -140,7 +140,7 @@ function DojoPanel() {
               <div className="flex items-center justify-between mb-1">
                 <span className="font-medium">{d.name}</span>
                 <button
-                  onClick={() => remove(d.id)}
+                  onClick={() => void remove(d.id)}
                   disabled={removingId === d.id}
                   className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50"
                 >
@@ -345,7 +345,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
                           変更
                         </button>
                         <button
-                          onClick={() => linkPreset(r.id, null)}
+                          onClick={() => void linkPreset(r.id, null)}
                           disabled={isLinking}
                           className="text-orange-400 hover:text-orange-200 text-xs disabled:opacity-50"
                         >
@@ -363,7 +363,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
                     ) : null}
                   </div>
                   <button
-                    onClick={() => remove(r.id)}
+                    onClick={() => void remove(r.id)}
                     disabled={removingId === r.id}
                     className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50"
                   >
@@ -521,7 +521,7 @@ function AnnounceSettingsPanel() {
         {/* ボタン */}
         <div className="flex gap-2 pt-1">
           <button
-            onClick={preview}
+            onClick={() => void preview()}
             disabled={playing}
             className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition"
           >
@@ -623,7 +623,7 @@ function TemplateEditor() {
     <div className="bg-gray-800 rounded-xl p-5 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-sm text-gray-300">アナウンス文カスタマイズ</h2>
-        <button onClick={resetToDefault} className="text-xs text-gray-500 hover:text-gray-300 transition">
+        <button onClick={() => void resetToDefault()} className="text-xs text-gray-500 hover:text-gray-300 transition">
           デフォルトに戻す
         </button>
       </div>
@@ -680,14 +680,14 @@ function TemplateEditor() {
       {/* ボタン */}
       <div className="flex gap-2">
         <button
-          onClick={playPreview}
+          onClick={() => void playPreview()}
           disabled={playing}
           className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition"
         >
           {playing ? "再生中..." : "試し聞き"}
         </button>
         <button
-          onClick={save}
+          onClick={() => void save()}
           disabled={saving}
           className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
         >

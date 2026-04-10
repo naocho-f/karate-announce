@@ -373,9 +373,9 @@ describe("/api/admin/tournaments POST", () => {
     // ensureFighterFromEntry が entry ごとに異なる fighter_id を返すようにモック
     const { ensureFighterFromEntry } = await import("@/lib/ensure-fighter");
     const mockFn = ensureFighterFromEntry as ReturnType<typeof vi.fn>;
-    mockFn.mockImplementation((entry: { id: string }) =>
-      Promise.resolve(entry.id === "e1" ? "fighter-1" : "fighter-2"),
-    );
+    mockFn.mockImplementation((entry: { id: string }) => {
+      return entry.id === "e1" ? "fighter-1" : "fighter-2";
+    });
     // 既存のワンマッチトーナメントがある状態をモック
     mockResult("tournaments", "select", {
       data: [{ id: "t-existing" }],

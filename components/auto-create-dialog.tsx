@@ -205,7 +205,7 @@ export function AutoCreateDialog({
 
             {/* 実行ボタン */}
             <button
-              onClick={handleExecute}
+              onClick={() => void handleExecute()}
               disabled={executing}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-sm py-2.5 rounded-lg font-medium transition shadow-lg disabled:opacity-50"
             >
