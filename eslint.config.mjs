@@ -38,6 +38,8 @@ const eslintConfig = [
       "no-console": ["error", { allow: ["error", "warn"] }],
       // 関数の行数制限（500行超の巨大関数をブロック。段階的に閾値を下げる）
       "max-lines-per-function": ["warn", { max: 500, skipBlankLines: true, skipComments: true }],
+      // ファイルの行数制限（現在の最大を超えるファイルの増加を防止）
+      "max-lines": ["warn", { max: 1600, skipBlankLines: true, skipComments: true }],
       // exhaustive-deps は eslint-config-next で既に warn
     },
   },
@@ -59,6 +61,7 @@ const eslintConfig = [
     files: ["__tests__/**/*.ts", "__tests__/**/*.tsx", "**/_use-*.ts", "**/_use-*.tsx"],
     rules: {
       "max-lines-per-function": "off",
+      "max-lines": "off",
     },
   },
   // Prettier との競合回避（末尾に配置）
