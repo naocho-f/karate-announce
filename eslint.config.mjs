@@ -36,6 +36,8 @@ const eslintConfig = [
       "@next/next/no-img-element": "warn",
       // console.log 禁止（error/warn は許可）
       "no-console": ["error", { allow: ["error", "warn"] }],
+      // 関数の行数制限（500行超の巨大関数をブロック。段階的に閾値を下げる）
+      "max-lines-per-function": ["warn", { max: 500, skipBlankLines: true, skipComments: true }],
       // exhaustive-deps は eslint-config-next で既に warn
     },
   },
@@ -50,6 +52,13 @@ const eslintConfig = [
         },
       ],
       "import/newline-after-import": "warn",
+    },
+  },
+  // テストファイル・カスタムフックの関数行数制限を緩和
+  {
+    files: ["__tests__/**/*.ts", "__tests__/**/*.tsx", "**/_use-*.ts", "**/_use-*.tsx"],
+    rules: {
+      "max-lines-per-function": "off",
     },
   },
   // Prettier との競合回避（末尾に配置）

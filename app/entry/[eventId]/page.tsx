@@ -6,9 +6,11 @@ import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import type { Event, FormFieldConfig, FormNotice, CustomFieldDef } from "@/lib/types";
-import { getFieldDef, isKanaField, isCustomField, customFieldToPoolItem } from "@/lib/form-fields";
 import type { FieldPoolItem } from "@/lib/form-fields";
-import { getGradeOptions, gradeFromBirthDate, type AgeCategory } from "@/lib/grade-options";
+import type { AgeCategory } from "@/lib/grade-options";
+import { NoticeRenderer, FieldRenderer, useVisibleFields, isSingleSelect } from "./_field-renderer";
+import { LoadingScreen, NotFoundScreen, ClosedScreen, NotReadyScreen, SubmittedScreen } from "./_entry-status-screens";
+import { validateEntry, buildEntryPayload } from "./_entry-validation";
 
 type Props = { params: Promise<{ eventId: string }> };
 
@@ -22,155 +24,6 @@ type FormConfigResponse = {
   notices?: NoticeWithImages[];
   customFieldDefs?: CustomFieldDef[];
 };
-
-// ──────────────────────────────────────────────
-// ComboInput（流派候補など）
-// ──────────────────────────────────────────────
-
-function ComboInput({
-  value,
-  onChange,
-  onSelect,
-  suggestions,
-  placeholder,
-  className,
-  required,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  onSelect?: (v: string) => void;
-  suggestions: string[];
-  placeholder?: string;
-  className?: string;
-  required?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const filtered = value ? suggestions.filter((s) => s.toLowerCase().includes(value.toLowerCase())) : suggestions;
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  return (
-    <div ref={ref} className="relative">
-      <input
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value);
-          setOpen(true);
-        }}
-        onFocus={() => setOpen(true)}
-        placeholder={placeholder}
-        className={className}
-        required={required}
-        autoComplete="off"
-      />
-      {open && filtered.length > 0 && (
-        <ul className="absolute z-20 left-0 right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
-          {filtered.map((s) => (
-            <li key={s}>
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  (onSelect ?? onChange)(s);
-                  setOpen(false);
-                }}
-                className="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 transition"
-              >
-                {s}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-// ──────────────────────────────────────────────
-// NoticeRenderer — 注意書き表示
-// ──────────────────────────────────────────────
-
-function NoticeRenderer({
-  notice,
-  consents,
-  onConsent,
-}: {
-  notice: NoticeWithImages;
-  consents: Record<string, boolean>;
-  onConsent: (noticeId: string, checked: boolean) => void;
-}) {
-  return (
-    <div
-      id={`field-consent_${notice.id}`}
-      className="bg-gray-800/30 border-l-2 border-yellow-600/40 rounded-r-lg pl-3 pr-2 py-2 space-y-2"
-    >
-      {/* テキスト */}
-      {notice.text_content && (
-        <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">
-          {notice.text_content}
-        </p>
-      )}
-
-      {/* スクロール可能テキスト（規約など） */}
-      {notice.scrollable_text && (
-        <div className="max-h-40 overflow-y-auto border border-gray-600 rounded-lg p-3 text-xs text-gray-300 leading-relaxed whitespace-pre-wrap bg-gray-900">
-          {notice.scrollable_text}
-        </div>
-      )}
-
-      {/* 画像 */}
-      {notice.images && notice.images.length > 0 && (
-        <div className="space-y-2">
-          {notice.images
-            .sort((a, b) => a.sort_order - b.sort_order)
-            .map((img) => (
-              <Image
-                key={img.id}
-                src={img.public_url}
-                alt=""
-                className="w-full rounded-lg"
-                width={800}
-                height={600}
-                unoptimized
-              />
-            ))}
-        </div>
-      )}
-
-      {/* リンク */}
-      {notice.link_url && (
-        <a
-          href={notice.link_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block text-sm text-blue-400 hover:text-blue-300 underline"
-        >
-          {notice.link_label || notice.link_url}
-        </a>
-      )}
-
-      {/* 同意チェック */}
-      {notice.require_consent && (
-        <label className="flex items-start gap-2 cursor-pointer pt-1">
-          <input
-            type="checkbox"
-            checked={consents[notice.id] ?? false}
-            onChange={(e) => onConsent(notice.id, e.target.checked)}
-            className="mt-0.5 accent-blue-500"
-          />
-          <span className="text-xs text-gray-300">{notice.consent_label || "上記に同意します"}</span>
-        </label>
-      )}
-    </div>
-  );
-}
 
 // ──────────────────────────────────────────────
 // メインページ
@@ -357,23 +210,7 @@ export default function EntryPage({ params }: Props) {
   }, []);
 
   // ── 可視フィールド一覧（ソート済み） ──
-  const customFieldDefs = useMemo(() => formConfig?.customFieldDefs ?? [], [formConfig?.customFieldDefs]);
-  const visibleFields = useMemo(() => {
-    if (!formConfig?.ready || !formConfig.fields) return [];
-    return formConfig.fields
-      .filter((fc) => fc.visible && fc.field_key !== "age")
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((fc) => {
-        const def = isCustomField(fc.field_key)
-          ? (() => {
-              const cd = customFieldDefs.find((d) => d.field_key === fc.field_key);
-              return cd ? customFieldToPoolItem(cd) : null;
-            })()
-          : getFieldDef(fc.field_key);
-        return { config: fc, def };
-      })
-      .filter((f): f is { config: FormFieldConfig; def: FieldPoolItem } => !!f.def);
-  }, [formConfig, customFieldDefs]);
+  const visibleFields = useVisibleFields(formConfig);
 
   // ── 生年月日の初期値を2000年に設定（カレンダーのデフォルト表示年） ──
   useEffect(() => {
@@ -420,29 +257,6 @@ export default function EntryPage({ params }: Props) {
     }
     return null;
   }, [values, event]);
-
-  // ── フィールドごとの選択肢 ──
-  function getChoices(config: FormFieldConfig, def: FieldPoolItem) {
-    // rule_preference は event_rules → rules テーブルから動的に取得
-    if (def.key === "rule_preference") {
-      return eventRules.map((r) => ({ label: r.name, value: r.id }));
-    }
-    if (config.custom_choices && config.custom_choices.length > 0) {
-      // __single_select__ マーカーは選択肢ではないのでフィルタ
-      return config.custom_choices.filter((c) => c.value !== "__single_select__");
-    }
-    if (def.fixedChoices) {
-      // grade フィールドは年代区分設定を反映
-      if (def.key === "grade") return getGradeOptions(ageCategories);
-      return def.fixedChoices;
-    }
-    return def.defaultChoices ?? [];
-  }
-
-  /** rule_preference が単一選択モードかどうか */
-  function isSingleSelect(config: FormFieldConfig) {
-    return config.custom_choices?.some((c) => c.value === "__single_select__") ?? false;
-  }
 
   // ── 必須チェック ──
   const isFieldFilled = useCallback(
@@ -510,60 +324,17 @@ export default function EntryPage({ params }: Props) {
 
   // ── バリデーション実行 ──
   function validate(): boolean {
-    const errors: Record<string, string> = {};
-
-    for (const { config, def } of visibleFields) {
-      if (!isFieldFilled(config, def)) {
-        const label = config.custom_label || def.label;
-        errors[def.key] = `${label}は必須です`;
-      }
-    }
-
-    // メール確認
-    if (emailMismatch) {
-      errors["email"] = "メールアドレスが一致しません";
-    }
-    const emailField = visibleFields.find((f) => f.def.key === "email");
-    if (emailField && emailField.config.required && emailField.def.hasConfirmInput && !emailConfirm.trim()) {
-      errors["email"] = errors["email"] || "確認用メールアドレスを入力してください";
-    }
-
-    // よみがな（ひらがな・カタカナ・長音符・中黒・スペースのみ許可）
-    const kanaRegex = /^[\u3040-\u309F\u30A0-\u30FF\u30FC\u30FB\s　]*$/;
-    const kanaFields: [string, string][] = [
-      ["family_name_reading", "姓（読み）"],
-      ["given_name_reading", "名（読み）"],
-      ["organization_kana", "所属団体（読み）"],
-      ["branch_kana", "道場・支部名（読み）"],
-    ];
-    for (const [fkey, flabel] of kanaFields) {
-      const v = values[fkey]?.trim();
-      if (v && !kanaRegex.test(v)) {
-        const parentKey =
-          fkey === "family_name_reading" || fkey === "given_name_reading"
-            ? "full_name"
-            : fkey === "organization_kana"
-              ? "organization"
-              : "branch";
-        errors[parentKey] = errors[parentKey] || `${flabel}はひらがなまたはカタカナで入力してください`;
-      }
-    }
-
-    // 年齢矛盾
-    if (ageConflict) {
-      errors["birthday"] = ageConflict;
-    }
-
-    // 同意チェック
-    for (const n of notices) {
-      if (n.require_consent && !consents[n.id]) {
-        errors[`consent_${n.id}`] = `「${n.consent_label || "上記に同意します"}」にチェックしてください`;
-      }
-    }
-
+    const errors = validateEntry({
+      visibleFields,
+      isFieldFilled,
+      emailMismatch,
+      emailConfirm,
+      ageConflict,
+      values,
+      consents,
+      notices,
+    });
     setFieldErrors(errors);
-
-    // 最初のエラー箇所にスクロール
     if (Object.keys(errors).length > 0) {
       const firstKey = Object.keys(errors)[0];
       const el = document.getElementById(`field-${firstKey}`);
@@ -571,91 +342,6 @@ export default function EntryPage({ params }: Props) {
       return false;
     }
     return true;
-  }
-
-  // ── 送信ペイロード構築 ──
-  function buildPayload() {
-    const entry: Record<string, unknown> = { event_id: eventId };
-    const extraFields: Record<string, unknown> = {};
-
-    for (const { config, def } of visibleFields) {
-      if (!config.visible) continue;
-      const key = def.key;
-
-      // full_name → family_name + given_name に分割
-      if (key === "full_name") {
-        entry["family_name"] = values["family_name"]?.trim() || null;
-        entry["given_name"] = values["given_name"]?.trim() || null;
-        continue;
-      }
-      // kana → family_name_reading + given_name_reading に分割
-      if (key === "kana") {
-        entry["family_name_reading"] = values["family_name_reading"]?.trim() || null;
-        entry["given_name_reading"] = values["given_name_reading"]?.trim() || null;
-        continue;
-      }
-
-      // organization → school_name (DB column) + organization_kana は extra
-      if (key === "organization") {
-        entry["school_name"] = values["organization"]?.trim() || null;
-        entry["school_name_reading"] = values["organization_kana"]?.trim() || null;
-        continue;
-      }
-      if (key === "organization_kana") continue; // organization で処理済み
-
-      // rule_preference は entry_rules で管理するため extra_fields に入れない
-      if (key === "rule_preference") continue;
-
-      let value: unknown;
-      if (def.type === "checkbox" && isSingleSelect(config)) {
-        // 単一選択モード: values[key] に単一値
-        value = values[key]?.trim() || null;
-      } else if (def.type === "checkbox") {
-        const selected = [...(multiValues[key] ?? [])];
-        // その他テキスト付与
-        if (config.has_other_option && otherValues[key]) {
-          selected.push(`other:${otherValues[key]}`);
-        }
-        value = selected;
-      } else if (def.type === "number") {
-        const v = values[key];
-        value = v ? parseFloat(v) : null;
-      } else {
-        let v = values[key]?.trim() || null;
-        // radio/select のその他
-        if (v === "__other__" && otherValues[key]) {
-          v = `other:${otherValues[key]}`;
-        }
-        value = v;
-      }
-
-      if (def.dbColumn) {
-        entry[def.dbColumn] = value;
-      } else {
-        extraFields[key] = value;
-      }
-    }
-
-    entry["extra_fields"] = extraFields;
-    entry["form_version"] = formConfig?.version ?? null;
-
-    // birthday がある場合、age を再計算して保存（onChange で setValue されるが、タイミングで取りこぼす可能性があるため）
-    if (
-      entry["birth_date"] &&
-      typeof entry["birth_date"] === "string" &&
-      /^\d{4}-\d{2}-\d{2}$/.test(entry["birth_date"])
-    ) {
-      const refDate = event?.event_date ? new Date(event.event_date) : new Date();
-      const birth = new Date(entry["birth_date"]);
-      let age = refDate.getFullYear() - birth.getFullYear();
-      const hasBday =
-        refDate.getMonth() > birth.getMonth() ||
-        (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
-      if (!hasBday) age--;
-      entry["age"] = age;
-    }
-
-    return entry;
   }
 
   function handleSubmit(ev: React.FormEvent) {
@@ -669,7 +355,15 @@ export default function EntryPage({ params }: Props) {
     setSubmitting(true);
     setError("");
 
-    const entry = buildPayload();
+    const entry = buildEntryPayload({
+      eventId,
+      visibleFields,
+      values,
+      multiValues,
+      otherValues,
+      formConfig,
+      event: event ?? null,
+    });
     const schoolName = entry["school_name"] as string | null;
 
     // rule_ids: rule_preference フィールドから取得、なければフォールバックUI の selectedRules
@@ -732,529 +426,6 @@ export default function EntryPage({ params }: Props) {
     setError("");
   }
 
-  // ── 組織マスタ選択ハンドラ ──
-  function handleOrgSelect(name: string) {
-    setValue("organization", name);
-    const dojo = dojoMaster.find((d) => d.name === name);
-    if (dojo?.name_reading) {
-      setValue("organization_kana", dojo.name_reading);
-    }
-  }
-
-  // ── フィールドレンダリング ──
-  function renderField(config: FormFieldConfig, def: FieldPoolItem) {
-    const key = def.key;
-    const choices = getChoices(config, def);
-    const isReq = config.required;
-    const label = config.custom_label || def.label;
-
-    // full_name: 姓名 + 読み仮名をグループ表示
-    if (key === "full_name") {
-      const kanaConfig = visibleFields.find((f) => f.def.key === "kana");
-      const kanaRequired = kanaConfig?.config.required ?? false;
-      const showKana = !!kanaConfig;
-      return (
-        <div key={key} id={`field-${key}`} className="space-y-2">
-          <p className="text-xs text-gray-300 font-medium">
-            {label}
-            {isReq && <span className="text-red-400 ml-1">*</span>}
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <label htmlFor="field-family_name" className="text-xs text-gray-400">
-                姓{isReq && <span className="text-red-400 ml-1">*</span>}
-              </label>
-              <input
-                id="field-family_name"
-                value={values["family_name"] ?? ""}
-                onChange={(e) => setValue("family_name", e.target.value)}
-                placeholder="山田"
-                className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`}
-                required={isReq}
-              />
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="field-given_name" className="text-xs text-gray-400">
-                名{isReq && <span className="text-red-400 ml-1">*</span>}
-              </label>
-              <input
-                id="field-given_name"
-                value={values["given_name"] ?? ""}
-                onChange={(e) => setValue("given_name", e.target.value)}
-                placeholder="太郎"
-                className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`}
-                required={isReq}
-              />
-            </div>
-            {showKana && (
-              <>
-                <div className="space-y-1">
-                  <label htmlFor="field-family_name_reading" className="text-xs text-gray-400">
-                    姓（読み）{kanaRequired && <span className="text-red-400 ml-1">*</span>}
-                  </label>
-                  <input
-                    id="field-family_name_reading"
-                    value={values["family_name_reading"] ?? ""}
-                    onChange={(e) => setValue("family_name_reading", e.target.value)}
-                    placeholder="やまだ"
-                    className={`${inp} ${fieldErrors["kana"] ? "border-red-500" : ""}`}
-                    required={kanaRequired}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="field-given_name_reading" className="text-xs text-gray-400">
-                    名（読み）{kanaRequired && <span className="text-red-400 ml-1">*</span>}
-                  </label>
-                  <input
-                    id="field-given_name_reading"
-                    value={values["given_name_reading"] ?? ""}
-                    onChange={(e) => setValue("given_name_reading", e.target.value)}
-                    placeholder="たろう"
-                    className={`${inp} ${fieldErrors["kana"] ? "border-red-500" : ""}`}
-                    required={kanaRequired}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-          {renderFieldNotices(key)}
-          {showKana && renderFieldNotices("kana")}
-          {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
-          {fieldErrors["kana"] && <p className="text-xs text-red-400">{fieldErrors["kana"]}</p>}
-        </div>
-      );
-    }
-
-    // kana フィールドは full_name 内で処理するのでスキップ
-    if (key === "kana") return null;
-
-    // organization: マスタ選択 + 自由入力 + 読み仮名
-    if (key === "organization") {
-      const kanaConfig = visibleFields.find((f) => f.def.key === "organization_kana");
-      const kanaRequired = isReq && (kanaConfig?.config.required ?? false);
-      const showKana = !!kanaConfig;
-      const orgValue = values["organization"] ?? "";
-
-      return (
-        <div key={key} id={`field-${key}`} className="space-y-2">
-          <p className="text-xs text-gray-300 font-medium">
-            {label}
-            {isReq && <span className="text-red-400 ml-1">*</span>}
-          </p>
-          <ComboInput
-            value={orgValue}
-            onChange={(v) => setValue("organization", v)}
-            onSelect={handleOrgSelect}
-            suggestions={dojoMaster.map((d) => d.name)}
-            placeholder={def.placeholder}
-            className={inp}
-            required={isReq}
-          />
-          {showKana && (
-            <div className="space-y-1">
-              <label htmlFor="field-organization_kana" className="text-xs text-gray-400">
-                {kanaConfig?.config.custom_label || (getFieldDef("organization_kana")?.label ?? "よみがな")}
-                {kanaRequired && <span className="text-red-400 ml-1">*</span>}
-              </label>
-              <input
-                id="field-organization_kana"
-                value={values["organization_kana"] ?? ""}
-                onChange={(e) => setValue("organization_kana", e.target.value)}
-                placeholder={getFieldDef("organization_kana")?.placeholder}
-                className={inp}
-                required={kanaRequired}
-              />
-            </div>
-          )}
-          {renderFieldNotices(key)}
-          {showKana && renderFieldNotices("organization_kana")}
-          {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
-        </div>
-      );
-    }
-    // organization_kana: organization 内で処理
-    if (key === "organization_kana") return null;
-
-    // branch + branch_kana
-    if (key === "branch") {
-      const kanaConfig = visibleFields.find((f) => f.def.key === "branch_kana");
-      const kanaRequired = isReq && (kanaConfig?.config.required ?? false);
-      const showKana = !!kanaConfig;
-      return (
-        <div key={key} id={`field-${key}`} className="space-y-2">
-          <p className="text-xs text-gray-300 font-medium">
-            {label}
-            {isReq && <span className="text-red-400 ml-1">*</span>}
-          </p>
-          <input
-            value={values[key] ?? ""}
-            onChange={(e) => setValue(key, e.target.value)}
-            placeholder={def.placeholder}
-            className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`}
-            required={isReq}
-          />
-          {showKana && (
-            <div className="space-y-1">
-              <label htmlFor="field-branch_kana" className="text-xs text-gray-400">
-                {kanaConfig?.config.custom_label || (getFieldDef("branch_kana")?.label ?? "よみがな")}
-                {kanaRequired && <span className="text-red-400 ml-1">*</span>}
-              </label>
-              <input
-                id="field-branch_kana"
-                value={values["branch_kana"] ?? ""}
-                onChange={(e) => setValue("branch_kana", e.target.value)}
-                placeholder={getFieldDef("branch_kana")?.placeholder}
-                className={inp}
-                required={kanaRequired}
-              />
-            </div>
-          )}
-          {renderFieldNotices(key)}
-          {showKana && renderFieldNotices("branch_kana")}
-          {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
-        </div>
-      );
-    }
-    if (key === "branch_kana") return null;
-
-    // birthday: 生年月日 + 年齢自動計算を2列グリッドで統合表示
-    if (key === "birthday") {
-      const ageFieldConfig = formConfig?.fields?.find((f) => f.field_key === "age" && f.visible);
-      const computedAge = (() => {
-        const bday = values["birthday"];
-        if (!bday) return null;
-        const refDate = event?.event_date ? new Date(event.event_date) : new Date();
-        const birth = new Date(bday);
-        let age = refDate.getFullYear() - birth.getFullYear();
-        const hasBday =
-          refDate.getMonth() > birth.getMonth() ||
-          (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
-        if (!hasBday) age--;
-        return age;
-      })();
-      return (
-        <div key={key} id={`field-${key}`} className="space-y-2">
-          <p className="text-xs text-gray-300 font-medium">
-            {label}
-            {isReq && <span className="text-red-400 ml-1">*</span>}
-            {ageFieldConfig && <span className="text-gray-500 ml-1">+ 年齢自動計算</span>}
-          </p>
-          <div className={`grid ${ageFieldConfig ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-2 items-end`}>
-            <div className="space-y-1">
-              {ageFieldConfig && (
-                <label htmlFor="field-birth_date" className="text-xs text-gray-400">
-                  生年月日
-                </label>
-              )}
-              <input
-                id="field-birth_date"
-                type="date"
-                value={values[key] ?? ""}
-                onChange={(e) => {
-                  setValue(key, e.target.value);
-                  if (e.target.value && /^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) {
-                    // 年齢を自動計算して age にセット
-                    if (ageFieldConfig) {
-                      const refDate = event?.event_date ? new Date(event.event_date) : new Date();
-                      const birth = new Date(e.target.value);
-                      let age = refDate.getFullYear() - birth.getFullYear();
-                      const hasBday =
-                        refDate.getMonth() > birth.getMonth() ||
-                        (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
-                      if (!hasBday) age--;
-                      setValue("age", String(age));
-                    }
-                    // 年代区分を自動選択
-                    const grade = gradeFromBirthDate(e.target.value, event?.event_date ?? null, ageCategories);
-                    if (grade) setValue("grade", grade);
-                  }
-                }}
-                onBlur={(e) => {
-                  const val = e.target.value;
-                  if (val && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
-                    if (ageFieldConfig) {
-                      const refDate = event?.event_date ? new Date(event.event_date) : new Date();
-                      const birth = new Date(val);
-                      let age = refDate.getFullYear() - birth.getFullYear();
-                      const hasBday =
-                        refDate.getMonth() > birth.getMonth() ||
-                        (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
-                      if (!hasBday) age--;
-                      setValue("age", String(age));
-                    }
-                    const grade = gradeFromBirthDate(val, event?.event_date ?? null, ageCategories);
-                    if (grade) setValue("grade", grade);
-                  }
-                }}
-                className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`}
-                required={isReq}
-              />
-            </div>
-            {ageFieldConfig && (
-              <div className="space-y-1">
-                <label className="text-xs text-gray-400">{event?.event_date ? "大会日時点の年齢" : "年齢"}</label>
-                <div className="w-full bg-gray-800/60 border border-gray-700/50 rounded-lg px-3 py-2 text-base text-gray-400">
-                  {computedAge !== null ? `${computedAge}歳（自動計算）` : "生年月日を入力してください"}
-                </div>
-              </div>
-            )}
-          </div>
-          {ageConflict && <p className="text-xs text-red-400">{ageConflict}</p>}
-          {renderFieldNotices(key)}
-          {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
-        </div>
-      );
-    }
-
-    // 一般的な読み仮名フィールド（親と一緒に処理される場合はスキップ）
-    if (isKanaField(key)) {
-      const parent = def.kanaParent;
-      if (parent && visibleFields.some((f) => f.def.key === parent)) return null;
-    }
-
-    // ── 汎用レンダリング ──
-    const hasError = !!fieldErrors[key];
-    return (
-      <div key={key} id={`field-${key}`} className="space-y-2">
-        <p className="text-xs text-gray-300 font-medium">
-          {label}
-          {isReq && <span className="text-red-400 ml-1">*</span>}
-          {def.unit && <span className="text-gray-500 ml-1">（{def.unit}）</span>}
-        </p>
-
-        {def.type === "text" && (
-          <input
-            value={values[key] ?? ""}
-            onChange={(e) => setValue(key, e.target.value)}
-            placeholder={def.placeholder}
-            className={`${inp} ${hasError ? "border-red-500" : ""}`}
-            required={isReq}
-            maxLength={def.maxLength}
-          />
-        )}
-
-        {def.type === "textarea" && (
-          <textarea
-            value={values[key] ?? ""}
-            onChange={(e) => setValue(key, e.target.value)}
-            placeholder={def.placeholder}
-            rows={3}
-            className={`${inp} resize-none ${hasError ? "border-red-500" : ""}`}
-            required={isReq}
-            maxLength={def.maxLength}
-          />
-        )}
-
-        {def.type === "number" && (
-          <input
-            type="number"
-            value={values[key] ?? ""}
-            onChange={(e) => setValue(key, e.target.value)}
-            placeholder={def.placeholder}
-            step={def.step}
-            className={`${inp} ${hasError || (key === "age" && ageConflict) ? "border-red-500" : ""}`}
-            required={isReq}
-          />
-        )}
-
-        {def.type === "tel" && (
-          <input
-            type="tel"
-            value={values[key] ?? ""}
-            onChange={(e) => setValue(key, e.target.value)}
-            placeholder={def.placeholder}
-            className={`${inp} ${hasError ? "border-red-500" : ""}`}
-            required={isReq}
-          />
-        )}
-
-        {def.type === "email" && (
-          <>
-            <input
-              type="email"
-              value={values[key] ?? ""}
-              onChange={(e) => setValue(key, e.target.value)}
-              placeholder={def.placeholder || "example@mail.com"}
-              className={`${inp} ${hasError ? "border-red-500" : ""}`}
-              required={isReq}
-            />
-            {def.hasConfirmInput && (
-              <div className="space-y-1">
-                <label htmlFor="field-email-confirm" className="text-xs text-gray-400">
-                  メールアドレス（確認）
-                </label>
-                <input
-                  id="field-email-confirm"
-                  type="email"
-                  value={emailConfirm}
-                  onChange={(e) => setEmailConfirm(e.target.value)}
-                  placeholder="もう一度入力してください"
-                  className={`${inp} ${emailMismatch || hasError ? "border-red-500" : ""}`}
-                  required={isReq}
-                />
-                {emailMismatch && <p className="text-xs text-red-400">メールアドレスが一致しません</p>}
-              </div>
-            )}
-          </>
-        )}
-
-        {def.type === "date" && (
-          <input
-            type="date"
-            value={values[key] ?? ""}
-            onChange={(e) => setValue(key, e.target.value)}
-            className={`${inp} ${hasError ? "border-red-500" : ""}`}
-            required={isReq}
-          />
-        )}
-
-        {def.type === "select" && !def.useMaster && (
-          <select
-            value={values[key] ?? ""}
-            onChange={(e) => setValue(key, e.target.value)}
-            className={`${inp} ${hasError ? "border-red-500" : ""}`}
-            required={isReq}
-          >
-            <option value="">選択してください</option>
-            {choices.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-            {config.has_other_option && <option value="__other__">その他</option>}
-          </select>
-        )}
-
-        {def.type === "select" && !def.useMaster && values[key] === "__other__" && config.has_other_option && (
-          <input
-            value={otherValues[key] ?? ""}
-            onChange={(e) => setOtherValues((prev) => ({ ...prev, [key]: e.target.value }))}
-            placeholder="その他の内容を入力"
-            className={inp}
-            required={isReq}
-          />
-        )}
-
-        {def.type === "radio" && (
-          <div className="space-y-1">
-            {choices.map((c) => (
-              <label key={c.value} className="flex items-center gap-2 cursor-pointer py-1">
-                <input
-                  type="radio"
-                  name={key}
-                  value={c.value}
-                  checked={values[key] === c.value}
-                  onChange={() => setValue(key, c.value)}
-                  className="accent-blue-500"
-                />
-                <span className="text-sm text-gray-200">{c.label}</span>
-              </label>
-            ))}
-            {config.has_other_option && (
-              <label className="flex items-center gap-2 cursor-pointer py-1">
-                <input
-                  type="radio"
-                  name={key}
-                  value="__other__"
-                  checked={values[key] === "__other__"}
-                  onChange={() => setValue(key, "__other__")}
-                  className="accent-blue-500"
-                />
-                <span className="text-sm text-gray-200">その他</span>
-              </label>
-            )}
-            {values[key] === "__other__" && config.has_other_option && (
-              <input
-                value={otherValues[key] ?? ""}
-                onChange={(e) => setOtherValues((prev) => ({ ...prev, [key]: e.target.value }))}
-                placeholder="その他の内容を入力"
-                className={`${inp} ml-6`}
-                required={isReq}
-              />
-            )}
-          </div>
-        )}
-
-        {def.type === "checkbox" && isSingleSelect(config) ? (
-          /* 単一選択モード（radio として表示） */
-          <div className="space-y-1">
-            {choices.map((c) => (
-              <label key={c.value} className="flex items-center gap-2 cursor-pointer py-1">
-                <input
-                  type="radio"
-                  name={key}
-                  value={c.value}
-                  checked={values[key] === c.value}
-                  onChange={() => setValue(key, c.value)}
-                  className="accent-blue-500"
-                />
-                <span className="text-sm text-gray-200">{c.label}</span>
-              </label>
-            ))}
-          </div>
-        ) : def.type === "checkbox" ? (
-          <div className="space-y-1">
-            {choices.map((c) => {
-              const checked = multiValues[key]?.has(c.value) ?? false;
-              return (
-                <label key={c.value} className="flex items-start gap-2 cursor-pointer py-1">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => {
-                      setMultiValue(
-                        key,
-                        (() => {
-                          const next = new Set(multiValues[key] ?? []);
-                          checked ? next.delete(c.value) : next.add(c.value);
-                          return next;
-                        })(),
-                      );
-                    }}
-                    className="mt-0.5 accent-blue-500"
-                  />
-                  <span className="text-sm text-gray-200">{c.label}</span>
-                </label>
-              );
-            })}
-            {config.has_other_option && (
-              <div className="flex items-start gap-2 py-1">
-                <span className="text-sm text-gray-200">その他：</span>
-                <input
-                  value={otherValues[key] ?? ""}
-                  onChange={(e) => setOtherValues((prev) => ({ ...prev, [key]: e.target.value }))}
-                  placeholder="自由入力"
-                  className={`${inp} flex-1`}
-                />
-              </div>
-            )}
-          </div>
-        ) : null}
-
-        {/* 年齢矛盾メッセージ */}
-        {key === "age" && ageConflict && <p className="text-xs text-red-400">{ageConflict}</p>}
-
-        {renderFieldNotices(key)}
-
-        {hasError && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
-      </div>
-    );
-  }
-
-  function renderFieldNotices(fieldKey: string) {
-    const ns = fieldNotices[fieldKey];
-    if (!ns || ns.length === 0) return null;
-    return (
-      <>
-        {ns
-          .sort((a, b) => a.sort_order - b.sort_order)
-          .map((n) => (
-            <NoticeRenderer key={n.id} notice={n} consents={consents} onConsent={handleConsent} />
-          ))}
-      </>
-    );
-  }
-
   // ── ルール選択（rule_preference フィールドが無い場合のフォールバック） ──
   const hasRuleField = visibleFields.some((f) => f.def.key === "rule_preference");
 
@@ -1266,83 +437,21 @@ export default function EntryPage({ params }: Props) {
     });
   }
 
-  // ── 早期リターン: ローディング ──
-  if (event === undefined || formLoading) {
-    return (
-      <div className="min-h-screen bg-main-bg flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (event === null) {
-    return (
-      <main className="min-h-screen bg-main-bg text-white flex items-center justify-center">
-        <p className="text-gray-400">試合が見つかりません</p>
-      </main>
-    );
-  }
+  // ── 早期リターン ──
+  if (event === undefined || formLoading) return <LoadingScreen />;
+  if (event === null) return <NotFoundScreen />;
 
   const isClosed = event.entry_closed || (event.entry_close_at && new Date(event.entry_close_at) <= new Date());
+  if (isClosed) return <ClosedScreen event={event} />;
 
-  if (isClosed) {
-    return (
-      <main className="min-h-screen bg-main-bg text-white flex items-center justify-center p-6">
-        <div className="max-w-sm w-full text-center space-y-4">
-          <div className="text-5xl">🔒</div>
-          <h1 className="text-xl font-bold">{event.name}</h1>
-          <p className="text-gray-400">参加受付は終了しました。</p>
-        </div>
-      </main>
-    );
-  }
-
-  // ── 準備中 or エラー表示 ──
   if (!formConfig?.ready) {
     const isFetchError = (formConfig as Record<string, unknown>)?.fetchError === true;
-    return (
-      <main className="min-h-screen bg-main-bg text-white flex items-center justify-center p-6">
-        <div className="max-w-sm w-full text-center space-y-4">
-          <div className="text-5xl">{isFetchError ? "⚠" : "🔧"}</div>
-          <h1 className="text-xl font-bold">{event.name}</h1>
-          {isFetchError ? (
-            <>
-              <p className="text-gray-400">フォーム情報の取得に失敗しました。</p>
-              <button onClick={() => window.location.reload()} className="text-blue-400 underline text-sm">
-                再読み込み
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="text-gray-400">参加申込フォームは準備中です。</p>
-              <p className="text-gray-500 text-xs">しばらくお待ちください。</p>
-            </>
-          )}
-        </div>
-      </main>
-    );
+    return <NotReadyScreen event={event} isFetchError={isFetchError} />;
   }
 
   if (submitted) {
     const displayName = [values["family_name"], values["given_name"]].filter(Boolean).join(" ") || "参加者";
-    return (
-      <main className="min-h-screen bg-main-bg text-white flex items-center justify-center p-6">
-        <div className="max-w-sm w-full text-center space-y-4">
-          <div className="text-5xl">✅</div>
-          <h1 className="text-xl font-bold">申込完了</h1>
-          <p className="text-gray-400 text-sm">{displayName} さんの参加申込を受け付けました。</p>
-          {emailSent && (
-            <p className="text-gray-400 text-xs mt-2">
-              確認メールを送信しました。届かない場合は迷惑メールフォルダをご確認ください。
-            </p>
-          )}
-          <p className="text-gray-500 text-xs">{event.name}</p>
-          <button onClick={resetForm} className="text-blue-400 hover:text-blue-300 text-sm underline">
-            別の方も申し込む
-          </button>
-        </div>
-      </main>
-    );
+    return <SubmittedScreen event={event} displayName={displayName} emailSent={emailSent} onReset={resetForm} />;
   }
 
   const inp =
@@ -1413,7 +522,29 @@ export default function EntryPage({ params }: Props) {
             ))}
 
           {/* 動的フィールド */}
-          {visibleFields.map(({ config, def }) => renderField(config, def))}
+          <FieldRenderer
+            visibleFields={visibleFields}
+            formConfig={formConfig}
+            values={values}
+            multiValues={multiValues}
+            otherValues={otherValues}
+            fieldErrors={fieldErrors}
+            emailConfirm={emailConfirm}
+            emailMismatch={emailMismatch}
+            ageConflict={ageConflict}
+            event={event}
+            eventRules={eventRules}
+            ageCategories={ageCategories}
+            dojoMaster={dojoMaster}
+            fieldNotices={fieldNotices}
+            consents={consents}
+            inp={inp}
+            onSetValue={setValue}
+            onSetMultiValue={setMultiValue}
+            onSetOtherValues={setOtherValues}
+            onSetEmailConfirm={setEmailConfirm}
+            onConsent={handleConsent}
+          />
 
           {/* ルール選択（フォールバック: rule_preference フィールドが無い場合） */}
           {!hasRuleField && eventRules.length > 0 && (

@@ -15,6 +15,7 @@ import { ParticipantSection } from "@/components/participant-section";
 import { BracketSection } from "@/components/bracket-section";
 import { MatchLabelSection } from "@/components/match-label-section";
 import { showToast } from "@/components/toast";
+import EventMetaSection from "./_event-meta-section";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -50,10 +51,6 @@ export default function EventDetailPage({ params }: Props) {
     router.replace(`/admin/events/${id}?step=${s}`, { scroll: false });
   }
 
-  const [editingMeta, setEditingMeta] = useState(false);
-  const [savingMeta, setSavingMeta] = useState(false);
-  const [metaDate, setMetaDate] = useState("");
-  const [metaCourtNames, setMetaCourtNames] = useState<string[]>([]);
   const [togglingClosed, setTogglingClosed] = useState(false);
   const [entryCloseAtLocal, setEntryCloseAtLocal] = useState("");
   const [savingCloseAt, setSavingCloseAt] = useState(false);
@@ -174,26 +171,6 @@ export default function EventDetailPage({ params }: Props) {
       setAgeCategories(settingsRows.value as AgeCategory[]);
     }
   }, [id, router]);
-
-  async function saveEventMeta() {
-    setSavingMeta(true);
-    const updates = {
-      event_date: metaDate || null,
-      court_names: metaCourtNames,
-    };
-    const res = await fetch(`/api/admin/events/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
-    });
-    setSavingMeta(false);
-    if (!res.ok) {
-      showToast("保存に失敗しました");
-      return;
-    }
-    setEvent((prev) => (prev ? { ...prev, ...updates } : prev));
-    setEditingMeta(false);
-  }
 
   async function toggleEntryClosed() {
     setTogglingClosed(true);
@@ -448,90 +425,11 @@ export default function EventDetailPage({ params }: Props) {
         </div>
 
         {/* メタ情報（開催日・コート名）インライン編集 */}
-        <div className="mb-6 bg-gray-800 rounded-xl px-4 py-3">
-          {!editingMeta ? (
-            <div className="flex items-center gap-4 flex-wrap">
-              <span className="text-sm text-gray-400">
-                開催日: <span className="text-gray-200">{event.event_date ?? "未設定"}</span>
-              </span>
-              <span className="text-sm text-gray-400">
-                コート数: <span className="text-gray-200">{event.court_count}</span>
-              </span>
-              {event.court_names && event.court_names.some((n) => n?.trim()) && (
-                <span className="text-sm text-gray-400">
-                  コート名:{" "}
-                  <span className="text-gray-200">
-                    {event.court_names.map((n, i) => n?.trim() || `コート${i + 1}`).join(" / ")}
-                  </span>
-                </span>
-              )}
-              <button
-                onClick={() => {
-                  setMetaDate(event.event_date ?? "");
-                  setMetaCourtNames(Array.from({ length: event.court_count }, (_, i) => event.court_names?.[i] ?? ""));
-                  setEditingMeta(true);
-                }}
-                className="ml-auto text-xs text-blue-400 hover:text-blue-300"
-              >
-                編集
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 flex-wrap">
-                <label className="text-xs text-gray-400 shrink-0">開催日</label>
-                <input
-                  type="date"
-                  value={metaDate}
-                  min={new Date().toISOString().slice(0, 10)}
-                  onChange={(e) => setMetaDate(e.target.value)}
-                  className="bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-blue-500"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-gray-400">コート名</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {metaCourtNames.map((name, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 w-14 shrink-0">コート{i + 1}</span>
-                      <input
-                        value={name}
-                        onChange={(e) =>
-                          setMetaCourtNames((prev) => {
-                            const next = [...prev];
-                            next[i] = e.target.value;
-                            return next;
-                          })
-                        }
-                        placeholder={`コート${i + 1}`}
-                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => void saveEventMeta()}
-                  disabled={savingMeta}
-                  className="px-4 py-1.5 text-sm rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  {savingMeta && (
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-                  )}
-                  {savingMeta ? "保存中..." : "保存"}
-                </button>
-                <button
-                  onClick={() => setEditingMeta(false)}
-                  disabled={savingMeta}
-                  className="px-4 py-1.5 text-sm rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-50"
-                >
-                  キャンセル
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        <EventMetaSection
+          event={event}
+          eventId={id}
+          onEventUpdate={(updates) => setEvent((prev) => (prev ? { ...prev, ...updates } : prev))}
+        />
 
         {/* ステップナビ */}
         <StepNav
