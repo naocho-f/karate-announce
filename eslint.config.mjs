@@ -30,6 +30,8 @@ const eslintConfig = [
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/preserve-manual-memoization": "warn",
       "@next/next/no-img-element": "warn",
+      // console.log 禁止（error/warn は許可）
+      "no-console": ["error", { allow: ["error", "warn"] }],
       // exhaustive-deps は eslint-config-next で既に warn
     },
   },
