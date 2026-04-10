@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-10（max-lines追加）
+> 最終更新: 2026-04-10（complexity+max-depth+no-restricted-imports追加）
 
 ---
 
@@ -579,6 +579,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **pre-commit hook品質チェック完全版（2026-04-08）**: 画面逆方向・リンク切れ・認証チェック・環境変数・コンポーネントテスト存在を追加
 - **pre-commit hook網羅的チェック追加（2026-04-08）**: 全不変条件の機械的検証を完了。API逆方向・ページ一覧・hook同期チェック追加
 - **pre-commit hookにbuild追加（2026-04-08）**: npm run buildをコミット前に実行。ビルド壊れたコードの混入を防止
+- **complexity+max-depth+no-restricted-imports追加（2026-04-10）**: 循環複雑度120上限、ネスト深さ7上限、API routeでのanon client使用禁止を追加。既存違反0件
 - **max-lines追加（2026-04-10）**: ファイル行数1600行上限を追加。既存コードの自然な構造を尊重しつつ肥大化を防止
 - **max-lines-per-function追加+大規模関数分割（2026-04-10）**: 500行超の関数を禁止。8件の巨大コンポーネントを分割（EntryPage, TimerControlPage, CourtPage, EventDetailPage, GroupSection, TournamentEditor, GuidePanel, TimerPresetsPanel）。テスト・カスタムhookは除外
 - **consistent-type-imports追加（2026-04-10）**: @typescript-eslint/consistent-type-importsをwarnで追加。58件を自動修正（import type化）

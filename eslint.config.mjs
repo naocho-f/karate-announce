@@ -40,6 +40,10 @@ const eslintConfig = [
       "max-lines-per-function": ["warn", { max: 500, skipBlankLines: true, skipComments: true }],
       // ファイルの行数制限（現在の最大を超えるファイルの増加を防止）
       "max-lines": ["warn", { max: 1600, skipBlankLines: true, skipComments: true }],
+      // 循環複雑度（既存の最大を超えないよう設定。段階的に下げる）
+      complexity: ["warn", 120],
+      // ネストの深さ（既存の最大を超えないよう設定）
+      "max-depth": ["warn", 7],
       // exhaustive-deps は eslint-config-next で既に warn
     },
   },
@@ -54,6 +58,23 @@ const eslintConfig = [
         },
       ],
       "import/newline-after-import": "warn",
+    },
+  },
+  // API route で anon client 使用禁止
+  {
+    files: ["app/api/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/supabase",
+              message: "API route では supabaseAdmin (@/lib/supabase-admin) を使用してください",
+            },
+          ],
+        },
+      ],
     },
   },
   // テストファイル・カスタムフックの関数行数制限を緩和
