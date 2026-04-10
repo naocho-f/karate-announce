@@ -30,7 +30,10 @@ vi.mock("@/lib/ensure-fighter", () => ({
 function createAdminFormDataRequest(method: string, url: string, formData: FormData) {
   const { NextRequest } = require("next/server");
   const crypto = require("crypto");
-  const token = crypto.createHash("sha256").update("test-password" + "karate-announce-v1").digest("hex");
+  const token = crypto
+    .createHash("sha256")
+    .update("test-password" + "karate-announce-v1")
+    .digest("hex");
   const req = new NextRequest(new URL(url, "http://localhost:3000"), { method, body: formData });
   req.cookies.set("admin_auth", token);
   return req;
@@ -38,8 +41,8 @@ function createAdminFormDataRequest(method: string, url: string, formData: FormD
 
 /** 画像形式ごとのマジックバイト */
 const MAGIC_BYTES: Record<string, number[]> = {
-  "image/jpeg": [0xFF, 0xD8, 0xFF, 0xE0],
-  "image/png": [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
+  "image/jpeg": [0xff, 0xd8, 0xff, 0xe0],
+  "image/png": [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
   "image/webp": [0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50],
 };
 
@@ -204,7 +207,10 @@ describe("/api/admin/timer-presets/[id]/buzzer", () => {
 
   it("DELETE: カスタムブザー音源を削除できる", async () => {
     mockResult("timer_presets", "select", {
-      data: { buzzer_custom_path: "https://mock.supabase.co/storage/v1/object/public/form-notice-images/timer-buzzer/p1/buzz.mp3" },
+      data: {
+        buzzer_custom_path:
+          "https://mock.supabase.co/storage/v1/object/public/form-notice-images/timer-buzzer/p1/buzz.mp3",
+      },
     });
     const { DELETE } = await import("@/app/api/admin/timer-presets/[id]/buzzer/route");
     const req = createAdminRequest("DELETE", "/api/admin/timer-presets/p1/buzzer");
@@ -368,7 +374,7 @@ describe("/api/admin/tournaments POST", () => {
     const { ensureFighterFromEntry } = await import("@/lib/ensure-fighter");
     const mockFn = ensureFighterFromEntry as ReturnType<typeof vi.fn>;
     mockFn.mockImplementation((entry: { id: string }) =>
-      Promise.resolve(entry.id === "e1" ? "fighter-1" : "fighter-2")
+      Promise.resolve(entry.id === "e1" ? "fighter-1" : "fighter-2"),
     );
     // 既存のワンマッチトーナメントがある状態をモック
     mockResult("tournaments", "select", {
@@ -489,12 +495,14 @@ describe("/api/admin/tournaments POST", () => {
           {
             e1: { id: "e1", family_name: "A", event_id: "ev1" },
             e2: { id: "e2", family_name: "B", event_id: "ev1" },
-            matchLabel: null, ruleName: null,
+            matchLabel: null,
+            ruleName: null,
           },
           {
             e1: { id: "e3", family_name: "C", event_id: "ev1" },
             e2: null,
-            matchLabel: null, ruleName: null,
+            matchLabel: null,
+            ruleName: null,
           },
         ],
       },
@@ -521,7 +529,8 @@ describe("/api/admin/tournaments POST", () => {
     const pairs = Array.from({ length: 3 }, (_, i) => ({
       e1: { id: `e${i * 2}`, family_name: `F${i * 2}`, event_id: "ev1" },
       e2: { id: `e${i * 2 + 1}`, family_name: `F${i * 2 + 1}`, event_id: "ev1" },
-      matchLabel: null, ruleName: null,
+      matchLabel: null,
+      ruleName: null,
     }));
     const req = createAdminRequest("POST", "/api/admin/tournaments", {
       body: { courtName: "A", courtNum: "1", pairs },
@@ -546,7 +555,8 @@ describe("/api/admin/tournaments POST", () => {
           {
             e1: { id: "e1", family_name: "A", event_id: "ev1" },
             e2: { id: "e2", family_name: "B", event_id: "ev1" },
-            matchLabel: null, ruleName: null,
+            matchLabel: null,
+            ruleName: null,
           },
         ],
       },
@@ -600,7 +610,8 @@ describe("/api/admin/tournaments POST", () => {
           {
             e1: { id: "e1", family_name: "A", event_id: "ev1" },
             e2: { id: "e2", family_name: "B", event_id: "ev1" },
-            matchLabel: null, ruleName: null,
+            matchLabel: null,
+            ruleName: null,
           },
         ],
       },
@@ -627,7 +638,8 @@ describe("/api/admin/tournaments POST", () => {
     const pairs = Array.from({ length: 3 }, (_, i) => ({
       e1: { id: `e${i * 2}`, family_name: `F${i * 2}`, event_id: "ev1" },
       e2: { id: `e${i * 2 + 1}`, family_name: `F${i * 2 + 1}`, event_id: "ev1" },
-      matchLabel: null, ruleName: null,
+      matchLabel: null,
+      ruleName: null,
     }));
     const req = createAdminRequest("POST", "/api/admin/tournaments", {
       body: { courtName: "A", courtNum: "1", pairs },
@@ -656,7 +668,8 @@ describe("/api/admin/tournaments POST", () => {
     const pairs = Array.from({ length: 8 }, (_, i) => ({
       e1: { id: `e${i * 2}`, family_name: `F${i * 2}`, event_id: "ev1" },
       e2: { id: `e${i * 2 + 1}`, family_name: `F${i * 2 + 1}`, event_id: "ev1" },
-      matchLabel: null, ruleName: null,
+      matchLabel: null,
+      ruleName: null,
     }));
     const req = createAdminRequest("POST", "/api/admin/tournaments", {
       body: { courtName: "A", courtNum: "1", pairs },
@@ -691,17 +704,20 @@ describe("/api/admin/tournaments POST", () => {
           {
             e1: { id: "e1", family_name: "A", event_id: "ev1" },
             e2: { id: "e2", family_name: "B", event_id: "ev1" },
-            matchLabel: null, ruleName: null,
+            matchLabel: null,
+            ruleName: null,
           },
           {
             e1: { id: "e3", family_name: "C", event_id: "ev1" },
             e2: null, // 不戦勝
-            matchLabel: null, ruleName: null,
+            matchLabel: null,
+            ruleName: null,
           },
           {
             e1: { id: "e5", family_name: "E", event_id: "ev1" },
             e2: { id: "e6", family_name: "F", event_id: "ev1" },
-            matchLabel: null, ruleName: null,
+            matchLabel: null,
+            ruleName: null,
           },
         ],
       },
@@ -712,17 +728,20 @@ describe("/api/admin/tournaments POST", () => {
     const updateCalls = getCallsFor("matches", "update");
     // 不戦勝の試合が done + winner_id 設定される
     const doneUpdates = updateCalls.filter(
-      (c) => c.args[0] && typeof c.args[0] === "object" && (c.args[0] as Record<string, unknown>).status === "done"
+      (c) => c.args[0] && typeof c.args[0] === "object" && (c.args[0] as Record<string, unknown>).status === "done",
     );
     expect(doneUpdates.length).toBeGreaterThanOrEqual(1);
     const winnerUpdates = updateCalls.filter(
-      (c) => c.args[0] && typeof c.args[0] === "object" && "winner_id" in (c.args[0] as Record<string, unknown>)
+      (c) => c.args[0] && typeof c.args[0] === "object" && "winner_id" in (c.args[0] as Record<string, unknown>),
     );
     expect(winnerUpdates.length).toBeGreaterThanOrEqual(1);
     // 次ラウンドへの配置（fighter1_id or fighter2_id の設定）
     const advanceCalls = updateCalls.filter(
-      (c) => c.args[0] && typeof c.args[0] === "object" &&
-        ("fighter1_id" in (c.args[0] as Record<string, unknown>) || "fighter2_id" in (c.args[0] as Record<string, unknown>))
+      (c) =>
+        c.args[0] &&
+        typeof c.args[0] === "object" &&
+        ("fighter1_id" in (c.args[0] as Record<string, unknown>) ||
+          "fighter2_id" in (c.args[0] as Record<string, unknown>)),
     );
     expect(advanceCalls.length).toBeGreaterThanOrEqual(1);
   });
@@ -743,22 +762,26 @@ describe("/api/admin/tournaments POST", () => {
           {
             e1: { id: "e1", family_name: "A", event_id: "ev1" },
             e2: null, // 不戦勝1
-            matchLabel: null, ruleName: null,
+            matchLabel: null,
+            ruleName: null,
           },
           {
             e1: { id: "e3", family_name: "C", event_id: "ev1" },
             e2: null, // 不戦勝2
-            matchLabel: null, ruleName: null,
+            matchLabel: null,
+            ruleName: null,
           },
           {
             e1: { id: "e5", family_name: "E", event_id: "ev1" },
             e2: { id: "e6", family_name: "F", event_id: "ev1" },
-            matchLabel: null, ruleName: null,
+            matchLabel: null,
+            ruleName: null,
           },
           {
             e1: { id: "e7", family_name: "G", event_id: "ev1" },
             e2: { id: "e8", family_name: "H", event_id: "ev1" },
-            matchLabel: null, ruleName: null,
+            matchLabel: null,
+            ruleName: null,
           },
         ],
       },
@@ -769,7 +792,7 @@ describe("/api/admin/tournaments POST", () => {
     const updateCalls = getCallsFor("matches", "update");
     // 2つの不戦勝試合がそれぞれ done になる
     const doneUpdates = updateCalls.filter(
-      (c) => c.args[0] && typeof c.args[0] === "object" && (c.args[0] as Record<string, unknown>).status === "done"
+      (c) => c.args[0] && typeof c.args[0] === "object" && (c.args[0] as Record<string, unknown>).status === "done",
     );
     expect(doneUpdates).toHaveLength(2);
   });

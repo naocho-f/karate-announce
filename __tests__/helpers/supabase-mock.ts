@@ -29,13 +29,35 @@ function createChain(table: string, method: string): Record<string, unknown> {
 
   const chain: Record<string, unknown> = {};
   const chainMethods = [
-    "select", "insert", "update", "upsert", "delete",
-    "eq", "neq", "in", "is", "not", "or", "and",
-    "order", "limit", "range",
-    "single", "maybeSingle",
-    "filter", "match", "textSearch",
-    "gte", "lte", "gt", "lt", "like", "ilike",
-    "contains", "containedBy", "overlaps",
+    "select",
+    "insert",
+    "update",
+    "upsert",
+    "delete",
+    "eq",
+    "neq",
+    "in",
+    "is",
+    "not",
+    "or",
+    "and",
+    "order",
+    "limit",
+    "range",
+    "single",
+    "maybeSingle",
+    "filter",
+    "match",
+    "textSearch",
+    "gte",
+    "lte",
+    "gt",
+    "lt",
+    "like",
+    "ilike",
+    "contains",
+    "containedBy",
+    "overlaps",
   ];
 
   for (const m of chainMethods) {
@@ -105,9 +127,7 @@ export function getCalls() {
 
 /** 特定テーブル・メソッドの呼び出しをフィルタ */
 export function getCallsFor(table: string, method?: string) {
-  return lastCalls.filter(
-    (c) => c.table === table && (!method || c.method === method)
-  );
+  return lastCalls.filter((c) => c.table === table && (!method || c.method === method));
 }
 
 /** 呼び出し記録をリセット */

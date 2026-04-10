@@ -32,7 +32,9 @@ export function setMode(mode: NetworkMode): void {
 /** モード変更を購読する。返り値は unsubscribe 関数 */
 export function subscribe(listener: Listener): () => void {
   listeners.add(listener);
-  return () => { listeners.delete(listener); };
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
 /** useSyncExternalStore 用のスナップショット取得 */
@@ -47,10 +49,7 @@ export const RECOVERY_COOLDOWN_MS = 5 * 60 * 1000;
  * 復帰確認ダイアログを表示すべきか判定する。
  * ユーザーが「いいえ」を選んでから5分以上経過していれば true。
  */
-export function shouldShowRecoveryPrompt(
-  lastDeclinedAt: number | null,
-  now: number = Date.now(),
-): boolean {
+export function shouldShowRecoveryPrompt(lastDeclinedAt: number | null, now: number = Date.now()): boolean {
   if (lastDeclinedAt === null) return true;
   return now - lastDeclinedAt >= RECOVERY_COOLDOWN_MS;
 }

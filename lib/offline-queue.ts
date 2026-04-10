@@ -14,9 +14,7 @@ const cacheStore = createStore("karate-offline-cache", "data");
 
 // ── 操作キュー ──
 
-export type CourtAction =
-  | "start" | "set_winner" | "replace" | "edit"
-  | "swap_with" | "correct_winner" | "finish_timer";
+export type CourtAction = "start" | "set_winner" | "replace" | "edit" | "swap_with" | "correct_winner" | "finish_timer";
 
 export interface QueuedOperation {
   id: string;
@@ -39,9 +37,7 @@ let sequenceCounter = -1; // -1 = 未初期化
 async function ensureSequenceCounter(): Promise<void> {
   if (sequenceCounter >= 0) return;
   const allOps = await getAll();
-  sequenceCounter = allOps.length > 0
-    ? Math.max(...allOps.map((op) => op.sequenceNum))
-    : 0;
+  sequenceCounter = allOps.length > 0 ? Math.max(...allOps.map((op) => op.sequenceNum)) : 0;
 }
 
 /** キューに操作を追加する。返り値は生成された UUID（冪等性キー兼用） */

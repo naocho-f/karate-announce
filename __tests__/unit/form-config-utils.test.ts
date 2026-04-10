@@ -83,10 +83,7 @@ describe("form-config-utils", () => {
     it("画像付き注意書きを削除するとストレージも削除される", async () => {
       const mockSelectImages = vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue({
-          data: [
-            { storage_path: "images/a.png" },
-            { storage_path: "images/b.png" },
-          ],
+          data: [{ storage_path: "images/a.png" }, { storage_path: "images/b.png" }],
           error: null,
         }),
       });

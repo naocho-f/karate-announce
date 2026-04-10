@@ -7,14 +7,7 @@ import type { TimerPreset, ResultDetail } from "./types";
 
 // ── 状態定義 ──────────────────────────────────────────────────────
 
-export type TimerPhase =
-  | "idle"
-  | "ready"
-  | "running"
-  | "paused"
-  | "time_up"
-  | "extension"
-  | "finished";
+export type TimerPhase = "idle" | "ready" | "running" | "paused" | "time_up" | "extension" | "finished";
 
 export type FighterSide = "red" | "white";
 
@@ -44,9 +37,16 @@ export interface NewazaState {
 }
 
 export type ResultMethod =
-  | "point" | "wazaari" | "combined_ippon" | "ippon"
-  | "foul" | "decision" | "sudden_death"
-  | "draw" | "withdraw" | "injury";
+  | "point"
+  | "wazaari"
+  | "combined_ippon"
+  | "ippon"
+  | "foul"
+  | "decision"
+  | "sudden_death"
+  | "draw"
+  | "withdraw"
+  | "injury";
 
 export interface TimerState {
   phase: TimerPhase;
@@ -489,7 +489,8 @@ export function addPoint(state: TimerState, side: FighterSide): TimerState {
   pushUndo(s, `${side}_point`, state.phase);
   const score = side === "red" ? { ...s.redScore } : { ...s.whiteScore };
   score.points += 1;
-  if (side === "red") s.redScore = score; else s.whiteScore = score;
+  if (side === "red") s.redScore = score;
+  else s.whiteScore = score;
   log(s, `${side}_point`);
   return checkAutoFinish(s);
 }
@@ -503,7 +504,8 @@ export function addWazaari(state: TimerState, side: FighterSide): TimerState {
   // 技あり → ポイント変換
   const conv = s.preset?.wazaari_points ?? 0;
   if (conv > 0) score.points += conv;
-  if (side === "red") s.redScore = score; else s.whiteScore = score;
+  if (side === "red") s.redScore = score;
+  else s.whiteScore = score;
   log(s, `${side}_wazaari`);
   return checkAutoFinish(s);
 }
@@ -514,7 +516,8 @@ export function addIppon(state: TimerState, side: FighterSide): TimerState {
   pushUndo(s, `${side}_ippon`, state.phase);
   const score = side === "red" ? { ...s.redScore } : { ...s.whiteScore };
   score.ippon += 1;
-  if (side === "red") s.redScore = score; else s.whiteScore = score;
+  if (side === "red") s.redScore = score;
+  else s.whiteScore = score;
   log(s, `${side}_ippon`);
   return checkAutoFinish(s);
 }
@@ -525,14 +528,16 @@ export function addFoul(state: TimerState, side: FighterSide): TimerState {
   pushUndo(s, `${side}_foul`, state.phase);
   const score = side === "red" ? { ...s.redScore } : { ...s.whiteScore };
   score.fouls += 1;
-  if (side === "red") s.redScore = score; else s.whiteScore = score;
+  if (side === "red") s.redScore = score;
+  else s.whiteScore = score;
 
   // 反則 → 相手ポイント付与
   const p = s.preset;
   if (p && p.foul_to_point_start > 0 && score.fouls >= p.foul_to_point_start) {
     const otherScore = side === "red" ? { ...s.whiteScore } : { ...s.redScore };
     otherScore.points += p.foul_point_value;
-    if (side === "red") s.whiteScore = otherScore; else s.redScore = otherScore;
+    if (side === "red") s.whiteScore = otherScore;
+    else s.redScore = otherScore;
   }
 
   log(s, `${side}_foul`);
@@ -627,11 +632,7 @@ export function undo(state: TimerState): TimerState {
 // ── 結果確定 ──────────────────────────────────────────────────
 
 /** 手動で結果を確定（判定・引き分け・棄権・負傷） */
-export function finishManual(
-  state: TimerState,
-  winner: FighterSide | null,
-  method: ResultMethod,
-): TimerState {
+export function finishManual(state: TimerState, winner: FighterSide | null, method: ResultMethod): TimerState {
   if (state.phase !== "time_up" && state.phase !== "running" && state.phase !== "paused") return state;
   const s = { ...state };
   s.timerMs = getMainElapsedMs(state);
@@ -716,7 +717,7 @@ export function tick(state: TimerState): TickResult {
   // 寝技タイマーチェック
   if (state.newaza.active && p?.newaza_enabled) {
     const nElapsed = getNewazaElapsedMs(state);
-    if (nElapsed >= (p.newaza_duration * 1000)) {
+    if (nElapsed >= p.newaza_duration * 1000) {
       newazaTimeUpFlag = true;
     }
   }

@@ -2,7 +2,13 @@
  * email-template.ts 単体テスト
  */
 import { describe, it, expect } from "vitest";
-import { renderTemplate, DEFAULT_SUBJECT, DEFAULT_BODY, buildEntryDetails, TEMPLATE_VARIABLES } from "@/lib/email-template";
+import {
+  renderTemplate,
+  DEFAULT_SUBJECT,
+  DEFAULT_BODY,
+  buildEntryDetails,
+  TEMPLATE_VARIABLES,
+} from "@/lib/email-template";
 
 describe("email-template", () => {
   describe("renderTemplate", () => {
@@ -86,17 +92,20 @@ describe("email-template", () => {
     });
 
     it("フィールド順序: 氏名→性別→生年月日→年齢→体重→身長→所属→支部→ルール", () => {
-      const result = buildEntryDetails({
-        family_name: "山田",
-        given_name: "太郎",
-        sex: "male",
-        birth_date: "2000-01-01",
-        age: 26,
-        weight: 65.5,
-        height: 170,
-        dojo_name: "本部道場",
-        school_name: "空手会",
-      }, ["組手", "形"]);
+      const result = buildEntryDetails(
+        {
+          family_name: "山田",
+          given_name: "太郎",
+          sex: "male",
+          birth_date: "2000-01-01",
+          age: 26,
+          weight: 65.5,
+          height: 170,
+          dojo_name: "本部道場",
+          school_name: "空手会",
+        },
+        ["組手", "形"],
+      );
       const lines = result.split("\n");
       expect(lines[0]).toBe("氏名: 山田 太郎");
       expect(lines[1]).toBe("性別: 男性");
@@ -110,16 +119,19 @@ describe("email-template", () => {
     });
 
     it("email と email_confirm は extra_fields から除外される", () => {
-      const result = buildEntryDetails({
-        family_name: "山田",
-        given_name: "太郎",
-        extra_fields: {
-          email: "test@example.com",
-          email_confirm: "test@example.com",
-          phone: "090-1234-5678",
-          prefecture: "東京都",
+      const result = buildEntryDetails(
+        {
+          family_name: "山田",
+          given_name: "太郎",
+          extra_fields: {
+            email: "test@example.com",
+            email_confirm: "test@example.com",
+            phone: "090-1234-5678",
+            prefecture: "東京都",
+          },
         },
-      }, []);
+        [],
+      );
       expect(result).not.toContain("email");
       expect(result).not.toContain("test@example.com");
       expect(result).toContain("phone: 090-1234-5678");
@@ -127,17 +139,21 @@ describe("email-template", () => {
     });
 
     it("fieldLabels が渡された場合、キー名の代わりに表示名を使う", () => {
-      const result = buildEntryDetails({
-        extra_fields: {
-          phone: "090-1234-5678",
-          prefecture: "東京都",
-          custom_abc123: "テスト値",
+      const result = buildEntryDetails(
+        {
+          extra_fields: {
+            phone: "090-1234-5678",
+            prefecture: "東京都",
+            custom_abc123: "テスト値",
+          },
         },
-      }, [], {
-        phone: "携帯電話番号",
-        prefecture: "お住まいの都道府県",
-        custom_abc123: "保護者名",
-      });
+        [],
+        {
+          phone: "携帯電話番号",
+          prefecture: "お住まいの都道府県",
+          custom_abc123: "保護者名",
+        },
+      );
       expect(result).toContain("携帯電話番号: 090-1234-5678");
       expect(result).toContain("お住まいの都道府県: 東京都");
       expect(result).toContain("保護者名: テスト値");
@@ -147,42 +163,54 @@ describe("email-template", () => {
     });
 
     it("fieldLabels にないキーはキー名がそのまま表示される", () => {
-      const result = buildEntryDetails({
-        extra_fields: {
-          phone: "090-1234-5678",
-          unknown_field: "値",
+      const result = buildEntryDetails(
+        {
+          extra_fields: {
+            phone: "090-1234-5678",
+            unknown_field: "値",
+          },
         },
-      }, [], { phone: "携帯電話番号" });
+        [],
+        { phone: "携帯電話番号" },
+      );
       expect(result).toContain("携帯電話番号: 090-1234-5678");
       expect(result).toContain("unknown_field: 値");
     });
 
     it("extra_fields の配列値は改行区切りで表示", () => {
-      const result = buildEntryDetails({
-        extra_fields: {
-          categories: ["軽量級", "中量級"],
+      const result = buildEntryDetails(
+        {
+          extra_fields: {
+            categories: ["軽量級", "中量級"],
+          },
         },
-      }, []);
+        [],
+      );
       expect(result).toContain("categories:\n  軽量級\n  中量級");
     });
 
     it("fieldChoices が渡された場合、選択肢の value を label に変換する", () => {
-      const result = buildEntryDetails({
-        extra_fields: {
-          match_experience: "4-10",
-          head_butt_preference: "with_headbutt",
+      const result = buildEntryDetails(
+        {
+          extra_fields: {
+            match_experience: "4-10",
+            head_butt_preference: "with_headbutt",
+          },
         },
-      }, [], {}, {
-        match_experience: [
-          { value: "none", label: "なし" },
-          { value: "1-3", label: "1〜3回" },
-          { value: "4-10", label: "4〜10回" },
-        ],
-        head_butt_preference: [
-          { value: "with_headbutt", label: "頭突き有り" },
-          { value: "without_headbutt", label: "頭突きなし" },
-        ],
-      });
+        [],
+        {},
+        {
+          match_experience: [
+            { value: "none", label: "なし" },
+            { value: "1-3", label: "1〜3回" },
+            { value: "4-10", label: "4〜10回" },
+          ],
+          head_butt_preference: [
+            { value: "with_headbutt", label: "頭突き有り" },
+            { value: "without_headbutt", label: "頭突きなし" },
+          ],
+        },
+      );
       expect(result).toContain("4〜10回");
       expect(result).not.toContain("4-10");
       expect(result).toContain("頭突き有り");
@@ -190,58 +218,77 @@ describe("email-template", () => {
     });
 
     it("配列値の各要素も選択肢ラベルに変換する", () => {
-      const result = buildEntryDetails({
-        extra_fields: {
-          equipment_owned: ["gi", "shield_mask"],
+      const result = buildEntryDetails(
+        {
+          extra_fields: {
+            equipment_owned: ["gi", "shield_mask"],
+          },
         },
-      }, [], {}, {
-        equipment_owned: [
-          { value: "gi", label: "道着" },
-          { value: "shield_mask", label: "メンホー" },
-          { value: "fist_guard", label: "拳サポーター" },
-        ],
-      });
+        [],
+        {},
+        {
+          equipment_owned: [
+            { value: "gi", label: "道着" },
+            { value: "shield_mask", label: "メンホー" },
+            { value: "fist_guard", label: "拳サポーター" },
+          ],
+        },
+      );
       expect(result).toContain("道着\n  メンホー");
       expect(result).not.toContain("gi");
     });
 
     it("other: プレフィックスを「その他: 」に変換して表示する", () => {
-      const result = buildEntryDetails({
-        extra_fields: {
-          equipment_owned: ["gi", "other:レンタル希望"],
+      const result = buildEntryDetails(
+        {
+          extra_fields: {
+            equipment_owned: ["gi", "other:レンタル希望"],
+          },
         },
-      }, [], { equipment_owned: "持っている防具" }, {
-        equipment_owned: [
-          { value: "gi", label: "道着" },
-        ],
-      });
+        [],
+        { equipment_owned: "持っている防具" },
+        {
+          equipment_owned: [{ value: "gi", label: "道着" }],
+        },
+      );
       expect(result).toContain("道着\n  その他: レンタル希望");
       expect(result).not.toContain("other:");
     });
 
     it("値が未設定のフィールドは行を出力しない", () => {
-      const result = buildEntryDetails({
-        family_name: "山田",
-        given_name: "太郎",
-      }, []);
+      const result = buildEntryDetails(
+        {
+          family_name: "山田",
+          given_name: "太郎",
+        },
+        [],
+      );
       expect(result).toBe("氏名: 山田 太郎");
     });
 
     it("改行を含む文字列値はラベル後改行+インデント形式で表示", () => {
-      const result = buildEntryDetails({
-        extra_fields: {
-          free_text: "1行目\n2行目\n3行目",
+      const result = buildEntryDetails(
+        {
+          extra_fields: {
+            free_text: "1行目\n2行目\n3行目",
+          },
         },
-      }, [], { free_text: "自由記述" });
+        [],
+        { free_text: "自由記述" },
+      );
       expect(result).toContain("自由記述:\n  1行目\n  2行目\n  3行目");
     });
 
     it("改行を含まない文字列値はラベルと同一行で表示", () => {
-      const result = buildEntryDetails({
-        extra_fields: {
-          simple: "短い値",
+      const result = buildEntryDetails(
+        {
+          extra_fields: {
+            simple: "短い値",
+          },
         },
-      }, [], { simple: "項目名" });
+        [],
+        { simple: "項目名" },
+      );
       expect(result).toContain("項目名: 短い値");
     });
 
@@ -256,13 +303,16 @@ describe("email-template", () => {
     });
 
     it("extra_fields の falsy 値はスキップされる", () => {
-      const result = buildEntryDetails({
-        extra_fields: {
-          phone: "090-1234-5678",
-          empty_field: "",
-          null_field: null,
+      const result = buildEntryDetails(
+        {
+          extra_fields: {
+            phone: "090-1234-5678",
+            empty_field: "",
+            null_field: null,
+          },
         },
-      }, []);
+        [],
+      );
       expect(result).toBe("phone: 090-1234-5678");
     });
   });
@@ -310,7 +360,8 @@ describe("email-template", () => {
     });
 
     it("DEFAULT_BODY をカスタムテンプレートで上書きできる", () => {
-      const customBody = "{{participant_name}}様、{{event_name}}にお申し込みいただきありがとうございます。\n{{entry_details}}";
+      const customBody =
+        "{{participant_name}}様、{{event_name}}にお申し込みいただきありがとうございます。\n{{entry_details}}";
       const result = renderTemplate(customBody, {
         participant_name: "田中一郎",
         event_name: "秋季大会",

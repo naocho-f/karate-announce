@@ -31,9 +31,7 @@ export async function deleteNoticeWithImages(noticeId: string): Promise<void> {
     .eq("notice_id", noticeId);
 
   if (images?.length) {
-    await supabaseAdmin.storage
-      .from("form-notice-images")
-      .remove(images.map((img) => img.storage_path));
+    await supabaseAdmin.storage.from("form-notice-images").remove(images.map((img) => img.storage_path));
   }
 
   await supabaseAdmin.from("form_notices").delete().eq("id", noticeId);

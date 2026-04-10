@@ -11,41 +11,27 @@ export async function ensureFighterFromEntry(entry: Entry): Promise<string | nul
   const dojoName = entry.school_name?.trim() || entry.dojo_name?.trim() || "未所属";
   let dojoId: string;
 
-  const { data: existingDojo } = await supabaseAdmin
-    .from("dojos")
-    .select("id")
-    .eq("name", dojoName)
-    .maybeSingle();
+  const { data: existingDojo } = await supabaseAdmin.from("dojos").select("id").eq("name", dojoName).maybeSingle();
 
   if (existingDojo) {
     dojoId = existingDojo.id;
   } else {
     // 並列実行時の競合に備え、INSERT 失敗時は既存レコードを再取得する
-    const { data: createdDojo } = await supabaseAdmin
-      .from("dojos")
-      .insert({ name: dojoName })
-      .select("id")
-      .single();
+    const { data: createdDojo } = await supabaseAdmin.from("dojos").insert({ name: dojoName }).select("id").single();
     if (createdDojo) {
       dojoId = createdDojo.id;
     } else {
-      const { data: refetched } = await supabaseAdmin
-        .from("dojos")
-        .select("id")
-        .eq("name", dojoName)
-        .single();
+      const { data: refetched } = await supabaseAdmin.from("dojos").select("id").eq("name", dojoName).single();
       if (!refetched) return null;
       dojoId = refetched.id;
     }
   }
 
-  const fullName = entry.given_name
-    ? `${entry.family_name} ${entry.given_name}`
-    : entry.family_name;
+  const fullName = entry.given_name ? `${entry.family_name} ${entry.given_name}` : entry.family_name;
   const fullReading =
     entry.family_name_reading && entry.given_name_reading
       ? `${entry.family_name_reading} ${entry.given_name_reading}`
-      : entry.family_name_reading ?? null;
+      : (entry.family_name_reading ?? null);
 
   const { data: fighter } = await supabaseAdmin
     .from("fighters")

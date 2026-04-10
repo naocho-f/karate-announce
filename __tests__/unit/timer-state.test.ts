@@ -40,40 +40,79 @@ import type { TimerPreset } from "@/lib/types";
 // ── テスト用ヘルパー ──
 
 const TEST_RED: FighterInfo = {
-  id: "red-1", name: "赤選手", nameReading: "あかせんしゅ",
-  affiliation: "道場A", affiliationReading: "どうじょうえー",
+  id: "red-1",
+  name: "赤選手",
+  nameReading: "あかせんしゅ",
+  affiliation: "道場A",
+  affiliationReading: "どうじょうえー",
 };
 const TEST_WHITE: FighterInfo = {
-  id: "white-1", name: "白選手", nameReading: "しろせんしゅ",
-  affiliation: "道場B", affiliationReading: "どうじょうびー",
+  id: "white-1",
+  name: "白選手",
+  nameReading: "しろせんしゅ",
+  affiliation: "道場B",
+  affiliationReading: "どうじょうびー",
 };
 
 function makePreset(overrides: Partial<TimerPreset> = {}): TimerPreset {
   return {
-    id: "test-preset", name: "テスト", event_id: null, rule_id: null,
-    match_duration: 120, timer_direction: "countdown",
-    has_extension: false, extension_duration: 60, extension_mode: "sudden_death",
-    extension_timer_direction: "countdown", extension_show_timer: true, extension_max_count: 0,
+    id: "test-preset",
+    name: "テスト",
+    event_id: null,
+    rule_id: null,
+    match_duration: 120,
+    timer_direction: "countdown",
+    has_extension: false,
+    extension_duration: 60,
+    extension_mode: "sudden_death",
+    extension_timer_direction: "countdown",
+    extension_show_timer: true,
+    extension_max_count: 0,
     allow_draw: false,
-    newaza_enabled: false, newaza_duration: 30, newaza_direction: "countup", newaza_limit_type: "unlimited",
-    newaza_max_count: 0, newaza_free_release: 0,
-    show_points: true, show_wazaari: true, wazaari_points: 0,
-    show_ippon: true, ippon_wins: true, combined_ippon_wins: false, point_win_threshold: 0,
-    show_fouls: true, foul_to_point_start: 0, foul_point_value: 1,
-    foul_loss_count: 0, foul_vs_point_priority: "foul_priority",
-    show_player_names: true, show_match_number: true,
-    color_left: "#DC2626", color_right: "#FFFFFF",
-    color_left_name: "赤", color_right_name: "白",
+    newaza_enabled: false,
+    newaza_duration: 30,
+    newaza_direction: "countup",
+    newaza_limit_type: "unlimited",
+    newaza_max_count: 0,
+    newaza_free_release: 0,
+    show_points: true,
+    show_wazaari: true,
+    wazaari_points: 0,
+    show_ippon: true,
+    ippon_wins: true,
+    combined_ippon_wins: false,
+    point_win_threshold: 0,
+    show_fouls: true,
+    foul_to_point_start: 0,
+    foul_point_value: 1,
+    foul_loss_count: 0,
+    foul_vs_point_priority: "foul_priority",
+    show_player_names: true,
+    show_match_number: true,
+    color_left: "#DC2626",
+    color_right: "#FFFFFF",
+    color_left_name: "赤",
+    color_right_name: "白",
     theme_bg_color: "#000000",
-    theme_timer_color: "#00FF00", theme_timer_warn_color: "#FF0000",
+    theme_timer_color: "#00FF00",
+    theme_timer_warn_color: "#FF0000",
     theme_warn_threshold: 10,
-    theme_show_decimals: false, theme_font_family: "digital",
+    theme_show_decimals: false,
+    theme_font_family: "digital",
     theme_divider_color: "#333333",
     layout: null,
-    buzzer_on_time_up: "auto", buzzer_on_newaza: "auto",
-    buzzer_sound: "mid-square-single", buzzer_duration: 1.5, buzzer_repeat: 1, buzzer_sound_newaza: "mid-square-single", buzzer_duration_newaza: 1.5, buzzer_repeat_newaza: 1, buzzer_custom_path: null,
+    buzzer_on_time_up: "auto",
+    buzzer_on_newaza: "auto",
+    buzzer_sound: "mid-square-single",
+    buzzer_duration: 1.5,
+    buzzer_repeat: 1,
+    buzzer_sound_newaza: "mid-square-single",
+    buzzer_duration_newaza: 1.5,
+    buzzer_repeat_newaza: 1,
+    buzzer_custom_path: null,
     swap_sides: false,
-    created_at: "", updated_at: "",
+    created_at: "",
+    updated_at: "",
     ...overrides,
   };
 }
@@ -81,18 +120,22 @@ function makePreset(overrides: Partial<TimerPreset> = {}): TimerPreset {
 function readyState(presetOverrides: Partial<TimerPreset> = {}): TimerState {
   const s = createInitialState();
   return setMatch(s, {
-    matchId: "match-1", tournamentId: "tourn-1",
+    matchId: "match-1",
+    tournamentId: "tourn-1",
     preset: makePreset(presetOverrides),
-    red: TEST_RED, white: TEST_WHITE,
-    matchLabel: "第1試合", rules: null, rulesReading: null,
-    matchNumber: 1, totalMatches: 4,
+    red: TEST_RED,
+    white: TEST_WHITE,
+    matchLabel: "第1試合",
+    rules: null,
+    rulesReading: null,
+    matchNumber: 1,
+    totalMatches: 4,
   });
 }
 
 // ── テスト ──
 
 describe("timer-state", () => {
-
   // ── 1. 状態遷移 ──
 
   describe("状態遷移", () => {
@@ -254,9 +297,12 @@ describe("timer-state", () => {
     });
 
     it("addFoul: 反則→相手ポイント付与", () => {
-      const running = startTimer(readyState({
-        foul_to_point_start: 2, foul_point_value: 1,
-      }));
+      const running = startTimer(
+        readyState({
+          foul_to_point_start: 2,
+          foul_point_value: 1,
+        }),
+      );
       let s = addFoul(running, "red");
       expect(s.whiteScore.points).toBe(0); // まだ2回未達
       s = addFoul(s, "red");
@@ -326,11 +372,15 @@ describe("timer-state", () => {
     });
 
     it("反則負け vs ポイント先取り: 反則優先", () => {
-      const running = startTimer(readyState({
-        foul_loss_count: 2, point_win_threshold: 2,
-        foul_to_point_start: 1, foul_point_value: 1,
-        foul_vs_point_priority: "foul_priority",
-      }));
+      const running = startTimer(
+        readyState({
+          foul_loss_count: 2,
+          point_win_threshold: 2,
+          foul_to_point_start: 1,
+          foul_point_value: 1,
+          foul_vs_point_priority: "foul_priority",
+        }),
+      );
       // 赤に反則2回 → 白にポイント2が付与されるが反則負け優先
       let s = addFoul(running, "red");
       s = addFoul(s, "red");
@@ -339,11 +389,15 @@ describe("timer-state", () => {
     });
 
     it("反則負け vs ポイント先取り: ポイント優先", () => {
-      const running = startTimer(readyState({
-        foul_loss_count: 2, point_win_threshold: 2,
-        foul_to_point_start: 1, foul_point_value: 1,
-        foul_vs_point_priority: "point_priority",
-      }));
+      const running = startTimer(
+        readyState({
+          foul_loss_count: 2,
+          point_win_threshold: 2,
+          foul_to_point_start: 1,
+          foul_point_value: 1,
+          foul_vs_point_priority: "point_priority",
+        }),
+      );
       let s = addFoul(running, "red");
       s = addFoul(s, "red");
       expect(s.phase).toBe("finished");
@@ -375,11 +429,15 @@ describe("timer-state", () => {
     });
 
     it("白の反則負け + 赤のポイント先取り: 反則優先", () => {
-      const running = startTimer(readyState({
-        foul_loss_count: 2, point_win_threshold: 2,
-        foul_to_point_start: 1, foul_point_value: 1,
-        foul_vs_point_priority: "foul_priority",
-      }));
+      const running = startTimer(
+        readyState({
+          foul_loss_count: 2,
+          point_win_threshold: 2,
+          foul_to_point_start: 1,
+          foul_point_value: 1,
+          foul_vs_point_priority: "foul_priority",
+        }),
+      );
       let s = addFoul(running, "white");
       s = addFoul(s, "white");
       expect(s.phase).toBe("finished");
@@ -388,11 +446,15 @@ describe("timer-state", () => {
     });
 
     it("白の反則負け + 赤のポイント先取り: ポイント優先", () => {
-      const running = startTimer(readyState({
-        foul_loss_count: 2, point_win_threshold: 2,
-        foul_to_point_start: 1, foul_point_value: 1,
-        foul_vs_point_priority: "point_priority",
-      }));
+      const running = startTimer(
+        readyState({
+          foul_loss_count: 2,
+          point_win_threshold: 2,
+          foul_to_point_start: 1,
+          foul_point_value: 1,
+          foul_vs_point_priority: "point_priority",
+        }),
+      );
       let s = addFoul(running, "white");
       s = addFoul(s, "white");
       expect(s.phase).toBe("finished");
@@ -482,9 +544,13 @@ describe("timer-state", () => {
     });
 
     it("寝技回数制限あり: 上限到達で開始不可", () => {
-      const running = startTimer(readyState({
-        newaza_enabled: true, newaza_limit_type: "limited", newaza_max_count: 1,
-      }));
+      const running = startTimer(
+        readyState({
+          newaza_enabled: true,
+          newaza_limit_type: "limited",
+          newaza_max_count: 1,
+        }),
+      );
       // 1回目: OK
       let s = toggleNewaza(running);
       expect(s.newaza.active).toBe(true);
@@ -762,9 +828,12 @@ describe("timer-state", () => {
 
   describe("寝技 freeRelease", () => {
     it("freeRelease 内で解除すると回数消費なし", () => {
-      let s = startTimer(readyState({
-        newaza_enabled: true, newaza_free_release: 10,
-      }));
+      let s = startTimer(
+        readyState({
+          newaza_enabled: true,
+          newaza_free_release: 10,
+        }),
+      );
       s = toggleNewaza(s);
       // elapsedMs が 0 の状態ですぐに解除
       const released = toggleNewaza(s);

@@ -331,7 +331,7 @@ describe("DEFAULT_CUSTOM_FIELDS", () => {
 
   it("select/checkbox fields should have non-null choices", () => {
     const fieldsWithChoices = DEFAULT_CUSTOM_FIELDS.filter(
-      (f) => f.field_type === "select" || f.field_type === "checkbox"
+      (f) => f.field_type === "select" || f.field_type === "checkbox",
     );
     for (const field of fieldsWithChoices) {
       expect(field.choices).not.toBeNull();

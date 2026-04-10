@@ -7,13 +7,7 @@
  * - /api/admin/timer-presets/[id]/duplicate (POST)
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  createMockSupabase,
-  mockResult,
-  createAdminRequest,
-  createParams,
-  resetAll,
-} from "../helpers/supabase-mock";
+import { createMockSupabase, mockResult, createAdminRequest, createParams, resetAll } from "../helpers/supabase-mock";
 
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: createMockSupabase() }));
 vi.mock("@/lib/admin-auth", async (importOriginal) => {
@@ -74,11 +68,26 @@ describe("/api/admin/timer-presets/[id]", () => {
 
   it("PATCH: カラーフィールドを更新できる", async () => {
     mockResult("timer_presets", "update", {
-      data: { id: "p1", color_left: "#FF0000", theme_bg_color: "#111111", theme_timer_color: "#00FF00", theme_timer_warn_color: "#FFAA00", theme_divider_color: "#444444", color_right: "#0000FF" },
+      data: {
+        id: "p1",
+        color_left: "#FF0000",
+        theme_bg_color: "#111111",
+        theme_timer_color: "#00FF00",
+        theme_timer_warn_color: "#FFAA00",
+        theme_divider_color: "#444444",
+        color_right: "#0000FF",
+      },
     });
     const { PATCH } = await import("@/app/api/admin/timer-presets/[id]/route");
     const req = createAdminRequest("PATCH", "/api/admin/timer-presets/p1", {
-      body: { color_left: "#FF0000", color_right: "#0000FF", theme_bg_color: "#111111", theme_timer_color: "#00FF00", theme_timer_warn_color: "#FFAA00", theme_divider_color: "#444444" },
+      body: {
+        color_left: "#FF0000",
+        color_right: "#0000FF",
+        theme_bg_color: "#111111",
+        theme_timer_color: "#00FF00",
+        theme_timer_warn_color: "#FFAA00",
+        theme_divider_color: "#444444",
+      },
     });
     const res = await PATCH(req, createParams({ id: "p1" }));
     expect(res.status).toBe(200);

@@ -7,13 +7,7 @@
  * - /api/admin/form-config/image-upload (POST, DELETE)
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  createMockSupabase,
-  mockResult,
-  createAdminRequest,
-  createParams,
-  resetAll,
-} from "../helpers/supabase-mock";
+import { createMockSupabase, mockResult, createAdminRequest, createParams, resetAll } from "../helpers/supabase-mock";
 
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: createMockSupabase() }));
 vi.mock("@/lib/admin-auth", async (importOriginal) => {
@@ -22,12 +16,7 @@ vi.mock("@/lib/admin-auth", async (importOriginal) => {
 });
 
 /** テスト用の JPEG ファイル（最小限のマジックナンバーを含む） */
-function createTestFile(
-  name: string,
-  type: string,
-  sizeBytes = 100,
-  magicBytes?: number[],
-): File {
+function createTestFile(name: string, type: string, sizeBytes = 100, magicBytes?: number[]): File {
   const bytes = new Uint8Array(Math.max(sizeBytes, 12));
   if (magicBytes) {
     for (let i = 0; i < magicBytes.length; i++) bytes[i] = magicBytes[i];
@@ -36,9 +25,9 @@ function createTestFile(
 }
 
 /** JPEG マジックナンバー */
-const JPEG_MAGIC = [0xFF, 0xD8, 0xFF, 0xE0];
+const JPEG_MAGIC = [0xff, 0xd8, 0xff, 0xe0];
 /** PNG マジックナンバー */
-const PNG_MAGIC = [0x89, 0x50, 0x4E, 0x47];
+const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47];
 
 /** FormData 付きの管理者リクエストを生成 */
 function createFormDataRequest(url: string, formData: FormData) {

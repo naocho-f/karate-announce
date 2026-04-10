@@ -40,13 +40,15 @@ export default function AgeCategoriesPanel() {
   }
 
   function updateCategory(idx: number, field: keyof AgeCategory, value: string) {
-    setCategories((prev) => prev.map((cat, i) => {
-      if (i !== idx) return cat;
-      if (field === "label") return { ...cat, label: value };
-      if (field === "minAge") return { ...cat, minAge: value === "" ? 0 : parseInt(value, 10) };
-      if (field === "maxAge") return { ...cat, maxAge: value === "" ? null : parseInt(value, 10) };
-      return cat;
-    }));
+    setCategories((prev) =>
+      prev.map((cat, i) => {
+        if (i !== idx) return cat;
+        if (field === "label") return { ...cat, label: value };
+        if (field === "minAge") return { ...cat, minAge: value === "" ? 0 : parseInt(value, 10) };
+        if (field === "maxAge") return { ...cat, maxAge: value === "" ? null : parseInt(value, 10) };
+        return cat;
+      }),
+    );
   }
 
   async function save() {
@@ -73,7 +75,8 @@ export default function AgeCategoriesPanel() {
     setCategories(DEFAULT_AGE_CATEGORIES);
   }
 
-  const inp = "bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500";
+  const inp =
+    "bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500";
 
   if (loading) return <div className="text-center text-gray-400 py-8">読み込み中...</div>;
 
@@ -89,13 +92,17 @@ export default function AgeCategoriesPanel() {
             </span>
           ))}
         </div>
-        <p className="text-xs text-gray-500 mt-1">これらの区分は固定です。エントリーフォームと対戦表フィルタで使用されます。</p>
+        <p className="text-xs text-gray-500 mt-1">
+          これらの区分は固定です。エントリーフォームと対戦表フィルタで使用されます。
+        </p>
       </div>
 
       {/* 年齢ベース区分（編集可能） */}
       <div>
         <h3 className="text-sm font-medium text-gray-300 mb-2">年齢ベース区分</h3>
-        <p className="text-xs text-gray-500 mb-3">高校生以上の年齢区分を設定します。ラベル・最小年齢・最大年齢を指定してください。</p>
+        <p className="text-xs text-gray-500 mb-3">
+          高校生以上の年齢区分を設定します。ラベル・最小年齢・最大年齢を指定してください。
+        </p>
 
         <div className="space-y-2">
           {categories.map((cat, idx) => (

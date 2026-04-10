@@ -96,7 +96,13 @@ for route in $(find app/api/admin app/api/court -name 'route.ts' 2>/dev/null); d
   fi
 done
 
-# 10. scripts/pre-commit == .git/hooks/pre-commit
+# 10. eslint-disable コメント禁止（例外なし）
+if grep -rn 'eslint-disable' app/ lib/ components/ __tests__/ 2>/dev/null | grep -v 'node_modules'; then
+  echo ""; echo "ERROR: eslint-disable コメントが見つかりました。使用は禁止です。根本原因を修正してください。"; echo ""
+  exit 1
+fi
+
+# 11. scripts/pre-commit == .git/hooks/pre-commit
 if [ -f "scripts/pre-commit" ]; then
   if ! diff -q scripts/pre-commit .git/hooks/pre-commit > /dev/null 2>&1; then
     echo ""; echo "ERROR: scripts/pre-commit と .git/hooks/pre-commit が一致しません"; echo ""

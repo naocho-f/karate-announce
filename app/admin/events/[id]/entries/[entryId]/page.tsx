@@ -50,14 +50,15 @@ export default function EntryDetailPage({ params }: Props) {
       setEntryRuleIds((er ?? []).map((r) => r.rule_id));
 
       // フォーム設定取得
-      const { data: config } = await supabase
-        .from("form_configs")
-        .select("id")
-        .eq("event_id", eventId)
-        .maybeSingle();
+      const { data: config } = await supabase.from("form_configs").select("id").eq("event_id", eventId).maybeSingle();
       if (config) {
         const [{ data: fields }, { data: defs }] = await Promise.all([
-          supabase.from("form_field_configs").select("*").eq("form_config_id", config.id).eq("visible", true).order("sort_order"),
+          supabase
+            .from("form_field_configs")
+            .select("*")
+            .eq("form_config_id", config.id)
+            .eq("visible", true)
+            .order("sort_order"),
           supabase.from("custom_field_defs").select("*").eq("form_config_id", config.id).order("sort_order"),
         ]);
         setFieldConfigs((fields ?? []) as FormFieldConfig[]);
@@ -78,21 +79,32 @@ export default function EntryDetailPage({ params }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ admin_memo: trimmed }),
     });
-    setEntry((prev) => prev ? { ...prev, admin_memo: trimmed } : prev);
+    setEntry((prev) => (prev ? { ...prev, admin_memo: trimmed } : prev));
     setSaving(false);
   }
 
-  if (loading) return <div className="min-h-screen bg-main-bg flex items-center justify-center"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading)
+    return (
+      <div className="min-h-screen bg-main-bg flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   if (!entry) {
     return (
       <main className="min-h-screen bg-main-bg text-white p-6">
         <div className="max-w-2xl mx-auto">
           <nav className="flex items-center gap-1 text-sm">
-            <Link href="/admin" className="text-gray-400 hover:text-white">管理画面</Link>
+            <Link href="/admin" className="text-gray-400 hover:text-white">
+              管理画面
+            </Link>
             <span className="text-gray-600">/</span>
-            <Link href="/admin?tab=events" className="text-gray-400 hover:text-white">試合</Link>
+            <Link href="/admin?tab=events" className="text-gray-400 hover:text-white">
+              試合
+            </Link>
             <span className="text-gray-600">/</span>
-            <Link href={`/admin/events/${eventId}`} className="text-gray-400 hover:text-white">{eventName || "イベント"}</Link>
+            <Link href={`/admin/events/${eventId}`} className="text-gray-400 hover:text-white">
+              {eventName || "イベント"}
+            </Link>
           </nav>
           <p className="mt-8 text-gray-400">参加者が見つかりません</p>
         </div>
@@ -156,13 +168,17 @@ export default function EntryDetailPage({ params }: Props) {
           const fc = fieldConfigs.find((f) => f.field_key === key);
           const def = isCustomField(key) ? customFieldDefs.find((d) => d.field_key === key) : null;
           const choices = fc?.custom_choices ?? def?.choices ?? getFieldDef(key)?.defaultChoices ?? [];
-          return arr.map((v: string) => {
-            if (v.startsWith("other:")) return `その他: ${v.slice(6)}`;
-            const c = choices.find((c) => c.value === v);
-            return c?.label ?? v;
-          }).join("\n");
+          return arr
+            .map((v: string) => {
+              if (v.startsWith("other:")) return `その他: ${v.slice(6)}`;
+              const c = choices.find((c) => c.value === v);
+              return c?.label ?? v;
+            })
+            .join("\n");
         }
-      } catch { /* not JSON */ }
+      } catch {
+        /* not JSON */
+      }
     }
     // select/radio: 値を選択肢ラベルに変換
     const fc = fieldConfigs.find((f) => f.field_key === key);
@@ -178,7 +194,13 @@ export default function EntryDetailPage({ params }: Props) {
 
   // 表示するフィールド一覧をソート順に
   const displayFields = fieldConfigs
-    .filter((fc) => fc.field_key !== "age" && fc.field_key !== "kana" && fc.field_key !== "organization_kana" && fc.field_key !== "branch_kana")
+    .filter(
+      (fc) =>
+        fc.field_key !== "age" &&
+        fc.field_key !== "kana" &&
+        fc.field_key !== "organization_kana" &&
+        fc.field_key !== "branch_kana",
+    )
     .map((fc) => {
       const key = fc.field_key;
       const label = getLabel(key);
@@ -216,11 +238,17 @@ export default function EntryDetailPage({ params }: Props) {
     <main className="min-h-screen bg-main-bg text-white p-6">
       <div className="max-w-2xl mx-auto">
         <nav className="flex items-center gap-1 text-sm">
-          <Link href="/admin" className="text-gray-400 hover:text-white">管理画面</Link>
+          <Link href="/admin" className="text-gray-400 hover:text-white">
+            管理画面
+          </Link>
           <span className="text-gray-600">/</span>
-          <Link href="/admin?tab=events" className="text-gray-400 hover:text-white">試合</Link>
+          <Link href="/admin?tab=events" className="text-gray-400 hover:text-white">
+            試合
+          </Link>
           <span className="text-gray-600">/</span>
-          <Link href={`/admin/events/${eventId}`} className="text-gray-400 hover:text-white">{eventName || "イベント"}</Link>
+          <Link href={`/admin/events/${eventId}`} className="text-gray-400 hover:text-white">
+            {eventName || "イベント"}
+          </Link>
           <span className="text-gray-600">/</span>
           <span className="text-gray-200">{entryFullName(entry)}</span>
         </nav>
@@ -254,7 +282,9 @@ export default function EntryDetailPage({ params }: Props) {
                 <p className={labelCls}>出場ルール</p>
                 <div className="flex gap-1 flex-wrap">
                   {entryRules.map((r) => (
-                    <span key={r.id} className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">{r.name}</span>
+                    <span key={r.id} className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">
+                      {r.name}
+                    </span>
                   ))}
                 </div>
               </div>

@@ -15,8 +15,12 @@ type PairInput = {
 };
 
 function roundsFromPairCount(n: number): number {
-  let count = n, rounds = 1;
-  while (count > 1) { count = Math.ceil(count / 2); rounds++; }
+  let count = n,
+    rounds = 1;
+  while (count > 1) {
+    count = Math.ceil(count / 2);
+    rounds++;
+  }
   return rounds;
 }
 
@@ -24,7 +28,26 @@ export async function PUT(request: NextRequest, { params }: Params) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { id } = await params;
 
-  const { courtName, courtNum, pairs, defaultRuleName, maxWeightDiff, maxHeightDiff, filterMinWeight, filterMaxWeight, filterMinAge, filterMaxAge, filterSex, filterExperience, filterGrade, filterMinGrade, filterMaxGrade, filterMinHeight, filterMaxHeight, type } = await request.json() as {
+  const {
+    courtName,
+    courtNum,
+    pairs,
+    defaultRuleName,
+    maxWeightDiff,
+    maxHeightDiff,
+    filterMinWeight,
+    filterMaxWeight,
+    filterMinAge,
+    filterMaxAge,
+    filterSex,
+    filterExperience,
+    filterGrade,
+    filterMinGrade,
+    filterMaxGrade,
+    filterMinHeight,
+    filterMaxHeight,
+    type,
+  } = (await request.json()) as {
     courtName: string;
     courtNum: string;
     pairs: PairInput[];
@@ -86,7 +109,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
       f2: p.e2 ? await ensureFighterFromEntry(p.e2) : null,
       matchLabel: p.matchLabel,
       rules: p.ruleName,
-    }))
+    })),
   );
 
   // 1回戦の matches を作成
@@ -101,7 +124,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
       status: (p.f1 && p.f2 ? "ready" : "waiting") as "ready" | "waiting",
       match_label: p.matchLabel,
       rules: p.rules,
-    }))
+    })),
   );
 
   const isOneMatch = type === "one_match";
@@ -166,7 +189,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 export async function PATCH(request: NextRequest, { params }: Params) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { id } = await params;
-  const body = await request.json() as {
+  const body = (await request.json()) as {
     max_weight_diff?: number | null;
     max_height_diff?: number | null;
     sort_order?: number;
@@ -177,10 +200,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if ("max_height_diff" in body) updates.max_height_diff = body.max_height_diff;
   if ("sort_order" in body) updates.sort_order = body.sort_order;
   if ("court" in body) updates.court = body.court;
-  const { error } = await supabaseAdmin
-    .from("tournaments")
-    .update(updates)
-    .eq("id", id);
+  const { error } = await supabaseAdmin.from("tournaments").update(updates).eq("id", id);
   if (error) return dbError(error);
   return NextResponse.json({ ok: true });
 }

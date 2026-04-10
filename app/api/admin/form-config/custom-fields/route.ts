@@ -66,10 +66,16 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "form_config_id, field_key required" }, { status: 400 });
   }
 
-  await supabaseAdmin.from("custom_field_defs").delete()
-    .eq("form_config_id", form_config_id).eq("field_key", field_key);
-  await supabaseAdmin.from("form_field_configs").delete()
-    .eq("form_config_id", form_config_id).eq("field_key", field_key);
+  await supabaseAdmin
+    .from("custom_field_defs")
+    .delete()
+    .eq("form_config_id", form_config_id)
+    .eq("field_key", field_key);
+  await supabaseAdmin
+    .from("form_field_configs")
+    .delete()
+    .eq("form_config_id", form_config_id)
+    .eq("field_key", field_key);
 
   return NextResponse.json({ ok: true });
 }

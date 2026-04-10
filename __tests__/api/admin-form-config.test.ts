@@ -159,7 +159,16 @@ describe("/api/admin/form-config PUT", () => {
       body: {
         config_id: "fc1",
         fields: [
-          { id: "temp_ffc1", field_key: "custom_aaa", visible: true, required: true, sort_order: 10, has_other_option: false, custom_choices: null, custom_label: "テスト" },
+          {
+            id: "temp_ffc1",
+            field_key: "custom_aaa",
+            visible: true,
+            required: true,
+            sort_order: 10,
+            has_other_option: false,
+            custom_choices: null,
+            custom_label: "テスト",
+          },
         ],
         custom_fields: {
           create: [{ field_key: "custom_aaa", label: "テスト", field_type: "text", choices: null }],

@@ -35,23 +35,28 @@ describe("resilientFetch", () => {
   it("成功レスポンスをそのまま返す", async () => {
     mockFetch.mockResolvedValueOnce(ok('{"ok":true}'));
 
-    const res = await resilientFetch("/api/test", {
-      method: "PATCH",
-    }, { maxRetries: 3, timeout: 5000 });
+    const res = await resilientFetch(
+      "/api/test",
+      {
+        method: "PATCH",
+      },
+      { maxRetries: 3, timeout: 5000 },
+    );
 
     expect(res.status).toBe(200);
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it("5xx レスポンスで指定回数リトライする", async () => {
-    mockFetch
-      .mockResolvedValueOnce(serverError())
-      .mockResolvedValueOnce(serverError())
-      .mockResolvedValueOnce(ok());
+    mockFetch.mockResolvedValueOnce(serverError()).mockResolvedValueOnce(serverError()).mockResolvedValueOnce(ok());
 
-    const promise = resilientFetch("/api/test", {
-      method: "PATCH",
-    }, { maxRetries: 3, timeout: 5000 });
+    const promise = resilientFetch(
+      "/api/test",
+      {
+        method: "PATCH",
+      },
+      { maxRetries: 3, timeout: 5000 },
+    );
 
     // バックオフ待機を進める（1回目: ~1秒、2回目: ~2秒）
     await vi.advanceTimersByTimeAsync(1500);
@@ -65,9 +70,13 @@ describe("resilientFetch", () => {
   it("4xx レスポンスではリトライしない", async () => {
     mockFetch.mockResolvedValueOnce(clientError());
 
-    const promise = resilientFetch("/api/test", {
-      method: "PATCH",
-    }, { maxRetries: 3, timeout: 5000 });
+    const promise = resilientFetch(
+      "/api/test",
+      {
+        method: "PATCH",
+      },
+      { maxRetries: 3, timeout: 5000 },
+    );
 
     const res = await promise;
     expect(res.status).toBe(400);
@@ -75,13 +84,15 @@ describe("resilientFetch", () => {
   });
 
   it("ネットワークエラー時にリトライする", async () => {
-    mockFetch
-      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
-      .mockResolvedValueOnce(ok());
+    mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce(ok());
 
-    const promise = resilientFetch("/api/test", {
-      method: "PATCH",
-    }, { maxRetries: 3, timeout: 5000 });
+    const promise = resilientFetch(
+      "/api/test",
+      {
+        method: "PATCH",
+      },
+      { maxRetries: 3, timeout: 5000 },
+    );
 
     await vi.advanceTimersByTimeAsync(1500);
 
@@ -96,9 +107,9 @@ describe("resilientFetch", () => {
 
     // リアルタイマーで実行（バックオフの待機時間をモック側で短縮）
     // maxRetries: 0 で即座に失敗させる
-    await expect(
-      resilientFetch("/api/test", { method: "PATCH" }, { maxRetries: 0, timeout: 5000 })
-    ).rejects.toThrow("after 0 retries");
+    await expect(resilientFetch("/api/test", { method: "PATCH" }, { maxRetries: 0, timeout: 5000 })).rejects.toThrow(
+      "after 0 retries",
+    );
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
@@ -109,9 +120,13 @@ describe("resilientFetch", () => {
       .mockResolvedValueOnce(serverError())
       .mockResolvedValueOnce(ok());
 
-    const promise = resilientFetch("/api/test", {
-      method: "PATCH",
-    }, { maxRetries: 3, timeout: 5000 });
+    const promise = resilientFetch(
+      "/api/test",
+      {
+        method: "PATCH",
+      },
+      { maxRetries: 3, timeout: 5000 },
+    );
 
     // 1回目のバックオフ: ~1秒（1000 + jitter 0-500）
     await vi.advanceTimersByTimeAsync(1600);
@@ -131,9 +146,15 @@ describe("resilientFetch", () => {
     controller.abort(); // 先に abort しておく
 
     await expect(
-      resilientFetch("/api/test", { method: "PATCH" }, {
-        maxRetries: 3, timeout: 5000, signal: controller.signal,
-      })
+      resilientFetch(
+        "/api/test",
+        { method: "PATCH" },
+        {
+          maxRetries: 3,
+          timeout: 5000,
+          signal: controller.signal,
+        },
+      ),
     ).rejects.toThrow("aborted");
     // abort 済みなので fetch は呼ばれない
     expect(mockFetch).toHaveBeenCalledTimes(0);
@@ -141,16 +162,21 @@ describe("resilientFetch", () => {
 
   it("タイムアウト時にリトライする", async () => {
     // 最初のリクエストがタイムアウト（AbortError）
-    mockFetch.mockImplementationOnce(() =>
-      new Promise((_, reject) => {
-        setTimeout(() => reject(new DOMException("Aborted", "AbortError")), 100);
-      })
+    mockFetch.mockImplementationOnce(
+      () =>
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new DOMException("Aborted", "AbortError")), 100);
+        }),
     );
     mockFetch.mockResolvedValueOnce(ok());
 
-    const promise = resilientFetch("/api/test", {
-      method: "PATCH",
-    }, { maxRetries: 3, timeout: 100 });
+    const promise = resilientFetch(
+      "/api/test",
+      {
+        method: "PATCH",
+      },
+      { maxRetries: 3, timeout: 100 },
+    );
 
     // タイムアウト分
     await vi.advanceTimersByTimeAsync(200);
@@ -166,9 +192,13 @@ describe("resilientFetch", () => {
     vi.useRealTimers();
     const fallback = vi.fn();
 
-    const res = await resilientFetch("/api/test", {
-      method: "PATCH",
-    }, { maxRetries: 3, timeout: 5000, offlineMode: true, onQueueFallback: fallback });
+    const res = await resilientFetch(
+      "/api/test",
+      {
+        method: "PATCH",
+      },
+      { maxRetries: 3, timeout: 5000, offlineMode: true, onQueueFallback: fallback },
+    );
 
     expect(res.status).toBe(202);
     expect(mockFetch).not.toHaveBeenCalled();
@@ -180,9 +210,13 @@ describe("resilientFetch", () => {
     const fallback = vi.fn();
     mockFetch.mockResolvedValue(serverError());
 
-    const res = await resilientFetch("/api/test", {
-      method: "PATCH",
-    }, { maxRetries: 0, timeout: 5000, onQueueFallback: fallback });
+    const res = await resilientFetch(
+      "/api/test",
+      {
+        method: "PATCH",
+      },
+      { maxRetries: 0, timeout: 5000, onQueueFallback: fallback },
+    );
 
     expect(res.status).toBe(202);
     expect(fallback).toHaveBeenCalledWith("/api/test", expect.objectContaining({ method: "PATCH" }));

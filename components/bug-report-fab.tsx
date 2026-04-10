@@ -31,12 +31,18 @@ export function BugReportFab() {
       }),
     });
     setSending(false);
-    if (!res.ok) { showToast("送信に失敗しました"); return; }
+    if (!res.ok) {
+      showToast("送信に失敗しました");
+      return;
+    }
     setSent(true);
     setWhatDid("");
     setWhatHappened("");
     setWhatExpected("");
-    setTimeout(() => { setSent(false); setOpen(false); }, 1500);
+    setTimeout(() => {
+      setSent(false);
+      setOpen(false);
+    }, 1500);
   }
 
   return (
@@ -57,7 +63,9 @@ export function BugReportFab() {
           <p className="text-[10px] text-gray-500">URL・端末情報・バージョンは自動で記録されます</p>
 
           <div className="space-y-1">
-            <label className="text-xs text-gray-400">何をした？ <span className="text-red-400">*</span></label>
+            <label className="text-xs text-gray-400">
+              何をした？ <span className="text-red-400">*</span>
+            </label>
             <textarea
               rows={2}
               value={whatDid}
@@ -68,7 +76,9 @@ export function BugReportFab() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs text-gray-400">どうなった？ / 何が気になった？ <span className="text-red-400">*</span></label>
+            <label className="text-xs text-gray-400">
+              どうなった？ / 何が気になった？ <span className="text-red-400">*</span>
+            </label>
             <textarea
               rows={2}
               value={whatHappened}

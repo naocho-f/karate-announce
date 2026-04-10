@@ -3,12 +3,12 @@
 export type TtsVoice = "alloy" | "echo" | "fable" | "nova" | "onyx" | "shimmer";
 
 export const TTS_VOICES: { value: TtsVoice; label: string }[] = [
-  { value: "nova",    label: "Nova（女性・明瞭）" },
+  { value: "nova", label: "Nova（女性・明瞭）" },
   { value: "shimmer", label: "Shimmer（女性・柔らか）" },
-  { value: "alloy",   label: "Alloy（中性）" },
-  { value: "echo",    label: "Echo（男性・軽め）" },
-  { value: "fable",   label: "Fable（男性・物語風）" },
-  { value: "onyx",    label: "Onyx（男性・重厚）" },
+  { value: "alloy", label: "Alloy（中性）" },
+  { value: "echo", label: "Echo（男性・軽め）" },
+  { value: "fable", label: "Fable（男性・物語風）" },
+  { value: "onyx", label: "Onyx（男性・重厚）" },
 ];
 
 export function getTtsSettings(): { voice: TtsVoice; speed: number } {
@@ -31,42 +31,44 @@ export type AnnounceTemplates = {
 };
 
 export const DEFAULT_TEMPLATES: AnnounceTemplates = {
-  matchStart: "{{試合ラベル}}。ルール、{{ルール}}。{{選手1流派＋道場}}、所属、{{選手1名前}}選手。対。{{選手2流派＋道場}}、所属、{{選手2名前}}選手。これより試合を開始します。",
+  matchStart:
+    "{{試合ラベル}}。ルール、{{ルール}}。{{選手1流派＋道場}}、所属、{{選手1名前}}選手。対。{{選手2流派＋道場}}、所属、{{選手2名前}}選手。これより試合を開始します。",
   winner: "ただいまの試合は、{{勝者流派＋道場}}、所属、{{勝者名前}}選手の勝ちです。",
 };
 
 /** 変数の説明とサンプル値（UI表示用） */
 export const MATCH_VARS: { key: string; desc: string; sample: string }[] = [
-  { key: "試合ラベル",    desc: "試合名またはラウンド名",               sample: "準決勝" },
-  { key: "ルール",        desc: "ルール名のみ。未設定時は空",            sample: "エキスパート" },
-  { key: "選手1名前",     desc: "選手1の名前（読み仮名優先）",           sample: "じゅうくうたろう" },
-  { key: "選手1流派＋道場", desc: "流派と道場を読点でつないだもの",      sample: "じゅうくうかい、ほんぶどうじょう" },
-  { key: "選手1流派",     desc: "選手1の流派のみ",                      sample: "じゅうくうかい" },
-  { key: "選手1道場",     desc: "選手1の道場名のみ（ない場合は空）",     sample: "ほんぶどうじょう" },
-  { key: "選手2名前",     desc: "選手2の名前（読み仮名優先）",           sample: "すずきいちろう" },
-  { key: "選手2流派＋道場", desc: "流派と道場を読点でつないだもの",      sample: "せいどうかいかん" },
-  { key: "選手2流派",     desc: "選手2の流派のみ",                      sample: "せいどうかいかん" },
-  { key: "選手2道場",     desc: "選手2の道場名のみ（ない場合は空）",     sample: "" },
+  { key: "試合ラベル", desc: "試合名またはラウンド名", sample: "準決勝" },
+  { key: "ルール", desc: "ルール名のみ。未設定時は空", sample: "エキスパート" },
+  { key: "選手1名前", desc: "選手1の名前（読み仮名優先）", sample: "じゅうくうたろう" },
+  { key: "選手1流派＋道場", desc: "流派と道場を読点でつないだもの", sample: "じゅうくうかい、ほんぶどうじょう" },
+  { key: "選手1流派", desc: "選手1の流派のみ", sample: "じゅうくうかい" },
+  { key: "選手1道場", desc: "選手1の道場名のみ（ない場合は空）", sample: "ほんぶどうじょう" },
+  { key: "選手2名前", desc: "選手2の名前（読み仮名優先）", sample: "すずきいちろう" },
+  { key: "選手2流派＋道場", desc: "流派と道場を読点でつないだもの", sample: "せいどうかいかん" },
+  { key: "選手2流派", desc: "選手2の流派のみ", sample: "せいどうかいかん" },
+  { key: "選手2道場", desc: "選手2の道場名のみ（ない場合は空）", sample: "" },
 ];
 
 export const WINNER_VARS: { key: string; desc: string; sample: string }[] = [
-  { key: "勝者名前",      desc: "勝者の名前（読み仮名優先）",           sample: "じゅうくうたろう" },
-  { key: "勝者流派＋道場", desc: "流派と道場を読点でつないだもの",      sample: "じゅうくうかい、ほんぶどうじょう" },
-  { key: "勝者流派",      desc: "勝者の流派のみ",                      sample: "じゅうくうかい" },
-  { key: "勝者道場",      desc: "勝者の道場名のみ（ない場合は空）",     sample: "ほんぶどうじょう" },
+  { key: "勝者名前", desc: "勝者の名前（読み仮名優先）", sample: "じゅうくうたろう" },
+  { key: "勝者流派＋道場", desc: "流派と道場を読点でつないだもの", sample: "じゅうくうかい、ほんぶどうじょう" },
+  { key: "勝者流派", desc: "勝者の流派のみ", sample: "じゅうくうかい" },
+  { key: "勝者道場", desc: "勝者の道場名のみ（ない場合は空）", sample: "ほんぶどうじょう" },
 ];
 
 /** サンプル値（設定画面のプレビュー用） */
 export const SAMPLE_MATCH_VARS: Record<string, string> = Object.fromEntries(
-  MATCH_VARS.map(({ key, sample }) => [key, sample])
+  MATCH_VARS.map(({ key, sample }) => [key, sample]),
 );
 
 export const SAMPLE_WINNER_VARS: Record<string, string> = Object.fromEntries(
-  WINNER_VARS.map(({ key, sample }) => [key, sample])
+  WINNER_VARS.map(({ key, sample }) => [key, sample]),
 );
 
 /** 試し聞き用サンプルテキスト */
-export const SAMPLE_TEXT = "Aコート、男子一般部、準決勝。極真会所属、山田太郎選手。対。正道会館所属、鈴木一郎選手。これより試合を開始します。";
+export const SAMPLE_TEXT =
+  "Aコート、男子一般部、準決勝。極真会所属、山田太郎選手。対。正道会館所属、鈴木一郎選手。これより試合を開始します。";
 
 export function renderTemplate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{([^}]+)\}\}/g, (_, key: string) => vars[key] ?? "");
@@ -94,26 +96,58 @@ export function splitAffiliationParts(aff: string): { school: string; dojo: stri
 
 /** 漢数字・全角数字・半角数字を読み仮名に変換するマップ */
 const NUM_READING: Record<string, string> = {
-  "1": "いち", "2": "に", "3": "さん", "4": "よん", "5": "ご",
-  "6": "ろく", "7": "なな", "8": "はち", "9": "きゅう", "10": "じゅう",
-  "11": "じゅういち", "12": "じゅうに", "13": "じゅうさん", "14": "じゅうよん",
-  "15": "じゅうご", "16": "じゅうろく",
-  "一": "いち", "二": "に", "三": "さん", "四": "よん", "五": "ご",
-  "六": "ろく", "七": "なな", "八": "はち", "九": "きゅう", "十": "じゅう",
-  "１": "いち", "２": "に", "３": "さん", "４": "よん", "５": "ご",
-  "６": "ろく", "７": "なな", "８": "はち", "９": "きゅう", "１０": "じゅう",
-  "１１": "じゅういち", "１２": "じゅうに", "１３": "じゅうさん", "１４": "じゅうよん",
-  "１５": "じゅうご", "１６": "じゅうろく",
+  "1": "いち",
+  "2": "に",
+  "3": "さん",
+  "4": "よん",
+  "5": "ご",
+  "6": "ろく",
+  "7": "なな",
+  "8": "はち",
+  "9": "きゅう",
+  "10": "じゅう",
+  "11": "じゅういち",
+  "12": "じゅうに",
+  "13": "じゅうさん",
+  "14": "じゅうよん",
+  "15": "じゅうご",
+  "16": "じゅうろく",
+  一: "いち",
+  二: "に",
+  三: "さん",
+  四: "よん",
+  五: "ご",
+  六: "ろく",
+  七: "なな",
+  八: "はち",
+  九: "きゅう",
+  十: "じゅう",
+  "１": "いち",
+  "２": "に",
+  "３": "さん",
+  "４": "よん",
+  "５": "ご",
+  "６": "ろく",
+  "７": "なな",
+  "８": "はち",
+  "９": "きゅう",
+  "１０": "じゅう",
+  "１１": "じゅういち",
+  "１２": "じゅうに",
+  "１３": "じゅうさん",
+  "１４": "じゅうよん",
+  "１５": "じゅうご",
+  "１６": "じゅうろく",
 };
 
 /** よく使う試合ラベルの固定読み */
 const LABEL_READING: Record<string, string> = {
-  "決勝": "けっしょう",
-  "準決勝": "じゅんけっしょう",
-  "準々決勝": "じゅんじゅんけっしょう",
+  決勝: "けっしょう",
+  準決勝: "じゅんけっしょう",
+  準々決勝: "じゅんじゅんけっしょう",
   "3位決定戦": "さんいけっていせん",
   "３位決定戦": "さんいけっていせん",
-  "三位決定戦": "さんいけっていせん",
+  三位決定戦: "さんいけっていせん",
 };
 
 /**
@@ -205,8 +239,14 @@ async function speak(text: string): Promise<void> {
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
     await new Promise<void>((resolve, reject) => {
-      audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-      audio.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Audio playback error")); };
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        resolve();
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Audio playback error"));
+      };
       audio.play().catch(reject);
     });
   } catch (e) {
@@ -236,7 +276,9 @@ export async function prefetchTts(text: string): Promise<void> {
   // 前回のキャッシュを全削除（試合ごとにクリア。容量が溜まらない）
   try {
     await caches.delete(TTS_CACHE_NAME);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   try {
     const res = await fetch("/api/tts", {
@@ -279,16 +321,16 @@ export function buildMatchStartText(
   const { matchStart } = templates ?? DEFAULT_TEMPLATES;
   const rawLabel = matchLabel || roundLabel;
   return renderTemplate(matchStart, {
-    "試合ラベル":    normalizeMatchLabelForTts(rawLabel),
-    "ルール":        rulesReading || (rules ?? ""),
-    "選手1名前":     f1name,
+    試合ラベル: normalizeMatchLabelForTts(rawLabel),
+    ルール: rulesReading || (rules ?? ""),
+    選手1名前: f1name,
     "選手1流派＋道場": f1aff,
-    "選手1流派":     f1parts.school,
-    "選手1道場":     f1parts.dojo,
-    "選手2名前":     f2name,
+    選手1流派: f1parts.school,
+    選手1道場: f1parts.dojo,
+    選手2名前: f2name,
     "選手2流派＋道場": f2aff,
-    "選手2流派":     f2parts.school,
-    "選手2道場":     f2parts.dojo,
+    選手2流派: f2parts.school,
+    選手2道場: f2parts.dojo,
   });
 }
 
@@ -308,27 +350,40 @@ export function announceMatchStart(
   rulesReading?: string | null,
 ): Promise<void> {
   const text = buildMatchStartText(
-    fighter1Name, fighter1Affiliation,
-    fighter2Name, fighter2Affiliation,
+    fighter1Name,
+    fighter1Affiliation,
+    fighter2Name,
+    fighter2Affiliation,
     roundLabel,
-    fighter1NameReading, fighter1AffiliationReading,
-    fighter2NameReading, fighter2AffiliationReading,
-    matchLabel, rules, templates, rulesReading,
+    fighter1NameReading,
+    fighter1AffiliationReading,
+    fighter2NameReading,
+    fighter2AffiliationReading,
+    matchLabel,
+    rules,
+    templates,
+    rulesReading,
   );
   return speak(text);
 }
 
-export function announceWinner(winnerName: string, winnerAffiliation: string, nameReading?: string | null, affiliationReading?: string | null, templates?: AnnounceTemplates): Promise<void> {
+export function announceWinner(
+  winnerName: string,
+  winnerAffiliation: string,
+  nameReading?: string | null,
+  affiliationReading?: string | null,
+  templates?: AnnounceTemplates,
+): Promise<void> {
   const name = nameReading || winnerName;
   const affRaw = affiliationReading || winnerAffiliation;
   const aff = buildAffiliationForTts(affRaw);
   const parts = splitAffiliationParts(affRaw);
   const { winner } = templates ?? DEFAULT_TEMPLATES;
   const text = renderTemplate(winner, {
-    "勝者名前":      name,
+    勝者名前: name,
     "勝者流派＋道場": aff,
-    "勝者流派":      parts.school,
-    "勝者道場":      parts.dojo,
+    勝者流派: parts.school,
+    勝者道場: parts.dojo,
   });
   return speak(text);
 }

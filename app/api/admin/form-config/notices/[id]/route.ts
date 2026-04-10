@@ -11,7 +11,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const body = await request.json();
 
   const updates: Record<string, unknown> = {};
-  for (const key of ["anchor_type", "anchor_field_key", "sort_order", "text_content", "scrollable_text", "link_url", "link_label", "require_consent", "consent_label"]) {
+  for (const key of [
+    "anchor_type",
+    "anchor_field_key",
+    "sort_order",
+    "text_content",
+    "scrollable_text",
+    "link_url",
+    "link_label",
+    "require_consent",
+    "consent_label",
+  ]) {
     if (key in body) updates[key] = body[key];
   }
 

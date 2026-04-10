@@ -14,11 +14,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { entry_id, rule_id } = await request.json();
-  const { error } = await supabaseAdmin
-    .from("entry_rules")
-    .delete()
-    .eq("entry_id", entry_id)
-    .eq("rule_id", rule_id);
+  const { error } = await supabaseAdmin.from("entry_rules").delete().eq("entry_id", entry_id).eq("rule_id", rule_id);
   if (error) return dbError(error);
   return NextResponse.json({ ok: true });
 }

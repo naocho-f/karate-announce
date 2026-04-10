@@ -4,43 +4,45 @@
 
 export type LayoutAlignment = "left" | "center" | "right";
 export type LayoutVerticalAlign = "top" | "middle" | "bottom";
-export type LayoutRowType =
-  | "timer"
-  | "scores"
-  | "player_names"
-  | "match_info"
-  | "newaza"
-  | "spacer";
+export type LayoutRowType = "timer" | "scores" | "player_names" | "match_info" | "newaza" | "spacer";
 
 export type LayoutRow = {
   type: LayoutRowType;
-  height: number;           // vh。0 = flex-1（残りを均等分割）
-  fontSize: number;         // vh。制限なし
+  height: number; // vh。0 = flex-1（残りを均等分割）
+  fontSize: number; // vh。制限なし
   align: LayoutAlignment;
   verticalAlign: LayoutVerticalAlign;
-  subFontSize?: number;     // scores用: 技あり・反則のフォントサイズ(vh)
+  subFontSize?: number; // scores用: 技あり・反則のフォントサイズ(vh)
   subAlign?: LayoutAlignment;
 };
 
 export type LayoutConfig = {
   rows: LayoutRow[];
   dividerThickness: number; // px
-  scoreGap: number;         // px
-  scoreItemGap: number;     // px — スコア項目間の間隔
+  scoreGap: number; // px
+  scoreItemGap: number; // px — スコア項目間の間隔
   // 表示ラベルカスタマイズ
-  labelWazaari: string;     // 技ありラベル（例: "W", "技あり", "技"）
-  labelFoul: string;        // 反則ラベル（例: "F", "反則", "反"）
-  labelPoint: string;       // ポイントラベル（例: "", "pt", "P"）
-  labelNewaza: string;      // 寝技ラベル（例: "寝技", "NEWAZA"）
+  labelWazaari: string; // 技ありラベル（例: "W", "技あり", "技"）
+  labelFoul: string; // 反則ラベル（例: "F", "反則", "反"）
+  labelPoint: string; // ポイントラベル（例: "", "pt", "P"）
+  labelNewaza: string; // 寝技ラベル（例: "寝技", "NEWAZA"）
 };
 
 export const DEFAULT_LAYOUT: LayoutConfig = {
   rows: [
-    { type: "match_info",   height: 0,  fontSize: 2,   align: "center", verticalAlign: "middle" },
-    { type: "timer",        height: 40, fontSize: 35,  align: "center", verticalAlign: "middle" },
-    { type: "newaza",       height: 8,  fontSize: 4,   align: "center", verticalAlign: "middle" },
-    { type: "player_names", height: 0,  fontSize: 2.5, align: "left",   verticalAlign: "middle" },
-    { type: "scores",       height: 0,  fontSize: 25,  align: "center", verticalAlign: "middle", subFontSize: 6, subAlign: "center" },
+    { type: "match_info", height: 0, fontSize: 2, align: "center", verticalAlign: "middle" },
+    { type: "timer", height: 40, fontSize: 35, align: "center", verticalAlign: "middle" },
+    { type: "newaza", height: 8, fontSize: 4, align: "center", verticalAlign: "middle" },
+    { type: "player_names", height: 0, fontSize: 2.5, align: "left", verticalAlign: "middle" },
+    {
+      type: "scores",
+      height: 0,
+      fontSize: 25,
+      align: "center",
+      verticalAlign: "middle",
+      subFontSize: 6,
+      subAlign: "center",
+    },
   ],
   dividerThickness: 1,
   scoreGap: 2,
@@ -73,7 +75,7 @@ export type Fighter = {
   given_name_reading: string | null;
   dojo_id: string;
   dojo?: Dojo;
-  affiliation: string | null;        // "柔空会　本部道場" など表示用
+  affiliation: string | null; // "柔空会　本部道場" など表示用
   affiliation_reading: string | null; // "じゅうくうかい　ほんぶどうじょう" など読み上げ用
   weight: number | null;
   height: number | null;
@@ -170,17 +172,17 @@ export type Entry = {
   dojo_name_reading: string | null;
   school_name: string | null;
   school_name_reading: string | null;
-  sex: string | null;          // "male" | "female"
+  sex: string | null; // "male" | "female"
   weight: number | null;
   height: number | null;
   birth_date: string | null;
   age: number | null;
   grade: string | null;
   experience: string | null;
-  memo: string | null;         // 申込者の備考・要望
-  admin_memo: string | null;   // 管理者メモ（対戦組み用）
-  is_withdrawn: boolean;       // 欠場フラグ
-  is_test: boolean;            // テスト用ダミーフラグ
+  memo: string | null; // 申込者の備考・要望
+  admin_memo: string | null; // 管理者メモ（対戦組み用）
+  is_withdrawn: boolean; // 欠場フラグ
+  is_test: boolean; // テスト用ダミーフラグ
   fighter_id: string | null;
   extra_fields: Record<string, unknown>;
   form_version: number | null;
@@ -288,12 +290,12 @@ export type TimerPreset = {
   // ブザー
   buzzer_on_time_up: "auto" | "manual" | "off";
   buzzer_on_newaza: "auto" | "manual" | "off";
-  buzzer_sound: string;  // メイン用音源ID or "custom"
-  buzzer_duration: number;  // メイン鳴動秒数
-  buzzer_repeat: number;  // メイン連続回数（1〜3）
-  buzzer_sound_newaza: string;  // 寝技用音源ID
-  buzzer_duration_newaza: number;  // 寝技鳴動秒数
-  buzzer_repeat_newaza: number;  // 寝技連続回数（1〜3）
+  buzzer_sound: string; // メイン用音源ID or "custom"
+  buzzer_duration: number; // メイン鳴動秒数
+  buzzer_repeat: number; // メイン連続回数（1〜3）
+  buzzer_sound_newaza: string; // 寝技用音源ID
+  buzzer_duration_newaza: number; // 寝技鳴動秒数
+  buzzer_repeat_newaza: number; // 寝技連続回数（1〜3）
   buzzer_custom_path: string | null;
   // 左右入れ替え
   swap_sides: boolean;
@@ -383,7 +385,7 @@ export type BracketRule = {
   max_grade_diff: number | null;
   max_weight_diff: number | null;
   max_height_diff: number | null;
-  sex_filter: string | null;       // "male" | "female" | null
+  sex_filter: string | null; // "male" | "female" | null
   court_num: number | null;
   sort_order: number;
   created_at: string;

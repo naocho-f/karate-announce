@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import type { Event, FormFieldConfig, FormNotice, CustomFieldDef } from "@/lib/types";
 import { getFieldDef, isKanaField, isCustomField, customFieldToPoolItem } from "@/lib/form-fields";
@@ -26,7 +27,15 @@ type FormConfigResponse = {
 // ComboInput（流派候補など）
 // ──────────────────────────────────────────────
 
-function ComboInput({ value, onChange, onSelect, suggestions, placeholder, className, required }: {
+function ComboInput({
+  value,
+  onChange,
+  onSelect,
+  suggestions,
+  placeholder,
+  className,
+  required,
+}: {
   value: string;
   onChange: (v: string) => void;
   onSelect?: (v: string) => void;
@@ -37,9 +46,7 @@ function ComboInput({ value, onChange, onSelect, suggestions, placeholder, class
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const filtered = value
-    ? suggestions.filter((s) => s.toLowerCase().includes(value.toLowerCase()))
-    : suggestions;
+  const filtered = value ? suggestions.filter((s) => s.toLowerCase().includes(value.toLowerCase())) : suggestions;
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -53,7 +60,10 @@ function ComboInput({ value, onChange, onSelect, suggestions, placeholder, class
     <div ref={ref} className="relative">
       <input
         value={value}
-        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
         className={className}
@@ -67,7 +77,10 @@ function ComboInput({ value, onChange, onSelect, suggestions, placeholder, class
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { (onSelect ?? onChange)(s); setOpen(false); }}
+                onClick={() => {
+                  (onSelect ?? onChange)(s);
+                  setOpen(false);
+                }}
                 className="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 transition"
               >
                 {s}
@@ -84,13 +97,20 @@ function ComboInput({ value, onChange, onSelect, suggestions, placeholder, class
 // NoticeRenderer — 注意書き表示
 // ──────────────────────────────────────────────
 
-function NoticeRenderer({ notice, consents, onConsent }: {
+function NoticeRenderer({
+  notice,
+  consents,
+  onConsent,
+}: {
   notice: NoticeWithImages;
   consents: Record<string, boolean>;
   onConsent: (noticeId: string, checked: boolean) => void;
 }) {
   return (
-    <div id={`field-consent_${notice.id}`} className="bg-gray-800/30 border-l-2 border-yellow-600/40 rounded-r-lg pl-3 pr-2 py-2 space-y-2">
+    <div
+      id={`field-consent_${notice.id}`}
+      className="bg-gray-800/30 border-l-2 border-yellow-600/40 rounded-r-lg pl-3 pr-2 py-2 space-y-2"
+    >
       {/* テキスト */}
       {notice.text_content && (
         <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">
@@ -111,12 +131,14 @@ function NoticeRenderer({ notice, consents, onConsent }: {
           {notice.images
             .sort((a, b) => a.sort_order - b.sort_order)
             .map((img) => (
-              /* eslint-disable-next-line @next/next/no-img-element -- dynamic Supabase storage URL */
-              <img
+              <Image
                 key={img.id}
                 src={img.public_url}
                 alt=""
                 className="w-full rounded-lg"
+                width={800}
+                height={600}
+                unoptimized
               />
             ))}
         </div>
@@ -143,9 +165,7 @@ function NoticeRenderer({ notice, consents, onConsent }: {
             onChange={(e) => onConsent(notice.id, e.target.checked)}
             className="mt-0.5 accent-blue-500"
           />
-          <span className="text-xs text-gray-300">
-            {notice.consent_label || "上記に同意します"}
-          </span>
+          <span className="text-xs text-gray-300">{notice.consent_label || "上記に同意します"}</span>
         </label>
       )}
     </div>
@@ -198,17 +218,34 @@ export default function EntryPage({ params }: Props) {
 
   const setValue = useCallback((key: string, val: string) => {
     setValues((prev) => ({ ...prev, [key]: val }));
-    setFieldErrors((prev) => { if (!prev[key]) return prev; const next = { ...prev }; delete next[key]; return next; });
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   }, []);
 
   const setMultiValue = useCallback((key: string, val: Set<string>) => {
     setMultiValues((prev) => ({ ...prev, [key]: val }));
-    setFieldErrors((prev) => { if (!prev[key]) return prev; const next = { ...prev }; delete next[key]; return next; });
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   }, []);
 
   const handleConsent = useCallback((id: string, checked: boolean) => {
     setConsents((prev) => ({ ...prev, [id]: checked }));
-    if (checked) setFieldErrors((prev) => { const k = `consent_${id}`; if (!prev[k]) return prev; const next = { ...prev }; delete next[k]; return next; });
+    if (checked)
+      setFieldErrors((prev) => {
+        const k = `consent_${id}`;
+        if (!prev[k]) return prev;
+        const next = { ...prev };
+        delete next[k];
+        return next;
+      });
   }, []);
 
   // ── sessionStorage 自動保存/復元 ──
@@ -217,27 +254,30 @@ export default function EntryPage({ params }: Props) {
 
   // 復元（マウント時に1回だけ）
   useEffect(() => {
-    if (restoredRef.current) return;
-    restoredRef.current = true;
-    try {
-      const raw = sessionStorage.getItem(DRAFT_KEY);
-      if (!raw) return;
-      const draft = JSON.parse(raw);
-      if (draft.values) setValues(draft.values);
-      if (draft.multiValues) {
-        const restored: Record<string, Set<string>> = {};
-        for (const [k, v] of Object.entries(draft.multiValues)) {
-          restored[k] = new Set(v as string[]);
+    const restoreDraft = () => {
+      if (restoredRef.current) return;
+      restoredRef.current = true;
+      try {
+        const raw = sessionStorage.getItem(DRAFT_KEY);
+        if (!raw) return;
+        const draft = JSON.parse(raw);
+        if (draft.values) setValues(draft.values);
+        if (draft.multiValues) {
+          const restored: Record<string, Set<string>> = {};
+          for (const [k, v] of Object.entries(draft.multiValues)) {
+            restored[k] = new Set(v as string[]);
+          }
+          setMultiValues(restored);
         }
-        setMultiValues(restored);
+        if (draft.otherValues) setOtherValues(draft.otherValues);
+        if (draft.consents) setConsents(draft.consents);
+        if (draft.selectedRules) setSelectedRules(new Set(draft.selectedRules));
+        if (draft.emailConfirm) setEmailConfirm(draft.emailConfirm);
+      } catch {
+        // 復元失敗は無視
       }
-      if (draft.otherValues) setOtherValues(draft.otherValues);
-      if (draft.consents) setConsents(draft.consents);
-      if (draft.selectedRules) setSelectedRules(new Set(draft.selectedRules));
-      if (draft.emailConfirm) setEmailConfirm(draft.emailConfirm);
-    } catch {
-      // 復元失敗は無視
-    }
+    };
+    restoreDraft();
   }, [DRAFT_KEY]);
 
   // 保存（デバウンス500ms）
@@ -250,9 +290,7 @@ export default function EntryPage({ params }: Props) {
       try {
         const draft = {
           values,
-          multiValues: Object.fromEntries(
-            Object.entries(multiValues).map(([k, v]) => [k, [...v]])
-          ),
+          multiValues: Object.fromEntries(Object.entries(multiValues).map(([k, v]) => [k, [...v]])),
           otherValues,
           consents,
           selectedRules: [...selectedRules],
@@ -263,7 +301,9 @@ export default function EntryPage({ params }: Props) {
         // sessionStorage 書き込み失敗は無視
       }
     }, 500);
-    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
   }, [values, multiValues, otherValues, consents, selectedRules, emailConfirm, submitted, DRAFT_KEY]);
 
   // ── イベント情報取得 ──
@@ -291,7 +331,10 @@ export default function EntryPage({ params }: Props) {
   // ── フォーム設定取得 ──
   useEffect(() => {
     fetch(`/api/public/form-config?event_id=${eventId}`)
-      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((r) => {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
       .then((data: FormConfigResponse) => {
         setFormConfig(data);
         setFormLoading(false);
@@ -304,9 +347,13 @@ export default function EntryPage({ params }: Props) {
 
   // ── 道場マスタ取得（organizationフィールド用） ──
   useEffect(() => {
-    supabase.from("dojos").select("name, name_reading").order("name").then(({ data }) => {
-      if (data) setDojoMaster(data);
-    });
+    supabase
+      .from("dojos")
+      .select("name, name_reading")
+      .order("name")
+      .then(({ data }) => {
+        if (data) setDojoMaster(data);
+      });
   }, []);
 
   // ── 可視フィールド一覧（ソート済み） ──
@@ -318,7 +365,10 @@ export default function EntryPage({ params }: Props) {
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((fc) => {
         const def = isCustomField(fc.field_key)
-          ? (() => { const cd = customFieldDefs.find((d) => d.field_key === fc.field_key); return cd ? customFieldToPoolItem(cd) : null; })()
+          ? (() => {
+              const cd = customFieldDefs.find((d) => d.field_key === fc.field_key);
+              return cd ? customFieldToPoolItem(cd) : null;
+            })()
           : getFieldDef(fc.field_key);
         return { config: fc, def };
       })
@@ -327,10 +377,13 @@ export default function EntryPage({ params }: Props) {
 
   // ── 生年月日の初期値を2000年に設定（カレンダーのデフォルト表示年） ──
   useEffect(() => {
-    if (visibleFields.some((f) => f.def.key === "birthday") && !values["birthday"]) {
-      setValues((prev) => prev["birthday"] ? prev : { ...prev, birthday: "2000-01-01" });
-    }
-  }, [visibleFields]); // eslint-disable-line react-hooks/exhaustive-deps
+    const setDefaultBirthday = () => {
+      if (visibleFields.some((f) => f.def.key === "birthday") && !values["birthday"]) {
+        setValues((prev) => (prev["birthday"] ? prev : { ...prev, birthday: "2000-01-01" }));
+      }
+    };
+    setDefaultBirthday();
+  }, [visibleFields, values]);
 
   // ── 注意書きグルーピング ──
   const notices = useMemo(() => formConfig?.notices ?? [], [formConfig?.notices]);
@@ -392,35 +445,38 @@ export default function EntryPage({ params }: Props) {
   }
 
   // ── 必須チェック ──
-  function isFieldFilled(config: FormFieldConfig, def: FieldPoolItem): boolean {
-    if (!config.required) return true;
-    const key = def.key;
+  const isFieldFilled = useCallback(
+    (config: FormFieldConfig, def: FieldPoolItem): boolean => {
+      if (!config.required) return true;
+      const key = def.key;
 
-    // よみがなフィールドは親が任意なら必須チェックをスキップ
-    if (def.kanaParent) {
-      const parentConfig = visibleFields.find((f) => f.def.key === def.kanaParent);
-      if (parentConfig && !parentConfig.config.required) return true;
-    }
+      // よみがなフィールドは親が任意なら必須チェックをスキップ
+      if (def.kanaParent) {
+        const parentConfig = visibleFields.find((f) => f.def.key === def.kanaParent);
+        if (parentConfig && !parentConfig.config.required) return true;
+      }
 
-    // full_name: 姓名両方必要
-    if (key === "full_name") {
-      return !!(values["family_name"]?.trim() && values["given_name"]?.trim());
-    }
-    // kana: 姓名読み両方必要
-    if (key === "kana") {
-      return !!(values["family_name_reading"]?.trim() && values["given_name_reading"]?.trim());
-    }
+      // full_name: 姓名両方必要
+      if (key === "full_name") {
+        return !!(values["family_name"]?.trim() && values["given_name"]?.trim());
+      }
+      // kana: 姓名読み両方必要
+      if (key === "kana") {
+        return !!(values["family_name_reading"]?.trim() && values["given_name_reading"]?.trim());
+      }
 
-    if (def.type === "checkbox") {
-      const config = visibleFields.find((f) => f.def.key === key)?.config;
-      if (config && isSingleSelect(config)) return !!values[key]?.trim();
-      return (multiValues[key]?.size ?? 0) > 0 || !!(config?.has_other_option && otherValues[key]?.trim());
-    }
-    if (def.type === "radio" || def.type === "select") {
+      if (def.type === "checkbox") {
+        const config = visibleFields.find((f) => f.def.key === key)?.config;
+        if (config && isSingleSelect(config)) return !!values[key]?.trim();
+        return (multiValues[key]?.size ?? 0) > 0 || !!(config?.has_other_option && otherValues[key]?.trim());
+      }
+      if (def.type === "radio" || def.type === "select") {
+        return !!values[key]?.trim();
+      }
       return !!values[key]?.trim();
-    }
-    return !!values[key]?.trim();
-  }
+    },
+    [values, multiValues, otherValues, visibleFields],
+  );
 
   // ── メール一致チェック ──
   const emailMismatch = useMemo(() => {
@@ -450,8 +506,7 @@ export default function EntryPage({ params }: Props) {
     }
 
     return true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values, multiValues, consents, submitting, ageConflict, emailMismatch, emailConfirm, visibleFields, notices]);
+  }, [isFieldFilled, consents, submitting, ageConflict, emailMismatch, emailConfirm, visibleFields, notices]);
 
   // ── バリデーション実行 ──
   function validate(): boolean {
@@ -484,8 +539,12 @@ export default function EntryPage({ params }: Props) {
     for (const [fkey, flabel] of kanaFields) {
       const v = values[fkey]?.trim();
       if (v && !kanaRegex.test(v)) {
-        const parentKey = fkey === "family_name_reading" || fkey === "given_name_reading" ? "full_name" :
-          fkey === "organization_kana" ? "organization" : "branch";
+        const parentKey =
+          fkey === "family_name_reading" || fkey === "given_name_reading"
+            ? "full_name"
+            : fkey === "organization_kana"
+              ? "organization"
+              : "branch";
         errors[parentKey] = errors[parentKey] || `${flabel}はひらがなまたはカタカナで入力してください`;
       }
     }
@@ -581,11 +640,16 @@ export default function EntryPage({ params }: Props) {
     entry["form_version"] = formConfig?.version ?? null;
 
     // birthday がある場合、age を再計算して保存（onChange で setValue されるが、タイミングで取りこぼす可能性があるため）
-    if (entry["birth_date"] && typeof entry["birth_date"] === "string" && /^\d{4}-\d{2}-\d{2}$/.test(entry["birth_date"])) {
+    if (
+      entry["birth_date"] &&
+      typeof entry["birth_date"] === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(entry["birth_date"])
+    ) {
       const refDate = event?.event_date ? new Date(event.event_date) : new Date();
       const birth = new Date(entry["birth_date"]);
       let age = refDate.getFullYear() - birth.getFullYear();
-      const hasBday = refDate.getMonth() > birth.getMonth() ||
+      const hasBday =
+        refDate.getMonth() > birth.getMonth() ||
         (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
       if (!hasBday) age--;
       entry["age"] = age;
@@ -645,7 +709,11 @@ export default function EntryPage({ params }: Props) {
     setSubmitting(false);
     setSubmitted(true);
     // 送信成功後に下書きをクリア
-    try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+    try {
+      sessionStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
   }
 
   function resetForm() {
@@ -689,14 +757,30 @@ export default function EntryPage({ params }: Props) {
           </p>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <label htmlFor="field-family_name" className="text-xs text-gray-400">姓{isReq && <span className="text-red-400 ml-1">*</span>}</label>
-              <input id="field-family_name" value={values["family_name"] ?? ""} onChange={(e) => setValue("family_name", e.target.value)}
-                placeholder="山田" className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`} required={isReq} />
+              <label htmlFor="field-family_name" className="text-xs text-gray-400">
+                姓{isReq && <span className="text-red-400 ml-1">*</span>}
+              </label>
+              <input
+                id="field-family_name"
+                value={values["family_name"] ?? ""}
+                onChange={(e) => setValue("family_name", e.target.value)}
+                placeholder="山田"
+                className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`}
+                required={isReq}
+              />
             </div>
             <div className="space-y-1">
-              <label htmlFor="field-given_name" className="text-xs text-gray-400">名{isReq && <span className="text-red-400 ml-1">*</span>}</label>
-              <input id="field-given_name" value={values["given_name"] ?? ""} onChange={(e) => setValue("given_name", e.target.value)}
-                placeholder="太郎" className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`} required={isReq} />
+              <label htmlFor="field-given_name" className="text-xs text-gray-400">
+                名{isReq && <span className="text-red-400 ml-1">*</span>}
+              </label>
+              <input
+                id="field-given_name"
+                value={values["given_name"] ?? ""}
+                onChange={(e) => setValue("given_name", e.target.value)}
+                placeholder="太郎"
+                className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`}
+                required={isReq}
+              />
             </div>
             {showKana && (
               <>
@@ -704,15 +788,27 @@ export default function EntryPage({ params }: Props) {
                   <label htmlFor="field-family_name_reading" className="text-xs text-gray-400">
                     姓（読み）{kanaRequired && <span className="text-red-400 ml-1">*</span>}
                   </label>
-                  <input id="field-family_name_reading" value={values["family_name_reading"] ?? ""} onChange={(e) => setValue("family_name_reading", e.target.value)}
-                    placeholder="やまだ" className={`${inp} ${fieldErrors["kana"] ? "border-red-500" : ""}`} required={kanaRequired} />
+                  <input
+                    id="field-family_name_reading"
+                    value={values["family_name_reading"] ?? ""}
+                    onChange={(e) => setValue("family_name_reading", e.target.value)}
+                    placeholder="やまだ"
+                    className={`${inp} ${fieldErrors["kana"] ? "border-red-500" : ""}`}
+                    required={kanaRequired}
+                  />
                 </div>
                 <div className="space-y-1">
                   <label htmlFor="field-given_name_reading" className="text-xs text-gray-400">
                     名（読み）{kanaRequired && <span className="text-red-400 ml-1">*</span>}
                   </label>
-                  <input id="field-given_name_reading" value={values["given_name_reading"] ?? ""} onChange={(e) => setValue("given_name_reading", e.target.value)}
-                    placeholder="たろう" className={`${inp} ${fieldErrors["kana"] ? "border-red-500" : ""}`} required={kanaRequired} />
+                  <input
+                    id="field-given_name_reading"
+                    value={values["given_name_reading"] ?? ""}
+                    onChange={(e) => setValue("given_name_reading", e.target.value)}
+                    placeholder="たろう"
+                    className={`${inp} ${fieldErrors["kana"] ? "border-red-500" : ""}`}
+                    required={kanaRequired}
+                  />
                 </div>
               </>
             )}
@@ -826,7 +922,8 @@ export default function EntryPage({ params }: Props) {
         const refDate = event?.event_date ? new Date(event.event_date) : new Date();
         const birth = new Date(bday);
         let age = refDate.getFullYear() - birth.getFullYear();
-        const hasBday = refDate.getMonth() > birth.getMonth() ||
+        const hasBday =
+          refDate.getMonth() > birth.getMonth() ||
           (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
         if (!hasBday) age--;
         return age;
@@ -840,7 +937,11 @@ export default function EntryPage({ params }: Props) {
           </p>
           <div className={`grid ${ageFieldConfig ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-2 items-end`}>
             <div className="space-y-1">
-              {ageFieldConfig && <label htmlFor="field-birth_date" className="text-xs text-gray-400">生年月日</label>}
+              {ageFieldConfig && (
+                <label htmlFor="field-birth_date" className="text-xs text-gray-400">
+                  生年月日
+                </label>
+              )}
               <input
                 id="field-birth_date"
                 type="date"
@@ -853,7 +954,8 @@ export default function EntryPage({ params }: Props) {
                       const refDate = event?.event_date ? new Date(event.event_date) : new Date();
                       const birth = new Date(e.target.value);
                       let age = refDate.getFullYear() - birth.getFullYear();
-                      const hasBday = refDate.getMonth() > birth.getMonth() ||
+                      const hasBday =
+                        refDate.getMonth() > birth.getMonth() ||
                         (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
                       if (!hasBday) age--;
                       setValue("age", String(age));
@@ -870,7 +972,8 @@ export default function EntryPage({ params }: Props) {
                       const refDate = event?.event_date ? new Date(event.event_date) : new Date();
                       const birth = new Date(val);
                       let age = refDate.getFullYear() - birth.getFullYear();
-                      const hasBday = refDate.getMonth() > birth.getMonth() ||
+                      const hasBday =
+                        refDate.getMonth() > birth.getMonth() ||
                         (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
                       if (!hasBday) age--;
                       setValue("age", String(age));
@@ -885,18 +988,14 @@ export default function EntryPage({ params }: Props) {
             </div>
             {ageFieldConfig && (
               <div className="space-y-1">
-                <label className="text-xs text-gray-400">
-                  {event?.event_date ? "大会日時点の年齢" : "年齢"}
-                </label>
+                <label className="text-xs text-gray-400">{event?.event_date ? "大会日時点の年齢" : "年齢"}</label>
                 <div className="w-full bg-gray-800/60 border border-gray-700/50 rounded-lg px-3 py-2 text-base text-gray-400">
                   {computedAge !== null ? `${computedAge}歳（自動計算）` : "生年月日を入力してください"}
                 </div>
               </div>
             )}
           </div>
-          {ageConflict && (
-            <p className="text-xs text-red-400">{ageConflict}</p>
-          )}
+          {ageConflict && <p className="text-xs text-red-400">{ageConflict}</p>}
           {renderFieldNotices(key)}
           {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
         </div>
@@ -977,7 +1076,9 @@ export default function EntryPage({ params }: Props) {
             />
             {def.hasConfirmInput && (
               <div className="space-y-1">
-                <label htmlFor="field-email-confirm" className="text-xs text-gray-400">メールアドレス（確認）</label>
+                <label htmlFor="field-email-confirm" className="text-xs text-gray-400">
+                  メールアドレス（確認）
+                </label>
                 <input
                   id="field-email-confirm"
                   type="email"
@@ -987,9 +1088,7 @@ export default function EntryPage({ params }: Props) {
                   className={`${inp} ${emailMismatch || hasError ? "border-red-500" : ""}`}
                   required={isReq}
                 />
-                {emailMismatch && (
-                  <p className="text-xs text-red-400">メールアドレスが一致しません</p>
-                )}
+                {emailMismatch && <p className="text-xs text-red-400">メールアドレスが一致しません</p>}
               </div>
             )}
           </>
@@ -1014,7 +1113,9 @@ export default function EntryPage({ params }: Props) {
           >
             <option value="">選択してください</option>
             {choices.map((c) => (
-              <option key={c.value} value={c.value}>{c.label}</option>
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
             ))}
             {config.has_other_option && <option value="__other__">その他</option>}
           </select>
@@ -1097,11 +1198,14 @@ export default function EntryPage({ params }: Props) {
                     type="checkbox"
                     checked={checked}
                     onChange={() => {
-                      setMultiValue(key, (() => {
-                        const next = new Set(multiValues[key] ?? []);
-                        checked ? next.delete(c.value) : next.add(c.value);
-                        return next;
-                      })());
+                      setMultiValue(
+                        key,
+                        (() => {
+                          const next = new Set(multiValues[key] ?? []);
+                          checked ? next.delete(c.value) : next.add(c.value);
+                          return next;
+                        })(),
+                      );
                     }}
                     className="mt-0.5 accent-blue-500"
                   />
@@ -1124,9 +1228,7 @@ export default function EntryPage({ params }: Props) {
         ) : null}
 
         {/* 年齢矛盾メッセージ */}
-        {key === "age" && ageConflict && (
-          <p className="text-xs text-red-400">{ageConflict}</p>
-        )}
+        {key === "age" && ageConflict && <p className="text-xs text-red-400">{ageConflict}</p>}
 
         {renderFieldNotices(key)}
 
@@ -1140,14 +1242,11 @@ export default function EntryPage({ params }: Props) {
     if (!ns || ns.length === 0) return null;
     return (
       <>
-        {ns.sort((a, b) => a.sort_order - b.sort_order).map((n) => (
-          <NoticeRenderer
-            key={n.id}
-            notice={n}
-            consents={consents}
-            onConsent={handleConsent}
-          />
-        ))}
+        {ns
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((n) => (
+            <NoticeRenderer key={n.id} notice={n} consents={consents} onConsent={handleConsent} />
+          ))}
       </>
     );
   }
@@ -1156,12 +1255,20 @@ export default function EntryPage({ params }: Props) {
   const hasRuleField = visibleFields.some((f) => f.def.key === "rule_preference");
 
   function toggleRule(id: string) {
-    setSelectedRules((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+    setSelectedRules((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   }
 
   // ── 早期リターン: ローディング ──
   if (event === undefined || formLoading) {
-    return <div className="min-h-screen bg-main-bg flex items-center justify-center"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>;
+    return (
+      <div className="min-h-screen bg-main-bg flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   if (event === null) {
@@ -1172,8 +1279,7 @@ export default function EntryPage({ params }: Props) {
     );
   }
 
-  const isClosed = event.entry_closed ||
-    (event.entry_close_at && new Date(event.entry_close_at) <= new Date());
+  const isClosed = event.entry_closed || (event.entry_close_at && new Date(event.entry_close_at) <= new Date());
 
   if (isClosed) {
     return (
@@ -1198,7 +1304,9 @@ export default function EntryPage({ params }: Props) {
           {isFetchError ? (
             <>
               <p className="text-gray-400">フォーム情報の取得に失敗しました。</p>
-              <button onClick={() => window.location.reload()} className="text-blue-400 underline text-sm">再読み込み</button>
+              <button onClick={() => window.location.reload()} className="text-blue-400 underline text-sm">
+                再読み込み
+              </button>
             </>
           ) : (
             <>
@@ -1218,11 +1326,11 @@ export default function EntryPage({ params }: Props) {
         <div className="max-w-sm w-full text-center space-y-4">
           <div className="text-5xl">✅</div>
           <h1 className="text-xl font-bold">申込完了</h1>
-          <p className="text-gray-400 text-sm">
-            {displayName} さんの参加申込を受け付けました。
-          </p>
+          <p className="text-gray-400 text-sm">{displayName} さんの参加申込を受け付けました。</p>
           {emailSent && (
-            <p className="text-gray-400 text-xs mt-2">確認メールを送信しました。届かない場合は迷惑メールフォルダをご確認ください。</p>
+            <p className="text-gray-400 text-xs mt-2">
+              確認メールを送信しました。届かない場合は迷惑メールフォルダをご確認ください。
+            </p>
           )}
           <p className="text-gray-500 text-xs">{event.name}</p>
           <button onClick={resetForm} className="text-blue-400 hover:text-blue-300 text-sm underline">
@@ -1233,7 +1341,8 @@ export default function EntryPage({ params }: Props) {
     );
   }
 
-  const inp = "w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-base text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
+  const inp =
+    "w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-base text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
 
   return (
     <main className="min-h-screen bg-main-bg text-white p-6">
@@ -1243,44 +1352,61 @@ export default function EntryPage({ params }: Props) {
           <div className="max-w-md mx-auto">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0 space-y-1">
-                <p className="text-sm font-bold text-red-200">入力内容を確認してください（{Object.keys(fieldErrors).length}件）</p>
+                <p className="text-sm font-bold text-red-200">
+                  入力内容を確認してください（{Object.keys(fieldErrors).length}件）
+                </p>
                 {Object.values(fieldErrors).map((msg, i) => (
-                  <p key={i} className="text-xs text-red-300/80">・{msg}</p>
+                  <p key={i} className="text-xs text-red-300/80">
+                    ・{msg}
+                  </p>
                 ))}
               </div>
-              <button onClick={() => setFieldErrors({})} className="text-red-300 hover:text-white text-lg leading-none shrink-0 mt-0.5" aria-label="閉じる">×</button>
+              <button
+                onClick={() => setFieldErrors({})}
+                className="text-red-300 hover:text-white text-lg leading-none shrink-0 mt-0.5"
+                aria-label="閉じる"
+              >
+                ×
+              </button>
             </div>
           </div>
         </div>
       )}
       <div className="max-w-md mx-auto">
         {event.banner_image_path && (
-          // eslint-disable-next-line @next/next/no-img-element -- dynamic Supabase storage URL
-          <img
+          <Image
             src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${event.banner_image_path}`}
             alt={event.name}
             className="w-full rounded-xl mb-4"
+            width={800}
+            height={400}
+            unoptimized
           />
         )}
         <h1 className="text-xl font-bold mb-1">{event.name}</h1>
         <p className="text-sm text-gray-400 mb-1">参加申込フォーム</p>
         {event.entry_close_at && !isClosed && (
           <p className="text-xs text-yellow-400 mb-5">
-            受付期限: {new Date(event.entry_close_at).toLocaleString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tokyo" })}
+            受付期限:{" "}
+            {new Date(event.entry_close_at).toLocaleString("ja-JP", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: "Asia/Tokyo",
+            })}
           </p>
         )}
         {!event.entry_close_at && <div className="mb-5" />}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* フォーム先頭注意書き */}
-          {formStartNotices.sort((a, b) => a.sort_order - b.sort_order).map((n) => (
-            <NoticeRenderer
-              key={n.id}
-              notice={n}
-              consents={consents}
-              onConsent={handleConsent}
-            />
-          ))}
+          {formStartNotices
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((n) => (
+              <NoticeRenderer key={n.id} notice={n} consents={consents} onConsent={handleConsent} />
+            ))}
 
           {/* 動的フィールド */}
           {visibleFields.map(({ config, def }) => renderField(config, def))}
@@ -1303,7 +1429,8 @@ export default function EntryPage({ params }: Props) {
                           : "bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700"
                       }`}
                     >
-                      {checked ? "✓ " : ""}{r.name}
+                      {checked ? "✓ " : ""}
+                      {r.name}
                     </button>
                   );
                 })}
@@ -1312,29 +1439,24 @@ export default function EntryPage({ params }: Props) {
           )}
 
           {/* フォーム末尾注意書き */}
-          {formEndNotices.sort((a, b) => a.sort_order - b.sort_order).map((n) => (
-            <NoticeRenderer
-              key={n.id}
-              notice={n}
-              consents={consents}
-              onConsent={handleConsent}
-            />
-          ))}
+          {formEndNotices
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((n) => (
+              <NoticeRenderer key={n.id} notice={n} consents={consents} onConsent={handleConsent} />
+            ))}
 
-          {error && (
-            <p className="text-sm text-red-400 bg-red-900/30 rounded-lg px-3 py-2">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-400 bg-red-900/30 rounded-lg px-3 py-2">{error}</p>}
 
           <button
             type="submit"
             disabled={submitting}
             className={`w-full py-3 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${
-              canSubmit
-                ? "bg-blue-600 hover:bg-blue-500 text-white"
-                : "bg-gray-600 hover:bg-gray-500 text-gray-300"
+              canSubmit ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-600 hover:bg-gray-500 text-gray-300"
             } disabled:opacity-50`}
           >
-            {submitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
+            {submitting && (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+            )}
             {submitting ? "送信中..." : "申し込む"}
           </button>
         </form>

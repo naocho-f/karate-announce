@@ -22,21 +22,15 @@ export const DEFAULT_BODY = `{{participant_name}} 様
  * `{{variable}}` → 値に置換
  * `{{#variable}}...{{/variable}}` → 値が存在するときのみブロックを表示
  */
-export function renderTemplate(
-  template: string,
-  variables: Record<string, string>,
-): string {
+export function renderTemplate(template: string, variables: Record<string, string>): string {
   let result = template;
 
   // 条件ブロック: {{#key}}...{{/key}}
-  result = result.replace(
-    /\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g,
-    (_, key, content) => {
-      const val = variables[key];
-      if (!val || val.trim() === "") return "";
-      return content;
-    },
-  );
+  result = result.replace(/\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (_, key, content) => {
+    const val = variables[key];
+    if (!val || val.trim() === "") return "";
+    return content;
+  });
 
   // 変数置換: {{key}}
   result = result.replace(/\{\{(\w+)\}\}/g, (_, key) => variables[key] ?? "");
@@ -60,7 +54,8 @@ export function buildEntryDetails(
   const participantName = [entry.family_name, entry.given_name].filter(Boolean).join(" ");
   const lines: string[] = [];
   if (participantName) lines.push(`氏名: ${participantName}`);
-  if (entry.sex) lines.push(`性別: ${entry.sex === "male" ? "男性" : entry.sex === "female" ? "女性" : String(entry.sex)}`);
+  if (entry.sex)
+    lines.push(`性別: ${entry.sex === "male" ? "男性" : entry.sex === "female" ? "女性" : String(entry.sex)}`);
   if (entry.birth_date) lines.push(`生年月日: ${String(entry.birth_date)}`);
   if (entry.age) lines.push(`年齢: ${String(entry.age)}歳`);
   if (entry.weight) lines.push(`体重: ${String(entry.weight)}kg`);

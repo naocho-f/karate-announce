@@ -41,10 +41,7 @@ export async function POST(request: NextRequest) {
 // GET: 不具合報告一覧（認証必須）
 export async function GET(request: NextRequest) {
   if (!verifyAdminAuth(request)) return withCors(unauthorized());
-  const { data, error } = await supabaseAdmin
-    .from("bug_reports")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const { data, error } = await supabaseAdmin.from("bug_reports").select("*").order("created_at", { ascending: false });
   if (error) return withCors(dbError(error));
   return withCors(NextResponse.json(data));
 }

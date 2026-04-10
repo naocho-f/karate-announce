@@ -1,11 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  type ConnectionQuality,
-  determineConnectionQuality,
-  calcBackoffInterval,
-} from "@/lib/connection-logic";
+import { type ConnectionQuality, determineConnectionQuality, calcBackoffInterval } from "@/lib/connection-logic";
 
 interface UseConnectionStatusOptions {
   /** 基本ポーリング間隔 (ms) */
@@ -137,7 +133,10 @@ export function useConnectionStatus(
   // 初回ポーリング開始（enabled=false で停止）
   useEffect(() => {
     if (!enabled) {
-      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
       return;
     }
     // enabled が true に戻った時、バックオフカウンタをリセットして正常状態から再開

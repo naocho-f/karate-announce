@@ -68,7 +68,12 @@ describe("/api/admin/matches/batch", () => {
   it("POST: 一括更新できる", async () => {
     const { POST } = await import("@/app/api/admin/matches/batch/route");
     const req = createAdminRequest("POST", "/api/admin/matches/batch", {
-      body: { updates: [{ id: "m1", match_label: "第1試合" }, { id: "m2", match_label: "第2試合" }] },
+      body: {
+        updates: [
+          { id: "m1", match_label: "第1試合" },
+          { id: "m2", match_label: "第2試合" },
+        ],
+      },
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
@@ -216,22 +221,30 @@ describe("POST /api/admin/tournaments", () => {
 
     // 不戦勝の試合が done + winner_id 設定されていること
     const byeUpdate = calls.find(
-      (c) => c.table === "matches" && c.method === "update"
-        && Array.isArray(c.args) && c.args.length > 0
-        && typeof c.args[0] === "object" && c.args[0] !== null
-        && "winner_id" in (c.args[0] as Record<string, unknown>)
-        && (c.args[0] as Record<string, unknown>)["status"] === "done",
+      (c) =>
+        c.table === "matches" &&
+        c.method === "update" &&
+        Array.isArray(c.args) &&
+        c.args.length > 0 &&
+        typeof c.args[0] === "object" &&
+        c.args[0] !== null &&
+        "winner_id" in (c.args[0] as Record<string, unknown>) &&
+        (c.args[0] as Record<string, unknown>)["status"] === "done",
     );
     expect(byeUpdate).toBeTruthy();
 
     // 次ラウンドへの advance で otherFilled チェックが行われていること
     // nextMatch の fighter2_id が null なので status は "waiting" になるはず
     const advanceUpdate = calls.find(
-      (c) => c.table === "matches" && c.method === "update"
-        && Array.isArray(c.args) && c.args.length > 0
-        && typeof c.args[0] === "object" && c.args[0] !== null
-        && "fighter1_id" in (c.args[0] as Record<string, unknown>)
-        && (c.args[0] as Record<string, unknown>)["status"] === "waiting",
+      (c) =>
+        c.table === "matches" &&
+        c.method === "update" &&
+        Array.isArray(c.args) &&
+        c.args.length > 0 &&
+        typeof c.args[0] === "object" &&
+        c.args[0] !== null &&
+        "fighter1_id" in (c.args[0] as Record<string, unknown>) &&
+        (c.args[0] as Record<string, unknown>)["status"] === "waiting",
     );
     expect(advanceUpdate).toBeTruthy();
   });
@@ -273,11 +286,15 @@ describe("POST /api/admin/tournaments", () => {
 
     // 次ラウンドへの advance で otherFilled=true なので status は "ready" になるはず
     const advanceUpdate = calls.find(
-      (c) => c.table === "matches" && c.method === "update"
-        && Array.isArray(c.args) && c.args.length > 0
-        && typeof c.args[0] === "object" && c.args[0] !== null
-        && "fighter1_id" in (c.args[0] as Record<string, unknown>)
-        && (c.args[0] as Record<string, unknown>)["status"] === "ready",
+      (c) =>
+        c.table === "matches" &&
+        c.method === "update" &&
+        Array.isArray(c.args) &&
+        c.args.length > 0 &&
+        typeof c.args[0] === "object" &&
+        c.args[0] !== null &&
+        "fighter1_id" in (c.args[0] as Record<string, unknown>) &&
+        (c.args[0] as Record<string, unknown>)["status"] === "ready",
     );
     expect(advanceUpdate).toBeTruthy();
   });
@@ -329,15 +346,11 @@ describe("/api/admin/tournaments/[id]", () => {
 
     // matches が先に削除されていること
     const calls = getCalls();
-    const matchDelete = calls.find(
-      (c) => c.table === "matches" && c.method === "delete",
-    );
+    const matchDelete = calls.find((c) => c.table === "matches" && c.method === "delete");
     expect(matchDelete).toBeTruthy();
 
     // tournaments が update されていること（insert ではない）
-    const tUpdate = calls.find(
-      (c) => c.table === "tournaments" && c.method === "update",
-    );
+    const tUpdate = calls.find((c) => c.table === "tournaments" && c.method === "update");
     expect(tUpdate).toBeTruthy();
   });
 

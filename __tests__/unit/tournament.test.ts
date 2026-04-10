@@ -8,7 +8,6 @@ import { describe, it, expect } from "vitest";
 import { totalRounds, roundName } from "@/lib/tournament";
 
 describe("tournament", () => {
-
   describe("totalRounds", () => {
     it("2人 → 1ラウンド", () => expect(totalRounds(2)).toBe(1));
     it("3人 → 2ラウンド", () => expect(totalRounds(3)).toBe(2));

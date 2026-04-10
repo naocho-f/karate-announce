@@ -16,11 +16,7 @@ describe("checkWatchNotifications", () => {
       makeMatch("m6", "第6試合", "ready", "山田", "鈴木"), // ウォッチ対象
     ];
     const notified = new Set<string>();
-    const result = checkWatchNotifications(
-      [{ courtLabel: "Aコート", matches }],
-      ["山田"],
-      notified,
-    );
+    const result = checkWatchNotifications([{ courtLabel: "Aコート", matches }], ["山田"], notified);
     // 第6試合 - 3 = 第3試合 が ongoing → 通知
     expect(result).toHaveLength(1);
     expect(result[0].message).toContain("山田選手");
@@ -33,11 +29,7 @@ describe("checkWatchNotifications", () => {
       makeMatch("m1", "第1試合", "ongoing", "A", "B"),
       makeMatch("m4", "第4試合", "ready", "C", "山田"),
     ];
-    const result = checkWatchNotifications(
-      [{ courtLabel: "Bコート", matches }],
-      ["山田"],
-      new Set(),
-    );
+    const result = checkWatchNotifications([{ courtLabel: "Bコート", matches }], ["山田"], new Set());
     expect(result).toHaveLength(1);
     expect(result[0].message).toContain("Bコート白");
   });
@@ -47,11 +39,7 @@ describe("checkWatchNotifications", () => {
       makeMatch("m1", "第1試合", "ongoing", "A", "B"),
       makeMatch("m8", "第8試合", "ready", "山田", "C"),
     ];
-    const result = checkWatchNotifications(
-      [{ courtLabel: "Aコート", matches }],
-      ["山田"],
-      new Set(),
-    );
+    const result = checkWatchNotifications([{ courtLabel: "Aコート", matches }], ["山田"], new Set());
     // 第8試合 - 3 = 第5試合。第1試合が ongoing だが 1 < 5 なので通知しない
     expect(result).toHaveLength(0);
   });
@@ -61,11 +49,7 @@ describe("checkWatchNotifications", () => {
       makeMatch("m1", "第1試合", "ongoing", "A", "B"),
       makeMatch("m2", null, "ready", "山田", "C"),
     ];
-    const result = checkWatchNotifications(
-      [{ courtLabel: "Aコート", matches }],
-      ["山田"],
-      new Set(),
-    );
+    const result = checkWatchNotifications([{ courtLabel: "Aコート", matches }], ["山田"], new Set());
     expect(result).toHaveLength(0);
   });
 
@@ -75,47 +59,25 @@ describe("checkWatchNotifications", () => {
       makeMatch("m4", "第4試合", "ready", "山田", "C"),
     ];
     const notified = new Set(["m4"]);
-    const result = checkWatchNotifications(
-      [{ courtLabel: "Aコート", matches }],
-      ["山田"],
-      notified,
-    );
+    const result = checkWatchNotifications([{ courtLabel: "Aコート", matches }], ["山田"], notified);
     expect(result).toHaveLength(0);
   });
 
   it("ongoing の試合は通知対象外", () => {
-    const matches: WatchMatch[] = [
-      makeMatch("m1", "第1試合", "ongoing", "山田", "B"),
-    ];
-    const result = checkWatchNotifications(
-      [{ courtLabel: "Aコート", matches }],
-      ["山田"],
-      new Set(),
-    );
+    const matches: WatchMatch[] = [makeMatch("m1", "第1試合", "ongoing", "山田", "B")];
+    const result = checkWatchNotifications([{ courtLabel: "Aコート", matches }], ["山田"], new Set());
     expect(result).toHaveLength(0);
   });
 
   it("done の試合は通知対象外", () => {
-    const matches: WatchMatch[] = [
-      makeMatch("m1", "第1試合", "done", "山田", "B"),
-    ];
-    const result = checkWatchNotifications(
-      [{ courtLabel: "Aコート", matches }],
-      ["山田"],
-      new Set(),
-    );
+    const matches: WatchMatch[] = [makeMatch("m1", "第1試合", "done", "山田", "B")];
+    const result = checkWatchNotifications([{ courtLabel: "Aコート", matches }], ["山田"], new Set());
     expect(result).toHaveLength(0);
   });
 
   it("ウォッチリストが空なら何も返さない", () => {
-    const matches: WatchMatch[] = [
-      makeMatch("m1", "第1試合", "ongoing", "A", "B"),
-    ];
-    const result = checkWatchNotifications(
-      [{ courtLabel: "Aコート", matches }],
-      [],
-      new Set(),
-    );
+    const matches: WatchMatch[] = [makeMatch("m1", "第1試合", "ongoing", "A", "B")];
+    const result = checkWatchNotifications([{ courtLabel: "Aコート", matches }], [], new Set());
     expect(result).toHaveLength(0);
   });
 

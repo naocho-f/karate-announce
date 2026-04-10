@@ -64,45 +64,33 @@ describe("computeSuggestions", () => {
   });
 
   it("体重が異なる2名の場合、体重で分割提案を返す", () => {
-    const entries = [
-      makeEntry("1", { weight: 40 }),
-      makeEntry("2", { weight: 70 }),
-    ];
+    const entries = [makeEntry("1", { weight: 40 }), makeEntry("2", { weight: 70 })];
     const suggestions = computeSuggestions(entries);
     expect(suggestions.length).toBeGreaterThan(0);
-    const weightSuggestion = suggestions.find(s => s.axis === "weight");
+    const weightSuggestion = suggestions.find((s) => s.axis === "weight");
     expect(weightSuggestion).toBeDefined();
     expect(weightSuggestion?.belowCount).toBeGreaterThan(0);
     expect(weightSuggestion?.aboveCount).toBeGreaterThan(0);
   });
 
   it("年齢が異なる選手の場合、年齢で分割提案を返す", () => {
-    const entries = [
-      makeEntry("1", { age: 10 }),
-      makeEntry("2", { age: 30 }),
-    ];
+    const entries = [makeEntry("1", { age: 10 }), makeEntry("2", { age: 30 })];
     const suggestions = computeSuggestions(entries);
-    const ageSuggestion = suggestions.find(s => s.axis === "age");
+    const ageSuggestion = suggestions.find((s) => s.axis === "age");
     expect(ageSuggestion).toBeDefined();
   });
 
   it("性別が混在する場合、性別分割提案を返す", () => {
-    const entries = [
-      makeEntry("1", { sex: "male" }),
-      makeEntry("2", { sex: "female" }),
-    ];
+    const entries = [makeEntry("1", { sex: "male" }), makeEntry("2", { sex: "female" })];
     const suggestions = computeSuggestions(entries);
-    const sexSuggestion = suggestions.find(s => s.axis === "sex");
+    const sexSuggestion = suggestions.find((s) => s.axis === "sex");
     expect(sexSuggestion).toBeDefined();
     expect(sexSuggestion?.belowLabel).toBe("男子");
     expect(sexSuggestion?.aboveLabel).toBe("女子");
   });
 
   it("欠場選手は除外される", () => {
-    const entries = [
-      makeEntry("1", { weight: 40 }),
-      makeEntry("2", { weight: 70, is_withdrawn: true }),
-    ];
+    const entries = [makeEntry("1", { weight: 40 }), makeEntry("2", { weight: 70, is_withdrawn: true })];
     const suggestions = computeSuggestions(entries);
     expect(suggestions).toEqual([]);
   });
@@ -126,29 +114,23 @@ describe("computeSuggestions", () => {
   it("最大8件まで返す", () => {
     // 多数の年齢・体重バリエーションがある選手
     const entries = Array.from({ length: 20 }, (_, i) =>
-      makeEntry(String(i), { weight: 30 + i * 3, age: 10 + i * 2, height: 140 + i * 2 })
+      makeEntry(String(i), { weight: 30 + i * 3, age: 10 + i * 2, height: 140 + i * 2 }),
     );
     const suggestions = computeSuggestions(entries);
     expect(suggestions.length).toBeLessThanOrEqual(8);
   });
 
   it("身長で分割提案を返す", () => {
-    const entries = [
-      makeEntry("1", { height: 150 }),
-      makeEntry("2", { height: 180 }),
-    ];
+    const entries = [makeEntry("1", { height: 150 }), makeEntry("2", { height: 180 })];
     const suggestions = computeSuggestions(entries);
-    const heightSuggestion = suggestions.find(s => s.axis === "height");
+    const heightSuggestion = suggestions.find((s) => s.axis === "height");
     expect(heightSuggestion).toBeDefined();
   });
 
   it("経験年数で分割提案を返す", () => {
-    const entries = [
-      makeEntry("1", { experience: "2年" }),
-      makeEntry("2", { experience: "8年" }),
-    ];
+    const entries = [makeEntry("1", { experience: "2年" }), makeEntry("2", { experience: "8年" })];
     const suggestions = computeSuggestions(entries);
-    const expSuggestion = suggestions.find(s => s.axis === "experience");
+    const expSuggestion = suggestions.find((s) => s.axis === "experience");
     expect(expSuggestion).toBeDefined();
   });
 });
@@ -189,10 +171,7 @@ describe("分布パネル用: 軸ごとのグルーピング", () => {
   });
 
   it("単一軸のみの場合は1グループになる", () => {
-    const entries = [
-      makeEntry("1", { weight: 40 }),
-      makeEntry("2", { weight: 80 }),
-    ];
+    const entries = [makeEntry("1", { weight: 40 }), makeEntry("2", { weight: 80 })];
     const suggestions = computeSuggestions(entries);
     const grouped = groupByAxis(suggestions);
 

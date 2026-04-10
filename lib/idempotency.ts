@@ -22,9 +22,7 @@ const memoryCache = new Map<string, CachedResponse>();
  * キーが既に使われていれば、前回のレスポンスを返す。
  * ヘッダが未指定の場合は null を返す（後方互換）。
  */
-export async function checkIdempotencyKey(
-  request: NextRequest,
-): Promise<NextResponse | null> {
+export async function checkIdempotencyKey(request: NextRequest): Promise<NextResponse | null> {
   const key = request.headers.get("Idempotency-Key");
   if (!key) return null;
 
@@ -58,11 +56,7 @@ export async function checkIdempotencyKey(
  * 冪等性キーと共にレスポンスを記録する。
  * ヘッダにキーがない場合は何もしない。
  */
-export async function saveIdempotencyKey(
-  request: NextRequest,
-  status: number,
-  body: unknown,
-): Promise<void> {
+export async function saveIdempotencyKey(request: NextRequest, status: number, body: unknown): Promise<void> {
   const key = request.headers.get("Idempotency-Key");
   if (!key) return;
 

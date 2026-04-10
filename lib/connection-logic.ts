@@ -49,10 +49,7 @@ export function determineConnectionQuality(state: ConnectionState): ConnectionQu
  * @param consecutiveFailures - 連続失敗回数
  * @returns バックオフ適用後のポーリング間隔 (ms)。最大30秒。
  */
-export function calcBackoffInterval(
-  baseInterval: number,
-  consecutiveFailures: number,
-): number {
+export function calcBackoffInterval(baseInterval: number, consecutiveFailures: number): number {
   const interval = baseInterval * Math.pow(2, consecutiveFailures);
   return Math.min(interval, 30000);
 }

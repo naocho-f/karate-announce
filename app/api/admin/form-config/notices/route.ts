@@ -7,7 +7,18 @@ import { dbError } from "@/lib/api-utils";
 export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const body = await request.json();
-  const { form_config_id, anchor_type, anchor_field_key, sort_order, text_content, scrollable_text, link_url, link_label, require_consent, consent_label } = body;
+  const {
+    form_config_id,
+    anchor_type,
+    anchor_field_key,
+    sort_order,
+    text_content,
+    scrollable_text,
+    link_url,
+    link_label,
+    require_consent,
+    consent_label,
+  } = body;
 
   const { data, error } = await supabaseAdmin
     .from("form_notices")

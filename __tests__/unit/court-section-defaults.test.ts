@@ -24,7 +24,7 @@ describe("新規トーナメントの sort_order 採番", () => {
     tournaments: { sort_order: number }[],
     groupIndex: number,
   ): number {
-    return editingSortOrder ?? (Math.max(0, ...tournaments.map(t => t.sort_order)) + groupIndex + 1);
+    return editingSortOrder ?? Math.max(0, ...tournaments.map((t) => t.sort_order)) + groupIndex + 1;
   }
 
   it("既存トーナメントがない場合、groupIndex=0 → sort_order=1", () => {
@@ -36,11 +36,7 @@ describe("新規トーナメントの sort_order 採番", () => {
   });
 
   it("既存の最大 sort_order が 3 の場合、groupIndex=0 → sort_order=4", () => {
-    const tournaments = [
-      { sort_order: 1 },
-      { sort_order: 3 },
-      { sort_order: 2 },
-    ];
+    const tournaments = [{ sort_order: 1 }, { sort_order: 3 }, { sort_order: 2 }];
     expect(calcSortOrder(null, tournaments, 0)).toBe(4);
   });
 

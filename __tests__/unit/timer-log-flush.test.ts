@@ -27,16 +27,20 @@ describe("flushTimerLogs", () => {
     flushTimerLogs("match-1", 0, next);
     expect(mockFrom).toHaveBeenCalledWith("timer_logs");
     expect(mockInsert).toHaveBeenCalledTimes(2);
-    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
-      match_id: "match-1",
-      action: "start",
-      elapsed_ms: 0,
-    }));
-    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
-      match_id: "match-1",
-      action: "red_point",
-      elapsed_ms: 5000,
-    }));
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        match_id: "match-1",
+        action: "start",
+        elapsed_ms: 0,
+      }),
+    );
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        match_id: "match-1",
+        action: "red_point",
+        elapsed_ms: 5000,
+      }),
+    );
   });
 
   it("prevLogsLen 以降の新しいエントリのみ送信する", () => {
@@ -47,9 +51,11 @@ describe("flushTimerLogs", () => {
     ]);
     flushTimerLogs("match-1", 2, next);
     expect(mockInsert).toHaveBeenCalledTimes(1);
-    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
-      action: "white_foul",
-    }));
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "white_foul",
+      }),
+    );
   });
 
   it("matchId が null なら何もしない", () => {
@@ -69,8 +75,10 @@ describe("flushTimerLogs", () => {
       { action: "time_adjust", payload: { deltaMs: -10000 }, elapsedMs: 30000, timestamp: Date.now() },
     ]);
     flushTimerLogs("match-1", 0, next);
-    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
-      payload: { deltaMs: -10000 },
-    }));
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: { deltaMs: -10000 },
+      }),
+    );
   });
 });

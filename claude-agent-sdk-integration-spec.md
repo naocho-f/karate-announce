@@ -3,6 +3,7 @@
 ## 1. プロジェクト概要
 
 ### 目的
+
 自作のWebアプリのUI上にあるボタンをクリックすることで、バックエンドからClaude Agent SDK（旧称 Claude Code SDK）を呼び出し、事前に定義したフローに沿ってコードの修正・リファクタリング・テスト実行などを自動で行うシステムを構築する。
 
 ### 基本アーキテクチャ
@@ -29,13 +30,13 @@
 
 ## 2. 技術スタック
 
-| レイヤー | 技術 | 備考 |
-|---------|------|------|
-| フロントエンド | React / Next.js / 任意 | WebSocket対応が必要 |
-| バックエンド | **Python (FastAPI)** を推奨 | Claude Agent SDK (Python) との親和性が高い |
-| Agent SDK | `claude-agent-sdk` (Python) | `pip install claude-agent-sdk` |
-| リアルタイム通信 | WebSocket | ストリーミング出力・承認リクエストの双方向通信 |
-| 認証 | Anthropic API Key | 環境変数 `ANTHROPIC_API_KEY` |
+| レイヤー         | 技術                        | 備考                                           |
+| ---------------- | --------------------------- | ---------------------------------------------- |
+| フロントエンド   | React / Next.js / 任意      | WebSocket対応が必要                            |
+| バックエンド     | **Python (FastAPI)** を推奨 | Claude Agent SDK (Python) との親和性が高い     |
+| Agent SDK        | `claude-agent-sdk` (Python) | `pip install claude-agent-sdk`                 |
+| リアルタイム通信 | WebSocket                   | ストリーミング出力・承認リクエストの双方向通信 |
+| 認証             | Anthropic API Key           | 環境変数 `ANTHROPIC_API_KEY`                   |
 
 > **Note**: TypeScript SDK (`@anthropic-ai/claude-agent-sdk`)も利用可能。バックエンドがNode.js/Expressの場合はそちらを使う。
 
@@ -63,15 +64,15 @@ async def run_agent(prompt: str, project_dir: str):
 
 ### 3.2 主要なビルトインツール
 
-| ツール名 | 機能 | リスク |
-|---------|------|-------|
-| `Read` | ファイル読み取り | 低 |
-| `Glob` | ファイルパターン検索 | 低 |
-| `Grep` | テキスト検索 | 低 |
-| `Edit` | ファイルの部分編集 | 中 |
-| `Write` | ファイルの新規作成・上書き | 中 |
-| `MultiEdit` | 複数箇所の同時編集 | 中 |
-| `Bash` | シェルコマンド実行 | **高** |
+| ツール名    | 機能                       | リスク |
+| ----------- | -------------------------- | ------ |
+| `Read`      | ファイル読み取り           | 低     |
+| `Glob`      | ファイルパターン検索       | 低     |
+| `Grep`      | テキスト検索               | 低     |
+| `Edit`      | ファイルの部分編集         | 中     |
+| `Write`     | ファイルの新規作成・上書き | 中     |
+| `MultiEdit` | 複数箇所の同時編集         | 中     |
+| `Bash`      | シェルコマンド実行         | **高** |
 
 ---
 
@@ -88,13 +89,13 @@ PreToolUse Hook → Deny Rules → Allow Rules → Ask Rules
 
 ### 4.2 Permission Mode 一覧
 
-| モード | 動作 | ユースケース |
-|--------|------|-------------|
-| `default` | 全ツールが `canUseTool` コールバック経由で承認を求める | ユーザー確認が必要な場合 |
-| `acceptEdits` | Edit/Write/MultiEdit を自動承認、Bashなどは確認 | 一般的な開発フロー |
-| `bypassPermissions` | 全ツール自動承認（確認なし） | 完全自動化・CI/CD向け。**要注意** |
-| `plan` | Claudeが計画を提示 → ユーザー承認後に実行 | 慎重な操作向け |
-| `dontAsk` (TS only) | allowed_tools以外は全拒否（コールバック不要） | ロックダウン環境 |
+| モード              | 動作                                                   | ユースケース                      |
+| ------------------- | ------------------------------------------------------ | --------------------------------- |
+| `default`           | 全ツールが `canUseTool` コールバック経由で承認を求める | ユーザー確認が必要な場合          |
+| `acceptEdits`       | Edit/Write/MultiEdit を自動承認、Bashなどは確認        | 一般的な開発フロー                |
+| `bypassPermissions` | 全ツール自動承認（確認なし）                           | 完全自動化・CI/CD向け。**要注意** |
+| `plan`              | Claudeが計画を提示 → ユーザー承認後に実行              | 慎重な操作向け                    |
+| `dontAsk` (TS only) | allowed_tools以外は全拒否（コールバック不要）          | ロックダウン環境                  |
 
 ### 4.3 推奨構成：ハイブリッドアプローチ
 
@@ -589,14 +590,14 @@ class WebSocketManager:
 
 ## 9. 拡張案
 
-| 機能 | 説明 |
-|------|------|
-| **Hooks** | `PreToolUse` / `PostToolUse` フックでSlack通知やログ記録を挟む |
-| **カスタムツール** | `@tool` デコレータで独自ツール（デプロイ、DB操作等）を定義しClaude に提供 |
-| **マルチエージェント** | サブエージェントを使い「レビュー担当」「修正担当」「テスト担当」を分離 |
-| **構造化出力** | `--output-format json --json-schema` でClaude の出力をスキーマに従わせる |
+| 機能                   | 説明                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| **Hooks**              | `PreToolUse` / `PostToolUse` フックでSlack通知やログ記録を挟む                        |
+| **カスタムツール**     | `@tool` デコレータで独自ツール（デプロイ、DB操作等）を定義しClaude に提供             |
+| **マルチエージェント** | サブエージェントを使い「レビュー担当」「修正担当」「テスト担当」を分離                |
+| **構造化出力**         | `--output-format json --json-schema` でClaude の出力をスキーマに従わせる              |
 | **File Checkpointing** | SDKのファイルチェックポイント機能で変更前の状態を自動バックアップ・ロールバック可能に |
-| **セッション管理** | V2 Session API（`unstable_v2_*`）でマルチターン会話とセッション永続化 |
+| **セッション管理**     | V2 Session API（`unstable_v2_*`）でマルチターン会話とセッション永続化                 |
 
 ---
 

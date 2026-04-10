@@ -42,24 +42,37 @@ function pendingSlotLabel(round: number, position: number, slot: 0 | 1, totalRou
 }
 
 /** 勝利方法を表示テキストに変換 */
-export function formatResultMethod(method: string | null | undefined, detail: BracketMatch["result_detail"]): string | null {
+export function formatResultMethod(
+  method: string | null | undefined,
+  detail: BracketMatch["result_detail"],
+): string | null {
   if (!method) return null;
   const d = detail ?? {};
   switch (method) {
-    case "ippon": return "一本";
+    case "ippon":
+      return "一本";
     case "combined_ippon": {
       const n = Math.max(d.red_wazaari ?? 0, d.white_wazaari ?? 0);
       return `合わせ一本 (技${n})`;
     }
-    case "wazaari": return `技あり優勢 (技${d.red_wazaari ?? 0}-${d.white_wazaari ?? 0})`;
-    case "point": return `ポイント (${d.red_points ?? 0}-${d.white_points ?? 0} 技${d.red_wazaari ?? 0}-${d.white_wazaari ?? 0})`;
-    case "foul": return "反則勝ち";
-    case "decision": return "判定";
-    case "sudden_death": return "延長戦";
-    case "withdraw": return "棄権勝ち";
-    case "injury": return "負傷勝ち";
-    case "draw": return "引き分け";
-    default: return method;
+    case "wazaari":
+      return `技あり優勢 (技${d.red_wazaari ?? 0}-${d.white_wazaari ?? 0})`;
+    case "point":
+      return `ポイント (${d.red_points ?? 0}-${d.white_points ?? 0} 技${d.red_wazaari ?? 0}-${d.white_wazaari ?? 0})`;
+    case "foul":
+      return "反則勝ち";
+    case "decision":
+      return "判定";
+    case "sudden_death":
+      return "延長戦";
+    case "withdraw":
+      return "棄権勝ち";
+    case "injury":
+      return "負傷勝ち";
+    case "draw":
+      return "引き分け";
+    default:
+      return method;
   }
 }
 
@@ -138,10 +151,12 @@ export function BracketView({
 
   // round → sorted match IDs by position (for swap detection)
   const roundMatchIds: Record<number, string[]> = {};
-  [...matches].sort((a, b) => a.position - b.position).forEach((m) => {
-    roundMatchIds[m.round] ??= [];
-    roundMatchIds[m.round].push(m.id);
-  });
+  [...matches]
+    .sort((a, b) => a.position - b.position)
+    .forEach((m) => {
+      roundMatchIds[m.round] ??= [];
+      roundMatchIds[m.round].push(m.id);
+    });
 
   const isBye = (m: BracketMatch) => m.round === 1 && !!m.fighter1_id && !m.fighter2_id;
 
@@ -162,11 +177,15 @@ export function BracketView({
       {/* 赤・白 凡例 */}
       <div className="flex items-center gap-3 mb-2 text-[10px] text-gray-500">
         <span className="flex items-center gap-1">
-          <span className="w-3.5 h-3.5 rounded-full bg-red-700/80 text-red-100 text-[7px] font-bold flex items-center justify-center">赤</span>
+          <span className="w-3.5 h-3.5 rounded-full bg-red-700/80 text-red-100 text-[7px] font-bold flex items-center justify-center">
+            赤
+          </span>
           上の選手（赤）
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-3.5 h-3.5 rounded-full bg-gray-500/60 text-gray-100 text-[7px] font-bold flex items-center justify-center">白</span>
+          <span className="w-3.5 h-3.5 rounded-full bg-gray-500/60 text-gray-100 text-[7px] font-bold flex items-center justify-center">
+            白
+          </span>
           下の選手（白）
         </span>
       </div>
@@ -209,8 +228,12 @@ export function BracketView({
           const isOngoing = m.status === "ongoing";
           const isReady = m.status === "ready" && !!m.fighter1_id && !!m.fighter2_id;
 
-          const name1 = m.fighter1_id ? (nameMap[m.fighter1_id] ?? "?") : pendingSlotLabel(m.round, m.position, 0, maxRound);
-          const name2 = m.fighter2_id ? (nameMap[m.fighter2_id] ?? "?") : pendingSlotLabel(m.round, m.position, 1, maxRound);
+          const name1 = m.fighter1_id
+            ? (nameMap[m.fighter1_id] ?? "?")
+            : pendingSlotLabel(m.round, m.position, 0, maxRound);
+          const name2 = m.fighter2_id
+            ? (nameMap[m.fighter2_id] ?? "?")
+            : pendingSlotLabel(m.round, m.position, 1, maxRound);
           const aff1 = m.fighter1_id ? affiliationMap[m.fighter1_id] : undefined;
           const aff2 = m.fighter2_id ? affiliationMap[m.fighter2_id] : undefined;
           const isW1 = !!(m.fighter1_id && withdrawnIds?.has(m.fighter1_id));
@@ -229,40 +252,75 @@ export function BracketView({
           const isCorrected = m.result_detail?.corrected;
 
           const FighterSlot = ({
-            name, aff, fighterId, isWinner, isWithdrawn, entryId, borderBottom, isRed, showResult,
+            name,
+            aff,
+            fighterId,
+            isWinner,
+            isWithdrawn,
+            entryId,
+            borderBottom,
+            isRed,
+            showResult,
           }: {
-            name: string; aff?: string; fighterId: string | null;
-            isWinner: boolean; isWithdrawn: boolean; entryId?: string; borderBottom?: boolean; isRed: boolean; showResult?: boolean;
+            name: string;
+            aff?: string;
+            fighterId: string | null;
+            isWinner: boolean;
+            isWithdrawn: boolean;
+            entryId?: string;
+            borderBottom?: boolean;
+            isRed: boolean;
+            showResult?: boolean;
           }) => {
             const clickable = isOngoing && !!onSetWinner && !!fighterId && !isWithdrawn && !timerControlActive;
             const correctable = isCorrectingThis && !!onCorrectWinner && !!fighterId && !isWithdrawn;
             return (
               <div
                 className={`relative flex flex-col justify-center px-2 ${borderBottom ? "border-b border-gray-600/50" : ""} ${
-                  isOngoing && isWithdrawn ? "bg-gray-900/60 opacity-50 cursor-not-allowed" :
-                  correctable ? "bg-gray-800 hover:bg-orange-900/40 cursor-pointer transition-colors" :
-                  clickable ? "bg-gray-800 hover:bg-green-900/40 cursor-pointer transition-colors" :
-                  isWinner ? "bg-green-900/50" :
-                  "bg-gray-800"
+                  isOngoing && isWithdrawn
+                    ? "bg-gray-900/60 opacity-50 cursor-not-allowed"
+                    : correctable
+                      ? "bg-gray-800 hover:bg-orange-900/40 cursor-pointer transition-colors"
+                      : clickable
+                        ? "bg-gray-800 hover:bg-green-900/40 cursor-pointer transition-colors"
+                        : isWinner
+                          ? "bg-green-900/50"
+                          : "bg-gray-800"
                 }`}
                 style={{ height: BRACKET_FIGHTER_H }}
-                onClick={correctable ? () => { onCorrectWinner?.(m.id, fighterId as string); setCorrectionMatchId(null); } :
-                         clickable ? () => onSetWinner?.(m.id, fighterId as string) : undefined}
+                onClick={
+                  correctable
+                    ? () => {
+                        onCorrectWinner?.(m.id, fighterId as string);
+                        setCorrectionMatchId(null);
+                      }
+                    : clickable
+                      ? () => onSetWinner?.(m.id, fighterId as string)
+                      : undefined
+                }
               >
                 <div className="flex items-center gap-1 min-w-0 pr-7">
-                  <span className={`shrink-0 text-[7px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center ${
-                    isRed
-                      ? "bg-red-700/80 text-red-100"
-                      : "bg-gray-500/60 text-gray-100"
-                  }`}>
+                  <span
+                    className={`shrink-0 text-[7px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center ${
+                      isRed ? "bg-red-700/80 text-red-100" : "bg-gray-500/60 text-gray-100"
+                    }`}
+                  >
                     {isRed ? "赤" : "白"}
                   </span>
                   {isWinner && <span className="text-green-400 text-[9px] shrink-0">▶</span>}
-                  <span className={`truncate text-xs ${
-                    isWinner ? "text-green-300 font-bold" :
-                    isWithdrawn ? "text-gray-500 line-through" :
-                    fighterId ? "text-gray-100" : "text-gray-500 italic"
-                  }`}>{name}</span>
+                  <span
+                    className={`truncate text-xs ${
+                      isWinner
+                        ? "text-green-300 font-bold"
+                        : isWithdrawn
+                          ? "text-gray-500 line-through"
+                          : fighterId
+                            ? "text-gray-100"
+                            : "text-gray-500 italic"
+                    }`}
+                  >
+                    {name}
+                  </span>
                   {isWithdrawn && (
                     <span className="text-[8px] bg-red-900 text-red-400 px-1 rounded shrink-0">棄権</span>
                   )}
@@ -272,7 +330,8 @@ export function BracketView({
                 )}
                 {showResult && resultText && (
                   <p className="truncate text-[8px] text-green-400 leading-tight pl-4 pr-7">
-                    {resultText}{isCorrected && <span className="text-yellow-400 ml-0.5">(訂正)</span>}
+                    {resultText}
+                    {isCorrected && <span className="text-yellow-400 ml-0.5">(訂正)</span>}
                   </p>
                 )}
                 {/* 棄権トグルボタン */}
@@ -313,12 +372,17 @@ export function BracketView({
                   ? assignedNum != null
                     ? "border-blue-500 cursor-pointer"
                     : "border-gray-500 hover:border-blue-400 cursor-pointer"
-                  : isCorrectingThis ? "border-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]" :
-                  isDone    ? "border-green-800/70" :
-                  isOngoing ? "border-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.6)]" :
-                  isNextMatch ? "border-blue-300 shadow-[0_0_20px_rgba(147,197,253,0.8)] animate-pulse" :
-                  isDimmed  ? "border-gray-600 opacity-40" :
-                              "border-gray-600"
+                  : isCorrectingThis
+                    ? "border-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]"
+                    : isDone
+                      ? "border-green-800/70"
+                      : isOngoing
+                        ? "border-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.6)]"
+                        : isNextMatch
+                          ? "border-blue-300 shadow-[0_0_20px_rgba(147,197,253,0.8)] animate-pulse"
+                          : isDimmed
+                            ? "border-gray-600 opacity-40"
+                            : "border-gray-600"
               }`}
               onClick={isNumberingMode && !isByeMatch ? () => onNumberClick?.(m.id) : undefined}
               style={{
@@ -329,13 +393,24 @@ export function BracketView({
               }}
             >
               <FighterSlot
-                name={name1} aff={aff1} fighterId={m.fighter1_id}
-                isWinner={m.winner_id === m.fighter1_id} isWithdrawn={isW1} entryId={eid1} borderBottom isRed={true}
+                name={name1}
+                aff={aff1}
+                fighterId={m.fighter1_id}
+                isWinner={m.winner_id === m.fighter1_id}
+                isWithdrawn={isW1}
+                entryId={eid1}
+                borderBottom
+                isRed={true}
                 showResult={isDone && !isDraw && m.winner_id === m.fighter1_id}
               />
               <FighterSlot
-                name={name2} aff={aff2} fighterId={m.fighter2_id}
-                isWinner={m.winner_id === m.fighter2_id} isWithdrawn={isW2} entryId={eid2} isRed={false}
+                name={name2}
+                aff={aff2}
+                fighterId={m.fighter2_id}
+                isWinner={m.winner_id === m.fighter2_id}
+                isWithdrawn={isW2}
+                entryId={eid2}
+                isRed={false}
                 showResult={isDone && !isDraw && m.winner_id === m.fighter2_id}
               />
 
@@ -364,7 +439,9 @@ export function BracketView({
                   }`}
                   onClick={() => onMatchClick(m.id)}
                 >
-                  <span className={`font-bold tracking-wide ${isNextMatch ? "text-white text-sm" : "text-gray-400 text-xs"}`}>
+                  <span
+                    className={`font-bold tracking-wide ${isNextMatch ? "text-white text-sm" : "text-gray-400 text-xs"}`}
+                  >
                     {isNextMatch ? "▶ 試合開始" : "▶"}
                   </span>
                 </div>
@@ -380,20 +457,29 @@ export function BracketView({
               {/* フッター */}
               <div
                 className={`flex items-center px-1.5 gap-1 border-t border-gray-600/50 ${
-                  isCorrectingThis ? "bg-orange-950/60" :
-                  isOngoing ? "bg-yellow-950/60" :
-                  isNextMatch ? "bg-blue-950/60" : "bg-gray-900/50"
+                  isCorrectingThis
+                    ? "bg-orange-950/60"
+                    : isOngoing
+                      ? "bg-yellow-950/60"
+                      : isNextMatch
+                        ? "bg-blue-950/60"
+                        : "bg-gray-900/50"
                 }`}
                 style={{ height: BRACKET_FOOTER_H }}
               >
                 {/* 試合番号バッジ */}
                 {m.match_label && !isCorrectingThis && !isNumberingMode && (
-                  <span className={`shrink-0 text-[8px] font-bold px-1 py-0.5 rounded leading-none ${
-                    isNextMatch ? "bg-blue-600 text-white" :
-                    isOngoing   ? "bg-yellow-700 text-yellow-100" :
-                    isDone      ? "bg-gray-700 text-gray-500" :
-                                  "bg-gray-700 text-gray-300"
-                  }`}>
+                  <span
+                    className={`shrink-0 text-[8px] font-bold px-1 py-0.5 rounded leading-none ${
+                      isNextMatch
+                        ? "bg-blue-600 text-white"
+                        : isOngoing
+                          ? "bg-yellow-700 text-yellow-100"
+                          : isDone
+                            ? "bg-gray-700 text-gray-500"
+                            : "bg-gray-700 text-gray-300"
+                    }`}
+                  >
                     {m.match_label}
                   </span>
                 )}
@@ -409,12 +495,13 @@ export function BracketView({
                   </>
                 ) : (
                   <>
-                    {isOngoing && (
-                      <span className="text-[9px] text-yellow-400 font-medium shrink-0">試合中</span>
-                    )}
+                    {isOngoing && <span className="text-[9px] text-yellow-400 font-medium shrink-0">試合中</span>}
                     {canSwap && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); onSwapWithNext?.(m.round, m.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSwapWithNext?.(m.round, m.id);
+                        }}
                         className="shrink-0 ml-auto text-[9px] text-gray-500 hover:text-blue-400 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                       >
                         ↕次
@@ -422,7 +509,10 @@ export function BracketView({
                     )}
                     {!isDone && !isOngoing && onSwapFighters && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); onSwapFighters(m.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSwapFighters(m.id);
+                        }}
                         title="赤・白（上下）を入れ替え"
                         className="shrink-0 text-[9px] text-gray-500 hover:text-yellow-400 bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition"
                       >
@@ -459,12 +549,13 @@ export function BracketView({
                     )}
                     {!isDone && onToggleMute && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); onToggleMute(m.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleMute(m.id);
+                        }}
                         title={isMuted ? "アナウンス OFF（クリックで ON）" : "アナウンス ON（クリックで OFF）"}
                         className={`shrink-0 ml-auto text-[11px] leading-none px-1 py-0.5 rounded transition ${
-                          isMuted
-                            ? "text-gray-600 hover:text-gray-400"
-                            : "text-gray-400 hover:text-gray-200"
+                          isMuted ? "text-gray-600 hover:text-gray-400" : "text-gray-400 hover:text-gray-200"
                         }`}
                       >
                         {isMuted ? "🔇" : "🔊"}

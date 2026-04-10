@@ -64,9 +64,7 @@ export default function AdminLoginPage() {
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-red-400 bg-red-900/30 rounded-lg px-3 py-2">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-400 bg-red-900/30 rounded-lg px-3 py-2">{error}</p>}
 
           <button
             type="submit"

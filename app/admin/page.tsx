@@ -20,14 +20,15 @@ const TAB_LABELS: Record<Tab, string> = {
   guide: "操作説明",
 };
 
+function getInitialTab(): Tab {
+  if (typeof window === "undefined") return "home";
+  const p = new URLSearchParams(window.location.search).get("tab") as Tab | null;
+  return p && p in TAB_LABELS ? p : "home";
+}
+
 export default function AdminPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("home");
-
-  useEffect(() => {
-    const p = new URLSearchParams(window.location.search).get("tab") as Tab | null;
-    if (p && p in TAB_LABELS) setTab(p); // eslint-disable-line react-hooks/set-state-in-effect -- one-time URL param sync on mount
-  }, []);
+  const [tab, setTab] = useState<Tab>(getInitialTab);
 
   function navigateTab(t: Tab) {
     setTab(t);
@@ -38,9 +39,15 @@ export default function AdminPage() {
     <main className="min-h-screen bg-main-bg text-white p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
-          <Link href="/" className="text-gray-400 hover:text-white text-sm">← トップに戻る</Link>
+          <Link href="/" className="text-gray-400 hover:text-white text-sm">
+            ← トップに戻る
+          </Link>
           <h1 className="text-2xl font-bold">管理画面</h1>
-          {isDev() && <Link href="/admin/spec" className="ml-auto text-xs text-gray-500 hover:text-gray-300 transition">仕様書</Link>}
+          {isDev() && (
+            <Link href="/admin/spec" className="ml-auto text-xs text-gray-500 hover:text-gray-300 transition">
+              仕様書
+            </Link>
+          )}
           <LogoutButton />
         </div>
 
@@ -62,10 +69,10 @@ export default function AdminPage() {
         </div>
 
         <div role="tabpanel">
-        {tab === "home"     && <HomeDashboardPanel onNavigate={navigateTab} />}
-        {tab === "events"   && <EventsPanel />}
-        {tab === "settings" && <SettingsPanel />}
-        {tab === "guide"    && <GuidePanel onNavigate={navigateTab} />}
+          {tab === "home" && <HomeDashboardPanel onNavigate={navigateTab} />}
+          {tab === "events" && <EventsPanel />}
+          {tab === "settings" && <SettingsPanel />}
+          {tab === "guide" && <GuidePanel onNavigate={navigateTab} />}
         </div>
 
         {/* バージョン表示（タブコンテンツが描画された後に遅延表示） */}
@@ -86,7 +93,8 @@ function DelayedVersion() {
   if (!visible) return null;
   return (
     <p className="text-center text-[10px] text-gray-800 mt-8">
-      v{getAppVersion()}{isDev() && " (dev)"}
+      v{getAppVersion()}
+      {isDev() && " (dev)"}
     </p>
   );
 }

@@ -17,7 +17,10 @@ export function MatchLabelSection({ eventId, event, onLoad }: MatchLabelSectionP
     <div className="space-y-6">
       {/* コートタブ */}
       {event.court_count > 1 && (
-        <div className="grid rounded-xl overflow-hidden border border-gray-700" style={{ gridTemplateColumns: `repeat(${event.court_count + 1}, minmax(0, 1fr))` }}>
+        <div
+          className="grid rounded-xl overflow-hidden border border-gray-700"
+          style={{ gridTemplateColumns: `repeat(${event.court_count + 1}, minmax(0, 1fr))` }}
+        >
           <button
             onClick={() => setMatchLabelCourt("all")}
             className={`py-2 text-sm font-medium transition ${matchLabelCourt === "all" ? "bg-blue-700 text-white" : "bg-gray-800 hover:bg-gray-750 text-gray-400 hover:text-gray-200"}`}
@@ -39,7 +42,13 @@ export function MatchLabelSection({ eventId, event, onLoad }: MatchLabelSectionP
           })}
         </div>
       )}
-      <MatchLabelEditor eventId={eventId} courtNames={event.court_names} courtCount={event.court_count} selectedCourt={matchLabelCourt === "all" ? undefined : matchLabelCourt} onChanged={onLoad} />
+      <MatchLabelEditor
+        eventId={eventId}
+        courtNames={event.court_names}
+        courtCount={event.court_count}
+        selectedCourt={matchLabelCourt === "all" ? undefined : matchLabelCourt}
+        onChanged={onLoad}
+      />
     </div>
   );
 }

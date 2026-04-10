@@ -23,6 +23,7 @@ tools: Read, Edit, Write, Bash, Glob, Grep, Agent, NotebookEdit
 8. 実施内容のサマリーを返す
 
 ## 注意
+
 - 計画に書かれていることだけを実装する。スコープを広げない
 - 不明点があればユーザーに質問する（勝手に判断しない）
 - 日本語で丁寧語を使う

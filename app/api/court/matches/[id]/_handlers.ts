@@ -8,11 +8,7 @@ async function checkOptimisticLock(
   matchUpdatedAt?: string,
 ): Promise<NextResponse | null> {
   if (!matchUpdatedAt) return null; // 後方互換: 指定なしはチェックスキップ
-  const { data } = await supabaseAdmin
-    .from("matches")
-    .select("updated_at")
-    .eq("id", matchId)
-    .single();
+  const { data } = await supabaseAdmin.from("matches").select("updated_at").eq("id", matchId).single();
   if (data && data.updated_at !== matchUpdatedAt) {
     return NextResponse.json(
       { error: "試合結果は既に更新されています。画面を再読み込みしてください。" },
@@ -49,7 +45,11 @@ export async function handleStart(id: string, body: MatchBody, supabaseAdmin: Su
   return NextResponse.json({ ok: true });
 }
 
-export async function handleSetWinner(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
+export async function handleSetWinner(
+  id: string,
+  body: MatchBody,
+  supabaseAdmin: SupabaseClient,
+): Promise<NextResponse> {
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
   const { winnerId, tournamentId, round, rounds, position } = body;
@@ -68,33 +68,39 @@ export async function handleReplace(id: string, body: MatchBody, supabaseAdmin: 
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
   const { slot, newFighterId } = body;
-  const { data: match } = await supabaseAdmin
-    .from("matches")
-    .select("fighter1_id, fighter2_id")
-    .eq("id", id)
-    .single();
+  const { data: match } = await supabaseAdmin.from("matches").select("fighter1_id, fighter2_id").eq("id", id).single();
   if (!match) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const field = slot === "f1" ? "fighter1_id" : "fighter2_id";
   const otherId = slot === "f1" ? match.fighter2_id : match.fighter1_id;
   const bothPresent = newFighterId && otherId;
 
-  await supabaseAdmin.from("matches").update({
-    [field]: newFighterId,
-    status: bothPresent ? "ready" : "waiting",
-  }).eq("id", id);
+  await supabaseAdmin
+    .from("matches")
+    .update({
+      [field]: newFighterId,
+      status: bothPresent ? "ready" : "waiting",
+    })
+    .eq("id", id);
   return NextResponse.json({ ok: true });
 }
 
 export async function handleEdit(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
-  await supabaseAdmin.from("matches").update({
-    match_label: body.matchLabel ?? null,
-    rules: body.rules ?? null,
-  }).eq("id", id);
+  await supabaseAdmin
+    .from("matches")
+    .update({
+      match_label: body.matchLabel ?? null,
+      rules: body.rules ?? null,
+    })
+    .eq("id", id);
   return NextResponse.json({ ok: true });
 }
 
-export async function handleCorrectWinner(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
+export async function handleCorrectWinner(
+  id: string,
+  body: MatchBody,
+  supabaseAdmin: SupabaseClient,
+): Promise<NextResponse> {
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
   const { winnerId, tournamentId, round, rounds, position } = body;
@@ -122,7 +128,11 @@ export async function handleCorrectWinner(id: string, body: MatchBody, supabaseA
   return NextResponse.json({ ok: true });
 }
 
-export async function handleFinishTimer(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
+export async function handleFinishTimer(
+  id: string,
+  body: MatchBody,
+  supabaseAdmin: SupabaseClient,
+): Promise<NextResponse> {
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
   const { winnerId, tournamentId, round, rounds, position, resultMethod, resultDetail } = body;
@@ -141,18 +151,25 @@ export async function handleFinishTimer(id: string, body: MatchBody, supabaseAdm
     });
   } else {
     // 勝者なし（引き分け等）→ match のステータスのみ更新
-    await supabaseAdmin.from("matches").update({
-      winner_id: winnerId ?? null,
-      status: "done",
-      result_method: resultMethod ?? null,
-      result_detail: resultDetail ?? null,
-      updated_at: new Date().toISOString(),
-    }).eq("id", id);
+    await supabaseAdmin
+      .from("matches")
+      .update({
+        winner_id: winnerId ?? null,
+        status: "done",
+        result_method: resultMethod ?? null,
+        result_detail: resultDetail ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
   }
   return NextResponse.json({ ok: true });
 }
 
-export async function handleSwapWith(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
+export async function handleSwapWith(
+  id: string,
+  body: MatchBody,
+  supabaseAdmin: SupabaseClient,
+): Promise<NextResponse> {
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
   const { otherMatchId } = body;

@@ -6,9 +6,18 @@ import { supabase } from "@/lib/supabase";
 import { isDev } from "@/lib/app-mode";
 import type { Dojo, Rule } from "@/lib/types";
 import {
-  TTS_VOICES, getTtsSettings, saveTtsSettings, announceCustom, type TtsVoice,
-  renderTemplate, DEFAULT_TEMPLATES,
-  MATCH_VARS, WINNER_VARS, SAMPLE_MATCH_VARS, SAMPLE_WINNER_VARS, type AnnounceTemplates,
+  TTS_VOICES,
+  getTtsSettings,
+  saveTtsSettings,
+  announceCustom,
+  type TtsVoice,
+  renderTemplate,
+  DEFAULT_TEMPLATES,
+  MATCH_VARS,
+  WINNER_VARS,
+  SAMPLE_MATCH_VARS,
+  SAMPLE_WINNER_VARS,
+  type AnnounceTemplates,
 } from "@/lib/speech";
 import { TimerPresetsPanel } from "@/components/timer-presets-panel";
 import { showToast } from "@/components/toast";
@@ -31,8 +40,19 @@ function DojoPanel() {
     setLoading(false);
   }
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch on mount
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("dojos").select("*").order("name");
+      if (!cancelled) {
+        setDojos(data ?? []);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function add() {
     if (!name.trim()) return;
@@ -43,8 +63,12 @@ function DojoPanel() {
       body: JSON.stringify({ name: name.trim(), name_reading: reading.trim() || null }),
     });
     setAdding(false);
-    if (!res.ok) { showToast("追加に失敗しました"); return; }
-    setName(""); setReading("");
+    if (!res.ok) {
+      showToast("追加に失敗しました");
+      return;
+    }
+    setName("");
+    setReading("");
     load();
   }
 
@@ -54,7 +78,10 @@ function DojoPanel() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name_reading: value.trim() || null }),
     });
-    if (!res.ok) { showToast("読み仮名の更新に失敗しました"); return; }
+    if (!res.ok) {
+      showToast("読み仮名の更新に失敗しました");
+      return;
+    }
     load();
   }
 
@@ -63,13 +90,22 @@ function DojoPanel() {
     setRemovingId(id);
     const res = await fetch(`/api/admin/dojos/${id}`, { method: "DELETE" });
     setRemovingId(null);
-    if (!res.ok) { showToast("削除に失敗しました"); return; }
+    if (!res.ok) {
+      showToast("削除に失敗しました");
+      return;
+    }
     load();
   }
 
   return (
     <div>
-      <form onSubmit={(e) => { e.preventDefault(); add(); }} className="space-y-2 mb-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          add();
+        }}
+        className="space-y-2 mb-4"
+      >
         <div className="flex gap-2">
           <input
             value={name}
@@ -83,8 +119,14 @@ function DojoPanel() {
             placeholder="読み仮名（例: きょくしんかい）"
             className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
           />
-          <button type="submit" disabled={adding} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50 flex items-center gap-1.5">
-            {adding && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
+          <button
+            type="submit"
+            disabled={adding}
+            className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {adding && (
+              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+            )}
             {adding ? "追加中..." : "追加"}
           </button>
         </div>
@@ -97,7 +139,11 @@ function DojoPanel() {
             <li key={d.id} className="bg-gray-800 rounded-lg px-4 py-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="font-medium">{d.name}</span>
-                <button onClick={() => remove(d.id)} disabled={removingId === d.id} className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50">
+                <button
+                  onClick={() => remove(d.id)}
+                  disabled={removingId === d.id}
+                  className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50"
+                >
                   {removingId === d.id ? "削除中..." : "削除"}
                 </button>
               </div>
@@ -125,7 +171,7 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
   const [description, setDescription] = useState("");
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [presets, setPresets] = useState<{id: string; name: string}[]>([]);
+  const [presets, setPresets] = useState<{ id: string; name: string }[]>([]);
   const [linkingRuleId, setLinkingRuleId] = useState<string | null>(null);
   const [selectingRuleId, setSelectingRuleId] = useState<string | null>(null);
 
@@ -141,8 +187,21 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
     await loadPresets();
   }
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- initial data fetch on mount
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("rules").select("*").order("name");
+      if (!cancelled) {
+        setRules(data ?? []);
+        setLoading(false);
+      }
+      const presetsRes = await fetch("/api/admin/timer-presets");
+      if (!cancelled && presetsRes.ok) setPresets(await presetsRes.json());
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function linkPreset(ruleId: string, presetId: string | null) {
     setLinkingRuleId(ruleId);
@@ -151,7 +210,9 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ timer_preset_id: presetId }),
     });
-    if (!res.ok) { showToast("タイマーの設定に失敗しました"); }
+    if (!res.ok) {
+      showToast("タイマーの設定に失敗しました");
+    }
     await load();
     setLinkingRuleId(null);
     setSelectingRuleId(null);
@@ -163,11 +224,20 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
     const res = await fetch("/api/admin/rules", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), name_reading: reading.trim() || null, description: description.trim() || null }),
+      body: JSON.stringify({
+        name: name.trim(),
+        name_reading: reading.trim() || null,
+        description: description.trim() || null,
+      }),
     });
     setAdding(false);
-    if (!res.ok) { showToast("追加に失敗しました"); return; }
-    setName(""); setReading(""); setDescription("");
+    if (!res.ok) {
+      showToast("追加に失敗しました");
+      return;
+    }
+    setName("");
+    setReading("");
+    setDescription("");
     load();
   }
 
@@ -177,7 +247,10 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name_reading: value.trim() || null }),
     });
-    if (!res.ok) { showToast("読み仮名の更新に失敗しました"); return; }
+    if (!res.ok) {
+      showToast("読み仮名の更新に失敗しました");
+      return;
+    }
     load();
   }
 
@@ -187,7 +260,10 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description: value.trim() || null }),
     });
-    if (!res.ok) { showToast("説明の更新に失敗しました"); return; }
+    if (!res.ok) {
+      showToast("説明の更新に失敗しました");
+      return;
+    }
     load();
   }
 
@@ -196,14 +272,23 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
     setRemovingId(id);
     const res = await fetch(`/api/admin/rules/${id}`, { method: "DELETE" });
     setRemovingId(null);
-    if (!res.ok) { showToast("削除に失敗しました"); return; }
+    if (!res.ok) {
+      showToast("削除に失敗しました");
+      return;
+    }
     load();
   }
 
   return (
     <div>
       <p className="text-xs text-gray-400 mb-3">対戦表で選択できるルールを登録します（例: 組手3分・形・ワンマッチ）</p>
-      <form onSubmit={(e) => { e.preventDefault(); add(); }} className="space-y-2 mb-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          add();
+        }}
+        className="space-y-2 mb-4"
+      >
         <div className="flex gap-2">
           <input
             value={name}
@@ -217,8 +302,14 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
             placeholder="読み仮名（例: くみて3ぷんえんちょう1ぷん）"
             className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
           />
-          <button type="submit" disabled={adding} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50 flex items-center gap-1.5">
-            {adding && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
+          <button
+            type="submit"
+            disabled={adding}
+            className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {adding && (
+              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+            )}
             {adding ? "追加中..." : "追加"}
           </button>
         </div>
@@ -239,91 +330,105 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
             const isLinking = linkingRuleId === r.id;
             const isSelecting = selectingRuleId === r.id;
             return (
-            <li key={r.id} className="bg-gray-800 rounded-lg px-4 py-3">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium">{r.name}</span>
-                  {linkedPreset ? (
-                    <span className="bg-orange-900 text-orange-300 text-xs px-2 py-0.5 rounded inline-flex items-center gap-1.5">
-                      タイマー: {linkedPreset.name}
+              <li key={r.id} className="bg-gray-800 rounded-lg px-4 py-3">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium">{r.name}</span>
+                    {linkedPreset ? (
+                      <span className="bg-orange-900 text-orange-300 text-xs px-2 py-0.5 rounded inline-flex items-center gap-1.5">
+                        タイマー: {linkedPreset.name}
+                        <button
+                          onClick={() => setSelectingRuleId(r.id)}
+                          disabled={isLinking}
+                          className="text-orange-400 hover:text-orange-200 text-xs disabled:opacity-50"
+                        >
+                          変更
+                        </button>
+                        <button
+                          onClick={() => linkPreset(r.id, null)}
+                          disabled={isLinking}
+                          className="text-orange-400 hover:text-orange-200 text-xs disabled:opacity-50"
+                        >
+                          {isLinking ? "..." : "解除"}
+                        </button>
+                      </span>
+                    ) : !isSelecting ? (
                       <button
                         onClick={() => setSelectingRuleId(r.id)}
                         disabled={isLinking}
-                        className="text-orange-400 hover:text-orange-200 text-xs disabled:opacity-50"
-                      >変更</button>
-                      <button
-                        onClick={() => linkPreset(r.id, null)}
-                        disabled={isLinking}
-                        className="text-orange-400 hover:text-orange-200 text-xs disabled:opacity-50"
-                      >{isLinking ? "..." : "解除"}</button>
-                    </span>
-                  ) : !isSelecting ? (
-                    <button
-                      onClick={() => setSelectingRuleId(r.id)}
-                      disabled={isLinking}
-                      className="text-xs text-blue-400 hover:text-blue-300 bg-blue-900/30 hover:bg-blue-900/50 px-2 py-0.5 rounded transition disabled:opacity-50"
-                    >
-                      {isLinking ? "設定中..." : "タイマーを設定する"}
-                    </button>
-                  ) : null}
+                        className="text-xs text-blue-400 hover:text-blue-300 bg-blue-900/30 hover:bg-blue-900/50 px-2 py-0.5 rounded transition disabled:opacity-50"
+                      >
+                        {isLinking ? "設定中..." : "タイマーを設定する"}
+                      </button>
+                    ) : null}
+                  </div>
+                  <button
+                    onClick={() => remove(r.id)}
+                    disabled={removingId === r.id}
+                    className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50"
+                  >
+                    {removingId === r.id ? "削除中..." : "削除"}
+                  </button>
                 </div>
-                <button onClick={() => remove(r.id)} disabled={removingId === r.id} className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50">
-                  {removingId === r.id ? "削除中..." : "削除"}
-                </button>
-              </div>
-              {isSelecting && (
-                <div className="mb-1 flex items-center gap-2">
-                  {presets.length === 0 ? (
-                    <>
-                      <span className="text-xs text-gray-500">タイマーが未登録です。</span>
-                      <button
-                        onClick={() => { setSelectingRuleId(null); onNavigateToTimer(); }}
-                        className="text-xs text-blue-400 hover:text-blue-300 underline"
-                      >タイマータブで作成</button>
-                    </>
-                  ) : (
-                    <>
-                      <select
-                        value={r.timer_preset_id ?? ""}
-                        disabled={isLinking}
-                        onChange={(e) => {
-                          if (e.target.value === "__new__") {
+                {isSelecting && (
+                  <div className="mb-1 flex items-center gap-2">
+                    {presets.length === 0 ? (
+                      <>
+                        <span className="text-xs text-gray-500">タイマーが未登録です。</span>
+                        <button
+                          onClick={() => {
                             setSelectingRuleId(null);
                             onNavigateToTimer();
-                            return;
-                          }
-                          if (e.target.value) {
-                            linkPreset(r.id, e.target.value);
-                          } else {
-                            linkPreset(r.id, null);
-                          }
-                        }}
-                        className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 disabled:opacity-50"
-                      >
-                        <option value="">-- タイマー未設定 --</option>
-                        {presets.map((p) => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                        <option value="__new__">＋ 新規追加（タイマータブへ）</option>
-                      </select>
-                    </>
-                  )}
-                  <button
-                    onClick={() => setSelectingRuleId(null)}
-                    className="text-xs text-gray-500 hover:text-gray-300"
-                  >キャンセル</button>
-                </div>
-              )}
-              <ReadingInput
-                value={r.name_reading ?? ""}
-                placeholder="読み仮名（例: くみて3ぷんえんちょう1ぷん）"
-                onSave={(v) => updateReading(r.id, v)}
-              />
-              <DescriptionInput
-                value={r.description ?? ""}
-                onSave={(v) => updateDescription(r.id, v)}
-              />
-            </li>
+                          }}
+                          className="text-xs text-blue-400 hover:text-blue-300 underline"
+                        >
+                          タイマータブで作成
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <select
+                          value={r.timer_preset_id ?? ""}
+                          disabled={isLinking}
+                          onChange={(e) => {
+                            if (e.target.value === "__new__") {
+                              setSelectingRuleId(null);
+                              onNavigateToTimer();
+                              return;
+                            }
+                            if (e.target.value) {
+                              linkPreset(r.id, e.target.value);
+                            } else {
+                              linkPreset(r.id, null);
+                            }
+                          }}
+                          className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 disabled:opacity-50"
+                        >
+                          <option value="">-- タイマー未設定 --</option>
+                          {presets.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                          <option value="__new__">＋ 新規追加（タイマータブへ）</option>
+                        </select>
+                      </>
+                    )}
+                    <button
+                      onClick={() => setSelectingRuleId(null)}
+                      className="text-xs text-gray-500 hover:text-gray-300"
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                )}
+                <ReadingInput
+                  value={r.name_reading ?? ""}
+                  placeholder="読み仮名（例: くみて3ぷんえんちょう1ぷん）"
+                  onSave={(v) => updateReading(r.id, v)}
+                />
+                <DescriptionInput value={r.description ?? ""} onSave={(v) => updateDescription(r.id, v)} />
+              </li>
             );
           })}
           {rules.length === 0 && <li className="text-gray-500 text-sm">ルールが登録されていません</li>}
@@ -360,7 +465,9 @@ function AnnounceSettingsPanel() {
     saveTtsSettings(voice, speed);
     setPlaying(true);
     await new Promise<void>((resolve) => {
-      announceCustom("Aコート、男子一般部、準決勝。極真会所属、山田太郎選手。対。正道会館所属、鈴木一郎選手。これより試合を開始します。");
+      announceCustom(
+        "Aコート、男子一般部、準決勝。極真会所属、山田太郎選手。対。正道会館所属、鈴木一郎選手。これより試合を開始します。",
+      );
       setTimeout(resolve, 500);
     });
     setPlaying(false);
@@ -380,9 +487,7 @@ function AnnounceSettingsPanel() {
                 key={v.value}
                 onClick={() => setVoice(v.value)}
                 className={`px-3 py-2.5 rounded-lg text-sm text-left transition ${
-                  voice === v.value
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  voice === v.value ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                 }`}
               >
                 {v.label}
@@ -518,10 +623,7 @@ function TemplateEditor() {
     <div className="bg-gray-800 rounded-xl p-5 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-sm text-gray-300">アナウンス文カスタマイズ</h2>
-        <button
-          onClick={resetToDefault}
-          className="text-xs text-gray-500 hover:text-gray-300 transition"
-        >
+        <button onClick={resetToDefault} className="text-xs text-gray-500 hover:text-gray-300 transition">
           デフォルトに戻す
         </button>
       </div>
@@ -533,9 +635,7 @@ function TemplateEditor() {
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`py-2 rounded-lg text-sm font-medium transition text-center ${
-              activeTab === tab
-                ? "bg-blue-600 text-white"
-                : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+              activeTab === tab ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
             }`}
           >
             {tab === "matchStart" ? "試合開始" : "勝者発表"}
@@ -591,7 +691,9 @@ function TemplateEditor() {
           disabled={saving}
           className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
         >
-          {saving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
+          {saving && (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+          )}
           {saving ? "保存中..." : saved ? "保存しました" : "保存"}
         </button>
       </div>
@@ -621,7 +723,11 @@ function TemplateEditor() {
 
 // ── 共通入力コンポーネント ──────────────────────────────────────────────────
 
-function ReadingInput({ value, placeholder, onSave }: {
+function ReadingInput({
+  value,
+  placeholder,
+  onSave,
+}: {
   value: string;
   placeholder: string;
   onSave: (v: string) => Promise<void> | void;
@@ -640,7 +746,10 @@ function ReadingInput({ value, placeholder, onSave }: {
   if (!editing) {
     return (
       <button
-        onClick={() => { setDraft(value); setEditing(true); }}
+        onClick={() => {
+          setDraft(value);
+          setEditing(true);
+        }}
         className="text-xs text-gray-500 hover:text-blue-400 transition"
       >
         読み: {value || "未設定（タップして編集）"}
@@ -649,7 +758,13 @@ function ReadingInput({ value, placeholder, onSave }: {
   }
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); commit(); }} className="flex gap-1 mt-1">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        commit();
+      }}
+      className="flex gap-1 mt-1"
+    >
       <input
         autoFocus
         value={draft}
@@ -658,18 +773,26 @@ function ReadingInput({ value, placeholder, onSave }: {
         disabled={saving}
         className="flex-1 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none disabled:opacity-50"
       />
-      <button type="submit" disabled={saving} className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded disabled:opacity-50">
+      <button
+        type="submit"
+        disabled={saving}
+        className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded disabled:opacity-50"
+      >
         {saving ? "保存中..." : "保存"}
       </button>
-      <button type="button" onClick={() => setEditing(false)} disabled={saving} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1 disabled:opacity-50">×</button>
+      <button
+        type="button"
+        onClick={() => setEditing(false)}
+        disabled={saving}
+        className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1 disabled:opacity-50"
+      >
+        ×
+      </button>
     </form>
   );
 }
 
-function DescriptionInput({ value, onSave }: {
-  value: string;
-  onSave: (v: string) => Promise<void> | void;
-}) {
+function DescriptionInput({ value, onSave }: { value: string; onSave: (v: string) => Promise<void> | void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
@@ -684,7 +807,10 @@ function DescriptionInput({ value, onSave }: {
   if (!editing) {
     return (
       <button
-        onClick={() => { setDraft(value); setEditing(true); }}
+        onClick={() => {
+          setDraft(value);
+          setEditing(true);
+        }}
         className="text-xs text-gray-500 hover:text-blue-400 transition mt-1 block"
       >
         説明: {value || "未設定（タップして編集）"}
@@ -693,7 +819,13 @@ function DescriptionInput({ value, onSave }: {
   }
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); commit(); }} className="mt-1 space-y-1">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        commit();
+      }}
+      className="mt-1 space-y-1"
+    >
       <textarea
         autoFocus
         value={draft}
@@ -704,15 +836,25 @@ function DescriptionInput({ value, onSave }: {
         className="w-full bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none resize-none disabled:opacity-50"
       />
       <div className="flex gap-1">
-        <button type="submit" disabled={saving} className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded disabled:opacity-50">
+        <button
+          type="submit"
+          disabled={saving}
+          className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded disabled:opacity-50"
+        >
           {saving ? "保存中..." : "保存"}
         </button>
-        <button type="button" onClick={() => setEditing(false)} disabled={saving} className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1 disabled:opacity-50">×</button>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          disabled={saving}
+          className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1 disabled:opacity-50"
+        >
+          ×
+        </button>
       </div>
     </form>
   );
 }
-
 
 // ── メインの SettingsPanel ──────────────────────────────────────────────────
 
@@ -760,12 +902,12 @@ export function SettingsPanel() {
         ))}
       </div>
 
-      {subTab === "announce"       && <AnnounceSettingsPanel />}
-      {subTab === "rules"          && <RulesPanel onNavigateToTimer={() => handleSubTab("timer")} />}
-      {subTab === "dojos"          && <DojoPanel />}
-      {subTab === "timer"          && <TimerPresetsPanel />}
+      {subTab === "announce" && <AnnounceSettingsPanel />}
+      {subTab === "rules" && <RulesPanel onNavigateToTimer={() => handleSubTab("timer")} />}
+      {subTab === "dojos" && <DojoPanel />}
+      {subTab === "timer" && <TimerPresetsPanel />}
       {subTab === "age_categories" && <AgeCategoriesPanel />}
-      {subTab === "bug_reports"    && <BugReportsPanel />}
+      {subTab === "bug_reports" && <BugReportsPanel />}
     </div>
   );
 }

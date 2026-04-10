@@ -12,11 +12,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   // 楽観ロック: matchUpdatedAt が指定されている場合、DB の updated_at と比較
   if (body.matchUpdatedAt) {
-    const { data } = await supabaseAdmin
-      .from("matches")
-      .select("updated_at")
-      .eq("id", id)
-      .single();
+    const { data } = await supabaseAdmin.from("matches").select("updated_at").eq("id", id).single();
     if (data && data.updated_at !== body.matchUpdatedAt) {
       return NextResponse.json(
         { error: "試合結果は既に更新されています。画面を再読み込みしてください。" },

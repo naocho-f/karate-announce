@@ -6,10 +6,7 @@ import { dbError } from "@/lib/api-utils";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { id } = await params;
 
@@ -39,10 +36,7 @@ export async function POST(
   return NextResponse.json({ path: storagePath, public_url: urlData.publicUrl });
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { id } = await params;
 

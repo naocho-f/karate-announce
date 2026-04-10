@@ -9,11 +9,14 @@ export function flushTimerLogs(matchId: string | null, prevLogsLen: number, next
   if (!matchId || next.logs.length <= prevLogsLen) return;
   const newEntries = next.logs.slice(prevLogsLen);
   for (const entry of newEntries) {
-    supabase.from("timer_logs").insert({
-      match_id: matchId,
-      action: entry.action,
-      payload: entry.payload ?? {},
-      elapsed_ms: entry.elapsedMs,
-    }).then(); // fire-and-forget
+    supabase
+      .from("timer_logs")
+      .insert({
+        match_id: matchId,
+        action: entry.action,
+        payload: entry.payload ?? {},
+        elapsed_ms: entry.elapsedMs,
+      })
+      .then(); // fire-and-forget
   }
 }

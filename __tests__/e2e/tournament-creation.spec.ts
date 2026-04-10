@@ -367,8 +367,20 @@ test.describe("対戦表作成", () => {
         type: "tournament",
         pairs: [
           {
-            e1: { id: entryIds[0], family_name: "対戦テスト1", given_name: "選手", family_name_reading: "タイセンテスト1", given_name_reading: "センシュ" },
-            e2: { id: entryIds[1], family_name: "対戦テスト2", given_name: "選手", family_name_reading: "タイセンテスト2", given_name_reading: "センシュ" },
+            e1: {
+              id: entryIds[0],
+              family_name: "対戦テスト1",
+              given_name: "選手",
+              family_name_reading: "タイセンテスト1",
+              given_name_reading: "センシュ",
+            },
+            e2: {
+              id: entryIds[1],
+              family_name: "対戦テスト2",
+              given_name: "選手",
+              family_name_reading: "タイセンテスト2",
+              given_name_reading: "センシュ",
+            },
             matchLabel: null,
             ruleName: null,
           },
@@ -383,8 +395,20 @@ test.describe("対戦表作成", () => {
         type: "tournament",
         pairs: [
           {
-            e1: { id: entryIds[2], family_name: "対戦テスト3", given_name: "選手", family_name_reading: "タイセンテスト3", given_name_reading: "センシュ" },
-            e2: { id: entryIds[3], family_name: "対戦テスト4", given_name: "選手", family_name_reading: "タイセンテスト4", given_name_reading: "センシュ" },
+            e1: {
+              id: entryIds[2],
+              family_name: "対戦テスト3",
+              given_name: "選手",
+              family_name_reading: "タイセンテスト3",
+              given_name_reading: "センシュ",
+            },
+            e2: {
+              id: entryIds[3],
+              family_name: "対戦テスト4",
+              given_name: "選手",
+              family_name_reading: "タイセンテスト4",
+              given_name_reading: "センシュ",
+            },
             matchLabel: null,
             ruleName: null,
           },

@@ -24,7 +24,9 @@ import { ADMIN_USER, ADMIN_PASS } from "./helpers";
 async function adminLogin(page: Page) {
   await page.goto("/admin");
   // ログインフォームが表示される場合
-  const usernameInput = page.locator('input[name="username"], input[placeholder*="ユーザー"], input[type="text"]').first();
+  const usernameInput = page
+    .locator('input[name="username"], input[placeholder*="ユーザー"], input[type="text"]')
+    .first();
   const passwordInput = page.locator('input[type="password"]').first();
 
   if (await usernameInput.isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -226,7 +228,7 @@ test.describe("タイマー CRUD", () => {
     await page.locator("text=新規作成").click();
 
     // タイマー名を入力
-    const nameInput = page.locator('input').first();
+    const nameInput = page.locator("input").first();
     await nameInput.fill("E2Eテスト_CRUD");
 
     // 保存

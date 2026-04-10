@@ -77,10 +77,7 @@ export async function resilientFetch(
         onQueueFallback(url, init);
         return new Response('{"queued":true}', { status: 202 });
       }
-      throw new ResilientFetchError(
-        `Server error ${res.status} after ${maxRetries} retries`,
-        res,
-      );
+      throw new ResilientFetchError(`Server error ${res.status} after ${maxRetries} retries`, res);
     } catch (error) {
       // abort されたら即座に中断（リトライしない）
       if (signal?.aborted) {

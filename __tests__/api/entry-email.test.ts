@@ -4,13 +4,7 @@
  * エントリー送信時に Resend 経由で確認メールが送信されることを検証する。
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  createMockSupabase,
-  mockResult,
-  createRequest,
-  resetAll,
-  getCallsFor,
-} from "../helpers/supabase-mock";
+import { createMockSupabase, mockResult, createRequest, resetAll, getCallsFor } from "../helpers/supabase-mock";
 
 const mockSend = vi.fn().mockResolvedValue({ data: { id: "msg-1" }, error: null });
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: createMockSupabase() }));
@@ -66,10 +60,12 @@ describe("確認メール送信", () => {
     await new Promise((r) => setTimeout(r, 100));
 
     expect(mockSend).toHaveBeenCalledTimes(1);
-    expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({
-      to: "test@example.com",
-      bcc: ["admin@example.com"],
-    }));
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "test@example.com",
+        bcc: ["admin@example.com"],
+      }),
+    );
   });
 
   it("custom_field_defs を form_config_id で検索している", async () => {

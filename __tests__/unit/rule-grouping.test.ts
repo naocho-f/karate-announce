@@ -44,18 +44,26 @@ function makeEntry(id: string, name: string): Entry {
 }
 
 function makeRule(id: string, name: string): Rule {
-  return { id, name, name_reading: null, description: null, timer_preset_id: null, event_id: null, created_at: "2026-01-01" } as Rule;
+  return {
+    id,
+    name,
+    name_reading: null,
+    description: null,
+    timer_preset_id: null,
+    event_id: null,
+    created_at: "2026-01-01",
+  } as Rule;
 }
 
 const ruleA = makeRule("ruleA", "RFビギナー");
 const ruleB = makeRule("ruleB", "RF一般エキスパートA");
 const ruleC = makeRule("ruleC", "RFJr.エキスパート");
 
-const e1 = makeEntry("e1", "山田");   // ruleA only
-const e2 = makeEntry("e2", "田中");   // ruleA + ruleB (ダブルエントリー)
-const e3 = makeEntry("e3", "鈴木");   // ruleB only
-const e4 = makeEntry("e4", "井上");   // ruleC only
-const e5 = makeEntry("e5", "加藤");   // no rules
+const e1 = makeEntry("e1", "山田"); // ruleA only
+const e2 = makeEntry("e2", "田中"); // ruleA + ruleB (ダブルエントリー)
+const e3 = makeEntry("e3", "鈴木"); // ruleB only
+const e4 = makeEntry("e4", "井上"); // ruleC only
+const e5 = makeEntry("e5", "加藤"); // no rules
 
 const entryRuleIds: Record<string, Set<string>> = {
   e1: new Set(["ruleA"]),
@@ -110,7 +118,7 @@ describe("buildRuleGroups", () => {
 
   describe("totalDesired の計算", () => {
     it("各エントリーの希望試合数が合算される", () => {
-      const getDesired2 = (e: Entry) => e.id === "e1" ? 2 : 1;
+      const getDesired2 = (e: Entry) => (e.id === "e1" ? 2 : 1);
       const groups = buildRuleGroups([e1, e2], allRules, "ruleA", entryRuleIds, getDesired2);
       expect(groups[0].totalDesired).toBe(3); // 2 + 1
     });

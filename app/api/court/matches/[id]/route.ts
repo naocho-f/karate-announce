@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (cached) return cached;
 
   const { id } = await params;
-  const body = await request.json() as {
+  const body = (await request.json()) as {
     action: "start" | "set_winner" | "replace" | "edit" | "swap_with" | "correct_winner" | "finish_timer";
     tournamentId?: string;
     winnerId?: string;
@@ -67,7 +67,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   // 冪等性キーを保存（成功・失敗を問わず記録）
-  const responseBody = await response.clone().json().catch(() => null);
+  const responseBody = await response
+    .clone()
+    .json()
+    .catch(() => null);
   await saveIdempotencyKey(request, response.status, responseBody);
 
   return response;

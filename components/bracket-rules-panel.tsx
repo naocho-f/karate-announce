@@ -70,7 +70,7 @@ export function toFormState(r: BracketRule): FormState {
 }
 
 function toPayload(form: FormState, eventId: string, sortOrder: number) {
-  const num = (v: string) => v === "" ? null : Number(v);
+  const num = (v: string) => (v === "" ? null : Number(v));
   return {
     event_id: eventId,
     name: form.name,
@@ -112,7 +112,9 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
     setLoading(false);
   }, [eventId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   function getCourtLabel(num: number): string {
     if (courtNames && courtNames[num - 1]) return courtNames[num - 1];
@@ -259,48 +261,38 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
             <div className="flex-1 min-w-0">
               <span className="text-sm font-medium text-white">{rule.name}</span>
               <div className="text-xs text-gray-400 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
-                {rule.rule_id && (
-                  <span>ルール: {rules.find((r) => r.id === rule.rule_id)?.name ?? "不明"}</span>
-                )}
+                {rule.rule_id && <span>ルール: {rules.find((r) => r.id === rule.rule_id)?.name ?? "不明"}</span>}
                 {(rule.min_age != null || rule.max_age != null) && (
-                  <span>年齢: {rule.min_age ?? ""}〜{rule.max_age ?? ""}</span>
+                  <span>
+                    年齢: {rule.min_age ?? ""}〜{rule.max_age ?? ""}
+                  </span>
                 )}
                 {(rule.min_weight != null || rule.max_weight != null) && (
-                  <span>体重: {rule.min_weight ?? ""}〜{rule.max_weight ?? ""}kg</span>
+                  <span>
+                    体重: {rule.min_weight ?? ""}〜{rule.max_weight ?? ""}kg
+                  </span>
                 )}
                 {(rule.min_height != null || rule.max_height != null) && (
-                  <span>身長: {rule.min_height ?? ""}〜{rule.max_height ?? ""}cm</span>
+                  <span>
+                    身長: {rule.min_height ?? ""}〜{rule.max_height ?? ""}cm
+                  </span>
                 )}
                 {(rule.min_grade != null || rule.max_grade != null) && (
-                  <span>年代: {rule.min_grade ?? ""}〜{rule.max_grade ?? ""}</span>
+                  <span>
+                    年代: {rule.min_grade ?? ""}〜{rule.max_grade ?? ""}
+                  </span>
                 )}
-                {rule.sex_filter && (
-                  <span>性別: {rule.sex_filter === "male" ? "男" : "女"}</span>
-                )}
-                {rule.max_grade_diff != null && (
-                  <span>学年差: {rule.max_grade_diff}以内</span>
-                )}
-                {rule.max_weight_diff != null && (
-                  <span>体重差: {rule.max_weight_diff}kg以内</span>
-                )}
-                {rule.max_height_diff != null && (
-                  <span>身長差: {rule.max_height_diff}cm以内</span>
-                )}
-                {rule.court_num != null && (
-                  <span>コート: {getCourtLabel(rule.court_num)}</span>
-                )}
+                {rule.sex_filter && <span>性別: {rule.sex_filter === "male" ? "男" : "女"}</span>}
+                {rule.max_grade_diff != null && <span>学年差: {rule.max_grade_diff}以内</span>}
+                {rule.max_weight_diff != null && <span>体重差: {rule.max_weight_diff}kg以内</span>}
+                {rule.max_height_diff != null && <span>身長差: {rule.max_height_diff}cm以内</span>}
+                {rule.court_num != null && <span>コート: {getCourtLabel(rule.court_num)}</span>}
               </div>
             </div>
-            <button
-              onClick={() => startDuplicate(rule)}
-              className="text-xs text-green-400 hover:text-green-300"
-            >
+            <button onClick={() => startDuplicate(rule)} className="text-xs text-green-400 hover:text-green-300">
               複製
             </button>
-            <button
-              onClick={() => startEdit(rule)}
-              className="text-xs text-blue-400 hover:text-blue-300"
-            >
+            <button onClick={() => startEdit(rule)} className="text-xs text-blue-400 hover:text-blue-300">
               編集
             </button>
             <button
@@ -340,7 +332,9 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
             >
               <option value="">全ルール</option>
               {rules.map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
               ))}
             </select>
           </div>
@@ -355,7 +349,9 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
               >
                 <option value="">指定なし</option>
                 {getGradeOptions(ageCategories).map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -368,7 +364,9 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
               >
                 <option value="">指定なし</option>
                 {getGradeOptions(ageCategories).map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -377,33 +375,65 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>年齢下限</label>
-              <input type="number" className={inputCls} value={form.min_age} onChange={(e) => setForm((f) => ({ ...f, min_age: e.target.value }))} placeholder="例: 6" />
+              <input
+                type="number"
+                className={inputCls}
+                value={form.min_age}
+                onChange={(e) => setForm((f) => ({ ...f, min_age: e.target.value }))}
+                placeholder="例: 6"
+              />
             </div>
             <div>
               <label className={labelCls}>年齢上限</label>
-              <input type="number" className={inputCls} value={form.max_age} onChange={(e) => setForm((f) => ({ ...f, max_age: e.target.value }))} placeholder="例: 12" />
+              <input
+                type="number"
+                className={inputCls}
+                value={form.max_age}
+                onChange={(e) => setForm((f) => ({ ...f, max_age: e.target.value }))}
+                placeholder="例: 12"
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>体重下限 (kg)</label>
-              <input type="number" className={inputCls} value={form.min_weight} onChange={(e) => setForm((f) => ({ ...f, min_weight: e.target.value }))} />
+              <input
+                type="number"
+                className={inputCls}
+                value={form.min_weight}
+                onChange={(e) => setForm((f) => ({ ...f, min_weight: e.target.value }))}
+              />
             </div>
             <div>
               <label className={labelCls}>体重上限 (kg)</label>
-              <input type="number" className={inputCls} value={form.max_weight} onChange={(e) => setForm((f) => ({ ...f, max_weight: e.target.value }))} />
+              <input
+                type="number"
+                className={inputCls}
+                value={form.max_weight}
+                onChange={(e) => setForm((f) => ({ ...f, max_weight: e.target.value }))}
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>身長下限 (cm)</label>
-              <input type="number" className={inputCls} value={form.min_height} onChange={(e) => setForm((f) => ({ ...f, min_height: e.target.value }))} />
+              <input
+                type="number"
+                className={inputCls}
+                value={form.min_height}
+                onChange={(e) => setForm((f) => ({ ...f, min_height: e.target.value }))}
+              />
             </div>
             <div>
               <label className={labelCls}>身長上限 (cm)</label>
-              <input type="number" className={inputCls} value={form.max_height} onChange={(e) => setForm((f) => ({ ...f, max_height: e.target.value }))} />
+              <input
+                type="number"
+                className={inputCls}
+                value={form.max_height}
+                onChange={(e) => setForm((f) => ({ ...f, max_height: e.target.value }))}
+              />
             </div>
           </div>
 
@@ -423,15 +453,33 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className={labelCls}>最大学年差</label>
-              <input type="number" className={inputCls} value={form.max_grade_diff} onChange={(e) => setForm((f) => ({ ...f, max_grade_diff: e.target.value }))} placeholder="例: 1" />
+              <input
+                type="number"
+                className={inputCls}
+                value={form.max_grade_diff}
+                onChange={(e) => setForm((f) => ({ ...f, max_grade_diff: e.target.value }))}
+                placeholder="例: 1"
+              />
             </div>
             <div>
               <label className={labelCls}>最大体重差 (kg)</label>
-              <input type="number" className={inputCls} value={form.max_weight_diff} onChange={(e) => setForm((f) => ({ ...f, max_weight_diff: e.target.value }))} placeholder="例: 10" />
+              <input
+                type="number"
+                className={inputCls}
+                value={form.max_weight_diff}
+                onChange={(e) => setForm((f) => ({ ...f, max_weight_diff: e.target.value }))}
+                placeholder="例: 10"
+              />
             </div>
             <div>
               <label className={labelCls}>最大身長差 (cm)</label>
-              <input type="number" className={inputCls} value={form.max_height_diff} onChange={(e) => setForm((f) => ({ ...f, max_height_diff: e.target.value }))} placeholder="例: 15" />
+              <input
+                type="number"
+                className={inputCls}
+                value={form.max_height_diff}
+                onChange={(e) => setForm((f) => ({ ...f, max_height_diff: e.target.value }))}
+                placeholder="例: 15"
+              />
             </div>
           </div>
 
@@ -444,7 +492,9 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
             >
               <option value="">自動</option>
               {Array.from({ length: courtCount }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={String(n)}>{getCourtLabel(n)}</option>
+                <option key={n} value={String(n)}>
+                  {getCourtLabel(n)}
+                </option>
               ))}
             </select>
           </div>
@@ -458,7 +508,10 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
               {saving ? "保存中..." : editingId ? "更新" : "作成"}
             </button>
             <button
-              onClick={() => { setShowForm(false); setEditingId(null); }}
+              onClick={() => {
+                setShowForm(false);
+                setEditingId(null);
+              }}
               className="text-sm text-gray-400 hover:text-gray-300 px-3 py-1.5"
             >
               キャンセル

@@ -96,11 +96,7 @@ describe("groupEntriesByRules", () => {
   });
 
   it("体重範囲で振り分け", () => {
-    const entries = [
-      makeEntry("A", { weight: 30 }),
-      makeEntry("B", { weight: 45 }),
-      makeEntry("C", { weight: 70 }),
-    ];
+    const entries = [makeEntry("A", { weight: 30 }), makeEntry("B", { weight: 45 }), makeEntry("C", { weight: 70 })];
     const rules = [
       makeRule("R1", { name: "軽量級", min_weight: null, max_weight: 50, sort_order: 0 }),
       makeRule("R2", { name: "重量級", min_weight: 50, max_weight: null, sort_order: 1 }),
@@ -163,9 +159,7 @@ describe("groupEntriesByRules", () => {
   });
 
   it("sort_order 順に処理される（先に処理されたルールが優先）", () => {
-    const entries = [
-      makeEntry("A", { age: 10, weight: 30 }),
-    ];
+    const entries = [makeEntry("A", { age: 10, weight: 30 })];
     const rules = [
       makeRule("R1", { name: "ルール1", min_age: 8, max_age: 12, sort_order: 0 }),
       makeRule("R2", { name: "ルール2", min_weight: 20, max_weight: 40, sort_order: 1 }),
@@ -181,9 +175,7 @@ describe("groupEntriesByRules", () => {
       makeEntry("A", { age: 10 }),
       makeEntry("B", { age: 15 }), // 13-17歳のルールがないので未分類
     ];
-    const rules = [
-      makeRule("R1", { name: "小学生", min_age: 6, max_age: 12, sort_order: 0 }),
-    ];
+    const rules = [makeRule("R1", { name: "小学生", min_age: 6, max_age: 12, sort_order: 0 })];
     const groups = groupEntriesByRules(entries, rules, {});
     expect(groups).toHaveLength(2);
     expect(groups[0].name).toBe("小学生");
@@ -200,9 +192,7 @@ describe("groupEntriesByRules", () => {
       makeEntry("C", { grade: "小5" }),
       makeEntry("D", { grade: "小6" }),
     ];
-    const rules = [
-      makeRule("R1", { name: "小学生", min_age: null, max_age: null, max_grade_diff: 1, sort_order: 0 }),
-    ];
+    const rules = [makeRule("R1", { name: "小学生", min_age: null, max_age: null, max_grade_diff: 1, sort_order: 0 })];
     const groups = groupEntriesByRules(entries, rules, {});
     // 小1,小2 は学年差1以内 → グループ1
     // 小5,小6 は学年差1以内 → グループ2
@@ -241,13 +231,8 @@ describe("groupEntriesByRules", () => {
   });
 
   it("年代範囲: gradeがnullの選手はマッチしない", () => {
-    const entries = [
-      makeEntry("A", { grade: "小2" }),
-      makeEntry("B", { grade: null }),
-    ];
-    const rules = [
-      makeRule("R1", { name: "小学生", min_grade: "小1", max_grade: "小6", sort_order: 0 }),
-    ];
+    const entries = [makeEntry("A", { grade: "小2" }), makeEntry("B", { grade: null })];
+    const rules = [makeRule("R1", { name: "小学生", min_grade: "小1", max_grade: "小6", sort_order: 0 })];
     const groups = groupEntriesByRules(entries, rules, {});
     expect(groups).toHaveLength(2); // 小学生, 未分類
     expect(groups[0].name).toBe("小学生");
@@ -258,13 +243,8 @@ describe("groupEntriesByRules", () => {
   });
 
   it("年代範囲: min_gradeのみ指定（下限のみ）", () => {
-    const entries = [
-      makeEntry("A", { grade: "小3" }),
-      makeEntry("B", { grade: "中2" }),
-    ];
-    const rules = [
-      makeRule("R1", { name: "小4以上", min_grade: "小4", max_grade: null, sort_order: 0 }),
-    ];
+    const entries = [makeEntry("A", { grade: "小3" }), makeEntry("B", { grade: "中2" })];
+    const rules = [makeRule("R1", { name: "小4以上", min_grade: "小4", max_grade: null, sort_order: 0 })];
     const groups = groupEntriesByRules(entries, rules, {});
     // 小3は小4未満なのでマッチしない、中2(=8)は小4(=4)以上なのでマッチ
     const matched = groups.find((g) => g.name === "小4以上");
@@ -318,7 +298,14 @@ describe("groupEntriesByRules", () => {
   it("maxWeightDiff / maxHeightDiff がグループに引き継がれる", () => {
     const entries = [makeEntry("A", { age: 10 })];
     const rules = [
-      makeRule("R1", { name: "テスト", min_age: 6, max_age: 12, max_weight_diff: 5, max_height_diff: 10, sort_order: 0 }),
+      makeRule("R1", {
+        name: "テスト",
+        min_age: 6,
+        max_age: 12,
+        max_weight_diff: 5,
+        max_height_diff: 10,
+        sort_order: 0,
+      }),
     ];
     const groups = groupEntriesByRules(entries, rules, {});
     expect(groups[0].maxWeightDiff).toBe(5);
@@ -327,21 +314,14 @@ describe("groupEntriesByRules", () => {
 
   it("courtNum がグループに引き継がれる", () => {
     const entries = [makeEntry("A", { age: 10 })];
-    const rules = [
-      makeRule("R1", { name: "テスト", min_age: 6, max_age: 12, court_num: 2, sort_order: 0 }),
-    ];
+    const rules = [makeRule("R1", { name: "テスト", min_age: 6, max_age: 12, court_num: 2, sort_order: 0 })];
     const groups = groupEntriesByRules(entries, rules, {});
     expect(groups[0].courtNum).toBe(2);
   });
 
   it("各グループにペアが生成される", () => {
-    const entries = [
-      makeEntry("A", { age: 10, weight: 30 }),
-      makeEntry("B", { age: 10, weight: 35 }),
-    ];
-    const rules = [
-      makeRule("R1", { name: "小学生", min_age: 6, max_age: 12, sort_order: 0 }),
-    ];
+    const entries = [makeEntry("A", { age: 10, weight: 30 }), makeEntry("B", { age: 10, weight: 35 })];
+    const rules = [makeRule("R1", { name: "小学生", min_age: 6, max_age: 12, sort_order: 0 })];
     const groups = groupEntriesByRules(entries, rules, {});
     expect(groups[0].pairs).toHaveLength(1);
     expect(groups[0].pairs[0].e1).toBeTruthy();
@@ -353,30 +333,25 @@ describe("matchesRule — 数値学年ルール vs 年齢区分エントリー",
   it("10歳・一般は小1-小6ルールにマッチする", () => {
     const entry = makeEntry("e1", { grade: "一般", age: 10 });
     const rule = makeRule("R1", { min_grade: "小1", max_grade: "小6" });
-    expect(matchesRule(entry, rule, { "e1": new Set() })).toBe(true);
+    expect(matchesRule(entry, rule, { e1: new Set() })).toBe(true);
   });
 
   it("25歳・一般は小1-小6ルールにマッチしない", () => {
     const entry = makeEntry("e2", { grade: "一般", age: 25 });
     const rule = makeRule("R1", { min_grade: "小1", max_grade: "小6" });
-    expect(matchesRule(entry, rule, { "e2": new Set() })).toBe(false);
+    expect(matchesRule(entry, rule, { e2: new Set() })).toBe(false);
   });
 
   it("5歳・一般は小1-小6ルールにマッチしない（下限未満）", () => {
     const entry = makeEntry("e3", { grade: "一般", age: 5 });
     const rule = makeRule("R1", { min_grade: "小1", max_grade: "小6" });
-    expect(matchesRule(entry, rule, { "e3": new Set() })).toBe(false);
+    expect(matchesRule(entry, rule, { e3: new Set() })).toBe(false);
   });
 
   it("groupEntriesByRules 経由でも正しく分類される", () => {
-    const entries = [
-      makeEntry("e1", { grade: "一般", age: 10 }),
-      makeEntry("e2", { grade: "一般", age: 25 }),
-    ];
-    const rules = [
-      makeRule("R1", { name: "小学生", min_grade: "小1", max_grade: "小6", sort_order: 0 }),
-    ];
-    const groups = groupEntriesByRules(entries, rules, { "e1": new Set(), "e2": new Set() });
+    const entries = [makeEntry("e1", { grade: "一般", age: 10 }), makeEntry("e2", { grade: "一般", age: 25 })];
+    const rules = [makeRule("R1", { name: "小学生", min_grade: "小1", max_grade: "小6", sort_order: 0 })];
+    const groups = groupEntriesByRules(entries, rules, { e1: new Set(), e2: new Set() });
     const matched = groups.find((g) => g.name === "小学生");
     expect(matched).toBeDefined();
     expect(matched?.entries.some((e) => e.id === "e1")).toBe(true);

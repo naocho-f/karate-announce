@@ -26,10 +26,7 @@ const ADMIN_ALL_SOURCES = [
 /** app/admin 配下のページファイルを列挙 */
 function findAdminPages(): string[] {
   const pages: string[] = [];
-  const dirs = [
-    "app/admin/timer-presets",
-    "app/admin/spec",
-  ];
+  const dirs = ["app/admin/timer-presets", "app/admin/spec"];
   for (const dir of dirs) {
     const pagePath = join(ROOT, dir, "page.tsx");
     if (existsSync(pagePath)) pages.push(dir);

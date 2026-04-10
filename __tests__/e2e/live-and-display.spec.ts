@@ -69,7 +69,6 @@ async function createTournamentWithEntries(
   return id;
 }
 
-
 // ── テスト ──
 
 test.describe("ライブ・表示", () => {

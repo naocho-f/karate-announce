@@ -94,12 +94,14 @@
 機能変更なし。implementer の実行速度向上を目的に、巨大な2ファイルをコンポーネント単位で分割。
 
 **`app/admin/events/[id]/page.tsx`（3,594行 → 約350行）**
+
 - `components/participant-section.tsx` — Step1 参加者管理（フォーム設定、メール設定、参加受付、参加者一覧、CSV出力、テスト参加者生成）
 - `components/bracket-section.tsx` — Step2 対戦表作成（ダッシュボード、参加者分布、コート別対戦表、グループ編集、確定済み対戦表）
 - `components/match-label-section.tsx` — Step3 試合番号設定（コートタブ + MatchLabelEditor）
 - page.tsx には共通 state、load()、StepNav、レイアウト、メタ情報編集のみ残留
 
 **`app/admin/page.tsx`（2,278行 → 約120行）**
+
 - `components/home-dashboard-panel.tsx` — ホームタブ（進行中試合パネル、次の試合、要対応）
 - `components/events-panel.tsx` — 試合タブ（CRUD、複製、アクティブ切替）
 - `components/settings-panel.tsx` — 設定タブ（アナウンス、ルール、流派、タイマー、年代区分、不具合報告）
@@ -123,6 +125,7 @@
 会話終了時に自動でデプロイパイプラインを実行する。トリガーファイルに依存せず、常に呼び出される。
 
 **`karate-predeploy.sh` の処理フロー:**
+
 1. **SPEC.md チェック**: `/tmp/karate-spec-needed` が残っていたらエラーで停止（SPEC.md 未更新はデプロイ不可）
 2. **未コミット変更チェック**: `git diff` で変更が残っていたらエラーで停止（コミットを促す）
 3. **未プッシュ確認**: `git log origin/main..HEAD` で未プッシュコミットがなければデプロイ不要で終了
@@ -154,7 +157,7 @@
 - コントラスト改善（管理画面フォーム設定）: フィールドカードの枠線を `border-gray-500`（非表示時は `border-gray-600/40`）に強化、ボディに `bg-gray-800/40` 背景を追加してカード内外を明確化。メインラベルを `text-gray-200`、サブラベル（姓・名・読み等）を `text-gray-400` に引き上げ
 - 設定タブのサブタブを `grid` 均等割レイアウトに変更（横幅をタブ数で等分）
 - 自由設問（カスタムフィールド）機能: 管理者がフォーム設定画面から任意の項目（テキスト・数値・選択肢等）を追加・削除・複製可能。`custom_field_defs` テーブルで定義を管理し、入力値は `entries.extra_fields` JSONB に格納。GIN インデックスで検索可能。大会複製時にもコピーされる
-- 自由設問の統合管理: 大会ごとに聞くか変わる11項目（保護者名、試合経験、希望試合数、頭突き希望、防具関連）を FIELD_POOL から `custom_field_defs` に移行。管理者追加の `custom_*` フィールドと同等に削除・複製が可能。field_key は既存のまま維持し `extra_fields` との互換性を保持。固定項目（氏名、性別、年齢、身長、体重、所属、ルール、連絡先等）はバッジなし・削除不可。既存大会はフォーム設定アクセス時に `custom_field_defs` を自動補完
+- 自由設問の統合管理: 大会ごとに聞くか変わる11項目（保護者名、試合経験、希望試合数、頭突き希望、防具関連）を FIELD*POOL から `custom_field_defs` に移行。管理者追加の `custom*\*`フィールドと同等に削除・複製が可能。field_key は既存のまま維持し`extra_fields`との互換性を保持。固定項目（氏名、性別、年齢、身長、体重、所属、ルール、連絡先等）はバッジなし・削除不可。既存大会はフォーム設定アクセス時に`custom_field_defs` を自動補完
 - 参加申込フォームUI改善: birthday/age を2列グリッドに統合表示（管理画面プレビューと同一レイアウト）、注意書きの外枠線を削除し左ボーダーのみで項目の補足情報感を演出、フィールド間の間隔を `space-y-4` → `space-y-6` に拡大してすっきりした印象に
 - 所属団体の読み仮名欄を常時表示に変更（マスタ選択時は読み仮名を自動入力、手動編集も可能）
 - 参加申込フォームのバリデーション改善: ボタンを常に押下可能にし、押下時にバリデーションエラーを表示。エラーサマリー + フィールド個別エラー（赤枠・メッセージ）+ 最初のエラー箇所への自動スクロール。値入力時にリアルタイムでエラークリア
@@ -229,16 +232,16 @@
 
 ## 12. 環境変数
 
-| 変数名 | 説明 | 利用側 |
-|--------|------|--------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクト URL | クライアント |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 公開キー | クライアント |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase サービスロールキー | サーバー (API) |
-| `OPENAI_API_KEY` | OpenAI API キー | サーバー (TTS API) |
-| `ADMIN_USERNAME` | 管理者ユーザー名（未設定時は `"admin"`） | サーバー (認証) |
-| `ADMIN_PASSWORD` | 管理者パスワード（未設定時はローカル開発として認証スキップ） | サーバー (認証) |
-| `RESEND_API_KEY` | Resend メール送信 API キー（未設定時はメール送信をスキップ） | サーバー (メール) |
-| `RESEND_FROM_EMAIL` | メール送信元アドレス（未設定時は `onboarding@resend.dev`） | サーバー (メール) |
+| 変数名                          | 説明                                                         | 利用側             |
+| ------------------------------- | ------------------------------------------------------------ | ------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase プロジェクト URL                                    | クライアント       |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 公開キー                                            | クライアント       |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase サービスロールキー                                  | サーバー (API)     |
+| `OPENAI_API_KEY`                | OpenAI API キー                                              | サーバー (TTS API) |
+| `ADMIN_USERNAME`                | 管理者ユーザー名（未設定時は `"admin"`）                     | サーバー (認証)    |
+| `ADMIN_PASSWORD`                | 管理者パスワード（未設定時はローカル開発として認証スキップ） | サーバー (認証)    |
+| `RESEND_API_KEY`                | Resend メール送信 API キー（未設定時はメール送信をスキップ） | サーバー (メール)  |
+| `RESEND_FROM_EMAIL`             | メール送信元アドレス（未設定時は `onboarding@resend.dev`）   | サーバー (メール)  |
 
 ---
 
@@ -246,11 +249,11 @@
 
 ### 13.1 テストフレームワーク
 
-| レイヤー | ツール | 設定ファイル |
-|---------|--------|-------------|
-| 単体テスト | Vitest + happy-dom | `vitest.config.ts` |
+| レイヤー   | ツール                         | 設定ファイル                                          |
+| ---------- | ------------------------------ | ----------------------------------------------------- |
+| 単体テスト | Vitest + happy-dom             | `vitest.config.ts`                                    |
 | E2E テスト | Playwright (Chromium) + dotenv | `playwright.config.ts`（`.env.local` を自動読み込み） |
-| CI/CD | GitHub Actions | `.github/workflows/test.yml` |
+| CI/CD      | GitHub Actions                 | `.github/workflows/test.yml`                          |
 
 ### 13.2 テスト構成
 
@@ -306,13 +309,13 @@ __tests__/
 
 ### 13.3 npm スクリプト
 
-| コマンド | 内容 |
-|---------|------|
-| `npm run test` | 全単体テスト実行 |
-| `npm run test:watch` | ウォッチモード |
-| `npm run test:unit` | unit ディレクトリのみ |
-| `npm run test:e2e` | Playwright E2E テスト |
-| `npm run test:all` | 単体 + E2E |
+| コマンド             | 内容                  |
+| -------------------- | --------------------- |
+| `npm run test`       | 全単体テスト実行      |
+| `npm run test:watch` | ウォッチモード        |
+| `npm run test:unit`  | unit ディレクトリのみ |
+| `npm run test:e2e`   | Playwright E2E テスト |
+| `npm run test:all`   | 単体 + E2E            |
 
 ### 13.4 CI パイプライン（GitHub Actions）
 
@@ -333,4 +336,4 @@ __tests__/
 - 単体/APIテスト: 647 テスト（38 ファイル）
 - E2E テスト: 71 テスト（12 ファイル）
 - **合計: 647 単体/API + 71 E2E テスト**
-test
+  test

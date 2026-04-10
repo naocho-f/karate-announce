@@ -119,16 +119,10 @@ export function UnifiedStatusBar({
       return (
         <div className="sticky top-0 z-50 bg-green-600 text-white text-center px-4 py-2 text-sm font-medium shadow-lg flex items-center justify-center gap-3">
           <span>ネットワーク接続が回復しました。オンラインに切り替えますか？</span>
-          <button
-            onClick={onAcceptRecovery}
-            className="bg-green-800 hover:bg-green-900 px-3 py-1 rounded text-xs"
-          >
+          <button onClick={onAcceptRecovery} className="bg-green-800 hover:bg-green-900 px-3 py-1 rounded text-xs">
             はい
           </button>
-          <button
-            onClick={onDeclineRecovery}
-            className="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-xs"
-          >
+          <button onClick={onDeclineRecovery} className="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-xs">
             いいえ
           </button>
         </div>
@@ -136,13 +130,8 @@ export function UnifiedStatusBar({
     }
     return (
       <div className="sticky top-0 z-50 bg-blue-600 text-white text-center px-4 py-2 text-sm font-medium shadow-lg flex items-center justify-center gap-3">
-        <span>
-          オフラインモードで動作中{pendingCount > 0 ? ` - 保存済み: ${pendingCount}件` : ""}
-        </span>
-        <button
-          onClick={onToggleOfflineMode}
-          className="bg-blue-800 hover:bg-blue-900 px-3 py-1 rounded text-xs"
-        >
+        <span>オフラインモードで動作中{pendingCount > 0 ? ` - 保存済み: ${pendingCount}件` : ""}</span>
+        <button onClick={onToggleOfflineMode} className="bg-blue-800 hover:bg-blue-900 px-3 py-1 rounded text-xs">
           オンラインに切り替え
         </button>
       </div>
@@ -159,10 +148,7 @@ export function UnifiedStatusBar({
     return (
       <div className="sticky top-0 z-50 bg-yellow-500 text-white text-center px-4 py-2 text-sm font-medium shadow-lg flex items-center justify-center gap-3">
         <span>⚠ ネットワークが不安定です</span>
-        <button
-          onClick={onToggleOfflineMode}
-          className="bg-yellow-700 hover:bg-yellow-800 px-3 py-1 rounded text-xs"
-        >
+        <button onClick={onToggleOfflineMode} className="bg-yellow-700 hover:bg-yellow-800 px-3 py-1 rounded text-xs">
           オフラインモードに切り替え
         </button>
       </div>
@@ -175,10 +161,7 @@ export function UnifiedStatusBar({
       return (
         <div className="sticky top-0 z-50 bg-red-600 text-white text-center px-4 py-2 text-sm font-medium shadow-lg flex items-center justify-center gap-3">
           <span>⚠ オフラインです。操作は保存済みです（{pendingCount}件）</span>
-          <button
-            onClick={onToggleOfflineMode}
-            className="bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-xs"
-          >
+          <button onClick={onToggleOfflineMode} className="bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-xs">
             オフラインモードに切り替え
           </button>
         </div>
@@ -187,10 +170,7 @@ export function UnifiedStatusBar({
     return (
       <div className="sticky top-0 z-50 bg-red-600 text-white text-center px-4 py-2 text-sm font-medium shadow-lg flex items-center justify-center gap-3">
         <span>⚠ オフラインです</span>
-        <button
-          onClick={onToggleOfflineMode}
-          className="bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-xs"
-        >
+        <button onClick={onToggleOfflineMode} className="bg-red-800 hover:bg-red-900 px-3 py-1 rounded text-xs">
           オフラインモードに切り替え
         </button>
       </div>
@@ -221,7 +201,10 @@ export function usePendingCount(intervalMs = 2000): number {
     };
     update();
     const timer = setInterval(update, intervalMs);
-    return () => { mounted = false; clearInterval(timer); };
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
   }, [intervalMs]);
   return count;
 }

@@ -88,7 +88,5 @@ export function countActualMatches(
   tournamentIds: string[],
 ): number {
   const idSet = new Set(tournamentIds);
-  return matchRows.filter(
-    (m) => idSet.has(m.tournament_id) && m.fighter1_id !== null && m.fighter2_id !== null,
-  ).length;
+  return matchRows.filter((m) => idSet.has(m.tournament_id) && m.fighter1_id !== null && m.fighter2_id !== null).length;
 }

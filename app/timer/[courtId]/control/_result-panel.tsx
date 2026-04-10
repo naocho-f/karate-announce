@@ -61,13 +61,13 @@ export default function ResultPanel({
               onClick={() => onSelectingResultFor(swapSides ? "white" : "red")}
               className={`py-5 rounded-lg font-bold text-sm transition ${swapSides ? "bg-gray-700 hover:bg-gray-600" : "bg-red-800 hover:bg-red-700"} text-white`}
             >
-              {swapSides ? "白" : "赤"} 勝利 ({swapSides ? (state.white.name || "白") : (state.red.name || "赤")})
+              {swapSides ? "白" : "赤"} 勝利 ({swapSides ? state.white.name || "白" : state.red.name || "赤"})
             </button>
             <button
               onClick={() => onSelectingResultFor(swapSides ? "red" : "white")}
               className={`py-5 rounded-lg font-bold text-sm transition ${swapSides ? "bg-red-800 hover:bg-red-700" : "bg-gray-700 hover:bg-gray-600"} text-white`}
             >
-              {swapSides ? "赤" : "白"} 勝利 ({swapSides ? (state.red.name || "赤") : (state.white.name || "白")})
+              {swapSides ? "赤" : "白"} 勝利 ({swapSides ? state.red.name || "赤" : state.white.name || "白"})
             </button>
             {p?.allow_draw && (
               <button
@@ -84,9 +84,12 @@ export default function ResultPanel({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-300 font-bold">
-              {selectingResultFor === "red" ? `赤 (${state.red.name || "赤"})` : `白 (${state.white.name || "白"})`} の勝利方法を選択
+              {selectingResultFor === "red" ? `赤 (${state.red.name || "赤"})` : `白 (${state.white.name || "白"})`}{" "}
+              の勝利方法を選択
             </p>
-            <button onClick={() => onSelectingResultFor(null)} className="text-xs text-gray-500 hover:text-gray-300">← 戻る</button>
+            <button onClick={() => onSelectingResultFor(null)} className="text-xs text-gray-500 hover:text-gray-300">
+              ← 戻る
+            </button>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {RESULT_METHODS.map((rm) => (
@@ -120,22 +123,27 @@ export default function ResultPanel({
           </div>
           {!state.resultWritten && (
             <>
-              <button onClick={onWriteBack} disabled={writingBack}
-                className="w-full py-5 rounded-lg bg-green-700 hover:bg-green-600 text-white font-bold text-lg transition disabled:opacity-50">
+              <button
+                onClick={onWriteBack}
+                disabled={writingBack}
+                className="w-full py-5 rounded-lg bg-green-700 hover:bg-green-600 text-white font-bold text-lg transition disabled:opacity-50"
+              >
                 {writingBack ? "書き戻し中..." : "確定する"}
               </button>
-              <button onClick={onCancelResult}
-                className="w-full py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition">
+              <button
+                onClick={onCancelResult}
+                className="w-full py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition"
+              >
                 訂正する
               </button>
             </>
           )}
+          {state.resultWritten && <p className="text-center text-green-400 text-sm font-bold">結果を書き戻しました</p>}
           {state.resultWritten && (
-            <p className="text-center text-green-400 text-sm font-bold">結果を書き戻しました</p>
-          )}
-          {state.resultWritten && (
-            <button onClick={onResetToIdle}
-              className="w-full py-5 rounded-lg bg-blue-700 hover:bg-blue-600 text-white font-bold text-sm transition">
+            <button
+              onClick={onResetToIdle}
+              className="w-full py-5 rounded-lg bg-blue-700 hover:bg-blue-600 text-white font-bold text-sm transition"
+            >
               次の試合へ
             </button>
           )}

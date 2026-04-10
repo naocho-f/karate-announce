@@ -31,7 +31,6 @@ async function createEventWithForm(page: Page): Promise<string> {
   return eventId;
 }
 
-
 // ── テスト ──
 
 test.describe("エントリーフォーム", () => {

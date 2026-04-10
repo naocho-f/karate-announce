@@ -27,10 +27,15 @@ export default function EventDetailPage({ params }: Props) {
   const [eventRuleIds, setEventRuleIds] = useState<Set<string>>(new Set());
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
-  const [mismatchSettings, _setMismatchSettings] = useState<MismatchSettings>({ maxWeightDiff: 5, maxHeightDiff: null });
+  const [mismatchSettings, _setMismatchSettings] = useState<MismatchSettings>({
+    maxWeightDiff: 5,
+    maxHeightDiff: null,
+  });
   const [tournamentMatchFighterIds, setTournamentMatchFighterIds] = useState<Record<string, Set<string>>>({});
   const [savedMatchPairs, setSavedMatchPairs] = useState<Array<{ f1: string; f2: string; rules: string | null }>>([]);
-  const [allMatchRows, setAllMatchRows] = useState<Array<{ tournament_id: string; fighter1_id: string | null; fighter2_id: string | null }>>([]);
+  const [allMatchRows, setAllMatchRows] = useState<
+    Array<{ tournament_id: string; fighter1_id: string | null; fighter2_id: string | null }>
+  >([]);
   const [timerPresets, setTimerPresets] = useState<TimerPreset[]>([]);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [entrySubTab, setEntrySubTab] = useState<"entries" | "form" | "email">("entries");
@@ -90,7 +95,8 @@ export default function EventDetailPage({ params }: Props) {
     if (!initialStepSetRef.current) {
       initialStepSetRef.current = true;
       const urlStep = new URLSearchParams(window.location.search).get("step");
-      const s: 1 | 2 | 3 = urlStep === "3" ? 3 : urlStep === "2" ? 2 : urlStep === "1" ? 1 : tournamentList.length > 0 ? 2 : 1;
+      const s: 1 | 2 | 3 =
+        urlStep === "3" ? 3 : urlStep === "2" ? 2 : urlStep === "1" ? 1 : tournamentList.length > 0 ? 2 : 1;
       setStep(s);
       router.replace(`/admin/events/${id}?step=${s}`, { scroll: false });
     }
@@ -105,14 +111,31 @@ export default function EventDetailPage({ params }: Props) {
         ? supabase.from("entry_rules").select("entry_id, rule_id").in("entry_id", entryIds)
         : Promise.resolve({ data: [] as Array<{ entry_id: string; rule_id: string }> }),
       tournamentIds.length > 0
-        ? supabase.from("matches").select("tournament_id, fighter1_id, fighter2_id, round, rules").in("tournament_id", tournamentIds)
-        : Promise.resolve({ data: [] as Array<{ tournament_id: string; fighter1_id: string | null; fighter2_id: string | null; round: number; rules: string | null }> }),
+        ? supabase
+            .from("matches")
+            .select("tournament_id, fighter1_id, fighter2_id, round, rules")
+            .in("tournament_id", tournamentIds)
+        : Promise.resolve({
+            data: [] as Array<{
+              tournament_id: string;
+              fighter1_id: string | null;
+              fighter2_id: string | null;
+              round: number;
+              rules: string | null;
+            }>,
+          }),
       supabase.from("timer_presets").select("*").order("created_at", { ascending: false }),
     ]);
 
     setRules(rs ?? []);
     setTimerPresets((tp ?? []) as TimerPreset[]);
-    setAllMatchRows((matchRows ?? []).map((m) => ({ tournament_id: m.tournament_id, fighter1_id: m.fighter1_id, fighter2_id: m.fighter2_id })));
+    setAllMatchRows(
+      (matchRows ?? []).map((m) => ({
+        tournament_id: m.tournament_id,
+        fighter1_id: m.fighter1_id,
+        fighter2_id: m.fighter2_id,
+      })),
+    );
     const map: Record<string, Set<string>> = {};
     (erul ?? []).forEach((r) => {
       if (!map[r.entry_id]) map[r.entry_id] = new Set();
@@ -164,8 +187,11 @@ export default function EventDetailPage({ params }: Props) {
       body: JSON.stringify(updates),
     });
     setSavingMeta(false);
-    if (!res.ok) { showToast("保存に失敗しました"); return; }
-    setEvent((prev) => prev ? { ...prev, ...updates } : prev);
+    if (!res.ok) {
+      showToast("保存に失敗しました");
+      return;
+    }
+    setEvent((prev) => (prev ? { ...prev, ...updates } : prev));
     setEditingMeta(false);
   }
 
@@ -178,8 +204,11 @@ export default function EventDetailPage({ params }: Props) {
       body: JSON.stringify({ entry_closed: newVal }),
     });
     setTogglingClosed(false);
-    if (!res.ok) { showToast("受付状態の変更に失敗しました"); return; }
-    setEvent((prev) => prev ? { ...prev, entry_closed: newVal } : prev);
+    if (!res.ok) {
+      showToast("受付状態の変更に失敗しました");
+      return;
+    }
+    setEvent((prev) => (prev ? { ...prev, entry_closed: newVal } : prev));
     if (newVal) setShowClosedGuide(true);
   }
 
@@ -192,8 +221,11 @@ export default function EventDetailPage({ params }: Props) {
       body: JSON.stringify({ entry_close_at: utc }),
     });
     setSavingCloseAt(false);
-    if (!res.ok) { showToast("保存に失敗しました"); return; }
-    setEvent((prev) => prev ? { ...prev, entry_close_at: utc } : prev);
+    if (!res.ok) {
+      showToast("保存に失敗しました");
+      return;
+    }
+    setEvent((prev) => (prev ? { ...prev, entry_close_at: utc } : prev));
   }
 
   async function clearEntryCloseAt() {
@@ -205,8 +237,11 @@ export default function EventDetailPage({ params }: Props) {
       body: JSON.stringify({ entry_close_at: null }),
     });
     setSavingCloseAt(false);
-    if (!res.ok) { showToast("クリアに失敗しました"); return; }
-    setEvent((prev) => prev ? { ...prev, entry_close_at: null } : prev);
+    if (!res.ok) {
+      showToast("クリアに失敗しました");
+      return;
+    }
+    setEvent((prev) => (prev ? { ...prev, entry_close_at: null } : prev));
   }
 
   const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -223,10 +258,13 @@ export default function EventDetailPage({ params }: Props) {
     form.append("file", file);
     const res = await fetch(`/api/admin/events/${id}/${type}`, { method: "POST", body: form });
     setLoading(false);
-    if (!res.ok) { showToast("アップロードに失敗しました"); return; }
+    if (!res.ok) {
+      showToast("アップロードに失敗しました");
+      return;
+    }
     const data = await res.json();
     const key = type === "banner" ? "banner_image_path" : "ogp_image_path";
-    setEvent((prev) => prev ? { ...prev, [key]: data.path } : prev);
+    setEvent((prev) => (prev ? { ...prev, [key]: data.path } : prev));
     e.target.value = "";
   }
 
@@ -234,9 +272,12 @@ export default function EventDetailPage({ params }: Props) {
     setDeletingImageType(type);
     const res = await fetch(`/api/admin/events/${id}/${type}`, { method: "DELETE" });
     setDeletingImageType(null);
-    if (!res.ok) { showToast("削除に失敗しました"); return; }
+    if (!res.ok) {
+      showToast("削除に失敗しました");
+      return;
+    }
     const key = type === "banner" ? "banner_image_path" : "ogp_image_path";
-    setEvent((prev) => prev ? { ...prev, [key]: null } : prev);
+    setEvent((prev) => (prev ? { ...prev, [key]: null } : prev));
   }
 
   async function toggleEntryRule(entryId: string, ruleId: string) {
@@ -256,7 +297,11 @@ export default function EventDetailPage({ params }: Props) {
         return next;
       });
     }
-    setProcessingRuleKeys((prev) => { const next = new Set(prev); next.delete(key); return next; });
+    setProcessingRuleKeys((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
   }
 
   async function deleteEntry(entryId: string) {
@@ -268,7 +313,11 @@ export default function EventDetailPage({ params }: Props) {
     } else {
       showToast("削除に失敗しました");
     }
-    setProcessingEntryIds((prev) => { const next = new Set(prev); next.delete(entryId); return next; });
+    setProcessingEntryIds((prev) => {
+      const next = new Set(prev);
+      next.delete(entryId);
+      return next;
+    });
   }
 
   async function toggleWithdrawn(entryId: string, withdrawn: boolean) {
@@ -278,22 +327,32 @@ export default function EventDetailPage({ params }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_withdrawn: withdrawn }),
     });
-    if (res.ok) setEntries((prev) => prev.map((e) => e.id === entryId ? { ...e, is_withdrawn: withdrawn } : e));
-    setProcessingEntryIds((prev) => { const next = new Set(prev); next.delete(entryId); return next; });
+    if (res.ok) setEntries((prev) => prev.map((e) => (e.id === entryId ? { ...e, is_withdrawn: withdrawn } : e)));
+    setProcessingEntryIds((prev) => {
+      const next = new Set(prev);
+      next.delete(entryId);
+      return next;
+    });
   }
 
   // 変更検知: トーナメント確定後に新規エントリーまたは欠場が発生しているか
   const hasEntryChanges = useMemo(() => {
     if (tournaments.length === 0) return false;
-    const earliest = tournaments.reduce((min, t) => t.created_at < min ? t.created_at : min, tournaments[0].created_at);
-    return entries.some(e => e.created_at > earliest) || entries.some(e => e.is_withdrawn);
+    const earliest = tournaments.reduce(
+      (min, t) => (t.created_at < min ? t.created_at : min),
+      tournaments[0].created_at,
+    );
+    return entries.some((e) => e.created_at > earliest) || entries.some((e) => e.is_withdrawn);
   }, [entries, tournaments]);
 
   const entryChangeSummary = useMemo(() => {
     if (!hasEntryChanges || tournaments.length === 0) return "";
-    const earliest = tournaments.reduce((min, t) => t.created_at < min ? t.created_at : min, tournaments[0].created_at);
-    const newCount = entries.filter(e => e.created_at > earliest).length;
-    const withdrawnCount = entries.filter(e => e.is_withdrawn).length;
+    const earliest = tournaments.reduce(
+      (min, t) => (t.created_at < min ? t.created_at : min),
+      tournaments[0].created_at,
+    );
+    const newCount = entries.filter((e) => e.created_at > earliest).length;
+    const withdrawnCount = entries.filter((e) => e.is_withdrawn).length;
     const parts: string[] = [];
     if (newCount > 0) parts.push(`新規${newCount}名追加`);
     if (withdrawnCount > 0) parts.push(`欠場${withdrawnCount}名`);
@@ -304,25 +363,43 @@ export default function EventDetailPage({ params }: Props) {
   const allEntriesAssigned = useMemo(() => {
     if (tournaments.length === 0) return false;
     const allFighterIds = new Set<string>();
-    for (const fids of Object.values(tournamentMatchFighterIds)) fids.forEach(id => allFighterIds.add(id));
-    const active = entries.filter(e => !e.is_withdrawn);
-    return active.length > 0 && active.every(e => e.fighter_id && allFighterIds.has(e.fighter_id));
+    for (const fids of Object.values(tournamentMatchFighterIds)) fids.forEach((id) => allFighterIds.add(id));
+    const active = entries.filter((e) => !e.is_withdrawn);
+    return active.length > 0 && active.every((e) => e.fighter_id && allFighterIds.has(e.fighter_id));
   }, [entries, tournaments, tournamentMatchFighterIds]);
 
-  useEffect(() => { load(); }, [load]); // eslint-disable-line react-hooks/set-state-in-effect -- async data fetch calls setState in callback after await
+  useEffect(() => {
+    let cancelled = false;
+    const doLoad = () => {
+      if (!cancelled) load();
+    };
+    doLoad();
+    return () => {
+      cancelled = true;
+    };
+  }, [load]);
 
   // form_configs の is_ready 監視は廃止（受付開始時に自動で true に設定される）
 
   if (!event) {
-    return <div className="min-h-screen bg-main-bg text-white flex items-center justify-center text-gray-400">読み込み中...</div>;
+    return (
+      <div className="min-h-screen bg-main-bg text-white flex items-center justify-center text-gray-400">
+        読み込み中...
+      </div>
+    );
   }
 
   const eventRules = rules.filter((r) => eventRuleIds.has(r.id));
 
-  async function handleAutoCreateFromDialog(autoGroups: AutoGroup[], eventId: string, evtRules: Rule[], reload: () => void) {
+  async function handleAutoCreateFromDialog(
+    autoGroups: AutoGroup[],
+    eventId: string,
+    evtRules: Rule[],
+    reload: () => void,
+  ) {
     for (const group of autoGroups) {
       const courtNum = group.courtNum ?? 1;
-      const ruleName = group.ruleId ? evtRules.find((r) => r.id === group.ruleId)?.name ?? null : null;
+      const ruleName = group.ruleId ? (evtRules.find((r) => r.id === group.ruleId)?.name ?? null) : null;
       const pairs = group.pairs.map((p) => ({
         e1: p.e1,
         e2: p.e2,
@@ -353,9 +430,13 @@ export default function EventDetailPage({ params }: Props) {
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-3 mb-4 flex-wrap">
           <nav className="flex items-center gap-1 text-sm">
-            <Link href="/admin" className="text-gray-400 hover:text-white">管理画面</Link>
+            <Link href="/admin" className="text-gray-400 hover:text-white">
+              管理画面
+            </Link>
             <span className="text-gray-600">/</span>
-            <Link href="/admin?tab=events" className="text-gray-400 hover:text-white">試合</Link>
+            <Link href="/admin?tab=events" className="text-gray-400 hover:text-white">
+              試合
+            </Link>
             <span className="text-gray-600">/</span>
             <span className="text-gray-200">{event.name}</span>
           </nav>
@@ -370,10 +451,19 @@ export default function EventDetailPage({ params }: Props) {
         <div className="mb-6 bg-gray-800 rounded-xl px-4 py-3">
           {!editingMeta ? (
             <div className="flex items-center gap-4 flex-wrap">
-              <span className="text-sm text-gray-400">開催日: <span className="text-gray-200">{event.event_date ?? "未設定"}</span></span>
-              <span className="text-sm text-gray-400">コート数: <span className="text-gray-200">{event.court_count}</span></span>
-              {event.court_names && event.court_names.some(n => n?.trim()) && (
-                <span className="text-sm text-gray-400">コート名: <span className="text-gray-200">{event.court_names.map((n, i) => n?.trim() || `コート${i + 1}`).join(" / ")}</span></span>
+              <span className="text-sm text-gray-400">
+                開催日: <span className="text-gray-200">{event.event_date ?? "未設定"}</span>
+              </span>
+              <span className="text-sm text-gray-400">
+                コート数: <span className="text-gray-200">{event.court_count}</span>
+              </span>
+              {event.court_names && event.court_names.some((n) => n?.trim()) && (
+                <span className="text-sm text-gray-400">
+                  コート名:{" "}
+                  <span className="text-gray-200">
+                    {event.court_names.map((n, i) => n?.trim() || `コート${i + 1}`).join(" / ")}
+                  </span>
+                </span>
               )}
               <button
                 onClick={() => {
@@ -382,14 +472,21 @@ export default function EventDetailPage({ params }: Props) {
                   setEditingMeta(true);
                 }}
                 className="ml-auto text-xs text-blue-400 hover:text-blue-300"
-              >編集</button>
+              >
+                編集
+              </button>
             </div>
           ) : (
             <div className="space-y-3">
               <div className="flex items-center gap-3 flex-wrap">
                 <label className="text-xs text-gray-400 shrink-0">開催日</label>
-                <input type="date" value={metaDate} min={new Date().toISOString().slice(0, 10)} onChange={e => setMetaDate(e.target.value)}
-                  className="bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-blue-500" />
+                <input
+                  type="date"
+                  value={metaDate}
+                  min={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setMetaDate(e.target.value)}
+                  className="bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-blue-500"
+                />
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-gray-400">コート名</label>
@@ -399,7 +496,13 @@ export default function EventDetailPage({ params }: Props) {
                       <span className="text-xs text-gray-500 w-14 shrink-0">コート{i + 1}</span>
                       <input
                         value={name}
-                        onChange={e => setMetaCourtNames(prev => { const next = [...prev]; next[i] = e.target.value; return next; })}
+                        onChange={(e) =>
+                          setMetaCourtNames((prev) => {
+                            const next = [...prev];
+                            next[i] = e.target.value;
+                            return next;
+                          })
+                        }
                         placeholder={`コート${i + 1}`}
                         className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500"
                       />
@@ -408,18 +511,35 @@ export default function EventDetailPage({ params }: Props) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={saveEventMeta} disabled={savingMeta} className="px-4 py-1.5 text-sm rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium disabled:opacity-50 flex items-center gap-1.5">
-                  {savingMeta && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
+                <button
+                  onClick={saveEventMeta}
+                  disabled={savingMeta}
+                  className="px-4 py-1.5 text-sm rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {savingMeta && (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                  )}
                   {savingMeta ? "保存中..." : "保存"}
                 </button>
-                <button onClick={() => setEditingMeta(false)} disabled={savingMeta} className="px-4 py-1.5 text-sm rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-50">キャンセル</button>
+                <button
+                  onClick={() => setEditingMeta(false)}
+                  disabled={savingMeta}
+                  className="px-4 py-1.5 text-sm rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-50"
+                >
+                  キャンセル
+                </button>
               </div>
             </div>
           )}
         </div>
 
         {/* ステップナビ */}
-        <StepNav step={step} tournaments={tournaments} onStepChange={navigateStep} phaseStep={getEventPhase(event, tournaments, allMatchRows).stepHighlight} />
+        <StepNav
+          step={step}
+          tournaments={tournaments}
+          onStepChange={navigateStep}
+          phaseStep={getEventPhase(event, tournaments, allMatchRows).stepHighlight}
+        />
 
         {/* ① 参加者管理 */}
         {step === 1 && (
@@ -432,7 +552,6 @@ export default function EventDetailPage({ params }: Props) {
             processingEntryIds={processingEntryIds}
             processingRuleKeys={processingRuleKeys}
             currentFormVersion={currentFormVersion}
-
             formConfigVersion={formConfigVersion}
             ageCategories={ageCategories}
             entrySubTab={entrySubTab}
@@ -491,13 +610,7 @@ export default function EventDetailPage({ params }: Props) {
         )}
 
         {/* ③ 試合番号設定 */}
-        {step === 3 && (
-          <MatchLabelSection
-            eventId={id}
-            event={event}
-            onLoad={load}
-          />
-        )}
+        {step === 3 && <MatchLabelSection eventId={id} event={event} onLoad={load} />}
       </div>
     </main>
   );
@@ -505,7 +618,17 @@ export default function EventDetailPage({ params }: Props) {
 
 // ── ステップナビゲーション ────────────────────────────────────────────────
 
-function StepNav({ step, tournaments, onStepChange, phaseStep }: { step: 1 | 2 | 3; tournaments: Tournament[]; onStepChange: (s: 1 | 2 | 3) => void; phaseStep: 1 | 2 | 3 }) {
+function StepNav({
+  step,
+  tournaments,
+  onStepChange,
+  phaseStep,
+}: {
+  step: 1 | 2 | 3;
+  tournaments: Tournament[];
+  onStepChange: (s: 1 | 2 | 3) => void;
+  phaseStep: 1 | 2 | 3;
+}) {
   const steps: { n: 1 | 2 | 3; label: string; disabled?: boolean }[] = [
     { n: 1, label: "① 参加者管理" },
     { n: 2, label: "② 対戦表作成" },

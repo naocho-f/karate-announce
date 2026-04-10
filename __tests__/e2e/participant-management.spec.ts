@@ -29,7 +29,6 @@ async function createTestEntry(page: Page, eventId: string, index: number): Prom
   return data.id;
 }
 
-
 // ── テスト ──
 
 test.describe("参加者管理", () => {

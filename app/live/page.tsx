@@ -37,7 +37,9 @@ export default function LivePage() {
     try {
       const saved = localStorage.getItem("karate_watch_list");
       if (saved) setWatchList(JSON.parse(saved));
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   // ウォッチリスト変更時に localStorage に保存
@@ -46,11 +48,7 @@ export default function LivePage() {
   }, [watchList]);
 
   const load = useCallback(async () => {
-    const { data: ae } = await supabase
-      .from("events")
-      .select("*")
-      .eq("is_active", true)
-      .maybeSingle();
+    const { data: ae } = await supabase.from("events").select("*").eq("is_active", true).maybeSingle();
     setActiveEvent(ae ?? null);
     if (!ae) return;
 
@@ -64,14 +62,17 @@ export default function LivePage() {
       .order("created_at");
 
     const tournIds = (allTourns ?? []).map((t) => t.id);
-    const { data: allMatches } = tournIds.length > 0
-      ? await supabase
-          .from("matches")
-          .select("*, fighter1:fighters!fighter1_id(id,name), fighter2:fighters!fighter2_id(id,name), winner:fighters!winner_id(id,name)")
-          .in("tournament_id", tournIds)
-          .order("round")
-          .order("position")
-      : { data: [] };
+    const { data: allMatches } =
+      tournIds.length > 0
+        ? await supabase
+            .from("matches")
+            .select(
+              "*, fighter1:fighters!fighter1_id(id,name), fighter2:fighters!fighter2_id(id,name), winner:fighters!winner_id(id,name)",
+            )
+            .in("tournament_id", tournIds)
+            .order("round")
+            .order("position")
+        : { data: [] };
 
     // マッチをトーナメント ID でグループ化
     const matchesByTourn = new Map<string, Match[]>();
@@ -103,13 +104,21 @@ export default function LivePage() {
   const { mode: offlineMode } = useOfflineMode();
   const pendingCount = usePendingCount();
   const { showRecoveryPrompt, acceptRecovery, declineRecovery } = useAutoRecovery(offlineMode);
-  const { isOffline: _isOffline, quality, wrappedFetch } = useConnectionStatus(load, {
+  const {
+    isOffline: _isOffline,
+    quality,
+    wrappedFetch,
+  } = useConnectionStatus(load, {
     baseInterval: 5000,
     enabled: offlineMode === "online",
-    onReconnect: () => { flush().catch(() => {}); },
+    onReconnect: () => {
+      flush().catch(() => {});
+    },
   });
 
-  useEffect(() => { wrappedFetch(); }, [wrappedFetch]);
+  useEffect(() => {
+    wrappedFetch();
+  }, [wrappedFetch]);
 
   useEffect(() => {
     // オフラインモード時は Realtime を接続しない
@@ -145,22 +154,22 @@ export default function LivePage() {
   // courts が更新されたらウォッチ判定
   useEffect(() => {
     if (courts.length === 0 || watchList.length === 0) return;
-    const matchesByCourt = courts.map(c => ({
+    const matchesByCourt = courts.map((c) => ({
       courtLabel: c.courtName,
       matches: c.tournaments.flatMap(({ matches }) =>
-        matches.map(m => ({
+        matches.map((m) => ({
           id: m.id,
           status: m.status,
           match_label: m.match_label,
           fighter1_name: (m.fighter1 as FighterInfo | null)?.name ?? null,
           fighter2_name: (m.fighter2 as FighterInfo | null)?.name ?? null,
           courtLabel: c.courtName,
-        }))
+        })),
       ),
     }));
     const newNotifs = checkWatchNotifications(matchesByCourt, watchList, notifiedRef.current);
     if (newNotifs.length > 0) {
-      setWatchNotifications(prev => [...prev, ...newNotifs]);
+      setWatchNotifications((prev) => [...prev, ...newNotifs]);
       // バイブレーションは多くの端末で非対応のため削除済み
     }
   }, [courts, watchList]);
@@ -170,7 +179,7 @@ export default function LivePage() {
     if (watchNotifications.length === 0) return;
     const timer = setTimeout(() => {
       const now = Date.now();
-      setWatchNotifications(prev => prev.filter(n => now - n.timestamp < 10000));
+      setWatchNotifications((prev) => prev.filter((n) => now - n.timestamp < 10000));
     }, 10000);
     return () => clearTimeout(timer);
   }, [watchNotifications]);
@@ -212,7 +221,7 @@ export default function LivePage() {
 
   const activeCourt = courts[selectedCourt] ?? courts[0];
   const activeOngoing = activeCourt
-    ? activeCourt.tournaments.flatMap(({ matches }) => matches).find((m) => m.status === "ongoing") ?? null
+    ? (activeCourt.tournaments.flatMap(({ matches }) => matches).find((m) => m.status === "ongoing") ?? null)
     : null;
 
   return (
@@ -221,7 +230,11 @@ export default function LivePage() {
         quality={quality}
         mode={offlineMode}
         pendingCount={pendingCount}
-        onToggleOfflineMode={() => { const next = offlineMode === "online" ? "offline" : "online"; setMode(next); if (next === "online") flush().catch(() => {}); }}
+        onToggleOfflineMode={() => {
+          const next = offlineMode === "online" ? "offline" : "online";
+          setMode(next);
+          if (next === "online") flush().catch(() => {});
+        }}
         showRecoveryPrompt={showRecoveryPrompt}
         onAcceptRecovery={acceptRecovery}
         onDeclineRecovery={declineRecovery}
@@ -230,7 +243,9 @@ export default function LivePage() {
       <div className="sticky top-0 z-10 bg-gray-900 backdrop-blur border-b border-gray-700/60">
         <div className="max-w-lg mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="shrink-0 text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded-full font-medium">LIVE</span>
+            <span className="shrink-0 text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded-full font-medium">
+              LIVE
+            </span>
             <span className="font-bold text-sm truncate">{activeEvent.name}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -255,7 +270,10 @@ export default function LivePage() {
 
         {/* コートタブ（2コート以上の場合のみ表示） */}
         {courts.length > 1 && (
-          <div className="max-w-lg mx-auto grid px-3 pb-2 gap-1.5" style={{ gridTemplateColumns: `repeat(${courts.length}, 1fr)` }}>
+          <div
+            className="max-w-lg mx-auto grid px-3 pb-2 gap-1.5"
+            style={{ gridTemplateColumns: `repeat(${courts.length}, 1fr)` }}
+          >
             {courts.map((court, idx) => {
               const hasOngoing = court.tournaments.some(({ matches }) => matches.some((m) => m.status === "ongoing"));
               const isActive = idx === selectedCourt;
@@ -296,30 +314,33 @@ export default function LivePage() {
               {watchSearch.length > 0 && (
                 <div className="max-h-32 overflow-y-auto space-y-0.5">
                   {allFighterNames
-                    .filter(n => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n))
+                    .filter((n) => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n))
                     .slice(0, 10)
-                    .map(name => (
+                    .map((name) => (
                       <button
                         key={name}
-                        onClick={() => { setWatchList(prev => [...prev, name]); setWatchSearch(""); }}
+                        onClick={() => {
+                          setWatchList((prev) => [...prev, name]);
+                          setWatchSearch("");
+                        }}
                         className="w-full text-left text-sm text-gray-200 bg-gray-700/50 hover:bg-gray-600 rounded px-3 py-1.5 transition"
                       >
                         + {name}
                       </button>
                     ))}
-                  {allFighterNames.filter(n => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n)).length === 0 && (
-                    <p className="text-xs text-gray-500 py-1">該当する選手がいません</p>
-                  )}
+                  {allFighterNames.filter(
+                    (n) => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n),
+                  ).length === 0 && <p className="text-xs text-gray-500 py-1">該当する選手がいません</p>}
                 </div>
               )}
               {watchList.length > 0 && (
                 <div className="space-y-1">
                   <p className="text-[10px] text-gray-500">ウォッチ中:</p>
-                  {watchList.map(name => (
+                  {watchList.map((name) => (
                     <div key={name} className="flex items-center justify-between bg-gray-700/50 rounded px-3 py-1.5">
                       <span className="text-sm text-gray-200">⭐ {name}</span>
                       <button
-                        onClick={() => setWatchList(prev => prev.filter(n => n !== name))}
+                        onClick={() => setWatchList((prev) => prev.filter((n) => n !== name))}
                         className="text-xs text-red-400 hover:text-red-300"
                       >
                         解除
@@ -329,7 +350,9 @@ export default function LivePage() {
                 </div>
               )}
               {watchList.length === 0 && watchSearch.length === 0 && (
-                <p className="text-xs text-gray-500">選手名を入力してウォッチリストに追加すると、試合の3試合前に通知します</p>
+                <p className="text-xs text-gray-500">
+                  選手名を入力してウォッチリストに追加すると、試合の3試合前に通知します
+                </p>
               )}
             </div>
           </div>
@@ -339,10 +362,10 @@ export default function LivePage() {
       {/* ウォッチ通知バナー */}
       {watchNotifications.length > 0 && (
         <div className="fixed top-0 left-0 right-0 z-50 space-y-1 p-2">
-          {watchNotifications.map(n => (
+          {watchNotifications.map((n) => (
             <button
               key={n.id}
-              onClick={() => setWatchNotifications(prev => prev.filter(x => x.id !== n.id))}
+              onClick={() => setWatchNotifications((prev) => prev.filter((x) => x.id !== n.id))}
               className="w-full bg-orange-600 text-white rounded-xl px-5 py-4 text-base font-bold shadow-2xl animate-pulse text-left"
             >
               🔔 {n.message}
@@ -351,9 +374,7 @@ export default function LivePage() {
         </div>
       )}
 
-      <div className="max-w-lg mx-auto px-3 py-3">
-        {activeCourt && <CourtView court={activeCourt} />}
-      </div>
+      <div className="max-w-lg mx-auto px-3 py-3">{activeCourt && <CourtView court={activeCourt} />}</div>
     </main>
   );
 }
@@ -375,7 +396,9 @@ function CourtView({ court }: { court: CourtData }) {
 
   const ongoingMatch = sortedMatches.find((m) => m.status === "ongoing") ?? null;
   // ongoing がなければ、最初の ready 試合を「次の試合」とする
-  const nextMatch = ongoingMatch ? null : sortedMatches.find((m) => m.status === "ready" && m.fighter1_id && m.fighter2_id) ?? null;
+  const nextMatch = ongoingMatch
+    ? null
+    : (sortedMatches.find((m) => m.status === "ready" && m.fighter1_id && m.fighter2_id) ?? null);
   // 不戦勝（round 1 で fighter2 なし）を除外
   const visibleMatches = sortedMatches.filter((m) => m.fighter2_id || m.round > 1);
 
@@ -399,9 +422,7 @@ function CourtView({ court }: { court: CourtData }) {
         </div>
       ))}
 
-      {visibleMatches.length === 0 && (
-        <div className="py-8 text-center text-gray-600 text-sm">データなし</div>
-      )}
+      {visibleMatches.length === 0 && <div className="py-8 text-center text-gray-600 text-sm">データなし</div>}
     </div>
   );
 }
@@ -416,21 +437,13 @@ function OngoingBanner({ match }: { match: Match }) {
         <div className="flex items-center gap-1.5 mb-1">
           <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shrink-0" />
           <span className="text-[10px] text-blue-300 font-semibold uppercase tracking-wide">試合中</span>
-          {match.match_label && (
-            <span className="text-xs text-blue-200 font-medium">{match.match_label}</span>
-          )}
-          {match.rules && (
-            <span className="text-[10px] text-blue-400/70 ml-auto shrink-0">{match.rules}</span>
-          )}
+          {match.match_label && <span className="text-xs text-blue-200 font-medium">{match.match_label}</span>}
+          {match.rules && <span className="text-[10px] text-blue-400/70 ml-auto shrink-0">{match.rules}</span>}
         </div>
         <div className="flex items-center gap-2">
-          <span className="flex-1 text-center font-bold text-sm text-white truncate">
-            {f1?.name ?? "未定"}
-          </span>
+          <span className="flex-1 text-center font-bold text-sm text-white truncate">{f1?.name ?? "未定"}</span>
           <span className="text-blue-400/60 text-[10px] shrink-0">vs</span>
-          <span className="flex-1 text-center font-bold text-sm text-white truncate">
-            {f2?.name ?? "未定"}
-          </span>
+          <span className="flex-1 text-center font-bold text-sm text-white truncate">{f2?.name ?? "未定"}</span>
         </div>
       </div>
     </div>
@@ -447,9 +460,7 @@ function MatchRow({ match, isOngoing, isNext }: { match: Match; isOngoing: boole
   if (isBye) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/50 border border-gray-700/30 text-xs">
-        {match.match_label && (
-          <span className="text-gray-500 shrink-0">{match.match_label}</span>
-        )}
+        {match.match_label && <span className="text-gray-500 shrink-0">{match.match_label}</span>}
         <span className="text-gray-300 truncate">{f1?.name ?? "未定"}</span>
         <span className="text-gray-500 ml-auto shrink-0">不戦勝</span>
       </div>
@@ -458,22 +469,29 @@ function MatchRow({ match, isOngoing, isNext }: { match: Match; isOngoing: boole
 
   // 2行レイアウト: 1行目=試合番号+ステータス、2行目=選手名
   return (
-    <div className={`px-3 py-2.5 rounded-xl ${
-      isOngoing ? "bg-blue-900/50 border-2 border-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.3)]" :
-      isNext    ? "bg-amber-900/30 border-2 border-amber-400/60 shadow-[0_0_8px_rgba(251,191,36,0.2)]" :
-      isDone    ? "bg-gray-800/40 border border-gray-700/30" :
-                  "bg-gray-800/70 border border-gray-700/40"
-    }`}>
+    <div
+      className={`px-3 py-2.5 rounded-xl ${
+        isOngoing
+          ? "bg-blue-900/50 border-2 border-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.3)]"
+          : isNext
+            ? "bg-amber-900/30 border-2 border-amber-400/60 shadow-[0_0_8px_rgba(251,191,36,0.2)]"
+            : isDone
+              ? "bg-gray-800/40 border border-gray-700/30"
+              : "bg-gray-800/70 border border-gray-700/40"
+      }`}
+    >
       {/* 1行目: 試合番号 + ステータス */}
       <div className="flex items-center gap-1.5 mb-1">
         {match.match_label && (
-          <span className={`text-xs font-semibold ${
-            isOngoing ? "text-blue-300" : isDone ? "text-gray-500" : "text-gray-400"
-          }`}>{match.match_label}</span>
+          <span
+            className={`text-xs font-semibold ${
+              isOngoing ? "text-blue-300" : isDone ? "text-gray-500" : "text-gray-400"
+            }`}
+          >
+            {match.match_label}
+          </span>
         )}
-        {isDone && winner && (
-          <span className="text-[10px] text-green-400 font-medium">終了</span>
-        )}
+        {isDone && winner && <span className="text-[10px] text-green-400 font-medium">終了</span>}
         {isOngoing && (
           <span className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
@@ -486,25 +504,30 @@ function MatchRow({ match, isOngoing, isNext }: { match: Match; isOngoing: boole
             <span className="text-[10px] text-amber-300 font-medium">次の試合</span>
           </span>
         )}
-        {!isDone && !isOngoing && !isNext && !f2 && (
-          <span className="text-[10px] text-gray-500">未定</span>
-        )}
+        {!isDone && !isOngoing && !isNext && !f2 && <span className="text-[10px] text-gray-500">未定</span>}
       </div>
       {/* 2行目: 選手名 */}
       <div className="flex items-center gap-2">
-        <span className={`flex-1 min-w-0 flex items-center gap-1 text-sm ${
-          winner?.id === f1?.id ? "font-bold text-white" :
-          isDone ? "text-gray-400" : "text-gray-100"
-        }`}>
+        <span
+          className={`flex-1 min-w-0 flex items-center gap-1 text-sm ${
+            winner?.id === f1?.id ? "font-bold text-white" : isDone ? "text-gray-400" : "text-gray-100"
+          }`}
+        >
           <span className="truncate">{f1?.name ?? "未定"}</span>
           {winner?.id === f1?.id && <span className="shrink-0 text-[10px] text-green-400">勝</span>}
         </span>
         <span className={`text-[10px] shrink-0 ${isDone ? "text-gray-600" : "text-gray-500"}`}>vs</span>
-        <span className={`flex-1 min-w-0 flex items-center justify-end gap-1 text-sm ${
-          winner?.id === f2?.id ? "font-bold text-white" :
-          isDone ? "text-gray-400" :
-          f2 ? "text-gray-100" : "text-gray-500"
-        }`}>
+        <span
+          className={`flex-1 min-w-0 flex items-center justify-end gap-1 text-sm ${
+            winner?.id === f2?.id
+              ? "font-bold text-white"
+              : isDone
+                ? "text-gray-400"
+                : f2
+                  ? "text-gray-100"
+                  : "text-gray-500"
+          }`}
+        >
           <span className="truncate text-right">{f2 ? f2.name : "未定"}</span>
           {winner?.id === f2?.id && <span className="shrink-0 text-[10px] text-green-400">勝</span>}
         </span>

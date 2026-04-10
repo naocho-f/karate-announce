@@ -5,15 +5,15 @@
 
 ## 技術スタック
 
-| カテゴリ | 技術 |
-|----------|------|
+| カテゴリ       | 技術                                 |
+| -------------- | ------------------------------------ |
 | フレームワーク | Next.js 16 (App Router) + TypeScript |
-| スタイリング | Tailwind CSS 4 |
-| データベース | Supabase (PostgreSQL) |
-| AI 音声 | OpenAI TTS (tts-1) |
-| メール送信 | Resend |
-| テスト | Vitest / Playwright |
-| デプロイ | Vercel |
+| スタイリング   | Tailwind CSS 4                       |
+| データベース   | Supabase (PostgreSQL)                |
+| AI 音声        | OpenAI TTS (tts-1)                   |
+| メール送信     | Resend                               |
+| テスト         | Vitest / Playwright                  |
+| デプロイ       | Vercel                               |
 
 ## セットアップ
 
@@ -47,15 +47,15 @@ http://localhost:3000 でアクセスできる。
 
 ## 開発コマンド
 
-| コマンド | 用途 |
-|----------|------|
-| `npm run dev` | 開発サーバー起動 |
-| `npm run build` | プロダクションビルド（型チェック含む） |
-| `npx vitest run` | 全テスト実行（unit + API） |
-| `npm run test:unit` | ユニットテストのみ |
-| `npm run test:api` | API テストのみ |
-| `npx playwright test` | E2E テスト |
-| `npx tsc --noEmit` | 型チェックのみ |
+| コマンド              | 用途                                   |
+| --------------------- | -------------------------------------- |
+| `npm run dev`         | 開発サーバー起動                       |
+| `npm run build`       | プロダクションビルド（型チェック含む） |
+| `npx vitest run`      | 全テスト実行（unit + API）             |
+| `npm run test:unit`   | ユニットテストのみ                     |
+| `npm run test:api`    | API テストのみ                         |
+| `npx playwright test` | E2E テスト                             |
+| `npx tsc --noEmit`    | 型チェックのみ                         |
 
 ## ディレクトリ構成
 

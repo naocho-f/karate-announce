@@ -23,11 +23,7 @@ export async function POST(request: NextRequest, ctx: Ctx) {
   const { id: _id, created_at: _ca, updated_at: _ua, ...fields } = original;
   fields.name = `${fields.name} (コピー)`;
 
-  const { data, error } = await supabaseAdmin
-    .from("timer_presets")
-    .insert(fields)
-    .select()
-    .single();
+  const { data, error } = await supabaseAdmin.from("timer_presets").insert(fields).select().single();
   if (error) return dbError(error);
   return NextResponse.json(data, { status: 201 });
 }

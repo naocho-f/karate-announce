@@ -7,14 +7,14 @@ describe("BUILTIN_SOUNDS", () => {
   });
 
   it("27種は音程×波形×パターンの組み合わせ", () => {
-    const generated = BUILTIN_SOUNDS.filter(s => s.pattern !== "special");
+    const generated = BUILTIN_SOUNDS.filter((s) => s.pattern !== "special");
     expect(generated).toHaveLength(27);
   });
 
   it("3種は特殊音源", () => {
-    const special = BUILTIN_SOUNDS.filter(s => s.pattern === "special");
+    const special = BUILTIN_SOUNDS.filter((s) => s.pattern === "special");
     expect(special).toHaveLength(3);
-    expect(special.map(s => s.id)).toEqual(["whistle", "gong", "siren"]);
+    expect(special.map((s) => s.id)).toEqual(["whistle", "gong", "siren"]);
   });
 
   it("全ての音源にid, label, category, freq, wave, patternが定義されている", () => {
@@ -29,12 +29,12 @@ describe("BUILTIN_SOUNDS", () => {
   });
 
   it("IDが重複していない", () => {
-    const ids = BUILTIN_SOUNDS.map(s => s.id);
+    const ids = BUILTIN_SOUNDS.map((s) => s.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
   it("ID命名規則: {pitch}-{wave}-{pattern} の形式", () => {
-    const generated = BUILTIN_SOUNDS.filter(s => s.pattern !== "special");
+    const generated = BUILTIN_SOUNDS.filter((s) => s.pattern !== "special");
     for (const sound of generated) {
       expect(sound.id).toMatch(/^(low|mid|high)-(square|sine|saw)-(single|double|triple)$/);
     }

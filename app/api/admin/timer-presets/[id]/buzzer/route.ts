@@ -32,9 +32,7 @@ export async function POST(request: NextRequest, ctx: Ctx) {
     .upload(storagePath, buf, { contentType: file.type, upsert: true });
   if (uploadErr) return dbError(uploadErr);
 
-  const { data: urlData } = supabaseAdmin.storage
-    .from("form-notice-images")
-    .getPublicUrl(storagePath);
+  const { data: urlData } = supabaseAdmin.storage.from("form-notice-images").getPublicUrl(storagePath);
 
   const { error: updateErr } = await supabaseAdmin
     .from("timer_presets")
@@ -51,11 +49,7 @@ export async function DELETE(request: NextRequest, ctx: Ctx) {
   const { id } = await ctx.params;
 
   // プリセットのパスを取得して Storage から削除
-  const { data: preset } = await supabaseAdmin
-    .from("timer_presets")
-    .select("buzzer_custom_path")
-    .eq("id", id)
-    .single();
+  const { data: preset } = await supabaseAdmin.from("timer_presets").select("buzzer_custom_path").eq("id", id).single();
 
   if (preset?.buzzer_custom_path) {
     // URLからパスを抽出

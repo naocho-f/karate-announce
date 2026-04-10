@@ -60,9 +60,7 @@ describe("次ラウンド開始ブロック", () => {
   });
 
   it("ラウンド1の試合はブロックされない（前ラウンドがない）", () => {
-    const matches = [
-      { id: "m1", round: 1, position: 0, status: "ready" as const, winner_id: null },
-    ];
+    const matches = [{ id: "m1", round: 1, position: 0, status: "ready" as const, winner_id: null }];
 
     expect(shouldBlockNextRoundStart("m1", matches)).toBe(false);
   });

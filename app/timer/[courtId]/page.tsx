@@ -26,33 +26,48 @@ const FONT_FAMILY_MAP: Record<string, string> = {
 };
 
 const ALIGN_MAP: Record<LayoutAlignment, string> = {
-  left: "flex-start", center: "center", right: "flex-end",
+  left: "flex-start",
+  center: "center",
+  right: "flex-end",
 };
 const VALIGN_MAP: Record<LayoutVerticalAlign, string> = {
-  top: "flex-start", middle: "center", bottom: "flex-end",
+  top: "flex-start",
+  middle: "center",
+  bottom: "flex-end",
 };
 
 // ── 半角数字→全角変換 ────────────────────────────────────────
 
 function toFullWidthDigits(str: string): string {
-  return str.replace(/[0-9]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xFEE0));
+  return str.replace(/[0-9]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0));
 }
 
 // ── 勝利方法テキスト ──────────────────────────────────────────
 
 function resultMethodText(method: string | null): string {
   switch (method) {
-    case "ippon": return "一本";
-    case "combined_ippon": return "合わせ一本";
-    case "wazaari": return "技あり優勢";
-    case "point": return "ポイント";
-    case "foul": return "反則勝ち";
-    case "decision": return "判定";
-    case "sudden_death": return "延長戦";
-    case "withdraw": return "棄権勝ち";
-    case "injury": return "負傷勝ち";
-    case "draw": return "引き分け";
-    default: return "";
+    case "ippon":
+      return "一本";
+    case "combined_ippon":
+      return "合わせ一本";
+    case "wazaari":
+      return "技あり優勢";
+    case "point":
+      return "ポイント";
+    case "foul":
+      return "反則勝ち";
+    case "decision":
+      return "判定";
+    case "sudden_death":
+      return "延長戦";
+    case "withdraw":
+      return "棄権勝ち";
+    case "injury":
+      return "負傷勝ち";
+    case "draw":
+      return "引き分け";
+    default:
+      return "";
   }
 }
 
@@ -104,25 +119,33 @@ export default function TimerDisplayPage() {
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
-    const saved = localStorage.getItem(`timer-display-courtId`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as { eventId: string };
-        const loaded = loadState(parsed.eventId, courtId);
-        if (loaded) setState(loaded); // eslint-disable-line react-hooks/set-state-in-effect -- restore persisted state on mount
-      } catch {}
-    }
+    const restoreState = () => {
+      const saved = localStorage.getItem(`timer-display-courtId`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as { eventId: string };
+          const loaded = loadState(parsed.eventId, courtId);
+          if (loaded) setState(loaded);
+        } catch {}
+      }
+    };
+    restoreState();
   }, [courtId]);
 
   useEffect(() => {
     const ch = createTimerChannel(courtId);
     channelRef.current = ch;
     const unsub = ch.onState((s) => setState(s));
-    return () => { unsub(); ch.close(); };
+    return () => {
+      unsub();
+      ch.close();
+    };
   }, [courtId]);
 
   const stateRef = useRef(state);
-  useEffect(() => { stateRef.current = state; });
+  useEffect(() => {
+    stateRef.current = state;
+  });
 
   const [displayMs, setDisplayMs] = useState(0);
   const [newazaMs, setNewazaMs] = useState(0);
@@ -143,12 +166,21 @@ export default function TimerDisplayPage() {
   }, []);
 
   useEffect(() => {
-    if (state.phase !== "running") {
-      setDisplayMs(getDisplayMs(state)); // eslint-disable-line react-hooks/set-state-in-effect -- sync derived display values from timer state
-      const elapsed = state.newaza.active ? getNewazaElapsedMs(state) : state.newaza.elapsedMs;
-      setNewazaMs(elapsed);
-      setNewazaDispMs(state.newaza.active ? getNewazaDisplayMs(state) : (state.preset?.newaza_direction === "countdown" ? Math.max(0, (state.preset?.newaza_duration ?? 30) * 1000 - elapsed) : elapsed));
-    }
+    const syncDerived = () => {
+      if (state.phase !== "running") {
+        setDisplayMs(getDisplayMs(state));
+        const elapsed = state.newaza.active ? getNewazaElapsedMs(state) : state.newaza.elapsedMs;
+        setNewazaMs(elapsed);
+        setNewazaDispMs(
+          state.newaza.active
+            ? getNewazaDisplayMs(state)
+            : state.preset?.newaza_direction === "countdown"
+              ? Math.max(0, (state.preset?.newaza_duration ?? 30) * 1000 - elapsed)
+              : elapsed,
+        );
+      }
+    };
+    syncDerived();
   }, [state]);
 
   const handleClick = () => {
@@ -179,8 +211,8 @@ export default function TimerDisplayPage() {
   // swap_sides 対応: 左右のデータを入れ替え
   const leftName = swapSides ? state.white.name : state.red.name;
   const rightName = swapSides ? state.red.name : state.white.name;
-  const leftColorName = swapSides ? (p?.color_right_name || "白") : (p?.color_left_name || "赤");
-  const rightColorName = swapSides ? (p?.color_left_name || "赤") : (p?.color_right_name || "白");
+  const leftColorName = swapSides ? p?.color_right_name || "白" : p?.color_left_name || "赤";
+  const rightColorName = swapSides ? p?.color_left_name || "赤" : p?.color_right_name || "白";
   const leftScore = swapSides ? state.whiteScore : state.redScore;
   const rightScore = swapSides ? state.redScore : state.whiteScore;
 
@@ -248,12 +280,16 @@ export default function TimerDisplayPage() {
         if (!showNewaza) return null;
         return (
           <div key={idx} className="gap-3" style={{ ...baseStyle }}>
-            <span className="text-gray-500 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.5, 1)}vh` }}>{layout.labelNewaza || "寝技"}</span>
+            <span className="text-gray-500 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.5, 1)}vh` }}>
+              {layout.labelNewaza || "寝技"}
+            </span>
             <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${row.fontSize}vh` }}>
               {formatTime(newazaDispMs)}
             </span>
             {newazaMax !== null && (
-              <span className="text-gray-600" style={{ fontSize: `${Math.max(row.fontSize * 0.4, 0.8)}vh` }}>[{state.newaza.usedCount}/{newazaMax}]</span>
+              <span className="text-gray-600" style={{ fontSize: `${Math.max(row.fontSize * 0.4, 0.8)}vh` }}>
+                [{state.newaza.usedCount}/{newazaMax}]
+              </span>
             )}
             <div className="w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden">
               <div className="h-full bg-cyan-500 transition-all" style={{ width: `${newazaProgress * 100}%` }} />
@@ -265,10 +301,16 @@ export default function TimerDisplayPage() {
         if (!p?.show_player_names) return null;
         return (
           <div key={idx} style={{ ...baseStyle, gap: `${layout.scoreGap}px` }}>
-            <div className="flex-1 font-bold truncate px-2" style={{ color: colorLeft, fontSize: `${row.fontSize}vh`, textAlign: row.align }}>
+            <div
+              className="flex-1 font-bold truncate px-2"
+              style={{ color: colorLeft, fontSize: `${row.fontSize}vh`, textAlign: row.align }}
+            >
               {leftName || leftColorName}
             </div>
-            <div className="flex-1 font-bold truncate px-2" style={{ color: colorRight, fontSize: `${row.fontSize}vh`, textAlign: row.align }}>
+            <div
+              className="flex-1 font-bold truncate px-2"
+              style={{ color: colorRight, fontSize: `${row.fontSize}vh`, textAlign: row.align }}
+            >
               {rightName || rightColorName}
             </div>
           </div>
@@ -286,8 +328,14 @@ export default function TimerDisplayPage() {
         // 技ありのフォントサイズ: 両方表示時は1/3、単独時はフルサイズ
         const wazaariFsVh = bothVisible ? row.fontSize * 0.35 : row.fontSize;
         const renderFoulIndicator = (side: "left" | "right", score: typeof leftScore, color: string) => (
-          <div className="flex flex-col items-center justify-center" style={{ padding: `0 ${row.fontSize * 0.1}vh` }} data-testid={`foul-indicator-${side}`}>
-            <span className="text-gray-500 font-bold" style={{ fontSize: `${row.fontSize * 0.1}vh` }}>反則</span>
+          <div
+            className="flex flex-col items-center justify-center"
+            style={{ padding: `0 ${row.fontSize * 0.1}vh` }}
+            data-testid={`foul-indicator-${side}`}
+          >
+            <span className="text-gray-500 font-bold" style={{ fontSize: `${row.fontSize * 0.1}vh` }}>
+              反則
+            </span>
             {[4, 3, 2, 1].map((n) => (
               <div
                 key={n}
@@ -318,8 +366,13 @@ export default function TimerDisplayPage() {
               </span>
             )}
             {showWazaari && (
-              <div className="flex items-baseline justify-center gap-1" style={{ marginTop: showPoints ? `${row.fontSize * 0.05}vh` : undefined }}>
-                <span className="text-gray-500 font-bold" style={{ fontSize: `${wazaariFsVh * 0.35}vh` }}>技</span>
+              <div
+                className="flex items-baseline justify-center gap-1"
+                style={{ marginTop: showPoints ? `${row.fontSize * 0.05}vh` : undefined }}
+              >
+                <span className="text-gray-500 font-bold" style={{ fontSize: `${wazaariFsVh * 0.35}vh` }}>
+                  技
+                </span>
                 <span className="font-bold leading-none tabular-nums" style={{ fontSize: `${wazaariFsVh}vh`, color }}>
                   {score.wazaari}
                 </span>
@@ -331,28 +384,50 @@ export default function TimerDisplayPage() {
         return (
           <div key={idx} style={{ ...baseStyle, position: "relative" }} data-testid="scores-row">
             {/* 左側: 反則インジケータ + スコア */}
-            <div className="flex-1 flex relative" style={{ backgroundColor: leftWins ? `${colorLeft}33` : "transparent" }}>
+            <div
+              className="flex-1 flex relative"
+              style={{ backgroundColor: leftWins ? `${colorLeft}33` : "transparent" }}
+            >
               {p?.show_fouls && renderFoulIndicator("left", leftScore, colorLeft)}
               {renderScoreContent(leftScore, colorLeft)}
             </div>
             {/* 中央: 寝技 */}
-            <div className="flex flex-col items-center justify-center" style={{ minWidth: `${row.fontSize * 1.2}vh`, borderLeft: `${layout.dividerThickness}px solid ${dividerColor}`, borderRight: `${layout.dividerThickness}px solid ${dividerColor}` }}>
+            <div
+              className="flex flex-col items-center justify-center"
+              style={{
+                minWidth: `${row.fontSize * 1.2}vh`,
+                borderLeft: `${layout.dividerThickness}px solid ${dividerColor}`,
+                borderRight: `${layout.dividerThickness}px solid ${dividerColor}`,
+              }}
+            >
               {showNewaza ? (
                 <>
-                  <span className="text-gray-500 font-bold" style={{ fontSize: `${row.fontSize * 0.2}vh` }}>{layout.labelNewaza || "寝技"}</span>
-                  <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${row.fontSize * 0.45}vh` }}>
+                  <span className="text-gray-500 font-bold" style={{ fontSize: `${row.fontSize * 0.2}vh` }}>
+                    {layout.labelNewaza || "寝技"}
+                  </span>
+                  <span
+                    className="font-bold text-cyan-400 tabular-nums"
+                    style={{ fontSize: `${row.fontSize * 0.45}vh` }}
+                  >
                     {formatTime(newazaDispMs)}
                   </span>
                 </>
               ) : (
-                <span className="text-gray-500 font-bold" style={{ fontSize: `${row.fontSize * 0.2}vh` }}>{layout.labelNewaza || "寝技"}</span>
+                <span className="text-gray-500 font-bold" style={{ fontSize: `${row.fontSize * 0.2}vh` }}>
+                  {layout.labelNewaza || "寝技"}
+                </span>
               )}
               {isDraw && (
-                <p className="text-gray-400 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.2, 1.5)}vh` }}>引き分け</p>
+                <p className="text-gray-400 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.2, 1.5)}vh` }}>
+                  引き分け
+                </p>
               )}
             </div>
             {/* 右側: スコア + 反則インジケータ */}
-            <div className="flex-1 flex relative" style={{ backgroundColor: rightWins ? `${colorRight}33` : "transparent" }}>
+            <div
+              className="flex-1 flex relative"
+              style={{ backgroundColor: rightWins ? `${colorRight}33` : "transparent" }}
+            >
               {renderScoreContent(rightScore, colorRight)}
               {p?.show_fouls && renderFoulIndicator("right", rightScore, colorRight)}
             </div>
@@ -383,7 +458,6 @@ export default function TimerDisplayPage() {
       onClick={handleClick}
     >
       {layout.rows.map(renderRow)}
-
     </div>
   );
 }
@@ -409,7 +483,8 @@ function VictoryOverlay({ color, text, maxFontSizeVh }: { color: string; text: s
       if (textEl.scrollWidth <= container.clientWidth - 16) break; // 16px = px-2 padding
       fs *= 0.85;
     }
-    setFontSize(fs); // eslint-disable-line react-hooks/set-state-in-effect -- DOM measurement requires effect, setState is intentional for layout adjustment
+    const updateFontSize = () => setFontSize(fs);
+    updateFontSize();
   }, [text, maxFontSizeVh]);
 
   return (
@@ -429,4 +504,3 @@ function VictoryOverlay({ color, text, maxFontSizeVh }: { color: string; text: s
     </div>
   );
 }
-

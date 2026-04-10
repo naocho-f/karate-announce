@@ -51,7 +51,9 @@ export function DeviceReadiness() {
   return (
     <section>
       <h3 className="text-sm font-semibold text-gray-300 mb-2">端末準備状況</h3>
-      <div className={`rounded-lg p-4 ${allReady ? "bg-green-900/30 border border-green-700" : checking ? "bg-gray-800 border border-gray-700" : "bg-red-900/30 border border-red-700"}`}>
+      <div
+        className={`rounded-lg p-4 ${allReady ? "bg-green-900/30 border border-green-700" : checking ? "bg-gray-800 border border-gray-700" : "bg-red-900/30 border border-red-700"}`}
+      >
         {checking ? (
           <p className="text-sm text-gray-400">確認中...</p>
         ) : allReady ? (
@@ -63,7 +65,9 @@ export function DeviceReadiness() {
               <p className="text-xs text-gray-400">・Service Worker が未登録です。ページをリロードしてください</p>
             )}
             {status.cache === "not_ready" && (
-              <p className="text-xs text-gray-400">・キャッシュが未構築です。各画面を一度開いてデータが表示されるまでお待ちください</p>
+              <p className="text-xs text-gray-400">
+                ・キャッシュが未構築です。各画面を一度開いてデータが表示されるまでお待ちください
+              </p>
             )}
           </div>
         )}

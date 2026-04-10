@@ -45,7 +45,9 @@ export function AutoCreateDialog({
       if (!cancelled) setLoading(false);
     }
     loadRules();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [eventId]);
 
   function getCourtLabel(num: number): string {
@@ -91,12 +93,12 @@ export function AutoCreateDialog({
       <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium text-white">全自動対戦表作成</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-lg">&times;</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-lg">
+            &times;
+          </button>
         </div>
 
-        <p className="text-sm text-gray-400">
-          対象: {entries.length}名
-        </p>
+        <p className="text-sm text-gray-400">対象: {entries.length}名</p>
 
         {loading && <p className="text-sm text-gray-500">読み込み中...</p>}
 
@@ -129,24 +131,24 @@ export function AutoCreateDialog({
                 <div className="flex-1 min-w-0">
                   <span className="text-sm text-white">{rule.name}</span>
                   <div className="text-xs text-gray-400 flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-                    {rule.rule_id && (
-                      <span>ルール: {rules.find((r) => r.id === rule.rule_id)?.name ?? "不明"}</span>
-                    )}
+                    {rule.rule_id && <span>ルール: {rules.find((r) => r.id === rule.rule_id)?.name ?? "不明"}</span>}
                     {(rule.min_age != null || rule.max_age != null) && (
-                      <span>年齢: {rule.min_age ?? ""}〜{rule.max_age ?? ""}</span>
+                      <span>
+                        年齢: {rule.min_age ?? ""}〜{rule.max_age ?? ""}
+                      </span>
                     )}
                     {(rule.min_weight != null || rule.max_weight != null) && (
-                      <span>体重: {rule.min_weight ?? ""}〜{rule.max_weight ?? ""}kg</span>
+                      <span>
+                        体重: {rule.min_weight ?? ""}〜{rule.max_weight ?? ""}kg
+                      </span>
                     )}
                     {(rule.min_grade != null || rule.max_grade != null) && (
-                      <span>年代: {rule.min_grade ?? ""}〜{rule.max_grade ?? ""}</span>
+                      <span>
+                        年代: {rule.min_grade ?? ""}〜{rule.max_grade ?? ""}
+                      </span>
                     )}
-                    {rule.sex_filter && (
-                      <span>性別: {rule.sex_filter === "male" ? "男" : "女"}</span>
-                    )}
-                    {rule.court_num != null && (
-                      <span>コート: {getCourtLabel(rule.court_num)}</span>
-                    )}
+                    {rule.sex_filter && <span>性別: {rule.sex_filter === "male" ? "男" : "女"}</span>}
+                    {rule.court_num != null && <span>コート: {getCourtLabel(rule.court_num)}</span>}
                   </div>
                 </div>
               </label>
@@ -172,7 +174,10 @@ export function AutoCreateDialog({
             {/* コート別試合数サマリー */}
             <div className="flex flex-wrap gap-2">
               {Array.from({ length: courtCount }, (_, i) => i + 1).map((court) => (
-                <span key={court} className="text-xs bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-300">
+                <span
+                  key={court}
+                  className="text-xs bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-300"
+                >
                   {getCourtLabel(court)}: {courtMatchCounts[court] ?? 0}試合
                 </span>
               ))}
@@ -184,7 +189,8 @@ export function AutoCreateDialog({
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-medium text-white">{group.name}</span>
                   <span className="text-xs text-gray-400">
-                    {group.courtNum ? getCourtLabel(group.courtNum) : "コート未定"} / {group.entries.length}名 / {group.pairs.length}対戦
+                    {group.courtNum ? getCourtLabel(group.courtNum) : "コート未定"} / {group.entries.length}名 /{" "}
+                    {group.pairs.length}対戦
                   </span>
                 </div>
                 <div className="text-xs text-gray-400 flex flex-wrap gap-1">

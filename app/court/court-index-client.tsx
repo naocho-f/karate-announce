@@ -17,7 +17,12 @@ import { setMode } from "@/lib/offline-mode";
 
 // ── 単一コートのパネルコンポーネント ─────────────────────────────────────────
 
-function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadingMap }: {
+function CourtPanel({
+  courtNum,
+  courtDisplayName,
+  announceTemplates,
+  rulesReadingMap,
+}: {
   courtNum: string;
   courtDisplayName: string;
   announceTemplates: AnnounceTemplates;
@@ -35,7 +40,9 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
     try {
       const saved = localStorage.getItem("muted_match_ids");
       return saved ? new Set(JSON.parse(saved)) : new Set();
-    } catch { return new Set(); }
+    } catch {
+      return new Set();
+    }
   });
   const prevDataRef = useRef<string>("");
 
@@ -43,7 +50,11 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
     setProcessingMatchIds((prev) => new Set(prev).add(matchId));
   }
   function endProcessing(matchId: string) {
-    setProcessingMatchIds((prev) => { const next = new Set(prev); next.delete(matchId); return next; });
+    setProcessingMatchIds((prev) => {
+      const next = new Set(prev);
+      next.delete(matchId);
+      return next;
+    });
   }
 
   const load = useCallback(async () => {
@@ -93,8 +104,12 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
     prevDataRef.current = serialized;
 
     const byTournament: Record<string, Match[]> = {};
-    tournIds.forEach((id) => { byTournament[id] = []; });
-    (allMatches ?? []).forEach((m) => { byTournament[m.tournament_id]?.push(m); });
+    tournIds.forEach((id) => {
+      byTournament[id] = [];
+    });
+    (allMatches ?? []).forEach((m) => {
+      byTournament[m.tournament_id]?.push(m);
+    });
     setMatchesMap(byTournament);
 
     if (allFighterIds.size > 0) {
@@ -103,7 +118,9 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
         .select("*, dojo:dojos(*)")
         .in("id", [...allFighterIds]);
       const fighterMap: Record<string, Fighter> = {};
-      (fs ?? []).forEach((f) => { fighterMap[f.id] = f as Fighter; });
+      (fs ?? []).forEach((f) => {
+        fighterMap[f.id] = f as Fighter;
+      });
       setFighters(fighterMap);
     }
 
@@ -119,16 +136,21 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
     setFighterEntryMap(entryMap);
   }, [courtNum]);
 
-  useEffect(() => { load(); }, [load]); // eslint-disable-line react-hooks/set-state-in-effect -- async data fetch calls setState in callback after await
   useEffect(() => {
-    const timer = setInterval(load, 3000);
+    let cancelled = false;
+    const doLoad = () => {
+      if (!cancelled) load();
+    };
+    doLoad();
+    const timer = setInterval(doLoad, 3000);
 
     function handleVisibility() {
-      if (document.visibilityState === "visible") load();
+      if (document.visibilityState === "visible") doLoad();
     }
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
+      cancelled = true;
       clearInterval(timer);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
@@ -145,14 +167,26 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
     startProcessing(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
     try {
-      await resilientFetch(`/api/court/matches/${matchId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start", tournamentId }),
-      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
+      await resilientFetch(
+        `/api/court/matches/${matchId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "start", tournamentId }),
+        },
+        { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" },
+      );
     } catch {
-      await enqueue({ action: "start", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "start", tournamentId }, createdAt: new Date().toISOString(), tabId: "court-index" });
-      endProcessing(matchId); return;
+      await enqueue({
+        action: "start",
+        endpoint: `/api/court/matches/${matchId}`,
+        method: "PATCH",
+        payload: { action: "start", tournamentId },
+        createdAt: new Date().toISOString(),
+        tabId: "court-index",
+      });
+      endProcessing(matchId);
+      return;
     }
     await load();
     endProcessing(matchId);
@@ -161,15 +195,19 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
       const tournament = tournaments.find((t) => t.id === tournamentId);
       const rulesText = match.rules ?? tournament?.default_rules;
       await announceMatchStart(
-        fighterFullName(f1), f1.affiliation ?? f1.dojo?.name ?? "",
-        fighterFullName(f2), f2.affiliation ?? f2.dojo?.name ?? "",
+        fighterFullName(f1),
+        f1.affiliation ?? f1.dojo?.name ?? "",
+        fighterFullName(f2),
+        f2.affiliation ?? f2.dojo?.name ?? "",
         roundName(match.round, rounds),
-        fighterFullReading(f1), f1.affiliation_reading ?? f1.dojo?.name_reading,
-        fighterFullReading(f2), f2.affiliation_reading ?? f2.dojo?.name_reading,
+        fighterFullReading(f1),
+        f1.affiliation_reading ?? f1.dojo?.name_reading,
+        fighterFullReading(f2),
+        f2.affiliation_reading ?? f2.dojo?.name_reading,
         match.match_label,
         rulesText,
         announceTemplates,
-        rulesText ? rulesReadingMap[rulesText] ?? null : null,
+        rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
       );
     }
   }
@@ -185,23 +223,48 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
     addPendingWinner(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
     try {
-      const res = await resilientFetch(`/api/court/matches/${matchId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }),
-      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
-      if (!res.ok) { endProcessing(matchId); removePendingWinner(matchId); return; }
+      const res = await resilientFetch(
+        `/api/court/matches/${matchId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "set_winner",
+            winnerId,
+            tournamentId,
+            round: match.round,
+            rounds,
+            position: match.position,
+          }),
+        },
+        { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" },
+      );
+      if (!res.ok) {
+        endProcessing(matchId);
+        removePendingWinner(matchId);
+        return;
+      }
     } catch {
-      await enqueue({ action: "set_winner", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }, createdAt: new Date().toISOString(), tabId: "court-index" });
-      endProcessing(matchId); return;
+      await enqueue({
+        action: "set_winner",
+        endpoint: `/api/court/matches/${matchId}`,
+        method: "PATCH",
+        payload: { action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position },
+        createdAt: new Date().toISOString(),
+        tabId: "court-index",
+      });
+      endProcessing(matchId);
+      return;
     }
     await load();
     removePendingWinner(matchId);
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
       await announceWinner(
-        fighterFullName(winner), winner.affiliation ?? winner.dojo?.name ?? "",
-        fighterFullReading(winner), winner.affiliation_reading ?? winner.dojo?.name_reading,
+        fighterFullName(winner),
+        winner.affiliation ?? winner.dojo?.name ?? "",
+        fighterFullReading(winner),
+        winner.affiliation_reading ?? winner.dojo?.name_reading,
         announceTemplates,
       );
     }
@@ -210,13 +273,18 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
   async function toggleWithdrawal(matchId: string, entryId: string, withdrawn: boolean) {
     startProcessing(matchId);
     try {
-      await resilientFetch(`/api/court/entries/${entryId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_withdrawn: withdrawn }),
-      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
+      await resilientFetch(
+        `/api/court/entries/${entryId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_withdrawn: withdrawn }),
+        },
+        { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" },
+      );
     } catch {
-      endProcessing(matchId); return;
+      endProcessing(matchId);
+      return;
     }
     await load();
     endProcessing(matchId);
@@ -225,7 +293,8 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
   function toggleMute(matchId: string) {
     setMutedMatchIds((prev) => {
       const next = new Set(prev);
-      if (next.has(matchId)) next.delete(matchId); else next.add(matchId);
+      if (next.has(matchId)) next.delete(matchId);
+      else next.add(matchId);
       localStorage.setItem("muted_match_ids", JSON.stringify([...next]));
       return next;
     });
@@ -241,21 +310,49 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
     startProcessing(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
     try {
-      await resilientFetch(`/api/court/matches/${matchId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "correct_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }),
-      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
+      await resilientFetch(
+        `/api/court/matches/${matchId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "correct_winner",
+            winnerId,
+            tournamentId,
+            round: match.round,
+            rounds,
+            position: match.position,
+          }),
+        },
+        { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" },
+      );
     } catch {
-      await enqueue({ action: "correct_winner", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "correct_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }, createdAt: new Date().toISOString(), tabId: "court-index" });
-      endProcessing(matchId); return;
+      await enqueue({
+        action: "correct_winner",
+        endpoint: `/api/court/matches/${matchId}`,
+        method: "PATCH",
+        payload: {
+          action: "correct_winner",
+          winnerId,
+          tournamentId,
+          round: match.round,
+          rounds,
+          position: match.position,
+        },
+        createdAt: new Date().toISOString(),
+        tabId: "court-index",
+      });
+      endProcessing(matchId);
+      return;
     }
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
       await announceWinner(
-        fighterFullName(winner), winner.affiliation ?? winner.dojo?.name ?? "",
-        fighterFullReading(winner), winner.affiliation_reading ?? winner.dojo?.name_reading,
+        fighterFullName(winner),
+        winner.affiliation ?? winner.dojo?.name ?? "",
+        fighterFullReading(winner),
+        winner.affiliation_reading ?? winner.dojo?.name_reading,
         announceTemplates,
       );
     }
@@ -272,15 +369,19 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
     const tournament = tournaments.find((t) => t.id === tournamentId);
     const rulesText = match.rules ?? tournament?.default_rules;
     await announceMatchStart(
-      fighterFullName(f1), f1.affiliation ?? f1.dojo?.name ?? "",
-      fighterFullName(f2), f2.affiliation ?? f2.dojo?.name ?? "",
+      fighterFullName(f1),
+      f1.affiliation ?? f1.dojo?.name ?? "",
+      fighterFullName(f2),
+      f2.affiliation ?? f2.dojo?.name ?? "",
       roundName(match.round, rounds),
-      fighterFullReading(f1), f1.affiliation_reading ?? f1.dojo?.name_reading,
-      fighterFullReading(f2), f2.affiliation_reading ?? f2.dojo?.name_reading,
+      fighterFullReading(f1),
+      f1.affiliation_reading ?? f1.dojo?.name_reading,
+      fighterFullReading(f2),
+      f2.affiliation_reading ?? f2.dojo?.name_reading,
       match.match_label,
       rulesText,
       announceTemplates,
-      rulesText ? rulesReadingMap[rulesText] ?? null : null,
+      rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
     );
   }
 
@@ -291,8 +392,10 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
     const winner = fighters[match.winner_id];
     if (!winner) return;
     await announceWinner(
-      fighterFullName(winner), winner.affiliation ?? winner.dojo?.name ?? "",
-      fighterFullReading(winner), winner.affiliation_reading ?? winner.dojo?.name_reading,
+      fighterFullName(winner),
+      winner.affiliation ?? winner.dojo?.name ?? "",
+      fighterFullReading(winner),
+      winner.affiliation_reading ?? winner.dojo?.name_reading,
       announceTemplates,
     );
   }
@@ -306,14 +409,27 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
     startProcessing(matchId);
     startProcessing(nextMatch.id);
     try {
-      await resilientFetch(`/api/court/matches/${matchId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "swap_with", otherMatchId: nextMatch.id }),
-      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
+      await resilientFetch(
+        `/api/court/matches/${matchId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "swap_with", otherMatchId: nextMatch.id }),
+        },
+        { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" },
+      );
     } catch {
-      await enqueue({ action: "swap_with", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "swap_with", otherMatchId: nextMatch.id }, createdAt: new Date().toISOString(), tabId: "court-index" });
-      endProcessing(matchId); endProcessing(nextMatch.id); return;
+      await enqueue({
+        action: "swap_with",
+        endpoint: `/api/court/matches/${matchId}`,
+        method: "PATCH",
+        payload: { action: "swap_with", otherMatchId: nextMatch.id },
+        createdAt: new Date().toISOString(),
+        tabId: "court-index",
+      });
+      endProcessing(matchId);
+      endProcessing(nextMatch.id);
+      return;
     }
     await load();
     endProcessing(matchId);
@@ -321,7 +437,9 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
   }
 
   const nameMap = Object.fromEntries(Object.entries(fighters).map(([id, f]) => [id, fighterFullName(f)]));
-  const affiliationMap = Object.fromEntries(Object.entries(fighters).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""]));
+  const affiliationMap = Object.fromEntries(
+    Object.entries(fighters).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""]),
+  );
 
   return (
     <div className="space-y-4">
@@ -336,9 +454,11 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
               <div key={tournament.id}>
                 <div className="flex items-center gap-3 mb-3">
                   <h3 className="font-semibold text-base">{tournament.name}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded ${
-                    tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"
-                  }`}>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded ${
+                      tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"
+                    }`}
+                  >
                     {tournament.status === "ongoing" ? "進行中" : "準備中"}
                   </span>
                 </div>
@@ -359,7 +479,9 @@ function CourtPanel({ courtNum, courtDisplayName, announceTemplates, rulesReadin
                       onCorrectWinner={(matchId, fighterId) => correctWinner(tournament.id, matchId, fighterId)}
                       onReannounceStart={(matchId) => reannounceStart(tournament.id, matchId)}
                       onReannounceWinner={(matchId) => reannounceWinner(tournament.id, matchId)}
-                      onWithdrawnToggle={(matchId, fighterId, entryId, withdrawn) => toggleWithdrawal(matchId, entryId, withdrawn)}
+                      onWithdrawnToggle={(matchId, fighterId, entryId, withdrawn) =>
+                        toggleWithdrawal(matchId, entryId, withdrawn)
+                      }
                       onSwapWithNext={(round, matchId) => swapWithNext(tournament.id, round, matchId)}
                       onToggleMute={toggleMute}
                     />
@@ -382,7 +504,11 @@ export default function CourtIndexClient() {
   const [rulesReadingMap, setRulesReadingMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    supabase.from("events").select("*").eq("is_active", true).maybeSingle()
+    supabase
+      .from("events")
+      .select("*")
+      .eq("is_active", true)
+      .maybeSingle()
       .then(({ data }) => setActiveEvent(data ?? null));
   }, []);
 
@@ -393,13 +519,18 @@ export default function CourtIndexClient() {
         if (d.announce_templates) setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...d.announce_templates });
       })
       .catch(() => {});
-    supabase.from("rules").select("name, name_reading").then(({ data }) => {
-      if (data) {
-        const map: Record<string, string> = {};
-        data.forEach((r) => { if (r.name_reading) map[r.name] = r.name_reading; });
-        setRulesReadingMap(map);
-      }
-    });
+    supabase
+      .from("rules")
+      .select("name, name_reading")
+      .then(({ data }) => {
+        if (data) {
+          const map: Record<string, string> = {};
+          data.forEach((r) => {
+            if (r.name_reading) map[r.name] = r.name_reading;
+          });
+          setRulesReadingMap(map);
+        }
+      });
   }, []);
 
   const { mode: offlineMode } = useOfflineMode();
@@ -410,7 +541,12 @@ export default function CourtIndexClient() {
     { baseInterval: 5000, enabled: offlineMode === "online" },
   );
 
-  if (activeEvent === undefined) return <div className="min-h-screen bg-main-bg flex items-center justify-center"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>;
+  if (activeEvent === undefined)
+    return (
+      <div className="min-h-screen bg-main-bg flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
 
   if (!activeEvent) {
     return (
@@ -430,14 +566,20 @@ export default function CourtIndexClient() {
         quality={quality}
         mode={offlineMode}
         pendingCount={pendingCount}
-        onToggleOfflineMode={() => { const next = offlineMode === "online" ? "offline" : "online"; setMode(next); if (next === "online") flush().catch(() => {}); }}
+        onToggleOfflineMode={() => {
+          const next = offlineMode === "online" ? "offline" : "online";
+          setMode(next);
+          if (next === "online") flush().catch(() => {});
+        }}
         showRecoveryPrompt={showRecoveryPrompt}
         onAcceptRecovery={acceptRecovery}
         onDeclineRecovery={declineRecovery}
       />
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
-          <Link href="/" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
+          <Link href="/" className="text-gray-400 hover:text-white text-sm">
+            ← 戻る
+          </Link>
           <h1 className="text-2xl font-bold">{activeEvent.name}</h1>
           <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold">● 進行中</span>
         </div>

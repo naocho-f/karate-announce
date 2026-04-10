@@ -5,13 +5,7 @@
  * 追加されたことを検証する（set_winner, finish_timer は既存テストで確認済み）。
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  createMockSupabase,
-  mockResult,
-  createAdminRequest,
-  createParams,
-  resetAll,
-} from "../helpers/supabase-mock";
+import { createMockSupabase, mockResult, createAdminRequest, createParams, resetAll } from "../helpers/supabase-mock";
 
 process.env.ADMIN_PASSWORD = "test-password";
 

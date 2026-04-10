@@ -90,7 +90,12 @@ export default function BugReportsPanel() {
         setReports((prev) =>
           prev.map((r) =>
             r.id === id
-              ? { ...r, status: editStatus as BugReport["status"], resolution: editResolution || null, fixed_in_version: editFixedVersion || null }
+              ? {
+                  ...r,
+                  status: editStatus as BugReport["status"],
+                  resolution: editResolution || null,
+                  fixed_in_version: editFixedVersion || null,
+                }
               : r,
           ),
         );
@@ -145,9 +150,7 @@ export default function BugReportsPanel() {
 
       {loading && <p className="text-sm text-gray-500">読み込み中...</p>}
 
-      {!loading && filtered.length === 0 && (
-        <p className="text-sm text-gray-500">報告はありません</p>
-      )}
+      {!loading && filtered.length === 0 && <p className="text-sm text-gray-500">報告はありません</p>}
 
       {/* Report list */}
       {filtered.map((report) => {
@@ -161,17 +164,13 @@ export default function BugReportsPanel() {
               onClick={() => toggleExpand(report)}
               className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-750 transition"
             >
-              <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${badge.cls}`}>
-                {badge.label}
-              </span>
+              <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${badge.cls}`}>{badge.label}</span>
               <span className="text-sm text-gray-200 truncate flex-1">
                 {report.what_did.length > 30 ? report.what_did.slice(0, 30) + "..." : report.what_did}
               </span>
               <span className="text-xs text-gray-500 whitespace-nowrap">{relativeTime(report.created_at)}</span>
               {report.app_version && (
-                <span className="text-[10px] bg-gray-700 text-gray-400 px-1 py-0.5 rounded">
-                  {report.app_version}
-                </span>
+                <span className="text-[10px] bg-gray-700 text-gray-400 px-1 py-0.5 rounded">{report.app_version}</span>
               )}
             </button>
 

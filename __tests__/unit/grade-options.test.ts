@@ -227,9 +227,7 @@ describe("isAgeCategoryLabel", () => {
   });
 
   it("should use custom age categories when provided", () => {
-    const custom: AgeCategory[] = [
-      { label: "ジュニア", minAge: 15, maxAge: 17 },
-    ];
+    const custom: AgeCategory[] = [{ label: "ジュニア", minAge: 15, maxAge: 17 }];
     expect(isAgeCategoryLabel("ジュニア", custom)).toBe(true);
     expect(isAgeCategoryLabel("一般", custom)).toBe(false);
   });

@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-10（ESLint pre-commit/CI強制）
+> 最終更新: 2026-04-10（Prettier導入+eslint-disable全廃止+返事ルール追加）
 
 ---
 
@@ -12,6 +12,7 @@
 試合の参加受付から対戦表作成、コート進行、結果配信までを一貫して管理する。
 
 **技術スタック**（詳細は [INFRA_SPEC.md](docs/INFRA_SPEC.md) を参照）
+
 - フレームワーク: Next.js 16 (App Router) + TypeScript
 - スタイリング: Tailwind CSS 4
 - データベース: Supabase (PostgreSQL)
@@ -23,13 +24,13 @@
 
 ## 2. ユーザーとロール
 
-| ロール | アクセス先 | 認証 |
-|--------|-----------|------|
-| **参加者** | `/entry/[eventId]` | なし（URL 直アクセス） |
-| **観客** | `/`、`/live` | なし |
-| **運営スタッフ（コート担当）** | `/court/[court]` | なし（URL 直アクセス） |
-| **タイムキーパー** | `/timer/[courtId]`, `/timer/[courtId]/control` | なし（URL 直アクセス） |
-| **管理者** | `/admin/*` | Cookie 認証（ID/パスワード） |
+| ロール                         | アクセス先                                     | 認証                         |
+| ------------------------------ | ---------------------------------------------- | ---------------------------- |
+| **参加者**                     | `/entry/[eventId]`                             | なし（URL 直アクセス）       |
+| **観客**                       | `/`、`/live`                                   | なし                         |
+| **運営スタッフ（コート担当）** | `/court/[court]`                               | なし（URL 直アクセス）       |
+| **タイムキーパー**             | `/timer/[courtId]`, `/timer/[courtId]/control` | なし（URL 直アクセス）       |
+| **管理者**                     | `/admin/*`                                     | Cookie 認証（ID/パスワード） |
 
 ---
 
@@ -37,23 +38,23 @@
 
 各画面の詳細仕様は `docs/` 内の個別仕様書を参照。
 
-| 画面 | パス | 認証 | 詳細仕様 |
-|------|------|------|----------|
-| ホームページ | `/` | なし | — |
-| 参加申込フォーム | `/entry/[eventId]` | なし | [ENTRY_FORM_SPEC.md](docs/ENTRY_FORM_SPEC.md) |
-| ライブ速報 | `/live` | なし | — |
-| コート画面 | `/court/[court]` | なし | [COURT_SPEC.md](docs/COURT_SPEC.md) |
-| 統合コート画面 | `/court` | なし | [COURT_SPEC.md](docs/COURT_SPEC.md) |
-| タイマー表示 | `/timer/[courtId]` | なし | [TIMER_SPEC.md](docs/TIMER_SPEC.md) |
-| タイマー操作 | `/timer/[courtId]/control` | なし | [TIMER_SPEC.md](docs/TIMER_SPEC.md) |
-| ショートカット印刷 | `/timer/shortcuts` | なし | [TIMER_SPEC.md](docs/TIMER_SPEC.md) |
-| ログイン | `/admin/login` | — | — |
-| 管理画面ホーム | `/admin` | Cookie | [EVENT_ADMIN_SPEC.md](docs/EVENT_ADMIN_SPEC.md) |
-| 試合詳細 | `/admin/events/[id]` | Cookie | [EVENT_ADMIN_SPEC.md](docs/EVENT_ADMIN_SPEC.md), [BRACKET_SPEC.md](docs/BRACKET_SPEC.md), [BRACKET_VIEW_SPEC.md](docs/BRACKET_VIEW_SPEC.md), [MATCH_LABEL_SPEC.md](docs/MATCH_LABEL_SPEC.md), [FORM_CONFIG_SPEC.md](docs/FORM_CONFIG_SPEC.md) |
-| 参加者詳細 | `/admin/events/[id]/entries/[entryId]` | Cookie | [EVENT_ADMIN_SPEC.md](docs/EVENT_ADMIN_SPEC.md) |
-| タイマー管理 | `/admin/timer-presets` | Cookie | [TIMER_SPEC.md](docs/TIMER_SPEC.md) |
-| 仕様書 | `/admin/spec` | なし（dev） | — |
-| オフラインフォールバック | `/offline` | なし | [OFFLINE_SPEC.md](docs/OFFLINE_SPEC.md) |
+| 画面                     | パス                                   | 認証        | 詳細仕様                                                                                                                                                                                                                                      |
+| ------------------------ | -------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ホームページ             | `/`                                    | なし        | —                                                                                                                                                                                                                                             |
+| 参加申込フォーム         | `/entry/[eventId]`                     | なし        | [ENTRY_FORM_SPEC.md](docs/ENTRY_FORM_SPEC.md)                                                                                                                                                                                                 |
+| ライブ速報               | `/live`                                | なし        | —                                                                                                                                                                                                                                             |
+| コート画面               | `/court/[court]`                       | なし        | [COURT_SPEC.md](docs/COURT_SPEC.md)                                                                                                                                                                                                           |
+| 統合コート画面           | `/court`                               | なし        | [COURT_SPEC.md](docs/COURT_SPEC.md)                                                                                                                                                                                                           |
+| タイマー表示             | `/timer/[courtId]`                     | なし        | [TIMER_SPEC.md](docs/TIMER_SPEC.md)                                                                                                                                                                                                           |
+| タイマー操作             | `/timer/[courtId]/control`             | なし        | [TIMER_SPEC.md](docs/TIMER_SPEC.md)                                                                                                                                                                                                           |
+| ショートカット印刷       | `/timer/shortcuts`                     | なし        | [TIMER_SPEC.md](docs/TIMER_SPEC.md)                                                                                                                                                                                                           |
+| ログイン                 | `/admin/login`                         | —           | —                                                                                                                                                                                                                                             |
+| 管理画面ホーム           | `/admin`                               | Cookie      | [EVENT_ADMIN_SPEC.md](docs/EVENT_ADMIN_SPEC.md)                                                                                                                                                                                               |
+| 試合詳細                 | `/admin/events/[id]`                   | Cookie      | [EVENT_ADMIN_SPEC.md](docs/EVENT_ADMIN_SPEC.md), [BRACKET_SPEC.md](docs/BRACKET_SPEC.md), [BRACKET_VIEW_SPEC.md](docs/BRACKET_VIEW_SPEC.md), [MATCH_LABEL_SPEC.md](docs/MATCH_LABEL_SPEC.md), [FORM_CONFIG_SPEC.md](docs/FORM_CONFIG_SPEC.md) |
+| 参加者詳細               | `/admin/events/[id]/entries/[entryId]` | Cookie      | [EVENT_ADMIN_SPEC.md](docs/EVENT_ADMIN_SPEC.md)                                                                                                                                                                                               |
+| タイマー管理             | `/admin/timer-presets`                 | Cookie      | [TIMER_SPEC.md](docs/TIMER_SPEC.md)                                                                                                                                                                                                           |
+| 仕様書                   | `/admin/spec`                          | なし（dev） | —                                                                                                                                                                                                                                             |
+| オフラインフォールバック | `/offline`                             | なし        | [OFFLINE_SPEC.md](docs/OFFLINE_SPEC.md)                                                                                                                                                                                                       |
 
 ---
 
@@ -344,12 +345,12 @@ settings (
 
 `lib/compatibility.ts` で定義。
 
-| 記号 | 意味 | 判定条件 |
-|------|------|---------|
-| ◎ ok | 問題なし | 差 ≤ 上限 |
-| △ warn | 注意 | 上限 < 差 ≤ 2×上限 |
-| ✕ ng | 危険 | 差 > 2×上限 |
-| － unknown | データなし | 体重/身長未入力 |
+| 記号       | 意味       | 判定条件           |
+| ---------- | ---------- | ------------------ |
+| ◎ ok       | 問題なし   | 差 ≤ 上限          |
+| △ warn     | 注意       | 上限 < 差 ≤ 2×上限 |
+| ✕ ng       | 危険       | 差 > 2×上限        |
+| － unknown | データなし | 体重/身長未入力    |
 
 ---
 
@@ -359,96 +360,96 @@ settings (
 
 認証: `verifyAdminAuth()` による Cookie チェック
 
-| メソッド | パス | 概要 |
-|---------|------|------|
-| POST/DELETE | `/api/admin/login` | ログイン・ログアウト |
-| POST | `/api/admin/events` | 大会作成（`copy_from_event_id` 指定で過去大会から複製。`copy_entries` で任意エントリーコピー） |
-| PATCH | `/api/admin/events/[id]` | 大会更新 |
-| DELETE | `/api/admin/events/[id]` | 大会削除 |
-| POST | `/api/admin/dojos` | 流派追加 |
-| PATCH/DELETE | `/api/admin/dojos/[id]` | 流派更新・削除 |
-| POST | `/api/admin/fighters` | 選手追加 |
-| PATCH/DELETE | `/api/admin/fighters/[id]` | 選手更新・削除 |
-| POST | `/api/admin/rules` | ルール追加（name, name_reading, description） |
-| PATCH/DELETE | `/api/admin/rules/[id]` | ルール更新（name_reading, description）・削除 |
-| POST | `/api/admin/entries` | エントリー追加（管理者） |
-| PATCH | `/api/admin/entries/[id]` | エントリー更新 |
-| DELETE | `/api/admin/entries/[id]` | エントリー削除 |
-| POST/DELETE | `/api/admin/entry-rules` | ルール紐付け管理 |
-| GET/POST | `/api/admin/bracket-rules` | 振り分けルール一覧取得・作成 |
-| PUT/DELETE | `/api/admin/bracket-rules/[id]` | 振り分けルール更新・削除 |
-| POST | `/api/admin/tournaments` | トーナメント作成・対戦表生成 |
-| PUT | `/api/admin/tournaments/[id]` | トーナメント更新（matches 再作成、id/sort_order/created_at 保持） |
-| DELETE | `/api/admin/tournaments/[id]` | トーナメント削除 |
-| PATCH | `/api/admin/matches/[id]` | マッチ更新（管理者） |
-| POST | `/api/admin/matches/[id]/replace` | マッチの選手差し替え（`{ slot, entry_id }`） |
-| POST | `/api/admin/matches/batch` | 試合ラベル一括更新 |
-| POST | `/api/admin/matches/swap` | 同一ラウンド内の隣接試合入替 |
-| GET/PUT | `/api/admin/settings` | 全体設定（体重差・身長差上限等）の取得・更新 |
-| POST/DELETE | `/api/admin/events/[id]/banner` | バナー画像アップロード/削除 |
-| POST/DELETE | `/api/admin/events/[id]/ogp` | OGP画像アップロード/削除 |
-| GET/POST | `/api/admin/timer-presets` | タイマー一覧取得・新規作成 |
-| PATCH/DELETE | `/api/admin/timer-presets/[id]` | タイマー更新・削除 |
-| POST | `/api/admin/timer-presets/[id]/duplicate` | タイマー複製 |
-| POST/DELETE | `/api/admin/timer-presets/[id]/buzzer` | カスタムブザー音源アップロード/削除 |
+| メソッド     | パス                                      | 概要                                                                                           |
+| ------------ | ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| POST/DELETE  | `/api/admin/login`                        | ログイン・ログアウト                                                                           |
+| POST         | `/api/admin/events`                       | 大会作成（`copy_from_event_id` 指定で過去大会から複製。`copy_entries` で任意エントリーコピー） |
+| PATCH        | `/api/admin/events/[id]`                  | 大会更新                                                                                       |
+| DELETE       | `/api/admin/events/[id]`                  | 大会削除                                                                                       |
+| POST         | `/api/admin/dojos`                        | 流派追加                                                                                       |
+| PATCH/DELETE | `/api/admin/dojos/[id]`                   | 流派更新・削除                                                                                 |
+| POST         | `/api/admin/fighters`                     | 選手追加                                                                                       |
+| PATCH/DELETE | `/api/admin/fighters/[id]`                | 選手更新・削除                                                                                 |
+| POST         | `/api/admin/rules`                        | ルール追加（name, name_reading, description）                                                  |
+| PATCH/DELETE | `/api/admin/rules/[id]`                   | ルール更新（name_reading, description）・削除                                                  |
+| POST         | `/api/admin/entries`                      | エントリー追加（管理者）                                                                       |
+| PATCH        | `/api/admin/entries/[id]`                 | エントリー更新                                                                                 |
+| DELETE       | `/api/admin/entries/[id]`                 | エントリー削除                                                                                 |
+| POST/DELETE  | `/api/admin/entry-rules`                  | ルール紐付け管理                                                                               |
+| GET/POST     | `/api/admin/bracket-rules`                | 振り分けルール一覧取得・作成                                                                   |
+| PUT/DELETE   | `/api/admin/bracket-rules/[id]`           | 振り分けルール更新・削除                                                                       |
+| POST         | `/api/admin/tournaments`                  | トーナメント作成・対戦表生成                                                                   |
+| PUT          | `/api/admin/tournaments/[id]`             | トーナメント更新（matches 再作成、id/sort_order/created_at 保持）                              |
+| DELETE       | `/api/admin/tournaments/[id]`             | トーナメント削除                                                                               |
+| PATCH        | `/api/admin/matches/[id]`                 | マッチ更新（管理者）                                                                           |
+| POST         | `/api/admin/matches/[id]/replace`         | マッチの選手差し替え（`{ slot, entry_id }`）                                                   |
+| POST         | `/api/admin/matches/batch`                | 試合ラベル一括更新                                                                             |
+| POST         | `/api/admin/matches/swap`                 | 同一ラウンド内の隣接試合入替                                                                   |
+| GET/PUT      | `/api/admin/settings`                     | 全体設定（体重差・身長差上限等）の取得・更新                                                   |
+| POST/DELETE  | `/api/admin/events/[id]/banner`           | バナー画像アップロード/削除                                                                    |
+| POST/DELETE  | `/api/admin/events/[id]/ogp`              | OGP画像アップロード/削除                                                                       |
+| GET/POST     | `/api/admin/timer-presets`                | タイマー一覧取得・新規作成                                                                     |
+| PATCH/DELETE | `/api/admin/timer-presets/[id]`           | タイマー更新・削除                                                                             |
+| POST         | `/api/admin/timer-presets/[id]/duplicate` | タイマー複製                                                                                   |
+| POST/DELETE  | `/api/admin/timer-presets/[id]/buzzer`    | カスタムブザー音源アップロード/削除                                                            |
 
 ### 5.2 コート用 API（認証必須）
 
-| メソッド | パス | 概要 |
-|---------|------|------|
-| PATCH | `/api/court/matches/[id]` | 試合進行（開始・勝者確定・選手替え・順序入替） |
-| PATCH | `/api/court/entries/[id]` | 棄権フラグ更新（`{ is_withdrawn: boolean }`） |
+| メソッド | パス                      | 概要                                           |
+| -------- | ------------------------- | ---------------------------------------------- |
+| PATCH    | `/api/court/matches/[id]` | 試合進行（開始・勝者確定・選手替え・順序入替） |
+| PATCH    | `/api/court/entries/[id]` | 棄権フラグ更新（`{ is_withdrawn: boolean }`）  |
 
 **`/api/court/matches/[id]` の action 一覧**
 
-| action | パラメータ | 説明 |
-|--------|-----------|------|
-| `start` | `tournamentId` | `status: "ongoing"` に変更。トーナメントも `ongoing` に |
-| `set_winner` | `winnerId`, `tournamentId`, `round`, `rounds`, `position` | 勝者確定・次ラウンド進出。最終ラウンドならトーナメントを `finished` に |
-| `replace` | `slot`, `newFighterId` | 選手差し替え |
-| `edit` | `matchLabel`, `rules` | マッチラベル・ルール変更 |
-| `correct_winner` | `winnerId`, `tournamentId`, `round`, `rounds`, `position` | 勝者訂正。次ラウンドが未進行なら選手を差し替え |
-| `swap_with` | `otherMatchId` | 試合順序入替（3ステップスワップで `UNIQUE` 制約を回避） |
-| `finish_timer` | `winnerId`, `tournamentId`, `round`, `rounds`, `position`, `resultMethod`, `resultDetail` | タイマーからの結果書き戻し。winner_id, status="done", result_method, result_detail を更新。次ラウンド進出も処理 |
+| action           | パラメータ                                                                                | 説明                                                                                                            |
+| ---------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `start`          | `tournamentId`                                                                            | `status: "ongoing"` に変更。トーナメントも `ongoing` に                                                         |
+| `set_winner`     | `winnerId`, `tournamentId`, `round`, `rounds`, `position`                                 | 勝者確定・次ラウンド進出。最終ラウンドならトーナメントを `finished` に                                          |
+| `replace`        | `slot`, `newFighterId`                                                                    | 選手差し替え                                                                                                    |
+| `edit`           | `matchLabel`, `rules`                                                                     | マッチラベル・ルール変更                                                                                        |
+| `correct_winner` | `winnerId`, `tournamentId`, `round`, `rounds`, `position`                                 | 勝者訂正。次ラウンドが未進行なら選手を差し替え                                                                  |
+| `swap_with`      | `otherMatchId`                                                                            | 試合順序入替（3ステップスワップで `UNIQUE` 制約を回避）                                                         |
+| `finish_timer`   | `winnerId`, `tournamentId`, `round`, `rounds`, `position`, `resultMethod`, `resultDetail` | タイマーからの結果書き戻し。winner_id, status="done", result_method, result_detail を更新。次ラウンド進出も処理 |
 
 ### 5.3 公開 API（認証不要）
 
-| メソッド | パス | 概要 |
-|---------|------|------|
-| POST | `/api/public/entry` | エントリーフォーム送信（extra_fields, form_version 含む） |
-| GET | `/api/public/form-config?event_id=xxx` | フォーム設定取得（準備中なら `{ready:false}`） |
+| メソッド | パス                                   | 概要                                                      |
+| -------- | -------------------------------------- | --------------------------------------------------------- |
+| POST     | `/api/public/entry`                    | エントリーフォーム送信（extra_fields, form_version 含む） |
+| GET      | `/api/public/form-config?event_id=xxx` | フォーム設定取得（準備中なら `{ready:false}`）            |
 
 ### 5.4 フォーム設定管理 API（認証必須）
 
-| メソッド | パス | 概要 |
-|---------|------|------|
-| GET | `/api/admin/form-config?event_id=xxx` | フォーム設定取得（なければデフォルトで自動作成） |
-| PUT | `/api/admin/form-config` | フィールド設定一括更新 |
-| PATCH | `/api/admin/form-config` | バージョンインクリメント＆公開 |
-| POST | `/api/admin/form-config/copy` | 過去の大会からフォーム設定コピー |
-| POST | `/api/admin/form-config/notices` | 注意書き作成 |
-| PATCH | `/api/admin/form-config/notices/[id]` | 注意書き更新 |
-| DELETE | `/api/admin/form-config/notices/[id]` | 注意書き削除（画像カスケード削除） |
-| POST | `/api/admin/form-config/image-upload` | 注意書き画像アップロード（5MB制限、JPEG/PNG/WebP） |
-| DELETE | `/api/admin/form-config/image-upload` | 注意書き画像削除 |
-| POST | `/api/admin/form-config/custom-fields` | 自由設問追加（custom_field_defs + form_field_configs） |
-| DELETE | `/api/admin/form-config/custom-fields` | 自由設問削除 |
-| POST | `/api/admin/form-config/custom-fields/duplicate` | 自由設問複製 |
+| メソッド | パス                                             | 概要                                                   |
+| -------- | ------------------------------------------------ | ------------------------------------------------------ |
+| GET      | `/api/admin/form-config?event_id=xxx`            | フォーム設定取得（なければデフォルトで自動作成）       |
+| PUT      | `/api/admin/form-config`                         | フィールド設定一括更新                                 |
+| PATCH    | `/api/admin/form-config`                         | バージョンインクリメント＆公開                         |
+| POST     | `/api/admin/form-config/copy`                    | 過去の大会からフォーム設定コピー                       |
+| POST     | `/api/admin/form-config/notices`                 | 注意書き作成                                           |
+| PATCH    | `/api/admin/form-config/notices/[id]`            | 注意書き更新                                           |
+| DELETE   | `/api/admin/form-config/notices/[id]`            | 注意書き削除（画像カスケード削除）                     |
+| POST     | `/api/admin/form-config/image-upload`            | 注意書き画像アップロード（5MB制限、JPEG/PNG/WebP）     |
+| DELETE   | `/api/admin/form-config/image-upload`            | 注意書き画像削除                                       |
+| POST     | `/api/admin/form-config/custom-fields`           | 自由設問追加（custom_field_defs + form_field_configs） |
+| DELETE   | `/api/admin/form-config/custom-fields`           | 自由設問削除                                           |
+| POST     | `/api/admin/form-config/custom-fields/duplicate` | 自由設問複製                                           |
 
 ### 5.5 TTS API（認証必須）
 
-| メソッド | パス | 概要 |
-|---------|------|------|
-| POST | `/api/tts` | OpenAI TTS-1 で音声生成。`{ text, voice, speed }` を受け取り音声 blob を返す。コート画面の TTS prefetch でも使用 |
+| メソッド | パス       | 概要                                                                                                             |
+| -------- | ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| POST     | `/api/tts` | OpenAI TTS-1 で音声生成。`{ text, voice, speed }` を受け取り音声 blob を返す。コート画面の TTS prefetch でも使用 |
 
 ### 5.6 不具合報告 API
 
-| メソッド | パス | 概要 |
-|---------|------|------|
-| POST | `/api/bug-reports` | 不具合報告の投稿（公開、認証不要） |
-| GET | `/api/bug-reports` | 一覧取得（認証必須） |
-| PATCH | `/api/bug-reports/[id]` | ステータス更新（認証必須） |
-| DELETE | `/api/bug-reports/[id]` | 不具合報告削除（認証必須） |
+| メソッド | パス                    | 概要                               |
+| -------- | ----------------------- | ---------------------------------- |
+| POST     | `/api/bug-reports`      | 不具合報告の投稿（公開、認証不要） |
+| GET      | `/api/bug-reports`      | 一覧取得（認証必須）               |
+| PATCH    | `/api/bug-reports/[id]` | ステータス更新（認証必須）         |
+| DELETE   | `/api/bug-reports/[id]` | 不具合報告削除（認証必須）         |
 
 ---
 
@@ -460,21 +461,21 @@ settings (
 
 LocalStorage に保存。
 
-| 設定 | キー | デフォルト |
-|------|------|-----------|
-| 音声 | `tts_voice` | nova |
-| 速度 | `tts_speed` | 1.0 |
+| 設定 | キー        | デフォルト |
+| ---- | ----------- | ---------- |
+| 音声 | `tts_voice` | nova       |
+| 速度 | `tts_speed` | 1.0        |
 
 **音声一覧**
 
-| 値 | 説明 |
-|-----|------|
-| nova | 女性・明瞭 |
+| 値      | 説明         |
+| ------- | ------------ |
+| nova    | 女性・明瞭   |
 | shimmer | 女性・柔らか |
-| alloy | 中性 |
-| echo | 男性・軽め |
-| fable | 男性・物語風 |
-| onyx | 男性・重厚 |
+| alloy   | 中性         |
+| echo    | 男性・軽め   |
+| fable   | 男性・物語風 |
+| onyx    | 男性・重厚   |
 
 ### 6.2 アナウンステンプレート
 
@@ -496,29 +497,30 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 
 **試合開始テンプレート用変数**
 
-| 変数 | 説明 | サンプル値 |
-|------|------|-----------|
-| `{{試合ラベル}}` | 試合名またはラウンド名 | 準決勝 |
-| `{{ルール}}` | ルール名のみ（未設定時は空） | エキスパート |
-| `{{選手1名前}}` | 選手1の名前（読み仮名優先） | ふくしまけんしん |
-| `{{選手1流派＋道場}}` | 流派と道場を読点でつないだもの | じゅうくうかい、ほんぶどうじょう |
-| `{{選手1流派}}` | 選手1の流派のみ | じゅうくうかい |
-| `{{選手1道場}}` | 選手1の道場名のみ（ない場合は空） | ほんぶどうじょう |
-| `{{選手2名前}}` | 選手2の名前（読み仮名優先） | すずきいちろう |
-| `{{選手2流派＋道場}}` | 流派と道場を読点でつないだもの | せいどうかいかん |
-| `{{選手2流派}}` | 選手2の流派のみ | せいどうかいかん |
-| `{{選手2道場}}` | 選手2の道場名のみ（ない場合は空） | （空） |
+| 変数                  | 説明                              | サンプル値                       |
+| --------------------- | --------------------------------- | -------------------------------- |
+| `{{試合ラベル}}`      | 試合名またはラウンド名            | 準決勝                           |
+| `{{ルール}}`          | ルール名のみ（未設定時は空）      | エキスパート                     |
+| `{{選手1名前}}`       | 選手1の名前（読み仮名優先）       | ふくしまけんしん                 |
+| `{{選手1流派＋道場}}` | 流派と道場を読点でつないだもの    | じゅうくうかい、ほんぶどうじょう |
+| `{{選手1流派}}`       | 選手1の流派のみ                   | じゅうくうかい                   |
+| `{{選手1道場}}`       | 選手1の道場名のみ（ない場合は空） | ほんぶどうじょう                 |
+| `{{選手2名前}}`       | 選手2の名前（読み仮名優先）       | すずきいちろう                   |
+| `{{選手2流派＋道場}}` | 流派と道場を読点でつないだもの    | せいどうかいかん                 |
+| `{{選手2流派}}`       | 選手2の流派のみ                   | せいどうかいかん                 |
+| `{{選手2道場}}`       | 選手2の道場名のみ（ない場合は空） | （空）                           |
 
 **勝者発表テンプレート用変数**
 
-| 変数 | 説明 | サンプル値 |
-|------|------|-----------|
-| `{{勝者名前}}` | 勝者の名前（読み仮名優先） | ふくしまけんしん |
-| `{{勝者流派＋道場}}` | 流派と道場を読点でつないだもの | じゅうくうかい、ほんぶどうじょう |
-| `{{勝者流派}}` | 勝者の流派のみ | じゅうくうかい |
-| `{{勝者道場}}` | 勝者の道場名のみ（ない場合は空） | ほんぶどうじょう |
+| 変数                 | 説明                             | サンプル値                       |
+| -------------------- | -------------------------------- | -------------------------------- |
+| `{{勝者名前}}`       | 勝者の名前（読み仮名優先）       | ふくしまけんしん                 |
+| `{{勝者流派＋道場}}` | 流派と道場を読点でつないだもの   | じゅうくうかい、ほんぶどうじょう |
+| `{{勝者流派}}`       | 勝者の流派のみ                   | じゅうくうかい                   |
+| `{{勝者道場}}`       | 勝者の道場名のみ（ない場合は空） | ほんぶどうじょう                 |
 
 **アフィリエーション変換ルール**
+
 - DB 保存形式: 「柔空会　本部道場」（全角スペース区切り）
 - TTS 向け変換: 「柔空会、本部道場」（読点区切りで自然な間を作る）
 
@@ -537,16 +539,16 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 
 ## 8. 非機能要件
 
-| 項目 | 仕様 |
-|------|------|
-| レスポンシブ | スマホ対応必須（参加申込フォーム・コート画面） |
-| 横幅統一 | 基本 `max-w-5xl`。参加申込フォーム本体のみ `max-w-md`（入力フォームのため例外）。ライブ速報 `/live` は `max-w-lg`（スマホ最適化のため例外） |
-| リアルタイム更新 | ライブ速報: Supabase Realtime（matches テーブル購読）で即時反映 + 5秒ポーリング（フォールバック）。コート画面: 3秒ポーリング、ホーム: 5秒ポーリング。全画面で `visibilitychange` イベントによるタブ復帰時即時リロード対応（モバイルブラウザの `setInterval` 停止対策） |
-| ブラウザ互換性 | PostCSS プラグイン `postcss-unwrap-layer.mjs` で Tailwind CSS 4 の `@layer` を除去し Chrome < 99 でもユーティリティクラスが動作。`browserslist` 設定（Chrome >= 80）で `color-mix()` を HEX fallback + `@supports` 段階的強化に自動変換。`globals.css` の CSS 変数フォールバックも安全策として維持。`lang="ja"` + 日本語システムフォント明示指定で CJK 混在テキストのフォント切り替え安定化 |
-| カスタムカラー | メイン背景色 `--color-main-bg: #101828`（gray-900 相当）。Tailwind の `bg-main-bg` で全ページ共通使用。カード背景は `bg-gray-800`、ボーダーは `border-gray-700`（参加申込フォームの入力欄は `border-gray-600`）。注意書きは外枠線なし・左ボーダーのみ（`border-l-2 border-yellow-600/40`）で項目の補足情報として表示 |
-| LocalStorage 利用 | TTS設定、アナウンステンプレート（試合順序は DB 管理に移行） |
-| オフライン対応 | PWA（Serwist による Service Worker）。App Shell キャッシュ + API リクエストキューイング + 楽観的更新。詳細は [OFFLINE_SPEC.md](docs/OFFLINE_SPEC.md) |
-| デプロイ | Vercel（karate.naocho.net） |
+| 項目              | 仕様                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| レスポンシブ      | スマホ対応必須（参加申込フォーム・コート画面）                                                                                                                                                                                                                                                                                                                                              |
+| 横幅統一          | 基本 `max-w-5xl`。参加申込フォーム本体のみ `max-w-md`（入力フォームのため例外）。ライブ速報 `/live` は `max-w-lg`（スマホ最適化のため例外）                                                                                                                                                                                                                                                 |
+| リアルタイム更新  | ライブ速報: Supabase Realtime（matches テーブル購読）で即時反映 + 5秒ポーリング（フォールバック）。コート画面: 3秒ポーリング、ホーム: 5秒ポーリング。全画面で `visibilitychange` イベントによるタブ復帰時即時リロード対応（モバイルブラウザの `setInterval` 停止対策）                                                                                                                      |
+| ブラウザ互換性    | PostCSS プラグイン `postcss-unwrap-layer.mjs` で Tailwind CSS 4 の `@layer` を除去し Chrome < 99 でもユーティリティクラスが動作。`browserslist` 設定（Chrome >= 80）で `color-mix()` を HEX fallback + `@supports` 段階的強化に自動変換。`globals.css` の CSS 変数フォールバックも安全策として維持。`lang="ja"` + 日本語システムフォント明示指定で CJK 混在テキストのフォント切り替え安定化 |
+| カスタムカラー    | メイン背景色 `--color-main-bg: #101828`（gray-900 相当）。Tailwind の `bg-main-bg` で全ページ共通使用。カード背景は `bg-gray-800`、ボーダーは `border-gray-700`（参加申込フォームの入力欄は `border-gray-600`）。注意書きは外枠線なし・左ボーダーのみ（`border-l-2 border-yellow-600/40`）で項目の補足情報として表示                                                                        |
+| LocalStorage 利用 | TTS設定、アナウンステンプレート（試合順序は DB 管理に移行）                                                                                                                                                                                                                                                                                                                                 |
+| オフライン対応    | PWA（Serwist による Service Worker）。App Shell キャッシュ + API リクエストキューイング + 楽観的更新。詳細は [OFFLINE_SPEC.md](docs/OFFLINE_SPEC.md)                                                                                                                                                                                                                                        |
+| デプロイ          | Vercel（karate.naocho.net）                                                                                                                                                                                                                                                                                                                                                                 |
 
 ---
 
@@ -577,6 +579,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **pre-commit hook品質チェック完全版（2026-04-08）**: 画面逆方向・リンク切れ・認証チェック・環境変数・コンポーネントテスト存在を追加
 - **pre-commit hook網羅的チェック追加（2026-04-08）**: 全不変条件の機械的検証を完了。API逆方向・ページ一覧・hook同期チェック追加
 - **pre-commit hookにbuild追加（2026-04-08）**: npm run buildをコミット前に実行。ビルド壊れたコードの混入を防止
+- **Prettier導入+eslint-disable全廃止（2026-04-10）**: Prettier導入（.prettierrc.json）、全170ファイルをフォーマット。eslint-disable コメント22件を全削除し根本原因を修正。pre-commit hookでeslint-disable使用をブロック。CLAUDE.mdにeslint-disable禁止・返事ルールを追記
 - **ESLint pre-commit/CI強制（2026-04-10）**: pre-commit hookとGitHub Actions CIにESLintチェックを追加。--max-warnings 0で警告も0件必須。エラー・警告があるとコミット・CIが失敗する
 - **ESLint導入（2026-04-09）**: eslint-config-next + @typescript-eslint + import ルールを導入。全212件の警告・エラーを修正（no-non-null-assertion 133件、no-unused-vars 45件、set-state-in-effect 12件、import/order 13件、no-img-element 7件、no-explicit-any 6件等）。npm run lint / lint:fix コマンド追加
 - **トーナメントAPIテスト補強（2026-04-09）**: ラウンド構造検証（1/3/8ペア）、不戦勝の次ラウンド進出・done設定検証、複数不戦勝の独立処理検証を追加。デッドコード削除で失われたカバレッジを本番コードのテストで回復
@@ -584,7 +587,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **entry-service抽出（2026-04-09）**: public/entry/route.tsのビジネスロジック（締切チェック、年齢計算、道場upsert、エントリーINSERT、ルール紐付け、メール送信）をlib/services/entry-service.tsに分離。route.tsはレート制限+リクエスト解析のみの薄いコントローラーに
 - **デッドコード除去: lib/bracket.ts削除+テスト移植（2026-04-09）**: アプリ未使用のlib/bracket.tsとbracket.test.tsを削除。テストケースをAPI routeテスト（admin-media-tournaments.test.ts）に移植し、本番コードのカバレッジを強化
 - **マルチテナント準備: DB基盤（2026-04-09）**: tenants テーブル作成、11テーブルに tenant_id カラム追加、子テーブル用トリガー・インデックス追加。lib/errors.ts（共通エラー型）・lib/types.ts（Tenant型）追加。既存機能への影響なし
-- **pre-commit hookにlib/テスト存在チェック追加（2026-04-08）**: lib/*.tsに対応するテストファイルがなければ警告
+- **pre-commit hookにlib/テスト存在チェック追加（2026-04-08）**: lib/\*.tsに対応するテストファイルがなければ警告
 - **pre-commit hookにAPI一覧完全性チェック追加（2026-04-08）**: route.tsのURLパスがSPEC.mdに記載されていなければブロック
 - **pre-commit hookにvitest追加（2026-04-08）**: テスト失敗時のコミットをブロック。テスト追加が実効性を持つ前提条件
 - **レビュー恒久対策プロセス確立（2026-04-08）**: 指摘→テストorHookに変換。仕様書参照・APIテスト存在チェックをhook追加。Step 5簡素化

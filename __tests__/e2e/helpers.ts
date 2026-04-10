@@ -36,8 +36,10 @@ export async function createTestEvent(page: Page, name?: string): Promise<string
 /** テスト用イベントを削除（is_active を false にしてから削除） */
 export async function cleanupEvent(page: Page, eventId: string | null) {
   if (!eventId) return;
-  await page.request.patch(`/api/admin/events/${eventId}`, {
-    data: { is_active: false },
-  }).catch(() => {});
+  await page.request
+    .patch(`/api/admin/events/${eventId}`, {
+      data: { is_active: false },
+    })
+    .catch(() => {});
   await page.request.delete(`/api/admin/events/${eventId}`).catch(() => {});
 }

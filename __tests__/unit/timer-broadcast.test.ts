@@ -11,20 +11,26 @@ import { createInitialState, type TimerState } from "@/lib/timer-state";
 const store = new Map<string, string>();
 const localStorageMock: Storage = {
   getItem: (key: string) => store.get(key) ?? null,
-  setItem: (key: string, value: string) => { store.set(key, value); },
-  removeItem: (key: string) => { store.delete(key); },
-  clear: () => { store.clear(); },
-  get length() { return store.size; },
+  setItem: (key: string, value: string) => {
+    store.set(key, value);
+  },
+  removeItem: (key: string) => {
+    store.delete(key);
+  },
+  clear: () => {
+    store.clear();
+  },
+  get length() {
+    return store.size;
+  },
   key: (index: number) => [...store.keys()][index] ?? null,
 };
 vi.stubGlobal("localStorage", localStorageMock);
 
 // モック適用後にインポート
-const { saveState, loadState, setActiveFlag, clearActiveFlag, isTimerActive } =
-  await import("@/lib/timer-broadcast");
+const { saveState, loadState, setActiveFlag, clearActiveFlag, isTimerActive } = await import("@/lib/timer-broadcast");
 
 describe("timer-broadcast localStorage", () => {
-
   beforeEach(() => {
     store.clear();
   });
@@ -119,9 +125,14 @@ describe("timer-broadcast BroadcastChannel", () => {
   });
 
   it("BroadcastChannel が例外を投げても握りつぶす", () => {
-    vi.stubGlobal("BroadcastChannel", class {
-      constructor() { throw new Error("Not supported"); }
-    });
+    vi.stubGlobal(
+      "BroadcastChannel",
+      class {
+        constructor() {
+          throw new Error("Not supported");
+        }
+      },
+    );
     const channel = createTimerChannel("court-1");
     channel.send(createInitialState());
     channel.close();
@@ -159,20 +170,23 @@ describe("timer-broadcast BroadcastChannel", () => {
   it("BroadcastChannel が利用可能な場合にメッセージを送受信できる", async () => {
     // 簡易 BroadcastChannel モック
     const listeners: Array<(e: { data: unknown }) => void> = [];
-    vi.stubGlobal("BroadcastChannel", class {
-      addEventListener(_: string, handler: (e: { data: unknown }) => void) {
-        listeners.push(handler);
-      }
-      removeEventListener(_: string, handler: (e: { data: unknown }) => void) {
-        const idx = listeners.indexOf(handler);
-        if (idx >= 0) listeners.splice(idx, 1);
-      }
-      postMessage(data: unknown) {
-        // 全リスナーに配信
-        for (const l of [...listeners]) l({ data });
-      }
-      close() {}
-    });
+    vi.stubGlobal(
+      "BroadcastChannel",
+      class {
+        addEventListener(_: string, handler: (e: { data: unknown }) => void) {
+          listeners.push(handler);
+        }
+        removeEventListener(_: string, handler: (e: { data: unknown }) => void) {
+          const idx = listeners.indexOf(handler);
+          if (idx >= 0) listeners.splice(idx, 1);
+        }
+        postMessage(data: unknown) {
+          // 全リスナーに配信
+          for (const l of [...listeners]) l({ data });
+        }
+        close() {}
+      },
+    );
 
     const channel = createTimerChannel("court-1");
 
@@ -187,14 +201,18 @@ describe("timer-broadcast BroadcastChannel", () => {
 
     // sendTakeover + onTakeover テスト
     let takeoverCalled = false;
-    const cleanupTakeover = channel.onTakeover(() => { takeoverCalled = true; });
+    const cleanupTakeover = channel.onTakeover(() => {
+      takeoverCalled = true;
+    });
     channel.sendTakeover();
     expect(takeoverCalled).toBe(true);
     cleanupTakeover();
 
     // ping + onPing テスト
     let pingCalled = false;
-    channel.onPing(() => { pingCalled = true; });
+    channel.onPing(() => {
+      pingCalled = true;
+    });
     const pingResult = await channel.ping();
     expect(pingCalled).toBe(true);
     expect(pingResult).toBe(true);

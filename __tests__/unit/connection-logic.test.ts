@@ -5,55 +5,63 @@
  * React コンポーネントから分離された純粋関数をテスト。
  */
 import { describe, it, expect } from "vitest";
-import {
-  type ConnectionQuality,
-  determineConnectionQuality,
-  calcBackoffInterval,
-} from "@/lib/connection-logic";
+import { type ConnectionQuality, determineConnectionQuality, calcBackoffInterval } from "@/lib/connection-logic";
 
 describe("determineConnectionQuality", () => {
   it("直近3回全成功で normal を返す", () => {
-    expect(determineConnectionQuality({
-      consecutiveFailures: 0,
-      hasOperationRetry: false,
-    })).toBe("normal" satisfies ConnectionQuality);
+    expect(
+      determineConnectionQuality({
+        consecutiveFailures: 0,
+        hasOperationRetry: false,
+      }),
+    ).toBe("normal" satisfies ConnectionQuality);
   });
 
   it("操作リトライが発生した場合に unstable を返す", () => {
-    expect(determineConnectionQuality({
-      consecutiveFailures: 1,
-      hasOperationRetry: true,
-    })).toBe("unstable" satisfies ConnectionQuality);
+    expect(
+      determineConnectionQuality({
+        consecutiveFailures: 1,
+        hasOperationRetry: true,
+      }),
+    ).toBe("unstable" satisfies ConnectionQuality);
   });
 
   it("ポーリング失敗のみで操作リトライなしなら normal のまま", () => {
     // オオカミ少年効果の回避: バックグラウンドのポーリング失敗だけでは不安定表示しない
-    expect(determineConnectionQuality({
-      consecutiveFailures: 2,
-      hasOperationRetry: false,
-    })).toBe("normal" satisfies ConnectionQuality);
+    expect(
+      determineConnectionQuality({
+        consecutiveFailures: 2,
+        hasOperationRetry: false,
+      }),
+    ).toBe("normal" satisfies ConnectionQuality);
   });
 
   it("3回連続失敗で offline を返す", () => {
-    expect(determineConnectionQuality({
-      consecutiveFailures: 3,
-      hasOperationRetry: false,
-    })).toBe("offline" satisfies ConnectionQuality);
+    expect(
+      determineConnectionQuality({
+        consecutiveFailures: 3,
+        hasOperationRetry: false,
+      }),
+    ).toBe("offline" satisfies ConnectionQuality);
   });
 
   it("3回以上連続失敗でも offline を返す", () => {
-    expect(determineConnectionQuality({
-      consecutiveFailures: 10,
-      hasOperationRetry: false,
-    })).toBe("offline" satisfies ConnectionQuality);
+    expect(
+      determineConnectionQuality({
+        consecutiveFailures: 10,
+        hasOperationRetry: false,
+      }),
+    ).toBe("offline" satisfies ConnectionQuality);
   });
 
   it("navigator.onLine が false なら即座に offline", () => {
-    expect(determineConnectionQuality({
-      consecutiveFailures: 0,
-      hasOperationRetry: false,
-      navigatorOnLine: false,
-    })).toBe("offline" satisfies ConnectionQuality);
+    expect(
+      determineConnectionQuality({
+        consecutiveFailures: 0,
+        hasOperationRetry: false,
+        navigatorOnLine: false,
+      }),
+    ).toBe("offline" satisfies ConnectionQuality);
   });
 });
 

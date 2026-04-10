@@ -6,7 +6,8 @@ import { dbError } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
-  const { name, event_date, court_count, court_names, rule_ids, copy_from_event_id, copy_entries } = await request.json();
+  const { name, event_date, court_count, court_names, rule_ids, copy_from_event_id, copy_entries } =
+    await request.json();
 
   // 過去日付のバリデーション（新規作成時のみ）
   if (event_date && !copy_from_event_id) {
@@ -20,26 +21,27 @@ export async function POST(request: NextRequest) {
   if (!copy_from_event_id) {
     const { data: e, error } = await supabaseAdmin
       .from("events")
-      .insert({ name, event_date: event_date ?? null, court_count, court_names: court_names ?? null, status: "preparing", entry_closed: true })
+      .insert({
+        name,
+        event_date: event_date ?? null,
+        court_count,
+        court_names: court_names ?? null,
+        status: "preparing",
+        entry_closed: true,
+      })
       .select()
       .single();
     if (error || !e) return dbError(error, "イベントの作成に失敗しました");
 
     if (rule_ids && rule_ids.length > 0) {
-      await supabaseAdmin.from("event_rules").insert(
-        rule_ids.map((rid: string) => ({ event_id: e.id, rule_id: rid }))
-      );
+      await supabaseAdmin.from("event_rules").insert(rule_ids.map((rid: string) => ({ event_id: e.id, rule_id: rid })));
     }
 
     return NextResponse.json({ id: e.id });
   }
 
   // ── 過去の大会から複製 ──
-  const { data: source } = await supabaseAdmin
-    .from("events")
-    .select("*")
-    .eq("id", copy_from_event_id)
-    .single();
+  const { data: source } = await supabaseAdmin.from("events").select("*").eq("id", copy_from_event_id).single();
   if (!source) return NextResponse.json({ error: "コピー元の大会が見つかりません" }, { status: 404 });
 
   // 1. イベント作成（大会名はリクエストから、それ以外はソースから引き継ぎ）
@@ -66,7 +68,13 @@ export async function POST(request: NextRequest) {
       const configIds = configs.map((c) => c.id);
       const { data: notices } = await supabaseAdmin.from("form_notices").select("id").in("form_config_id", configIds);
       if (notices?.length) {
-        await supabaseAdmin.from("form_notice_images").delete().in("notice_id", notices.map((n) => n.id));
+        await supabaseAdmin
+          .from("form_notice_images")
+          .delete()
+          .in(
+            "notice_id",
+            notices.map((n) => n.id),
+          );
         await supabaseAdmin.from("form_notices").delete().in("form_config_id", configIds);
       }
       await supabaseAdmin.from("form_field_configs").delete().in("form_config_id", configIds);
@@ -74,7 +82,13 @@ export async function POST(request: NextRequest) {
     }
     const { data: entries } = await supabaseAdmin.from("entries").select("id").eq("event_id", newEvent.id);
     if (entries?.length) {
-      await supabaseAdmin.from("entry_rules").delete().in("entry_id", entries.map((e) => e.id));
+      await supabaseAdmin
+        .from("entry_rules")
+        .delete()
+        .in(
+          "entry_id",
+          entries.map((e) => e.id),
+        );
       await supabaseAdmin.from("entries").delete().eq("event_id", newEvent.id);
     }
     await supabaseAdmin.from("event_rules").delete().eq("event_id", newEvent.id);
@@ -83,15 +97,15 @@ export async function POST(request: NextRequest) {
 
   try {
     // 2. ルール紐づけをコピー
-    const { data: sourceRules } = await supabaseAdmin
-      .from("event_rules")
-      .select("rule_id")
-      .eq("event_id", source.id);
+    const { data: sourceRules } = await supabaseAdmin.from("event_rules").select("rule_id").eq("event_id", source.id);
     if (sourceRules?.length) {
-      const { error } = await supabaseAdmin.from("event_rules").insert(
-        sourceRules.map((r) => ({ event_id: newEvent.id, rule_id: r.rule_id }))
-      );
-      if (error) { console.error("[API Error]", error.message); throw new Error("ルール紐づけのコピーに失敗しました"); };
+      const { error } = await supabaseAdmin
+        .from("event_rules")
+        .insert(sourceRules.map((r) => ({ event_id: newEvent.id, rule_id: r.rule_id })));
+      if (error) {
+        console.error("[API Error]", error.message);
+        throw new Error("ルール紐づけのコピーに失敗しました");
+      }
     }
 
     // 3. フォーム設定をコピー
@@ -127,9 +141,12 @@ export async function POST(request: NextRequest) {
             has_other_option: f.has_other_option,
             custom_choices: f.custom_choices,
             custom_label: f.custom_label,
-          }))
+          })),
         );
-        if (error) { console.error("[API Error]", error.message); throw new Error("フィールド設定のコピーに失敗しました"); };
+        if (error) {
+          console.error("[API Error]", error.message);
+          throw new Error("フィールド設定のコピーに失敗しました");
+        }
       } else {
         // ソースにフィールド設定がない場合はデフォルトで初期化
         const { error } = await supabaseAdmin.from("form_field_configs").insert(
@@ -142,9 +159,12 @@ export async function POST(request: NextRequest) {
             has_other_option: f.defaultHasOther ?? false,
             custom_choices: f.defaultChoices ?? null,
             custom_label: f.label,
-          }))
+          })),
         );
-        if (error) { console.error("[API Error]", error.message); throw new Error("デフォルトフィールド設定の作成に失敗しました"); };
+        if (error) {
+          console.error("[API Error]", error.message);
+          throw new Error("デフォルトフィールド設定の作成に失敗しました");
+        }
       }
 
       // 注意書きをコピー（画像参照も含む）
@@ -172,7 +192,10 @@ export async function POST(request: NextRequest) {
             })
             .select()
             .single();
-          if (noticeErr) { console.error("[API Error]", noticeErr.message); throw new Error("注意書きのコピーに失敗しました"); }
+          if (noticeErr) {
+            console.error("[API Error]", noticeErr.message);
+            throw new Error("注意書きのコピーに失敗しました");
+          }
 
           if (newNotice && notice.images?.length) {
             const { error } = await supabaseAdmin.from("form_notice_images").insert(
@@ -180,9 +203,12 @@ export async function POST(request: NextRequest) {
                 notice_id: newNotice.id,
                 storage_path: img.storage_path,
                 sort_order: img.sort_order,
-              }))
+              })),
             );
-            if (error) { console.error("[API Error]", error.message); throw new Error("注意書き画像のコピーに失敗しました"); };
+            if (error) {
+              console.error("[API Error]", error.message);
+              throw new Error("注意書き画像のコピーに失敗しました");
+            }
           }
         }
       }
@@ -195,7 +221,8 @@ export async function POST(request: NextRequest) {
         .select("*")
         .eq("form_config_id", sourceConfig.id);
       if (sourceCustomFields?.length) {
-        const newConfigId = (await supabaseAdmin.from("form_configs").select("id").eq("event_id", newEvent.id).single()).data?.id;
+        const newConfigId = (await supabaseAdmin.from("form_configs").select("id").eq("event_id", newEvent.id).single())
+          .data?.id;
         if (newConfigId) {
           const { error } = await supabaseAdmin.from("custom_field_defs").insert(
             sourceCustomFields.map((cf) => ({
@@ -205,19 +232,19 @@ export async function POST(request: NextRequest) {
               field_type: cf.field_type,
               choices: cf.choices,
               sort_order: cf.sort_order,
-            }))
+            })),
           );
-          if (error) { console.error("[API Error]", error.message); throw new Error("カスタムフィールド定義のコピーに失敗しました"); };
+          if (error) {
+            console.error("[API Error]", error.message);
+            throw new Error("カスタムフィールド定義のコピーに失敗しました");
+          }
         }
       }
     }
 
     // 4. エントリーをコピー（オプション）
     if (copy_entries) {
-      const { data: sourceEntries } = await supabaseAdmin
-        .from("entries")
-        .select("*")
-        .eq("event_id", source.id);
+      const { data: sourceEntries } = await supabaseAdmin.from("entries").select("*").eq("event_id", source.id);
 
       if (sourceEntries?.length) {
         // N+1 回避: 全エントリーの entry_rules を一括取得
@@ -263,16 +290,22 @@ export async function POST(request: NextRequest) {
             })
             .select("id")
             .single();
-          if (entryErr) { console.error("[API Error]", entryErr.message); throw new Error("エントリーのコピーに失敗しました"); }
+          if (entryErr) {
+            console.error("[API Error]", entryErr.message);
+            throw new Error("エントリーのコピーに失敗しました");
+          }
 
           // entry_rules もコピー（バッチ取得済みデータを使用）
           if (newEntry) {
             const entryRules = entryRulesMap.get(entry.id);
             if (entryRules?.length) {
-              const { error } = await supabaseAdmin.from("entry_rules").insert(
-                entryRules.map((r) => ({ entry_id: newEntry.id, rule_id: r.rule_id }))
-              );
-              if (error) { console.error("[API Error]", error.message); throw new Error("エントリールールのコピーに失敗しました"); };
+              const { error } = await supabaseAdmin
+                .from("entry_rules")
+                .insert(entryRules.map((r) => ({ entry_id: newEntry.id, rule_id: r.rule_id })));
+              if (error) {
+                console.error("[API Error]", error.message);
+                throw new Error("エントリールールのコピーに失敗しました");
+              }
             }
           }
         }

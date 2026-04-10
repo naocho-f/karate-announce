@@ -14,7 +14,7 @@ import type { TimerPreset } from "@/lib/types";
 
 // toFullWidthDigits は page.tsx 内のローカル関数なのでテスト用に再実装
 function toFullWidthDigits(str: string): string {
-  return str.replace(/[0-9]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xFEE0));
+  return str.replace(/[0-9]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0));
 }
 
 // resultMethodLabel も page.tsx 内のローカル関数なのでテスト用に再実装
@@ -333,7 +333,10 @@ describe("試合一覧の表示スタイル", () => {
 
 describe("スコア表示ロジック（show_points / show_wazaari）", () => {
   // 表示画面のスコア行レンダリングロジックを再実装
-  function getScoreDisplayMode(showPoints: boolean, showWazaari: boolean): "points_only" | "wazaari_only" | "both" | "none" {
+  function getScoreDisplayMode(
+    showPoints: boolean,
+    showWazaari: boolean,
+  ): "points_only" | "wazaari_only" | "both" | "none" {
     if (showPoints && showWazaari) return "both";
     if (showPoints) return "points_only";
     if (showWazaari) return "wazaari_only";
@@ -341,11 +344,11 @@ describe("スコア表示ロジック（show_points / show_wazaari）", () => {
   }
 
   function getMainFontScale(showPoints: boolean, showWazaari: boolean): number {
-    return (showPoints && showWazaari) ? 0.67 : 1;
+    return showPoints && showWazaari ? 0.67 : 1;
   }
 
   function getWazaariFontScale(showPoints: boolean, showWazaari: boolean): number {
-    return (showPoints && showWazaari) ? 0.35 : 1;
+    return showPoints && showWazaari ? 0.35 : 1;
   }
 
   it("ポイントのみ: mainFs = フルサイズ", () => {
@@ -443,7 +446,10 @@ describe("区切り線のデフォルト値", () => {
 // ── 勝利オーバーレイ（統合版）──
 
 // resultDisplayText を page.tsx から再実装（ユニットテスト用）
-function resultDisplayText(state: { resultMethod: string | null; resultDetail: Record<string, number> | null }): string {
+function resultDisplayText(state: {
+  resultMethod: string | null;
+  resultDetail: Record<string, number> | null;
+}): string {
   const m = state.resultMethod;
   const d = state.resultDetail;
   if (!m) return "";
@@ -506,15 +512,24 @@ describe("勝利オーバーレイの表示ロジック", () => {
   });
 
   it("合わせ一本の resultDisplayText", () => {
-    expect(resultDisplayText({ resultMethod: "combined_ippon", resultDetail: { red_wazaari: 2, white_wazaari: 0 } })).toBe("合わせ一本 (技2)");
+    expect(
+      resultDisplayText({ resultMethod: "combined_ippon", resultDetail: { red_wazaari: 2, white_wazaari: 0 } }),
+    ).toBe("合わせ一本 (技2)");
   });
 
   it("ポイントの resultDisplayText", () => {
-    expect(resultDisplayText({ resultMethod: "point", resultDetail: { red_points: 5, white_points: 3, red_wazaari: 1, white_wazaari: 0 } })).toBe("ポイント (5-3 技1-0)");
+    expect(
+      resultDisplayText({
+        resultMethod: "point",
+        resultDetail: { red_points: 5, white_points: 3, red_wazaari: 1, white_wazaari: 0 },
+      }),
+    ).toBe("ポイント (5-3 技1-0)");
   });
 
   it("技あり優勢の resultDisplayText", () => {
-    expect(resultDisplayText({ resultMethod: "wazaari", resultDetail: { red_wazaari: 1, white_wazaari: 0 } })).toBe("技あり優勢 (技1-0)");
+    expect(resultDisplayText({ resultMethod: "wazaari", resultDetail: { red_wazaari: 1, white_wazaari: 0 } })).toBe(
+      "技あり優勢 (技1-0)",
+    );
   });
 
   it("null の resultMethod は空文字", () => {
@@ -532,28 +547,17 @@ describe("次の試合位置スクロールのインデックス計算", () => {
   }
 
   it("ready の前に done がある場合は done の位置を返す", () => {
-    const matches = [
-      { status: "done" },
-      { status: "done" },
-      { status: "ready" },
-      { status: "waiting" },
-    ];
+    const matches = [{ status: "done" }, { status: "done" }, { status: "ready" }, { status: "waiting" }];
     expect(getScrollTargetIndex(matches)).toBe(1);
   });
 
   it("ready が先頭の場合は -1（リスト先頭）を返す", () => {
-    const matches = [
-      { status: "ready" },
-      { status: "waiting" },
-    ];
+    const matches = [{ status: "ready" }, { status: "waiting" }];
     expect(getScrollTargetIndex(matches)).toBe(-1);
   });
 
   it("ready がない場合は -1 を返す", () => {
-    const matches = [
-      { status: "done" },
-      { status: "done" },
-    ];
+    const matches = [{ status: "done" }, { status: "done" }];
     expect(getScrollTargetIndex(matches)).toBe(-1);
   });
 });

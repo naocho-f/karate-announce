@@ -9,7 +9,14 @@ import { isTimerActive } from "@/lib/timer-broadcast";
 import type { Fighter, Match, Tournament } from "@/lib/types";
 import { fighterFullName, fighterFullReading } from "@/lib/types";
 import { roundName } from "@/lib/tournament";
-import { announceMatchStart, announceWinner, buildMatchStartText, prefetchTts, DEFAULT_TEMPLATES, type AnnounceTemplates } from "@/lib/speech";
+import {
+  announceMatchStart,
+  announceWinner,
+  buildMatchStartText,
+  prefetchTts,
+  DEFAULT_TEMPLATES,
+  type AnnounceTemplates,
+} from "@/lib/speech";
 import { BracketView } from "@/lib/bracket-view";
 import { matchLabelNum } from "@/lib/match-utils";
 import { showToast } from "@/components/toast";
@@ -40,7 +47,9 @@ export default function CourtPage({ params }: Props) {
     try {
       const saved = localStorage.getItem("muted_match_ids");
       return saved ? new Set(JSON.parse(saved)) : new Set();
-    } catch { return new Set(); }
+    } catch {
+      return new Set();
+    }
   });
   const prevDataRef = useRef<string>("");
 
@@ -48,7 +57,11 @@ export default function CourtPage({ params }: Props) {
     setProcessingMatchIds((prev) => new Set(prev).add(matchId));
   }
   function endProcessing(matchId: string) {
-    setProcessingMatchIds((prev) => { const next = new Set(prev); next.delete(matchId); return next; });
+    setProcessingMatchIds((prev) => {
+      const next = new Set(prev);
+      next.delete(matchId);
+      return next;
+    });
   }
 
   const load = useCallback(async () => {
@@ -130,8 +143,12 @@ export default function CourtPage({ params }: Props) {
     cacheData(`court-data-${eventId}-${court}`, { tourns, allMatches, allEntries }).catch(() => {});
 
     const byTournament: Record<string, Match[]> = {};
-    tournIds.forEach((id) => { byTournament[id] = []; });
-    (allMatches ?? []).forEach((m) => { byTournament[m.tournament_id]?.push(m); });
+    tournIds.forEach((id) => {
+      byTournament[id] = [];
+    });
+    (allMatches ?? []).forEach((m) => {
+      byTournament[m.tournament_id]?.push(m);
+    });
     setMatchesMap(byTournament);
 
     // 全選手を一括ロード
@@ -141,7 +158,9 @@ export default function CourtPage({ params }: Props) {
         .select("*, dojo:dojos(*)")
         .in("id", [...allFighterIds]);
       const fighterMap: Record<string, Fighter> = {};
-      (fs ?? []).forEach((f) => { fighterMap[f.id] = f as Fighter; });
+      (fs ?? []).forEach((f) => {
+        fighterMap[f.id] = f as Fighter;
+      });
       setFighters(fighterMap);
     }
 
@@ -161,12 +180,18 @@ export default function CourtPage({ params }: Props) {
   const { mode: offlineMode } = useOfflineMode();
   const pendingCount = usePendingCount();
   const { showRecoveryPrompt, acceptRecovery, declineRecovery } = useAutoRecovery(offlineMode);
-  const { isOffline: _isOffline, quality, wrappedFetch } = useConnectionStatus(load, {
+  const {
+    isOffline: _isOffline,
+    quality,
+    wrappedFetch,
+  } = useConnectionStatus(load, {
     baseInterval: 3000,
     enabled: offlineMode === "online",
   });
 
-  useEffect(() => { wrappedFetch(); }, [wrappedFetch]);
+  useEffect(() => {
+    wrappedFetch();
+  }, [wrappedFetch]);
   useEffect(() => {
     function handleVisibility() {
       if (document.visibilityState === "visible") wrappedFetch();
@@ -186,13 +211,18 @@ export default function CourtPage({ params }: Props) {
       })
       .catch(() => {});
     // ルール読み仮名マップを取得
-    supabase.from("rules").select("name, name_reading").then(({ data }) => {
-      if (data) {
-        const map: Record<string, string> = {};
-        data.forEach((r) => { if (r.name_reading) map[r.name] = r.name_reading; });
-        setRulesReadingMap(map);
-      }
-    });
+    supabase
+      .from("rules")
+      .select("name, name_reading")
+      .then(({ data }) => {
+        if (data) {
+          const map: Record<string, string> = {};
+          data.forEach((r) => {
+            if (r.name_reading) map[r.name] = r.name_reading;
+          });
+          setRulesReadingMap(map);
+        }
+      });
   }, []);
 
   async function startMatch(tournamentId: string, matchId: string) {
@@ -206,15 +236,32 @@ export default function CourtPage({ params }: Props) {
     startProcessing(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
     try {
-      const res = await resilientFetch(`/api/court/matches/${matchId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start", tournamentId }),
-      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
-      if (!res.ok) { endProcessing(matchId); showToast("試合開始に失敗しました"); return; }
+      const res = await resilientFetch(
+        `/api/court/matches/${matchId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "start", tournamentId }),
+        },
+        { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" },
+      );
+      if (!res.ok) {
+        endProcessing(matchId);
+        showToast("試合開始に失敗しました");
+        return;
+      }
     } catch {
-      await enqueue({ action: "start", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "start", tournamentId }, createdAt: new Date().toISOString(), tabId: "court" });
-      endProcessing(matchId); showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました"); return;
+      await enqueue({
+        action: "start",
+        endpoint: `/api/court/matches/${matchId}`,
+        method: "PATCH",
+        payload: { action: "start", tournamentId },
+        createdAt: new Date().toISOString(),
+        tabId: "court",
+      });
+      endProcessing(matchId);
+      showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました");
+      return;
     }
     await load();
     endProcessing(matchId);
@@ -224,15 +271,19 @@ export default function CourtPage({ params }: Props) {
       const tournament = tournaments.find((t) => t.id === tournamentId);
       const rulesText = match.rules ?? tournament?.default_rules;
       await announceMatchStart(
-        fighterFullName(f1), f1.affiliation ?? f1.dojo?.name ?? "",
-        fighterFullName(f2), f2.affiliation ?? f2.dojo?.name ?? "",
+        fighterFullName(f1),
+        f1.affiliation ?? f1.dojo?.name ?? "",
+        fighterFullName(f2),
+        f2.affiliation ?? f2.dojo?.name ?? "",
         label,
-        fighterFullReading(f1), f1.affiliation_reading ?? f1.dojo?.name_reading,
-        fighterFullReading(f2), f2.affiliation_reading ?? f2.dojo?.name_reading,
+        fighterFullReading(f1),
+        f1.affiliation_reading ?? f1.dojo?.name_reading,
+        fighterFullReading(f2),
+        f2.affiliation_reading ?? f2.dojo?.name_reading,
         match.match_label,
         rulesText,
         announceTemplates,
-        rulesText ? rulesReadingMap[rulesText] ?? null : null,
+        rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
       );
     }
   }
@@ -248,22 +299,40 @@ export default function CourtPage({ params }: Props) {
     addPendingWinner(matchId); // 確定待ち状態に追加
     const rounds = Math.max(...matches.map((m) => m.round), 1);
     try {
-      const res = await resilientFetch(`/api/court/matches/${matchId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "set_winner",
-          winnerId,
-          tournamentId,
-          round: match.round,
-          rounds,
-          position: match.position,
-        }),
-      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
-      if (!res.ok) { endProcessing(matchId); removePendingWinner(matchId); showToast("勝者設定に失敗しました"); return; }
+      const res = await resilientFetch(
+        `/api/court/matches/${matchId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "set_winner",
+            winnerId,
+            tournamentId,
+            round: match.round,
+            rounds,
+            position: match.position,
+          }),
+        },
+        { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" },
+      );
+      if (!res.ok) {
+        endProcessing(matchId);
+        removePendingWinner(matchId);
+        showToast("勝者設定に失敗しました");
+        return;
+      }
     } catch {
-      await enqueue({ action: "set_winner", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }, createdAt: new Date().toISOString(), tabId: "court" });
-      endProcessing(matchId); showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました"); return;
+      await enqueue({
+        action: "set_winner",
+        endpoint: `/api/court/matches/${matchId}`,
+        method: "PATCH",
+        payload: { action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position },
+        createdAt: new Date().toISOString(),
+        tabId: "court",
+      });
+      endProcessing(matchId);
+      showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました");
+      return;
       // 確定待ち状態は維持（キューに入っているため）
     }
     await load();
@@ -271,8 +340,10 @@ export default function CourtPage({ params }: Props) {
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
       await announceWinner(
-        fighterFullName(winner), winner.affiliation ?? winner.dojo?.name ?? "",
-        fighterFullReading(winner), winner.affiliation_reading ?? winner.dojo?.name_reading,
+        fighterFullName(winner),
+        winner.affiliation ?? winner.dojo?.name ?? "",
+        fighterFullReading(winner),
+        winner.affiliation_reading ?? winner.dojo?.name_reading,
         announceTemplates,
       );
     }
@@ -281,15 +352,25 @@ export default function CourtPage({ params }: Props) {
   async function toggleWithdrawal(matchId: string, entryId: string, withdrawn: boolean) {
     startProcessing(matchId);
     try {
-      const res = await resilientFetch(`/api/court/entries/${entryId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_withdrawn: withdrawn }),
-      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
-      if (!res.ok) { endProcessing(matchId); showToast("欠場切替に失敗しました"); return; }
+      const res = await resilientFetch(
+        `/api/court/entries/${entryId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_withdrawn: withdrawn }),
+        },
+        { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" },
+      );
+      if (!res.ok) {
+        endProcessing(matchId);
+        showToast("欠場切替に失敗しました");
+        return;
+      }
     } catch {
       // 棄権切替はcourtエンドポイントだが同様にキュー保存
-      endProcessing(matchId); showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました"); return;
+      endProcessing(matchId);
+      showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました");
+      return;
     }
     await load();
     endProcessing(matchId);
@@ -298,7 +379,8 @@ export default function CourtPage({ params }: Props) {
   function toggleMute(matchId: string) {
     setMutedMatchIds((prev) => {
       const next = new Set(prev);
-      if (next.has(matchId)) next.delete(matchId); else next.add(matchId);
+      if (next.has(matchId)) next.delete(matchId);
+      else next.add(matchId);
       localStorage.setItem("muted_match_ids", JSON.stringify([...next]));
       return next;
     });
@@ -314,29 +396,55 @@ export default function CourtPage({ params }: Props) {
     startProcessing(matchId);
     const rounds = Math.max(...matches.map((m) => m.round), 1);
     try {
-      const res = await resilientFetch(`/api/court/matches/${matchId}`, {
+      const res = await resilientFetch(
+        `/api/court/matches/${matchId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "correct_winner",
+            winnerId,
+            tournamentId,
+            round: match.round,
+            rounds,
+            position: match.position,
+          }),
+        },
+        { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" },
+      );
+      if (!res.ok) {
+        endProcessing(matchId);
+        showToast("勝者訂正に失敗しました");
+        return;
+      }
+    } catch {
+      await enqueue({
+        action: "correct_winner",
+        endpoint: `/api/court/matches/${matchId}`,
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        payload: {
           action: "correct_winner",
           winnerId,
           tournamentId,
           round: match.round,
           rounds,
           position: match.position,
-        }),
-      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
-      if (!res.ok) { endProcessing(matchId); showToast("勝者訂正に失敗しました"); return; }
-    } catch {
-      await enqueue({ action: "correct_winner", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "correct_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position }, createdAt: new Date().toISOString(), tabId: "court" });
-      endProcessing(matchId); showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました"); return;
+        },
+        createdAt: new Date().toISOString(),
+        tabId: "court",
+      });
+      endProcessing(matchId);
+      showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました");
+      return;
     }
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) {
       await announceWinner(
-        fighterFullName(winner), winner.affiliation ?? winner.dojo?.name ?? "",
-        fighterFullReading(winner), winner.affiliation_reading ?? winner.dojo?.name_reading,
+        fighterFullName(winner),
+        winner.affiliation ?? winner.dojo?.name ?? "",
+        fighterFullReading(winner),
+        winner.affiliation_reading ?? winner.dojo?.name_reading,
         announceTemplates,
       );
     }
@@ -353,15 +461,19 @@ export default function CourtPage({ params }: Props) {
     const tournament = tournaments.find((t) => t.id === tournamentId);
     const rulesText = match.rules ?? tournament?.default_rules;
     await announceMatchStart(
-      fighterFullName(f1), f1.affiliation ?? f1.dojo?.name ?? "",
-      fighterFullName(f2), f2.affiliation ?? f2.dojo?.name ?? "",
+      fighterFullName(f1),
+      f1.affiliation ?? f1.dojo?.name ?? "",
+      fighterFullName(f2),
+      f2.affiliation ?? f2.dojo?.name ?? "",
       roundName(match.round, rounds),
-      fighterFullReading(f1), f1.affiliation_reading ?? f1.dojo?.name_reading,
-      fighterFullReading(f2), f2.affiliation_reading ?? f2.dojo?.name_reading,
+      fighterFullReading(f1),
+      f1.affiliation_reading ?? f1.dojo?.name_reading,
+      fighterFullReading(f2),
+      f2.affiliation_reading ?? f2.dojo?.name_reading,
       match.match_label,
       rulesText,
       announceTemplates,
-      rulesText ? rulesReadingMap[rulesText] ?? null : null,
+      rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
     );
   }
 
@@ -372,32 +484,51 @@ export default function CourtPage({ params }: Props) {
     const winner = fighters[match.winner_id];
     if (!winner) return;
     await announceWinner(
-      fighterFullName(winner), winner.affiliation ?? winner.dojo?.name ?? "",
-      fighterFullReading(winner), winner.affiliation_reading ?? winner.dojo?.name_reading,
+      fighterFullName(winner),
+      winner.affiliation ?? winner.dojo?.name ?? "",
+      fighterFullReading(winner),
+      winner.affiliation_reading ?? winner.dojo?.name_reading,
       announceTemplates,
     );
   }
 
   async function swapWithNext(tournamentId: string, round: number, matchId: string) {
     const matches = matchesMap[tournamentId] ?? [];
-    const roundMatches = matches
-      .filter((m) => m.round === round)
-      .sort((a, b) => a.position - b.position);
+    const roundMatches = matches.filter((m) => m.round === round).sort((a, b) => a.position - b.position);
     const idx = roundMatches.findIndex((m) => m.id === matchId);
     if (idx < 0 || idx >= roundMatches.length - 1) return;
     const nextMatch = roundMatches[idx + 1];
     startProcessing(matchId);
     startProcessing(nextMatch.id);
     try {
-      const res = await resilientFetch(`/api/court/matches/${matchId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "swap_with", otherMatchId: nextMatch.id }),
-      }, { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" });
-      if (!res.ok) { endProcessing(matchId); endProcessing(nextMatch.id); showToast("試合入替に失敗しました"); return; }
+      const res = await resilientFetch(
+        `/api/court/matches/${matchId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "swap_with", otherMatchId: nextMatch.id }),
+        },
+        { maxRetries: 3, timeout: 5000, offlineMode: offlineMode === "offline" },
+      );
+      if (!res.ok) {
+        endProcessing(matchId);
+        endProcessing(nextMatch.id);
+        showToast("試合入替に失敗しました");
+        return;
+      }
     } catch {
-      await enqueue({ action: "swap_with", endpoint: `/api/court/matches/${matchId}`, method: "PATCH", payload: { action: "swap_with", otherMatchId: nextMatch.id }, createdAt: new Date().toISOString(), tabId: "court" });
-      endProcessing(matchId); endProcessing(nextMatch.id); showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました"); return;
+      await enqueue({
+        action: "swap_with",
+        endpoint: `/api/court/matches/${matchId}`,
+        method: "PATCH",
+        payload: { action: "swap_with", otherMatchId: nextMatch.id },
+        createdAt: new Date().toISOString(),
+        tabId: "court",
+      });
+      endProcessing(matchId);
+      endProcessing(nextMatch.id);
+      showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました");
+      return;
     }
     await load();
     endProcessing(matchId);
@@ -410,7 +541,11 @@ export default function CourtPage({ params }: Props) {
         quality={quality}
         mode={offlineMode}
         pendingCount={pendingCount}
-        onToggleOfflineMode={() => { const next = offlineMode === "online" ? "offline" : "online"; setMode(next); if (next === "online") flush().catch(() => {}); }}
+        onToggleOfflineMode={() => {
+          const next = offlineMode === "online" ? "offline" : "online";
+          setMode(next);
+          if (next === "online") flush().catch(() => {});
+        }}
         showRecoveryPrompt={showRecoveryPrompt}
         onAcceptRecovery={acceptRecovery}
         onDeclineRecovery={declineRecovery}
@@ -418,7 +553,9 @@ export default function CourtPage({ params }: Props) {
       <div className="max-w-5xl mx-auto">
         {/* ヘッダー */}
         <div className="flex items-center gap-3 mb-4">
-          <Link href="/" className="text-gray-400 hover:text-white text-sm">← 戻る</Link>
+          <Link href="/" className="text-gray-400 hover:text-white text-sm">
+            ← 戻る
+          </Link>
           <h1 className="text-2xl font-bold">{courtDisplayName || `${court}コート`}</h1>
         </div>
 
@@ -460,7 +597,9 @@ export default function CourtPage({ params }: Props) {
         ) : tournaments.length === 0 ? (
           <div className="text-center text-gray-500 mt-20">
             <p className="text-lg mb-2">このコートにトーナメントがありません</p>
-            <Link href="/admin" className="text-blue-400 hover:text-blue-300 text-sm underline">管理画面でトーナメントを作成</Link>
+            <Link href="/admin" className="text-blue-400 hover:text-blue-300 text-sm underline">
+              管理画面でトーナメントを作成
+            </Link>
           </div>
         ) : (
           <CourtContent
@@ -490,11 +629,24 @@ export default function CourtPage({ params }: Props) {
 }
 
 function CourtContent({
-  tournaments, matchesMap, fighters, withdrawnFighterIds, fighterEntryMap,
-  processingMatchIds, mutedMatchIds, timerControlActive,
-  announceTemplates, rulesReadingMap,
-  onStartMatch, onSetWinner, onCorrectWinner, onReannounceStart, onReannounceWinner,
-  onToggleWithdrawal, onSwapWithNext, onToggleMute,
+  tournaments,
+  matchesMap,
+  fighters,
+  withdrawnFighterIds,
+  fighterEntryMap,
+  processingMatchIds,
+  mutedMatchIds,
+  timerControlActive,
+  announceTemplates,
+  rulesReadingMap,
+  onStartMatch,
+  onSetWinner,
+  onCorrectWinner,
+  onReannounceStart,
+  onReannounceWinner,
+  onToggleWithdrawal,
+  onSwapWithNext,
+  onToggleMute,
 }: {
   tournaments: Tournament[];
   matchesMap: Record<string, Match[]>;
@@ -515,37 +667,44 @@ function CourtContent({
   onSwapWithNext: (tournamentId: string, round: number, matchId: string) => void;
   onToggleMute: (matchId: string) => void;
 }) {
-  const nameMap = Object.fromEntries(
-    Object.entries(fighters).map(([id, f]) => [id, fighterFullName(f)])
-  );
+  const nameMap = Object.fromEntries(Object.entries(fighters).map(([id, f]) => [id, fighterFullName(f)]));
   const affiliationMap = Object.fromEntries(
-    Object.entries(fighters).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""])
+    Object.entries(fighters).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""]),
   );
 
   const allMatches = tournaments.flatMap((t) => matchesMap[t.id] ?? []);
   const courtOngoing = allMatches.find((m) => m.status === "ongoing") ?? null;
 
-  const courtNextMatch = courtOngoing ? null : allMatches
-    .filter(
-      (m) => m.status === "ready" && m.fighter1_id && m.fighter2_id &&
-        !withdrawnFighterIds.has(m.fighter1_id as string) && !withdrawnFighterIds.has(m.fighter2_id as string)
-    )
-    .sort((a, b) => {
-      const nA = matchLabelNum(a.match_label);
-      const nB = matchLabelNum(b.match_label);
-      if (nA !== nB) return nA - nB;
-      if (a.round !== b.round) return a.round - b.round;
-      return a.position - b.position;
-    })[0] ?? null;
+  const courtNextMatch = courtOngoing
+    ? null
+    : (allMatches
+        .filter(
+          (m) =>
+            m.status === "ready" &&
+            m.fighter1_id &&
+            m.fighter2_id &&
+            !withdrawnFighterIds.has(m.fighter1_id as string) &&
+            !withdrawnFighterIds.has(m.fighter2_id as string),
+        )
+        .sort((a, b) => {
+          const nA = matchLabelNum(a.match_label);
+          const nB = matchLabelNum(b.match_label);
+          if (nA !== nB) return nA - nB;
+          if (a.round !== b.round) return a.round - b.round;
+          return a.position - b.position;
+        })[0] ?? null);
 
-  const courtAllDone = allMatches.length > 0 && allMatches.every(
-    (m) => m.status === "done" || (m.round === 1 && m.fighter1_id && !m.fighter2_id)
-  );
+  const courtAllDone =
+    allMatches.length > 0 &&
+    allMatches.every((m) => m.status === "done" || (m.round === 1 && m.fighter1_id && !m.fighter2_id));
 
   // 次の試合の TTS 音声を事前生成・キャッシュ
   const prefetchedRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!courtNextMatch) { prefetchedRef.current = null; return; }
+    if (!courtNextMatch) {
+      prefetchedRef.current = null;
+      return;
+    }
     if (prefetchedRef.current === courtNextMatch.id) return;
     prefetchedRef.current = courtNextMatch.id;
 
@@ -553,22 +712,24 @@ function CourtContent({
     const f2 = courtNextMatch.fighter2_id ? fighters[courtNextMatch.fighter2_id] : null;
     if (!f1 || !f2) return;
 
-    const tournament = tournaments.find((t) =>
-      (matchesMap[t.id] ?? []).some((m) => m.id === courtNextMatch.id)
-    );
+    const tournament = tournaments.find((t) => (matchesMap[t.id] ?? []).some((m) => m.id === courtNextMatch.id));
     const matches = tournament ? (matchesMap[tournament.id] ?? []) : [];
     const rounds = Math.max(...matches.map((m) => m.round), 1);
     const rulesText = courtNextMatch.rules ?? tournament?.default_rules;
     const text = buildMatchStartText(
-      fighterFullName(f1), f1.affiliation ?? f1.dojo?.name ?? "",
-      fighterFullName(f2), f2.affiliation ?? f2.dojo?.name ?? "",
+      fighterFullName(f1),
+      f1.affiliation ?? f1.dojo?.name ?? "",
+      fighterFullName(f2),
+      f2.affiliation ?? f2.dojo?.name ?? "",
       roundName(courtNextMatch.round, rounds),
-      fighterFullReading(f1), f1.affiliation_reading ?? f1.dojo?.name_reading,
-      fighterFullReading(f2), f2.affiliation_reading ?? f2.dojo?.name_reading,
+      fighterFullReading(f1),
+      f1.affiliation_reading ?? f1.dojo?.name_reading,
+      fighterFullReading(f2),
+      f2.affiliation_reading ?? f2.dojo?.name_reading,
       courtNextMatch.match_label,
       rulesText,
       announceTemplates,
-      rulesText ? rulesReadingMap[rulesText] ?? null : null,
+      rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
     );
     prefetchTts(text);
   }, [courtNextMatch, fighters, tournaments, matchesMap, announceTemplates, rulesReadingMap]);
@@ -639,9 +800,11 @@ function CourtContent({
           <div key={tournament.id}>
             <div className="flex items-center gap-3 mb-3">
               <h2 className="font-semibold text-lg">{tournament.name}</h2>
-              <span className={`text-xs px-2 py-0.5 rounded ${
-                tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"
-              }`}>
+              <span
+                className={`text-xs px-2 py-0.5 rounded ${
+                  tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"
+                }`}
+              >
                 {tournament.status === "ongoing" ? "進行中" : "準備中"}
               </span>
             </div>
@@ -665,7 +828,9 @@ function CourtContent({
                   onCorrectWinner={(matchId, fighterId) => onCorrectWinner(tournament.id, matchId, fighterId)}
                   onReannounceStart={(matchId) => onReannounceStart(tournament.id, matchId)}
                   onReannounceWinner={(matchId) => onReannounceWinner(tournament.id, matchId)}
-                  onWithdrawnToggle={(matchId, fighterId, entryId, withdrawn) => onToggleWithdrawal(matchId, entryId, withdrawn)}
+                  onWithdrawnToggle={(matchId, fighterId, entryId, withdrawn) =>
+                    onToggleWithdrawal(matchId, entryId, withdrawn)
+                  }
                   onSwapWithNext={(round, matchId) => onSwapWithNext(tournament.id, round, matchId)}
                   onToggleMute={onToggleMute}
                 />

@@ -12,12 +12,15 @@ export default function SpecPage() {
       <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="flex items-center gap-4 mb-8">
           <nav className="flex items-center gap-1 text-sm">
-            <Link href="/admin" className="text-gray-400 hover:text-white">管理画面</Link>
+            <Link href="/admin" className="text-gray-400 hover:text-white">
+              管理画面
+            </Link>
             <span className="text-gray-600">/</span>
             <span className="text-gray-200">仕様書</span>
           </nav>
         </div>
-        <div className="prose prose-invert prose-sm max-w-none
+        <div
+          className="prose prose-invert prose-sm max-w-none
           prose-headings:font-bold prose-headings:text-white
           prose-h1:text-2xl prose-h1:mb-4 prose-h1:pb-3 prose-h1:border-b prose-h1:border-gray-700
           prose-h2:text-lg prose-h2:mt-8 prose-h2:mb-3 prose-h2:text-gray-100
@@ -34,10 +37,9 @@ export default function SpecPage() {
           prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:border prose-th:border-gray-700 prose-th:bg-gray-800
           prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-gray-700
           prose-hr:border-gray-700
-        ">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {content}
-          </ReactMarkdown>
+        "
+        >
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
         </div>
       </div>
     </main>

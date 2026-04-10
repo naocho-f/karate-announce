@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { autoAssignOrder, type AutoAssignTournament } from "@/lib/match-label-utils";
 
-function makeTournament(court: string, sortOrder: number, matches: { id: string; round: number; position: number; f1?: string | null; f2?: string | null }[]): AutoAssignTournament {
+function makeTournament(
+  court: string,
+  sortOrder: number,
+  matches: { id: string; round: number; position: number; f1?: string | null; f2?: string | null }[],
+): AutoAssignTournament {
   return {
     court,
     sortOrder,
@@ -38,23 +42,15 @@ describe("autoAssignOrder", () => {
   });
 
   it("コートごとに独立してソートされる", () => {
-    const t1 = makeTournament("1", 0, [
-      { id: "c1-m1", round: 1, position: 0 },
-    ]);
-    const t2 = makeTournament("2", 0, [
-      { id: "c2-m1", round: 1, position: 0 },
-    ]);
+    const t1 = makeTournament("1", 0, [{ id: "c1-m1", round: 1, position: 0 }]);
+    const t2 = makeTournament("2", 0, [{ id: "c2-m1", round: 1, position: 0 }]);
     const order = autoAssignOrder([t1, t2], 2);
     expect(order).toEqual(["c1-m1", "c2-m1"]);
   });
 
   it("同一コートの複数トーナメントは sortOrder 順", () => {
-    const t1 = makeTournament("1", 1, [
-      { id: "t1-m1", round: 1, position: 0 },
-    ]);
-    const t2 = makeTournament("1", 0, [
-      { id: "t2-m1", round: 1, position: 0 },
-    ]);
+    const t1 = makeTournament("1", 1, [{ id: "t1-m1", round: 1, position: 0 }]);
+    const t2 = makeTournament("1", 0, [{ id: "t2-m1", round: 1, position: 0 }]);
     const order = autoAssignOrder([t1, t2], 1);
     // sortOrder=0 の t2 が先
     expect(order).toEqual(["t2-m1", "t1-m1"]);

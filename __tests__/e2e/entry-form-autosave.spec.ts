@@ -14,9 +14,11 @@ test.describe("エントリーフォーム自動保存", () => {
     await adminLogin(page);
     eventId = await createTestEvent(page);
     // フォーム設定を公開状態にする
-    await page.request.patch(`/api/admin/form-config?event_id=${eventId}`, {
-      data: {},
-    }).catch(() => {});
+    await page.request
+      .patch(`/api/admin/form-config?event_id=${eventId}`, {
+        data: {},
+      })
+      .catch(() => {});
     await page.close();
   });
 
@@ -32,14 +34,17 @@ test.describe("エントリーフォーム自動保存", () => {
     await page.waitForLoadState("networkidle");
 
     // フォームが表示されるまで待機（受付開始前やフォーム未設定の場合はスキップ）
-    const formVisible = await page.locator("form").isVisible().catch(() => false);
+    const formVisible = await page
+      .locator("form")
+      .isVisible()
+      .catch(() => false);
     if (!formVisible) {
       test.skip(true, "フォームが表示されない（受付未開始またはフォーム未設定）");
       return;
     }
 
     // 姓フィールドを探して入力
-    const familyNameInput = page.locator('input').first();
+    const familyNameInput = page.locator("input").first();
     await familyNameInput.fill("テスト");
 
     // sessionStorage に保存されるまで待機（デバウンス500ms）

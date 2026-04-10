@@ -13,7 +13,9 @@ vi.stubEnv("OPENAI_API_KEY", "test-key");
 process.env.ADMIN_PASSWORD = "test-password";
 
 const SALT = "karate-announce-v1";
-const adminToken = createHash("sha256").update("test-password" + SALT).digest("hex");
+const adminToken = createHash("sha256")
+  .update("test-password" + SALT)
+  .digest("hex");
 
 /** 管理者認証Cookie付きのリクエストを生成 */
 function createAdminTtsRequest(body: unknown) {

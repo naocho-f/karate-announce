@@ -165,7 +165,8 @@ function buildDefaultNotices(configId: string) {
       anchor_type: "field",
       anchor_field_key: "leg_guard",
       sort_order: 0,
-      text_content: "※今回は交流試合なのですべてのルール階級において着用とします。\n※ないものは当日レンタルもしくは事前購入となります。",
+      text_content:
+        "※今回は交流試合なのですべてのルール階級において着用とします。\n※ないものは当日レンタルもしくは事前購入となります。",
       scrollable_text: null,
       link_url: null,
       link_label: null,
@@ -191,7 +192,8 @@ function buildDefaultNotices(configId: string) {
       anchor_type: "field",
       anchor_field_key: "gi",
       sort_order: 0,
-      text_content: "※ないものは当日レンタルもしくは事前購入となります。\n袖がない道着は不可。できれば肘が隠れている方が望ましい。\n破れた場合に当日急なレンタル品はありませんので、破れる恐れがある場合はレンタルがおすすめ。",
+      text_content:
+        "※ないものは当日レンタルもしくは事前購入となります。\n袖がない道着は不可。できれば肘が隠れている方が望ましい。\n破れた場合に当日急なレンタル品はありませんので、破れる恐れがある場合はレンタルがおすすめ。",
       scrollable_text: null,
       link_url: null,
       link_label: null,
@@ -208,11 +210,7 @@ export async function GET(request: NextRequest) {
   if (!eventId) return NextResponse.json({ error: "event_id required" }, { status: 400 });
 
   // form_config を取得 or 作成
-  let { data: config } = await supabaseAdmin
-    .from("form_configs")
-    .select("*")
-    .eq("event_id", eventId)
-    .maybeSingle();
+  let { data: config } = await supabaseAdmin.from("form_configs").select("*").eq("event_id", eventId).maybeSingle();
 
   if (!config) {
     const { data: created, error } = await supabaseAdmin
@@ -270,21 +268,19 @@ export async function GET(request: NextRequest) {
     const defaultNotices = buildDefaultNotices(config.id);
 
     // イベントに紐づくルールの説明をデフォルト注意書きとして追加
-    const { data: eventRules } = await supabaseAdmin
-      .from("event_rules")
-      .select("rule_id")
-      .eq("event_id", eventId);
+    const { data: eventRules } = await supabaseAdmin.from("event_rules").select("rule_id").eq("event_id", eventId);
     if (eventRules?.length) {
       const { data: rules } = await supabaseAdmin
         .from("rules")
         .select("name, description")
-        .in("id", eventRules.map((er) => er.rule_id))
+        .in(
+          "id",
+          eventRules.map((er) => er.rule_id),
+        )
         .order("name");
       const rulesWithDesc = rules?.filter((r) => r.description) ?? [];
       if (rulesWithDesc.length > 0) {
-        const ruleNoticeText = rulesWithDesc
-          .map((r) => `【${r.name}】\n${r.description}`)
-          .join("\n\n");
+        const ruleNoticeText = rulesWithDesc.map((r) => `【${r.name}】\n${r.description}`).join("\n\n");
         defaultNotices.push({
           form_config_id: config.id,
           anchor_type: "field",
@@ -328,7 +324,7 @@ export async function GET(request: NextRequest) {
   const existingDefKeys = new Set((customFieldDefs ?? []).map((d) => d.field_key));
   const fieldKeys = (fields ?? []).map((f) => f.field_key);
   const missingDefs = DEFAULT_CUSTOM_FIELDS.filter(
-    (cf) => fieldKeys.includes(cf.field_key) && !existingDefKeys.has(cf.field_key)
+    (cf) => fieldKeys.includes(cf.field_key) && !existingDefKeys.has(cf.field_key),
   );
   if (missingDefs.length > 0) {
     const inserts = missingDefs.map((cf) => ({
@@ -349,7 +345,12 @@ export async function GET(request: NextRequest) {
     customFieldDefs = refreshed;
   }
 
-  return NextResponse.json({ config, fields: fields ?? [], notices: notices ?? [], customFieldDefs: customFieldDefs ?? [] });
+  return NextResponse.json({
+    config,
+    fields: fields ?? [],
+    notices: notices ?? [],
+    customFieldDefs: customFieldDefs ?? [],
+  });
 }
 
 /** PUT — フォーム設定の一括保存（フィールド + 注意書き + カスタムフィールド + 画像削除） */
@@ -360,11 +361,7 @@ export async function PUT(request: NextRequest) {
 
   // ── 楽観ロック: expectedVersion が指定されていれば現在のバージョンと比較 ──
   if (expectedVersion != null) {
-    const { data: current } = await supabaseAdmin
-      .from("form_configs")
-      .select("version")
-      .eq("id", config_id)
-      .single();
+    const { data: current } = await supabaseAdmin.from("form_configs").select("version").eq("id", config_id).single();
     if (current && current.version !== expectedVersion) {
       return NextResponse.json(
         { error: "フォーム設定が他のユーザーによって更新されています。画面を再読み込みしてください。" },
@@ -469,11 +466,7 @@ export async function PUT(request: NextRequest) {
   }
 
   // ── Step 7: バージョンインクリメント ──
-  const { data: current } = await supabaseAdmin
-    .from("form_configs")
-    .select("version")
-    .eq("id", config_id)
-    .single();
+  const { data: current } = await supabaseAdmin.from("form_configs").select("version").eq("id", config_id).single();
 
   const newVersion = (current?.version ?? 0) + 1;
 

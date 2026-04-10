@@ -37,8 +37,10 @@ describe("admin-auth", () => {
     verifyAdminAuth = mod.verifyAdminAuth as typeof verifyAdminAuth;
 
     // 正しい dev パスワードの Cookie → 許可
-    const devToken = createHash("sha256").update("dev" + SALT).digest("hex");
-    const reqOk = { cookies: { get: (name: string) => name === "admin_auth" ? { value: devToken } : undefined } };
+    const devToken = createHash("sha256")
+      .update("dev" + SALT)
+      .digest("hex");
+    const reqOk = { cookies: { get: (name: string) => (name === "admin_auth" ? { value: devToken } : undefined) } };
     expect(verifyAdminAuth(reqOk as never)).toBe(true);
 
     // Cookie なし → 拒否
@@ -46,7 +48,7 @@ describe("admin-auth", () => {
     expect(verifyAdminAuth(reqNoCookie as never)).toBe(false);
 
     // 不正な Cookie → 拒否
-    const reqWrong = { cookies: { get: (name: string) => name === "admin_auth" ? { value: "wrong" } : undefined } };
+    const reqWrong = { cookies: { get: (name: string) => (name === "admin_auth" ? { value: "wrong" } : undefined) } };
     expect(verifyAdminAuth(reqWrong as never)).toBe(false);
   });
 
@@ -55,8 +57,10 @@ describe("admin-auth", () => {
     const mod = await import("@/lib/admin-auth");
     verifyAdminAuth = mod.verifyAdminAuth as typeof verifyAdminAuth;
 
-    const expected = createHash("sha256").update("test-password-123" + SALT).digest("hex");
-    const req = { cookies: { get: (name: string) => name === "admin_auth" ? { value: expected } : undefined } };
+    const expected = createHash("sha256")
+      .update("test-password-123" + SALT)
+      .digest("hex");
+    const req = { cookies: { get: (name: string) => (name === "admin_auth" ? { value: expected } : undefined) } };
     expect(verifyAdminAuth(req as never)).toBe(true);
   });
 
@@ -65,7 +69,7 @@ describe("admin-auth", () => {
     const mod = await import("@/lib/admin-auth");
     verifyAdminAuth = mod.verifyAdminAuth as typeof verifyAdminAuth;
 
-    const req = { cookies: { get: (name: string) => name === "admin_auth" ? { value: "wrong" } : undefined } };
+    const req = { cookies: { get: (name: string) => (name === "admin_auth" ? { value: "wrong" } : undefined) } };
     expect(verifyAdminAuth(req as never)).toBe(false);
   });
 

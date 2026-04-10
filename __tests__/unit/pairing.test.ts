@@ -99,11 +99,7 @@ describe("pairsFromEntries", () => {
   });
 
   it("3人 → 2ペア（nextPow2=4、不戦勝1つ）", () => {
-    const entries = [
-      makeEntry("A", { weight: 50 }),
-      makeEntry("B", { weight: 55 }),
-      makeEntry("C", { weight: 60 }),
-    ];
+    const entries = [makeEntry("A", { weight: 50 }), makeEntry("B", { weight: 55 }), makeEntry("C", { weight: 60 })];
     const pairs = pairsFromEntries(entries);
     expect(pairs).toHaveLength(2); // 4/2 = 2ペア
     const byes = pairs.filter((p) => p.e2 === null);
@@ -159,9 +155,7 @@ describe("pairsFromEntries", () => {
   });
 
   it("8人（2の累乗）→ 4ペア、不戦勝なし", () => {
-    const entries = Array.from({ length: 8 }, (_, i) =>
-      makeEntry(String(i), { weight: 50 + i * 5 })
-    );
+    const entries = Array.from({ length: 8 }, (_, i) => makeEntry(String(i), { weight: 50 + i * 5 }));
     const pairs = pairsFromEntries(entries);
     expect(pairs).toHaveLength(4);
     const byes = pairs.filter((p) => p.e2 === null);
@@ -169,9 +163,7 @@ describe("pairsFromEntries", () => {
   });
 
   it("全選手が漏れなく配置される", () => {
-    const entries = Array.from({ length: 7 }, (_, i) =>
-      makeEntry(String(i), { weight: 50 + i * 5 })
-    );
+    const entries = Array.from({ length: 7 }, (_, i) => makeEntry(String(i), { weight: 50 + i * 5 }));
     const pairs = pairsFromEntries(entries);
     const allIds = pairs.flatMap((p) => [p.e1.id, p.e2?.id].filter(Boolean));
     // 全7人が配置されている
@@ -179,11 +171,7 @@ describe("pairsFromEntries", () => {
   });
 
   it("不戦勝ペアが先頭に配置される", () => {
-    const entries = [
-      makeEntry("A", { weight: 40 }),
-      makeEntry("B", { weight: 50 }),
-      makeEntry("C", { weight: 55 }),
-    ];
+    const entries = [makeEntry("A", { weight: 40 }), makeEntry("B", { weight: 50 }), makeEntry("C", { weight: 55 })];
     const pairs = pairsFromEntries(entries);
     // 不戦勝が先頭にある
     const firstBye = pairs.findIndex((p) => p.e2 === null);
@@ -202,13 +190,10 @@ describe("pairsFromEntries", () => {
       return p;
     }
     for (const n of [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 16]) {
-      const entries = Array.from({ length: n }, (_, i) =>
-        makeEntry(String(i), { weight: 50 + i * 3 })
-      );
+      const entries = Array.from({ length: n }, (_, i) => makeEntry(String(i), { weight: 50 + i * 3 }));
       const pairs = pairsFromEntries(entries);
       const expectedPairs = nextPow2(n) / 2;
       expect(pairs).toHaveLength(expectedPairs);
     }
   });
 });
-

@@ -2,12 +2,7 @@
  * ensure-fighter.ts ユニットテスト
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  createMockSupabase,
-  mockResult,
-  resetAll,
-  getCallsFor,
-} from "@/__tests__/helpers/supabase-mock";
+import { createMockSupabase, mockResult, resetAll, getCallsFor } from "@/__tests__/helpers/supabase-mock";
 import type { Entry } from "@/lib/types";
 
 vi.mock("@/lib/supabase-admin", () => ({

@@ -128,10 +128,21 @@ function fiscalYear(date: Date): number {
 
 /** 年度差→学年マッピング */
 const FISCAL_DIFF_TO_GRADE: Record<number, string> = {
-  4: "年少", 5: "年中", 6: "年長",
-  7: "小1", 8: "小2", 9: "小3", 10: "小4", 11: "小5", 12: "小6",
-  13: "中1", 14: "中2", 15: "中3",
-  16: "高1", 17: "高2", 18: "高3",
+  4: "年少",
+  5: "年中",
+  6: "年長",
+  7: "小1",
+  8: "小2",
+  9: "小3",
+  10: "小4",
+  11: "小5",
+  12: "小6",
+  13: "中1",
+  14: "中2",
+  15: "中3",
+  16: "高1",
+  17: "高2",
+  18: "高3",
 };
 
 /**
@@ -157,7 +168,8 @@ export function gradeFromBirthDate(
   const cats = ageCategories ?? DEFAULT_AGE_CATEGORIES;
   // 大会日時点の年齢を計算
   let age = event.getFullYear() - birth.getFullYear();
-  const hasBday = event.getMonth() > birth.getMonth() ||
+  const hasBday =
+    event.getMonth() > birth.getMonth() ||
     (event.getMonth() === birth.getMonth() && event.getDate() >= birth.getDate());
   if (!hasBday) age--;
 

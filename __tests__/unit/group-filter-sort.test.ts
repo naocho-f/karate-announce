@@ -63,7 +63,7 @@ describe("matchCountFilterPredicate", () => {
     return 1;
   };
 
-  it('空文字の場合は全選手を返す', () => {
+  it("空文字の場合は全選手を返す", () => {
     const pred = matchCountFilterPredicate("", getTotalMatchCount, getDesiredMatchCount);
     const result = entries.filter(pred);
     expect(result).toHaveLength(3);
@@ -103,7 +103,16 @@ describe("matchCountFilterPredicate", () => {
 // ── buildFilterSortComparator ──
 
 describe("buildFilterSortComparator", () => {
-  const noFilter = { minGrade: "", maxGrade: "", minAge: "", maxAge: "", minWeight: "", maxWeight: "", minHeight: "", maxHeight: "" };
+  const noFilter = {
+    minGrade: "",
+    maxGrade: "",
+    minAge: "",
+    maxAge: "",
+    minWeight: "",
+    maxWeight: "",
+    minHeight: "",
+    maxHeight: "",
+  };
 
   const entryA = makeEntry({ id: "a", family_name: "山田", age: 25, weight: 70, height: 170, grade: "小1" });
   const entryB = makeEntry({ id: "b", family_name: "あいう", age: 20, weight: 60, height: 180, grade: "小3" });
@@ -247,17 +256,17 @@ describe("gradeFilterPredicate", () => {
   describe("年齢ベース区分でフィルタ", () => {
     it("下限に「一般」→ age >= 19 の選手のみ通過", () => {
       const pred = gradeFilterPredicate("一般", "", ageCategories);
-      expect(pred(child)).toBe(false);   // age 9 < 19
-      expect(pred(teen)).toBe(false);    // age 14 < 19
-      expect(pred(adult)).toBe(true);    // age 30 >= 19
-      expect(pred(senior)).toBe(true);   // age 60 >= 19
+      expect(pred(child)).toBe(false); // age 9 < 19
+      expect(pred(teen)).toBe(false); // age 14 < 19
+      expect(pred(adult)).toBe(true); // age 30 >= 19
+      expect(pred(senior)).toBe(true); // age 60 >= 19
     });
 
     it("上限に「一般」→ age <= 44 の選手のみ通過", () => {
       const pred = gradeFilterPredicate("", "一般", ageCategories);
-      expect(pred(child)).toBe(true);    // age 9 <= 44
-      expect(pred(adult)).toBe(true);    // age 30 <= 44
-      expect(pred(senior)).toBe(false);  // age 60 > 44
+      expect(pred(child)).toBe(true); // age 9 <= 44
+      expect(pred(adult)).toBe(true); // age 30 <= 44
+      expect(pred(senior)).toBe(false); // age 60 > 44
     });
 
     it("下限「一般」上限「一般」→ 19 <= age <= 44", () => {
@@ -276,15 +285,15 @@ describe("gradeFilterPredicate", () => {
   describe("学年ベースでフィルタ", () => {
     it("下限「小1」上限「小6」→ 学年が範囲内の選手のみ通過", () => {
       const pred = gradeFilterPredicate("小1", "小6", ageCategories);
-      expect(pred(child)).toBe(true);   // 小3 → gradeToNumber=3, range 1-6
-      expect(pred(teen)).toBe(false);   // 中2 → gradeToNumber=8, > 6
+      expect(pred(child)).toBe(true); // 小3 → gradeToNumber=3, range 1-6
+      expect(pred(teen)).toBe(false); // 中2 → gradeToNumber=8, > 6
     });
 
     it("学年ベースフィルタで年齢ベース区分のエントリーは除外されない", () => {
       const pred = gradeFilterPredicate("年少", "", ageCategories);
-      expect(pred(child)).toBe(true);   // 小3: 学年ベース、範囲内
-      expect(pred(adult)).toBe(true);   // 一般: 年齢ベース区分 → 通過
-      expect(pred(senior)).toBe(true);  // シニア: 年齢ベース区分 → 通過
+      expect(pred(child)).toBe(true); // 小3: 学年ベース、範囲内
+      expect(pred(adult)).toBe(true); // 一般: 年齢ベース区分 → 通過
+      expect(pred(senior)).toBe(true); // シニア: 年齢ベース区分 → 通過
     });
   });
 
@@ -307,16 +316,16 @@ describe("gradeFilterPredicate", () => {
   describe("混合フィルタ（学年+年齢ベース）", () => {
     it("下限=学年, 上限=年齢ベース（年少〜シニア）→ 全員通過", () => {
       const pred = gradeFilterPredicate("年少", "シニア", ageCategories);
-      expect(pred(child)).toBe(true);   // age 9, シニアの maxAge=null なので通過
-      expect(pred(teen)).toBe(true);    // age 14
-      expect(pred(adult)).toBe(true);   // age 30
-      expect(pred(senior)).toBe(true);  // age 60
+      expect(pred(child)).toBe(true); // age 9, シニアの maxAge=null なので通過
+      expect(pred(teen)).toBe(true); // age 14
+      expect(pred(adult)).toBe(true); // age 30
+      expect(pred(senior)).toBe(true); // age 60
     });
 
     it("下限=学年, 上限=一般 → age <= 44 のみ通過", () => {
       const pred = gradeFilterPredicate("年少", "一般", ageCategories);
-      expect(pred(child)).toBe(true);   // age 9 <= 44
-      expect(pred(adult)).toBe(true);   // age 30 <= 44
+      expect(pred(child)).toBe(true); // age 9 <= 44
+      expect(pred(adult)).toBe(true); // age 30 <= 44
       expect(pred(senior)).toBe(false); // age 60 > 44
     });
   });
@@ -324,8 +333,8 @@ describe("gradeFilterPredicate", () => {
   describe("上限のみ設定", () => {
     it("上限=学年ベース（高3）→ 学年が高3以下のみ通過、年齢ベース区分は概算年齢で判定", () => {
       const pred = gradeFilterPredicate("", "高3", ageCategories);
-      expect(pred(child)).toBe(true);   // 小3=3 <= 高3=12
-      expect(pred(teen)).toBe(true);    // 中2=8 <= 12
+      expect(pred(child)).toBe(true); // 小3=3 <= 高3=12
+      expect(pred(teen)).toBe(true); // 中2=8 <= 12
       // 高3=12 → 概算上限18歳。一般(age=30)・シニア(age=60)は18超なので除外
       expect(pred(adult)).toBe(false);
       expect(pred(senior)).toBe(false);
@@ -369,8 +378,8 @@ describe("gradeFilterPredicate", () => {
 
     it("ageCategories が空配列の場合、年齢ベース区分エントリーは除外される", () => {
       const pred = gradeFilterPredicate("年少", "", []);
-      expect(pred(child)).toBe(true);   // 学年ベースは通常通り
-      expect(pred(adult)).toBe(false);  // findAgeCategory が null → 除外
+      expect(pred(child)).toBe(true); // 学年ベースは通常通り
+      expect(pred(adult)).toBe(false); // findAgeCategory が null → 除外
     });
 
     it("grade が不明な文字列（学年でも年齢ベースでもない）は除外", () => {
@@ -384,7 +393,7 @@ describe("gradeFilterPredicate", () => {
       const youngCat = makeEntry({ id: "yc", family_name: "若", grade: "16歳未満", age: 15 });
       const pred = gradeFilterPredicate("小1", "高3", ageCategories);
       expect(pred(youngCat)).toBe(true);
-      expect(pred(adult)).toBe(false);  // age=30 > 18
+      expect(pred(adult)).toBe(false); // age=30 > 18
     });
 
     it("概算年齢の境界: 19歳の高3生は上限=高3で除外される", () => {

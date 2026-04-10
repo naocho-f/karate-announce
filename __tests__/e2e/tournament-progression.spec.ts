@@ -44,11 +44,7 @@ async function createTestEntries(page: Page, eventId: string, count: number): Pr
   return ids;
 }
 
-async function createTournament(
-  page: Page,
-  eventId: string,
-  entryIds: string[],
-): Promise<string> {
+async function createTournament(page: Page, eventId: string, entryIds: string[]): Promise<string> {
   const pairs = [];
   for (let i = 0; i < entryIds.length; i += 2) {
     pairs.push({
@@ -59,15 +55,16 @@ async function createTournament(
         family_name_reading: `フロー${i + 1}`,
         given_name_reading: "センシュ",
       },
-      e2: i + 1 < entryIds.length
-        ? {
-            id: entryIds[i + 1],
-            family_name: `フロー${i + 2}`,
-            given_name: "選手",
-            family_name_reading: `フロー${i + 2}`,
-            given_name_reading: "センシュ",
-          }
-        : null,
+      e2:
+        i + 1 < entryIds.length
+          ? {
+              id: entryIds[i + 1],
+              family_name: `フロー${i + 2}`,
+              given_name: "選手",
+              family_name_reading: `フロー${i + 2}`,
+              given_name_reading: "センシュ",
+            }
+          : null,
       matchLabel: null,
       ruleName: null,
     });

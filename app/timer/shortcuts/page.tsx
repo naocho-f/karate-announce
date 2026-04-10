@@ -25,7 +25,9 @@ export default function ShortcutsPage() {
   return (
     <div className="min-h-screen bg-main-bg text-white p-8 print:bg-white print:text-black print:p-4">
       <h1 className="text-2xl font-bold mb-1">タイマー操作 ショートカット一覧</h1>
-      <p className="text-gray-400 print:text-gray-500 text-sm mb-6 print:mb-4">印刷してタイムキーパー席に置いてください</p>
+      <p className="text-gray-400 print:text-gray-500 text-sm mb-6 print:mb-4">
+        印刷してタイムキーパー席に置いてください
+      </p>
 
       <table className="w-full border-collapse">
         <thead>

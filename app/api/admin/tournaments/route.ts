@@ -13,15 +13,40 @@ type PairInput = {
 };
 
 function roundsFromPairCount(n: number): number {
-  let count = n, rounds = 1;
-  while (count > 1) { count = Math.ceil(count / 2); rounds++; }
+  let count = n,
+    rounds = 1;
+  while (count > 1) {
+    count = Math.ceil(count / 2);
+    rounds++;
+  }
   return rounds;
 }
 
 export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
 
-  const { courtName, courtNum, pairs, eventId, sortOrder, defaultRuleName, maxWeightDiff, maxHeightDiff, filterMinWeight, filterMaxWeight, filterMinAge, filterMaxAge, filterSex, filterExperience, filterGrade, filterMinGrade, filterMaxGrade, filterMinHeight, filterMaxHeight, type } = await request.json() as {
+  const {
+    courtName,
+    courtNum,
+    pairs,
+    eventId,
+    sortOrder,
+    defaultRuleName,
+    maxWeightDiff,
+    maxHeightDiff,
+    filterMinWeight,
+    filterMaxWeight,
+    filterMinAge,
+    filterMaxAge,
+    filterSex,
+    filterExperience,
+    filterGrade,
+    filterMinGrade,
+    filterMaxGrade,
+    filterMinHeight,
+    filterMaxHeight,
+    type,
+  } = (await request.json()) as {
     courtName: string;
     courtNum: string;
     pairs: PairInput[];
@@ -75,7 +100,10 @@ export async function POST(request: NextRequest) {
             return ids.has(f1) && ids.has(f2);
           });
           if (hasDupe) {
-            return NextResponse.json({ error: "同じルール内で同じ対戦相手の組み合わせが既に登録されています" }, { status: 409 });
+            return NextResponse.json(
+              { error: "同じルール内で同じ対戦相手の組み合わせが既に登録されています" },
+              { status: 409 },
+            );
           }
         }
       }
@@ -117,7 +145,7 @@ export async function POST(request: NextRequest) {
       f2: p.e2 ? await ensureFighterFromEntry(p.e2) : null,
       matchLabel: p.matchLabel,
       rules: p.ruleName,
-    }))
+    })),
   );
 
   await supabaseAdmin.from("matches").insert(
@@ -131,7 +159,7 @@ export async function POST(request: NextRequest) {
       status: (p.f1 && p.f2 ? "ready" : "waiting") as "ready" | "waiting",
       match_label: p.matchLabel,
       rules: p.rules,
-    }))
+    })),
   );
 
   const isOneMatch = type === "one_match";

@@ -1,6 +1,7 @@
 import nextConfig from "eslint-config-next";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
+import prettierConfig from "eslint-config-prettier";
 
 const eslintConfig = [
   ...nextConfig,
@@ -15,10 +16,7 @@ const eslintConfig = [
     rules: {
       // --- 修正完了後に error に昇格 ---
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": [
-        "warn",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
-      ],
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       // --- 修正完了後に error に昇格 ---
       "@typescript-eslint/no-non-null-assertion": "warn",
     },
@@ -40,28 +38,17 @@ const eslintConfig = [
       "import/order": [
         "warn",
         {
-          groups: [
-            "builtin",
-            "external",
-            "internal",
-            "parent",
-            "sibling",
-            "index",
-          ],
+          groups: ["builtin", "external", "internal", "parent", "sibling", "index"],
         },
       ],
       "import/newline-after-import": "warn",
     },
   },
+  // Prettier との競合回避（末尾に配置）
+  prettierConfig,
   // 除外
   {
-    ignores: [
-      "node_modules/",
-      ".next/",
-      "out/",
-      "public/",
-      "coverage/",
-    ],
+    ignores: ["node_modules/", ".next/", "out/", "public/", "coverage/"],
   },
 ];
 

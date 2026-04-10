@@ -39,7 +39,7 @@ export function checkWatchNotifications(
     for (const match of matches) {
       const f1 = match.fighter1_name;
       const f2 = match.fighter2_name;
-      const watchedName = (f1 && watchSet.has(f1)) ? f1 : (f2 && watchSet.has(f2)) ? f2 : null;
+      const watchedName = f1 && watchSet.has(f1) ? f1 : f2 && watchSet.has(f2) ? f2 : null;
       if (!watchedName) continue;
 
       if (notifiedSet.has(match.id) || match.status === "done" || match.status === "ongoing") continue;
@@ -48,9 +48,7 @@ export function checkWatchNotifications(
       if (matchNum === Infinity) continue;
 
       const triggerNum = matchNum - REMIND_BEFORE;
-      const ongoingMatch = matches.find(m =>
-        m.status === "ongoing" && matchLabelNum(m.match_label) >= triggerNum
-      );
+      const ongoingMatch = matches.find((m) => m.status === "ongoing" && matchLabelNum(m.match_label) >= triggerNum);
 
       if (ongoingMatch) {
         notifiedSet.add(match.id);

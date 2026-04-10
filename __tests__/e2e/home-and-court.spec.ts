@@ -24,7 +24,10 @@ test.describe("ホームダッシュボード", () => {
     await page.waitForSelector('[role="tabpanel"]', { timeout: 10_000 });
 
     const body = await page.textContent("body");
-    const hasContent = body?.includes("進行中の試合はありません") || body?.includes("開催中の試合はありません") || body?.includes("進行中");
+    const hasContent =
+      body?.includes("進行中の試合はありません") ||
+      body?.includes("開催中の試合はありません") ||
+      body?.includes("進行中");
     expect(hasContent).toBeTruthy();
   });
 

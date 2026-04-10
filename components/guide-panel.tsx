@@ -5,11 +5,13 @@ import type { AdminTab } from "@/components/home-dashboard-panel";
 
 export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void }) {
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
-  const toggle = (id: string) => setOpenIds(prev => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
+  const toggle = (id: string) =>
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   return (
     <div className="space-y-8">
@@ -24,13 +26,20 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
           <span className="bg-yellow-600 text-white text-xs px-2 py-0.5 rounded">第1部</span>
           事前設定
         </h2>
-        <p className="text-xs text-gray-500 mb-4">大会の前に設定しておく項目です。ルールとタイマーは必須、それ以外はデフォルトでも使えます。</p>
+        <p className="text-xs text-gray-500 mb-4">
+          大会の前に設定しておく項目です。ルールとタイマーは必須、それ以外はデフォルトでも使えます。
+        </p>
 
         <div className="space-y-1.5">
           {/* ── 1. ルール設定 ── */}
           <Section
-            id="rule" openIds={openIds} toggle={toggle}
-            color="border-yellow-500" num={1} title="ルール設定" badge="必須"
+            id="rule"
+            openIds={openIds}
+            toggle={toggle}
+            color="border-yellow-500"
+            num={1}
+            title="ルール設定"
+            badge="必須"
             badgeColor="bg-red-700 text-red-200"
           >
             <Desc>
@@ -38,17 +47,36 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
               ルール名は対戦表作成の絞り込み、エントリーフォームの参加ルール選択、AI アナウンスの読み上げなど、
               システム全体で使われる最も重要な設定です。
             </Desc>
-            <FieldTable fields={[
-              { name: "ルール名", required: true, example: "RF一般エキスパートB", note: "この名前がそのままアナウンスで読み上げられます。正式名称で登録してください" },
-              { name: "読み仮名", required: false, example: "あーるえふいっぱんえきすぱーとびー", note: "AI が正しく読めない場合に設定すると読み間違いを防げます" },
-              { name: "説明", required: false, example: "防具はメンホー・拳サポーター着用必須。ポイント制3分", note: "装備要件・試合時間・ポイント制など、参加者が知るべきルールの詳細を記載します。この内容は管理画面上で確認用に表示されます" },
-            ]} />
-            <UsedIn items={[
-              "対戦表作成 → コートルール選択で、そのルールの参加者だけを絞り込み対象にできます",
-              "エントリーフォーム → 参加者が「どのルールに出場するか」を選択します",
-              "AI アナウンス → テンプレートの {{ルール}} 変数にルール名が展開されます",
-              "各試合 → 試合ごとにルールを設定でき、タイマー画面に反映されます",
-            ]} />
+            <FieldTable
+              fields={[
+                {
+                  name: "ルール名",
+                  required: true,
+                  example: "RF一般エキスパートB",
+                  note: "この名前がそのままアナウンスで読み上げられます。正式名称で登録してください",
+                },
+                {
+                  name: "読み仮名",
+                  required: false,
+                  example: "あーるえふいっぱんえきすぱーとびー",
+                  note: "AI が正しく読めない場合に設定すると読み間違いを防げます",
+                },
+                {
+                  name: "説明",
+                  required: false,
+                  example: "防具はメンホー・拳サポーター着用必須。ポイント制3分",
+                  note: "装備要件・試合時間・ポイント制など、参加者が知るべきルールの詳細を記載します。この内容は管理画面上で確認用に表示されます",
+                },
+              ]}
+            />
+            <UsedIn
+              items={[
+                "対戦表作成 → コートルール選択で、そのルールの参加者だけを絞り込み対象にできます",
+                "エントリーフォーム → 参加者が「どのルールに出場するか」を選択します",
+                "AI アナウンス → テンプレートの {{ルール}} 変数にルール名が展開されます",
+                "各試合 → 試合ごとにルールを設定でき、タイマー画面に反映されます",
+              ]}
+            />
             <Tip>
               タイマープリセットとの紐付け: ルール編集画面で「タイマーを設定」を選ぶと、
               そのルールの試合で自動的にタイマー設定が適用されます（次のセクション参照）。
@@ -77,45 +105,64 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 2. タイマー設定 ── */}
           <Section
-            id="timer" openIds={openIds} toggle={toggle}
-            color="border-yellow-500" num={2} title="タイマー設定" badge="必須"
+            id="timer"
+            openIds={openIds}
+            toggle={toggle}
+            color="border-yellow-500"
+            num={2}
+            title="タイマー設定"
+            badge="必須"
             badgeColor="bg-red-700 text-red-200"
           >
             <Desc>
               試合の計時・得点管理に使う「タイマープリセット」を作成します。
-              1つのプリセットの中に、試合時間・延長戦・寝技・ポイント・反則など全ての設定が含まれます。
-              それぞれの項目は ON/OFF で切り替えられるので、大会のルールに合わせて必要な項目だけ有効にしてください。
+              1つのプリセットの中に、試合時間・延長戦・寝技・ポイント・反則など全ての設定が含まれます。 それぞれの項目は
+              ON/OFF で切り替えられるので、大会のルールに合わせて必要な項目だけ有効にしてください。
             </Desc>
             <div className="text-xs text-gray-400 space-y-2 mt-1">
               <p className="font-medium text-gray-300">1つのタイマープリセットに含まれる設定:</p>
               <div className="space-y-1.5 ml-1">
                 <div className="bg-gray-900 rounded px-3 py-2 space-y-0.5">
                   <p className="text-white font-medium">基本設定</p>
-                  <p className="text-gray-500">タイマー名（管理用、画面には表示されない）、試合時間（分:秒）、カウント方向（ダウン/アップ）</p>
+                  <p className="text-gray-500">
+                    タイマー名（管理用、画面には表示されない）、試合時間（分:秒）、カウント方向（ダウン/アップ）
+                  </p>
                 </div>
                 <div className="bg-gray-900 rounded px-3 py-2 space-y-0.5">
-                  <p className="text-white font-medium">延長戦 <span className="text-gray-600 font-normal">（ON/OFF）</span></p>
-                  <p className="text-gray-500">時間延長（指定秒数で再戦）または先取延長（ポイント先取で決着）。再延長回数も設定可</p>
+                  <p className="text-white font-medium">
+                    延長戦 <span className="text-gray-600 font-normal">（ON/OFF）</span>
+                  </p>
+                  <p className="text-gray-500">
+                    時間延長（指定秒数で再戦）または先取延長（ポイント先取で決着）。再延長回数も設定可
+                  </p>
                 </div>
                 <div className="bg-gray-900 rounded px-3 py-2 space-y-0.5">
-                  <p className="text-white font-medium">寝技タイマー <span className="text-gray-600 font-normal">（ON/OFF）</span></p>
+                  <p className="text-white font-medium">
+                    寝技タイマー <span className="text-gray-600 font-normal">（ON/OFF）</span>
+                  </p>
                   <p className="text-gray-500">寝技時間・制限回数を設定。試合中に G キーで切り替え</p>
                 </div>
                 <div className="bg-gray-900 rounded px-3 py-2 space-y-0.5">
-                  <p className="text-white font-medium">得点・反則 <span className="text-gray-600 font-normal">（ON/OFF）</span></p>
+                  <p className="text-white font-medium">
+                    得点・反則 <span className="text-gray-600 font-normal">（ON/OFF）</span>
+                  </p>
                   <p className="text-gray-500">ポイント・技あり・一本の表示と得点値、反則回数と得点変換ルール</p>
                 </div>
                 <div className="bg-gray-900 rounded px-3 py-2 space-y-0.5">
                   <p className="text-white font-medium">ブザー音源</p>
-                  <p className="text-gray-500">試合終了ブザーと寝技タイムアップブザーで別の音を設定可能。内蔵30種（音程×波形×パターンの組み合わせ）から選択するか、カスタム音源をアップロード。鳴動秒数（0.5〜5秒）と連続回数（1〜3回）も設定できます。試聴ボタン（▶）で音を確認してから保存してください</p>
+                  <p className="text-gray-500">
+                    試合終了ブザーと寝技タイムアップブザーで別の音を設定可能。内蔵30種（音程×波形×パターンの組み合わせ）から選択するか、カスタム音源をアップロード。鳴動秒数（0.5〜5秒）と連続回数（1〜3回）も設定できます。試聴ボタン（▶）で音を確認してから保存してください
+                  </p>
                 </div>
               </div>
             </div>
-            <UsedIn items={[
-              "ルールとの紐付け → ルールにタイマーを設定すると、そのルールの試合で自動適用",
-              "タイマー画面（/timer/）→ 試合の計時・得点・延長・寝技を管理",
-              "時間見積もり → 対戦表作成画面でコートごとの所要時間を自動計算",
-            ]} />
+            <UsedIn
+              items={[
+                "ルールとの紐付け → ルールにタイマーを設定すると、そのルールの試合で自動適用",
+                "タイマー画面（/timer/）→ 試合の計時・得点・延長・寝技を管理",
+                "時間見積もり → 対戦表作成画面でコートごとの所要時間を自動計算",
+              ]}
+            />
             <Tip>
               似た設定のタイマーを作る場合は「複製」ボタンが便利です。
               例えば「組手3分」を複製して延長時間だけ変えるなど。
@@ -142,8 +189,13 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 3. アナウンス設定 ── */}
           <Section
-            id="announce" openIds={openIds} toggle={toggle}
-            color="border-yellow-500" num={3} title="アナウンス設定" badge="任意"
+            id="announce"
+            openIds={openIds}
+            toggle={toggle}
+            color="border-yellow-500"
+            num={3}
+            title="アナウンス設定"
+            badge="任意"
             badgeColor="bg-gray-600 text-gray-300"
           >
             <Desc>
@@ -153,21 +205,37 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
             <div className="text-xs text-gray-400 space-y-2">
               <p className="font-medium text-gray-300">テンプレートの種類:</p>
               <ul className="space-y-1 ml-3">
-                <li><span className="text-blue-400">試合開始</span> — 選手名・所属・ルール名を含む入場アナウンス</li>
-                <li><span className="text-green-400">勝者発表</span> — 勝者の名前・所属を読み上げる</li>
+                <li>
+                  <span className="text-blue-400">試合開始</span> — 選手名・所属・ルール名を含む入場アナウンス
+                </li>
+                <li>
+                  <span className="text-green-400">勝者発表</span> — 勝者の名前・所属を読み上げる
+                </li>
               </ul>
               <p className="font-medium text-gray-300 mt-2">使える変数（クリックで挿入）:</p>
               <div className="flex flex-wrap gap-1">
-                {["{{試合ラベル}}", "{{ルール}}", "{{選手1名前}}", "{{選手1流派＋道場}}", "{{選手2名前}}", "{{勝者名前}}", "{{勝者流派＋道場}}"].map(v => (
-                  <span key={v} className="bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded text-[10px]">{v}</span>
+                {[
+                  "{{試合ラベル}}",
+                  "{{ルール}}",
+                  "{{選手1名前}}",
+                  "{{選手1流派＋道場}}",
+                  "{{選手2名前}}",
+                  "{{勝者名前}}",
+                  "{{勝者流派＋道場}}",
+                ].map((v) => (
+                  <span key={v} className="bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded text-[10px]">
+                    {v}
+                  </span>
                 ))}
               </div>
             </div>
-            <UsedIn items={[
-              "コート画面 → 試合開始ボタン押下時に自動でアナウンスを再生",
-              "コート画面 → 勝者確定時に自動で勝者アナウンスを再生",
-              "プレビュー・試し聞き機能でテンプレートの確認が可能",
-            ]} />
+            <UsedIn
+              items={[
+                "コート画面 → 試合開始ボタン押下時に自動でアナウンスを再生",
+                "コート画面 → 勝者確定時に自動で勝者アナウンスを再生",
+                "プレビュー・試し聞き機能でテンプレートの確認が可能",
+              ]}
+            />
             <Tip>
               声質と読み上げ速度も設定画面で変更できます。「試し聞き」ボタンでサンプル音声を確認してから本番に臨みましょう。
             </Tip>
@@ -176,13 +244,18 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 4. 年代区分 ── */}
           <Section
-            id="age" openIds={openIds} toggle={toggle}
-            color="border-yellow-500" num={4} title="年代区分" badge="任意"
+            id="age"
+            openIds={openIds}
+            toggle={toggle}
+            color="border-yellow-500"
+            num={4}
+            title="年代区分"
+            badge="任意"
             badgeColor="bg-gray-600 text-gray-300"
           >
             <Desc>
-              参加者の年齢に基づいて自動的に区分を割り当てるための設定です。
-              年少〜高3 の学年ベースの区分は固定されており変更できません。
+              参加者の年齢に基づいて自動的に区分を割り当てるための設定です。 年少〜高3
+              の学年ベースの区分は固定されており変更できません。
               「一般」「シニア」などの年齢ベースの区分はカスタマイズ可能です。
             </Desc>
             <div className="text-xs text-gray-400 space-y-2">
@@ -191,10 +264,12 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
               <p className="font-medium text-gray-300">カスタム区分（編集可能）:</p>
               <p className="ml-3">例: 一般（18〜59歳）、シニア（60歳以上）</p>
             </div>
-            <UsedIn items={[
-              "エントリーフォーム → 生年月日を入力すると年代区分を自動選択（手動変更も可能）",
-              "対戦表作成 → 年代フィルタで「小学3年〜小学6年」のように絞り込み",
-            ]} />
+            <UsedIn
+              items={[
+                "エントリーフォーム → 生年月日を入力すると年代区分を自動選択（手動変更も可能）",
+                "対戦表作成 → 年代フィルタで「小学3年〜小学6年」のように絞り込み",
+              ]}
+            />
             <Tip>
               デフォルトで「18歳未満」「一般」「シニア」が設定されています。大会の区分に合わせて変更してください。
             </Tip>
@@ -203,18 +278,26 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 5. 流派 ── */}
           <Section
-            id="dojo" openIds={openIds} toggle={toggle}
-            color="border-yellow-500" num={5} title="流派" badge="任意"
+            id="dojo"
+            openIds={openIds}
+            toggle={toggle}
+            color="border-yellow-500"
+            num={5}
+            title="流派"
+            badge="任意"
             badgeColor="bg-gray-600 text-gray-300"
           >
             <Desc>
               流派（所属団体）のマスタデータです。参加者がエントリーフォームで所属団体名を入力すると自動的に追加されるため、
-              事前に登録しなくても使えます。事前に登録しておくと「読み仮名」を設定でき、AI アナウンスの読み上げ精度が上がります。
+              事前に登録しなくても使えます。事前に登録しておくと「読み仮名」を設定でき、AI
+              アナウンスの読み上げ精度が上がります。
             </Desc>
-            <UsedIn items={[
-              "エントリーフォーム → 所属団体の入力候補として表示（オートコンプリート）",
-              "AI アナウンス → {{選手1流派}} {{選手1道場}} 等の変数に展開。読み仮名があればそちらを使用",
-            ]} />
+            <UsedIn
+              items={[
+                "エントリーフォーム → 所属団体の入力候補として表示（オートコンプリート）",
+                "AI アナウンス → {{選手1流派}} {{選手1道場}} 等の変数に展開。読み仮名があればそちらを使用",
+              ]}
+            />
             <Tip>
               読み仮名が未設定の場合、AI が漢字から推測して読み上げます。
               珍しい団体名の場合は事前に読み仮名を登録しておくことをおすすめします。
@@ -235,28 +318,39 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
         <div className="space-y-1.5">
           {/* ── 6. イベント作成 ── */}
           <Section
-            id="event" openIds={openIds} toggle={toggle}
-            color="border-blue-500" num={1} title="イベント（大会）を作成する"
+            id="event"
+            openIds={openIds}
+            toggle={toggle}
+            color="border-blue-500"
+            num={1}
+            title="イベント（大会）を作成する"
           >
-            <Desc>
-              「試合」タブでイベントを新規作成します。
-            </Desc>
-            <Steps steps={[
-              "「試合」タブを開き、イベント名・開催日・コート数を入力して「作成」を押します",
-              "開催するルールにチェックを入れます（第1部で登録したルールが表示されます）",
-              "作成後、イベント詳細画面に自動で移動します",
-            ]} />
+            <Desc>「試合」タブでイベントを新規作成します。</Desc>
+            <Steps
+              steps={[
+                "「試合」タブを開き、イベント名・開催日・コート数を入力して「作成」を押します",
+                "開催するルールにチェックを入れます（第1部で登録したルールが表示されます）",
+                "作成後、イベント詳細画面に自動で移動します",
+              ]}
+            />
             <div className="text-xs text-gray-400 space-y-1 mt-2">
               <p className="font-medium text-gray-300">コート数について:</p>
-              <p className="ml-3">コートは物理的な試合場の数です。複数コートで同時進行する場合に設定します。コート名は詳細画面で「Aコート」「Bコート」等にカスタマイズできます。</p>
+              <p className="ml-3">
+                コートは物理的な試合場の数です。複数コートで同時進行する場合に設定します。コート名は詳細画面で「Aコート」「Bコート」等にカスタマイズできます。
+              </p>
             </div>
             <MockScreen>
               <MockLabel>試合タブ → 新規作成</MockLabel>
               <div className="space-y-2">
                 <div className="bg-gray-800 rounded px-3 py-2 text-gray-300 text-xs">第1回○○空手道大会</div>
                 <div className="flex gap-2">
-                  {["1","2","3"].map((n) => (
-                    <div key={n} className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${n==="2" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400"}`}>{n}</div>
+                  {["1", "2", "3"].map((n) => (
+                    <div
+                      key={n}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${n === "2" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400"}`}
+                    >
+                      {n}
+                    </div>
                   ))}
                   <span className="text-xs text-gray-500 self-center ml-1">コート数</span>
                 </div>
@@ -272,24 +366,32 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 7. 参加者管理 ── */}
           <Section
-            id="entry" openIds={openIds} toggle={toggle}
-            color="border-blue-500" num={2} title="参加者を集める（Step ①）"
+            id="entry"
+            openIds={openIds}
+            toggle={toggle}
+            color="border-blue-500"
+            num={2}
+            title="参加者を集める（Step ①）"
           >
             <Desc>
-              イベント詳細画面の Step ① で参加者を管理します。
-              エントリーフォームの URL を参加者に共有し、申し込みを受け付けます。
+              イベント詳細画面の Step ① で参加者を管理します。 エントリーフォームの URL
+              を参加者に共有し、申し込みを受け付けます。
             </Desc>
-            <Steps steps={[
-              "イベント詳細画面の Step ① を開きます",
-              "「フォーム設定」でエントリーフォームの項目を設定し、「フォーム内容を決定」を押します",
-              "「参加受付: 受付中」に切り替えます",
-              "表示されるフォーム URL をコピーして、LINE・メール・SNS 等で参加者に共有します",
-              "参加者がフォームに入力・送信すると一覧に自動表示されます",
-              "参加受付を終了したら「参加受付: 準備中」に戻します",
-            ]} />
+            <Steps
+              steps={[
+                "イベント詳細画面の Step ① を開きます",
+                "「フォーム設定」でエントリーフォームの項目を設定し、「フォーム内容を決定」を押します",
+                "「参加受付: 受付中」に切り替えます",
+                "表示されるフォーム URL をコピーして、LINE・メール・SNS 等で参加者に共有します",
+                "参加者がフォームに入力・送信すると一覧に自動表示されます",
+                "参加受付を終了したら「参加受付: 準備中」に戻します",
+              ]}
+            />
             <div className="text-xs text-gray-400 space-y-1 mt-2">
               <p className="font-medium text-gray-300">フォーム設定について:</p>
-              <p className="ml-3">氏名・体重・身長・所属・参加ルール・年代区分などの項目を必須/任意に設定できます。項目の並び順やカスタム項目の追加も可能です。</p>
+              <p className="ml-3">
+                氏名・体重・身長・所属・参加ルール・年代区分などの項目を必須/任意に設定できます。項目の並び順やカスタム項目の追加も可能です。
+              </p>
               <p className="font-medium text-gray-300 mt-1">その他の機能:</p>
               <ul className="ml-3 space-y-0.5">
                 <li>・「テストデータ追加」でダミー参加者を一括登録（動作確認用）</li>
@@ -301,13 +403,17 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
               <MockLabel>イベント詳細 → Step ① 参加者管理</MockLabel>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-gray-700 rounded px-2 py-1.5 text-gray-400 font-mono text-[10px] truncate">https://karate.naocho.net/entry/xxxx</div>
+                  <div className="flex-1 bg-gray-700 rounded px-2 py-1.5 text-gray-400 font-mono text-[10px] truncate">
+                    https://karate.naocho.net/entry/xxxx
+                  </div>
                   <div className="bg-gray-600 text-white rounded px-2 py-1 text-[10px] shrink-0">コピー</div>
                 </div>
                 <div className="border border-gray-700 rounded p-2 space-y-1">
                   <p className="text-gray-500 text-[10px]">参加者一覧 3名</p>
                   {["山田 太郎　柔空会　85kg", "鈴木 花子　正道会館　55kg", "田中 一郎　極真会　70kg"].map((n) => (
-                    <div key={n} className="bg-gray-800 rounded px-2 py-1 text-gray-200 text-[10px]">{n}</div>
+                    <div key={n} className="bg-gray-800 rounded px-2 py-1 text-gray-200 text-[10px]">
+                      {n}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -316,29 +422,41 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 8. 対戦表作成 ── */}
           <Section
-            id="bracket" openIds={openIds} toggle={toggle}
-            color="border-blue-500" num={3} title="対戦表を作成する（Step ②）"
+            id="bracket"
+            openIds={openIds}
+            toggle={toggle}
+            color="border-blue-500"
+            num={3}
+            title="対戦表を作成する（Step ②）"
           >
             <Desc>
               参加者を絞り込み、対戦の組み合わせを作成します。
               トーナメント（勝ち抜き戦）またはワンマッチ（1試合のみ）を作成し、コートに割り当てます。
             </Desc>
-            <Steps steps={[
-              "「＋ トーナメントを追加」または「＋ ワンマッチを追加」をクリック",
-              "コートルールを選択すると、そのルールの参加者のみが表示されます",
-              "年代・体重・性別などのフィルタで対象を絞り込みます（トーナメント名が自動生成されます）",
-              "「全員を追加してペアリング」で自動組み合わせ、または手動で1組ずつ追加",
-              "体重差・身長差の互換性を ◎△✕ マークで確認",
-              "「登録する」でトーナメントを確定 → 2回戦以降の枠が自動生成されます",
-              "各トーナメントのコートドロップダウンでコートを割り当てます",
-              "「コート自動振り分け」ボタンで、各コートの試合数が均等になるよう自動割り当てもできます",
-            ]} />
+            <Steps
+              steps={[
+                "「＋ トーナメントを追加」または「＋ ワンマッチを追加」をクリック",
+                "コートルールを選択すると、そのルールの参加者のみが表示されます",
+                "年代・体重・性別などのフィルタで対象を絞り込みます（トーナメント名が自動生成されます）",
+                "「全員を追加してペアリング」で自動組み合わせ、または手動で1組ずつ追加",
+                "体重差・身長差の互換性を ◎△✕ マークで確認",
+                "「登録する」でトーナメントを確定 → 2回戦以降の枠が自動生成されます",
+                "各トーナメントのコートドロップダウンでコートを割り当てます",
+                "「コート自動振り分け」ボタンで、各コートの試合数が均等になるよう自動割り当てもできます",
+              ]}
+            />
             <div className="text-xs text-gray-400 space-y-1 mt-2">
               <p className="font-medium text-gray-300">互換性マーク:</p>
               <div className="flex gap-4 ml-3">
-                <span><span className="text-green-400 font-bold">◎</span> 体重差・身長差が許容範囲内</span>
-                <span><span className="text-yellow-400 font-bold">△</span> 上限を超過</span>
-                <span><span className="text-red-400 font-bold">✕</span> 大幅超過</span>
+                <span>
+                  <span className="text-green-400 font-bold">◎</span> 体重差・身長差が許容範囲内
+                </span>
+                <span>
+                  <span className="text-yellow-400 font-bold">△</span> 上限を超過
+                </span>
+                <span>
+                  <span className="text-red-400 font-bold">✕</span> 大幅超過
+                </span>
               </div>
               <p className="font-medium text-gray-300 mt-1">確定後の変更:</p>
               <p className="ml-3">「← 登録前に戻す」で組み直し可能。選手の欠場登録や差し替えにも対応しています。</p>
@@ -360,7 +478,9 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <div className="flex-1 bg-blue-600 text-white rounded px-3 py-1.5 text-center text-[10px]">登録する</div>
+                  <div className="flex-1 bg-blue-600 text-white rounded px-3 py-1.5 text-center text-[10px]">
+                    登録する
+                  </div>
                   <select className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-[10px] text-white">
                     <option>未割当</option>
                     <option>Aコート</option>
@@ -373,20 +493,26 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 9. 試合番号設定 ── */}
           <Section
-            id="label" openIds={openIds} toggle={toggle}
-            color="border-blue-500" num={4} title="試合番号を設定する（Step ③）"
+            id="label"
+            openIds={openIds}
+            toggle={toggle}
+            color="border-blue-500"
+            num={4}
+            title="試合番号を設定する（Step ③）"
           >
             <Desc>
               確定したトーナメントの各試合に番号を割り当てます。
               この番号はアナウンスの「第○試合」やライブ速報の表示順に使われます。
             </Desc>
-            <Steps steps={[
-              "Step ③ を開くと、確定済みの全試合がコートごとに表示されます",
-              "「ラウンド順で自動割り当て」ボタンで番号を自動設定できます",
-              "手動の場合は、試合カードをタップした順に番号が振られます",
-              "赤白の入れ替えが必要な場合は各カードの入替ボタンを使います",
-              "全試合に番号が振られると「準備完了！」と表示されます",
-            ]} />
+            <Steps
+              steps={[
+                "Step ③ を開くと、確定済みの全試合がコートごとに表示されます",
+                "「ラウンド順で自動割り当て」ボタンで番号を自動設定できます",
+                "手動の場合は、試合カードをタップした順に番号が振られます",
+                "赤白の入れ替えが必要な場合は各カードの入替ボタンを使います",
+                "全試合に番号が振られると「準備完了！」と表示されます",
+              ]}
+            />
             <Tip>
               番号は「Aコート第1試合」「Aコート第2試合」のようにコートごとに採番されます。
               コート未割当のトーナメントにはオレンジの警告が表示されるので、先にコート割り当てを完了してください。
@@ -395,10 +521,17 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
               <MockLabel>Step ③ 試合番号設定</MockLabel>
               <div className="space-y-2">
                 <div className="flex gap-1.5">
-                  {[1, 2, 3].map(n => (
-                    <div key={n} className="w-7 h-7 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">{n}</div>
+                  {[1, 2, 3].map((n) => (
+                    <div
+                      key={n}
+                      className="w-7 h-7 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center"
+                    >
+                      {n}
+                    </div>
                   ))}
-                  <div className="w-7 h-7 rounded-full border-2 border-dashed border-gray-500 text-gray-500 text-[10px] flex items-center justify-center">+</div>
+                  <div className="w-7 h-7 rounded-full border-2 border-dashed border-gray-500 text-gray-500 text-[10px] flex items-center justify-center">
+                    +
+                  </div>
                 </div>
                 <p className="text-[10px] text-gray-500">タップした順に番号が振られます</p>
               </div>
@@ -407,33 +540,46 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 10. 試合進行（タイマー＋操作パネル） ── */}
           <Section
-            id="timer-op" openIds={openIds} toggle={toggle}
-            color="border-blue-500" num={5} title="試合を進行する（タイマー＋操作パネル）"
+            id="timer-op"
+            openIds={openIds}
+            toggle={toggle}
+            color="border-blue-500"
+            num={5}
+            title="試合を進行する（タイマー＋操作パネル）"
           >
             <Desc>
               試合の進行は「タイマー表示画面」と「操作パネル」の2画面で行います。
-              イベントを「開催中」に設定すると、コート画面（/court/1 など）が有効になり、そこからタイマーと操作パネルを開けます。
+              イベントを「開催中」に設定すると、コート画面（/court/1
+              など）が有効になり、そこからタイマーと操作パネルを開けます。
               操作パネルで試合の開始・計時・得点記録・勝者確定まで一連の操作を行います。
             </Desc>
-            <Steps steps={[
-              "「試合」タブ → イベント一覧で「開催中に設定」を押します",
-              "コート画面（/court/1 等）をタブレットやPCで開きます",
-              "コート画面ヘッダーの「⏱ タイマー表示画面」を観客向けモニターで開きます",
-              "「🎮 操作パネル」を運営者のスマホやタブレットで開きます（別タブ）",
-              "操作パネルの試合リストから試合を選択します",
-              "スペースキーまたは「▶ スタート」で試合開始 → タイマーが動き、AI アナウンスが再生されます",
-              "ポイント・技あり・一本・反則を各ボタンで記録します",
-              "時間切れまたは一本で試合終了 → 結果方法を選択して勝者を確定",
-              "勝者が次ラウンドに自動進出し、勝者アナウンスが再生されます",
-            ]} />
+            <Steps
+              steps={[
+                "「試合」タブ → イベント一覧で「開催中に設定」を押します",
+                "コート画面（/court/1 等）をタブレットやPCで開きます",
+                "コート画面ヘッダーの「⏱ タイマー表示画面」を観客向けモニターで開きます",
+                "「🎮 操作パネル」を運営者のスマホやタブレットで開きます（別タブ）",
+                "操作パネルの試合リストから試合を選択します",
+                "スペースキーまたは「▶ スタート」で試合開始 → タイマーが動き、AI アナウンスが再生されます",
+                "ポイント・技あり・一本・反則を各ボタンで記録します",
+                "時間切れまたは一本で試合終了 → 結果方法を選択して勝者を確定",
+                "勝者が次ラウンドに自動進出し、勝者アナウンスが再生されます",
+              ]}
+            />
             <div className="text-xs text-gray-400 space-y-1 mt-2">
               <p className="font-medium text-gray-300">キーボードショートカット:</p>
               <ul className="ml-3 space-y-0.5">
-                <li>・<span className="text-gray-300">スペース</span>: タイマー開始/停止/再開</li>
-                <li>・<span className="text-gray-300">G</span>: 寝技タイマー切り替え</li>
+                <li>
+                  ・<span className="text-gray-300">スペース</span>: タイマー開始/停止/再開
+                </li>
+                <li>
+                  ・<span className="text-gray-300">G</span>: 寝技タイマー切り替え
+                </li>
               </ul>
               <p className="font-medium text-gray-300 mt-1">延長戦:</p>
-              <p className="ml-3">メインの試合時間が終了すると、タイマー設定に応じて延長戦に移行します。「時間延長」は指定時間のカウント、「先取延長」はポイント先取で決着です。</p>
+              <p className="ml-3">
+                メインの試合時間が終了すると、タイマー設定に応じて延長戦に移行します。「時間延長」は指定時間のカウント、「先取延長」はポイント先取で決着です。
+              </p>
             </div>
             <MockScreen>
               <MockLabel>タイマー操作パネル</MockLabel>
@@ -453,8 +599,12 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 11. コート画面（タイマー不使用時） ── */}
           <Section
-            id="court" openIds={openIds} toggle={toggle}
-            color="border-blue-500" num={6} title="コート画面で直接操作する（タイマー不使用時）"
+            id="court"
+            openIds={openIds}
+            toggle={toggle}
+            color="border-blue-500"
+            num={6}
+            title="コート画面で直接操作する（タイマー不使用時）"
           >
             <Desc>
               タイマーを使わずに試合を進行する場合は、コート画面のブラケット上で直接操作できます。
@@ -468,10 +618,18 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
               </ul>
               <p className="font-medium text-gray-300 mt-1">補助機能:</p>
               <ul className="ml-3 space-y-0.5">
-                <li>・<span className="text-gray-300">再アナウンス</span>: 聞き逃した場合に再生</li>
-                <li>・<span className="text-gray-300">棄権切り替え</span>: 選手の棄権を登録（不戦勝処理）</li>
-                <li>・<span className="text-gray-300">勝者訂正</span>: 誤った結果を修正</li>
-                <li>・<span className="text-gray-300">音声ON/OFF</span>: アナウンスのミュート切り替え</li>
+                <li>
+                  ・<span className="text-gray-300">再アナウンス</span>: 聞き逃した場合に再生
+                </li>
+                <li>
+                  ・<span className="text-gray-300">棄権切り替え</span>: 選手の棄権を登録（不戦勝処理）
+                </li>
+                <li>
+                  ・<span className="text-gray-300">勝者訂正</span>: 誤った結果を修正
+                </li>
+                <li>
+                  ・<span className="text-gray-300">音声ON/OFF</span>: アナウンスのミュート切り替え
+                </li>
               </ul>
             </div>
             <Tip>
@@ -483,18 +641,24 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
               <div className="border border-yellow-600 rounded overflow-hidden">
                 <div className="bg-gray-800 px-2 py-1.5 border-b border-gray-600/50">
                   <div className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-full bg-red-700/80 text-[6px] text-red-100 flex items-center justify-center font-bold">赤</span>
+                    <span className="w-3 h-3 rounded-full bg-red-700/80 text-[6px] text-red-100 flex items-center justify-center font-bold">
+                      赤
+                    </span>
                     <span className="text-gray-100 text-[11px]">山田 太郎</span>
                   </div>
                 </div>
                 <div className="bg-gray-800 px-2 py-1.5">
                   <div className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-full bg-gray-500/60 text-[6px] text-gray-100 flex items-center justify-center font-bold">白</span>
+                    <span className="w-3 h-3 rounded-full bg-gray-500/60 text-[6px] text-gray-100 flex items-center justify-center font-bold">
+                      白
+                    </span>
                     <span className="text-gray-100 text-[11px]">鈴木 一郎</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 px-1.5 py-1 bg-yellow-950/60 border-t border-gray-600/50">
-                  <span className="bg-yellow-700 text-yellow-100 text-[7px] font-bold px-1 py-0.5 rounded">第1試合</span>
+                  <span className="bg-yellow-700 text-yellow-100 text-[7px] font-bold px-1 py-0.5 rounded">
+                    第1試合
+                  </span>
                   <span className="text-[8px] text-yellow-400 font-medium">試合中</span>
                   <span className="ml-auto text-[9px]">📢 再読</span>
                   <span className="text-[9px] ml-1">🔊</span>
@@ -506,13 +670,17 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 12. 試合速報 ── */}
           <Section
-            id="live" openIds={openIds} toggle={toggle}
-            color="border-blue-500" num={7} title="試合速報を観客に共有する" badge="任意"
+            id="live"
+            openIds={openIds}
+            toggle={toggle}
+            color="border-blue-500"
+            num={7}
+            title="試合速報を観客に共有する"
+            badge="任意"
           >
             <Desc>
               /live ページは観客向けのリアルタイム速報画面です。
-              試合の進行状況・結果がリアルタイムで更新されます（5秒間隔）。
-              スマートフォンに最適化されたデザインです。
+              試合の進行状況・結果がリアルタイムで更新されます（5秒間隔）。 スマートフォンに最適化されたデザインです。
             </Desc>
             <div className="text-xs text-gray-400 space-y-1">
               <p className="font-medium text-gray-300">表示内容:</p>
@@ -523,11 +691,18 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
                 <li>・コート画面で勝者を確定するとすぐに反映されます</li>
               </ul>
               <p className="font-medium text-gray-300 mt-1">共有方法:</p>
-              <p className="ml-3">下の「URLをコピー」ボタンで速報ページの URL を取得し、LINE グループや会場の QR コードで共有してください。</p>
+              <p className="ml-3">
+                下の「URLをコピー」ボタンで速報ページの URL を取得し、LINE グループや会場の QR
+                コードで共有してください。
+              </p>
             </div>
             <div className="flex items-center gap-3 pt-2">
-              <a href="/live" target="_blank" rel="noopener noreferrer"
-                className="text-xs text-blue-400 hover:text-blue-300 underline">
+              <a
+                href="/live"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-400 hover:text-blue-300 underline"
+              >
                 /live を開く →
               </a>
               <CopyLiveUrlButton />
@@ -536,8 +711,12 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
           {/* ── 13. オフラインモード ── */}
           <Section
-            id="offline" openIds={openIds} toggle={toggle}
-            color="border-blue-500" num={8} title="ネットワーク不安定時のオフラインモード"
+            id="offline"
+            openIds={openIds}
+            toggle={toggle}
+            color="border-blue-500"
+            num={8}
+            title="ネットワーク不安定時のオフラインモード"
           >
             <Desc>
               体育館など WiFi が不安定な会場では、操作が失われないようオフラインモードを利用できます。
@@ -548,32 +727,48 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
               <div>
                 <p className="font-medium text-gray-300">ステータスバーの見方:</p>
                 <div className="space-y-1 mt-1 ml-2">
-                  <p><span className="inline-block w-3 h-3 rounded-sm bg-yellow-500 mr-1.5 align-middle" />黄色「ネットワークが不安定です」 → 通信は可能。操作は自動リトライされます</p>
-                  <p><span className="inline-block w-3 h-3 rounded-sm bg-red-600 mr-1.5 align-middle" />赤「オフラインです」 → 通信不能。操作はローカルに保存されます</p>
-                  <p><span className="inline-block w-3 h-3 rounded-sm bg-blue-600 mr-1.5 align-middle" />青「オフラインモードで動作中」 → 手動でオフラインモードに設定中</p>
-                  <p><span className="inline-block w-3 h-3 rounded-sm bg-green-600 mr-1.5 align-middle" />緑「オンラインに切り替えますか？」 → ネットワーク回復を検知</p>
+                  <p>
+                    <span className="inline-block w-3 h-3 rounded-sm bg-yellow-500 mr-1.5 align-middle" />
+                    黄色「ネットワークが不安定です」 → 通信は可能。操作は自動リトライされます
+                  </p>
+                  <p>
+                    <span className="inline-block w-3 h-3 rounded-sm bg-red-600 mr-1.5 align-middle" />
+                    赤「オフラインです」 → 通信不能。操作はローカルに保存されます
+                  </p>
+                  <p>
+                    <span className="inline-block w-3 h-3 rounded-sm bg-blue-600 mr-1.5 align-middle" />
+                    青「オフラインモードで動作中」 → 手動でオフラインモードに設定中
+                  </p>
+                  <p>
+                    <span className="inline-block w-3 h-3 rounded-sm bg-green-600 mr-1.5 align-middle" />
+                    緑「オンラインに切り替えますか？」 → ネットワーク回復を検知
+                  </p>
                 </div>
               </div>
 
               <div>
                 <p className="font-medium text-gray-300">オフラインモードの切替:</p>
-                <Steps steps={[
-                  "黄色または赤のバーに表示される「オフラインモードに切り替え」ボタンを押す",
-                  "青いバーに切り替わり、すべての操作がローカルに保存されます",
-                  "ネットワークが回復すると緑のバー「オンラインに切り替えますか？」が自動表示されます",
-                  "「はい」を押すと、保存済みの操作が自動送信されます",
-                ]} />
+                <Steps
+                  steps={[
+                    "黄色または赤のバーに表示される「オフラインモードに切り替え」ボタンを押す",
+                    "青いバーに切り替わり、すべての操作がローカルに保存されます",
+                    "ネットワークが回復すると緑のバー「オンラインに切り替えますか？」が自動表示されます",
+                    "「はい」を押すと、保存済みの操作が自動送信されます",
+                  ]}
+                />
               </div>
 
               <div>
                 <p className="font-medium text-gray-300">WiFi がない会場での運用:</p>
-                <Steps steps={[
-                  "大会前: 全端末でコート画面・タイマー画面を1回開き、データを読み込んでおく",
-                  "試合中: オフラインモードで操作（青バーの「保存済み: N件」を確認）",
-                  "ラウンド終了時: スマートフォンのテザリング等で一時的にオンライン接続",
-                  "保存済み操作が自動送信 → 次ラウンドの選手配置がサーバーで実行される",
-                  "次ラウンドのデータを取得したらオフラインモードに戻す",
-                ]} />
+                <Steps
+                  steps={[
+                    "大会前: 全端末でコート画面・タイマー画面を1回開き、データを読み込んでおく",
+                    "試合中: オフラインモードで操作（青バーの「保存済み: N件」を確認）",
+                    "ラウンド終了時: スマートフォンのテザリング等で一時的にオンライン接続",
+                    "保存済み操作が自動送信 → 次ラウンドの選手配置がサーバーで実行される",
+                    "次ラウンドのデータを取得したらオフラインモードに戻す",
+                  ]}
+                />
               </div>
 
               <Tip>
@@ -594,9 +789,25 @@ export function GuidePanel({ onNavigate }: { onNavigate: (tab: AdminTab) => void
 
 // ══════════ 共通コンポーネント ══════════
 
-function Section({ id, openIds, toggle, color, num, title, badge, badgeColor, children }: {
-  id: string; openIds: Set<string>; toggle: (id: string) => void;
-  color: string; num: number; title: string; badge?: string; badgeColor?: string;
+function Section({
+  id,
+  openIds,
+  toggle,
+  color,
+  num,
+  title,
+  badge,
+  badgeColor,
+  children,
+}: {
+  id: string;
+  openIds: Set<string>;
+  toggle: (id: string) => void;
+  color: string;
+  num: number;
+  title: string;
+  badge?: string;
+  badgeColor?: string;
   children: React.ReactNode;
 }) {
   const isOpen = openIds.has(id);
@@ -606,16 +817,18 @@ function Section({ id, openIds, toggle, color, num, title, badge, badgeColor, ch
         onClick={() => toggle(id)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-750 transition"
       >
-        <span className="bg-gray-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">{num}</span>
+        <span className="bg-gray-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">
+          {num}
+        </span>
         <span className="font-semibold text-sm text-white flex-1">{title}</span>
-        {badge && <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${badgeColor ?? "bg-gray-600 text-gray-300"}`}>{badge}</span>}
+        {badge && (
+          <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${badgeColor ?? "bg-gray-600 text-gray-300"}`}>
+            {badge}
+          </span>
+        )}
         <span className={`text-xs text-gray-500 shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`}>▶</span>
       </button>
-      {isOpen && (
-        <div className="px-4 pb-4 space-y-3 border-t border-gray-700/50 pt-3">
-          {children}
-        </div>
-      )}
+      {isOpen && <div className="px-4 pb-4 space-y-3 border-t border-gray-700/50 pt-3">{children}</div>}
     </div>
   );
 }
@@ -697,7 +910,10 @@ function MockLabel({ children }: { children: React.ReactNode }) {
 function NavButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <div className="border-t border-gray-700/50 pt-3 mt-3 flex justify-end">
-      <button onClick={onClick} className="text-xs bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition font-medium flex items-center gap-1.5">
+      <button
+        onClick={onClick}
+        className="text-xs bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition font-medium flex items-center gap-1.5"
+      >
         <span>📋</span>
         <span>{label}</span>
       </button>

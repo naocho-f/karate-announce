@@ -120,7 +120,7 @@ function playSpecial(soundId: string, durationSec: number): void {
       for (let i = 0; i < cycles; i++) {
         const t = (durationSec / cycles) * i;
         osc.frequency.setValueAtTime(400, now + t);
-        osc.frequency.linearRampToValueAtTime(800, now + t + durationSec / cycles * 0.5);
+        osc.frequency.linearRampToValueAtTime(800, now + t + (durationSec / cycles) * 0.5);
         osc.frequency.linearRampToValueAtTime(400, now + t + durationSec / cycles);
       }
       gain.gain.setValueAtTime(0.3, now);
@@ -184,7 +184,11 @@ export function preloadCustomBuzzer(url: string): void {
  * @param durationSec 鳴動秒数（内蔵音源のみ）
  * @param repeat 連続回数（1〜3）
  */
-export async function playBuzzer(soundId: string = "mid-square-single", durationSec: number = 1.5, repeat: number = 1): Promise<"ok" | "fallback"> {
+export async function playBuzzer(
+  soundId: string = "mid-square-single",
+  durationSec: number = 1.5,
+  repeat: number = 1,
+): Promise<"ok" | "fallback"> {
   try {
     // カスタム音源
     if (soundId === "custom" && customAudio) {
@@ -200,7 +204,7 @@ export async function playBuzzer(soundId: string = "mid-square-single", duration
         const actualDuration = playBuiltinOnce(soundId, durationSec);
         if (i < clampedRepeat - 1) {
           // 前の音が鳴り終わるのを待ってから0.3秒休止
-          await new Promise(r => setTimeout(r, actualDuration * 1000 + 300));
+          await new Promise((r) => setTimeout(r, actualDuration * 1000 + 300));
         }
       }
       return "ok";
@@ -216,7 +220,11 @@ export async function playBuzzer(soundId: string = "mid-square-single", duration
 }
 
 /** テスト再生 */
-export async function testBuzzer(soundId: string = "mid-square-single", durationSec: number = 1.5, repeat: number = 1): Promise<"ok" | "fallback"> {
+export async function testBuzzer(
+  soundId: string = "mid-square-single",
+  durationSec: number = 1.5,
+  repeat: number = 1,
+): Promise<"ok" | "fallback"> {
   return playBuzzer(soundId, durationSec, repeat);
 }
 
@@ -224,7 +232,9 @@ export async function testBuzzer(soundId: string = "mid-square-single", duration
 export function disposeBuzzer(): void {
   customAudio = null;
   if (audioCtx) {
-    try { audioCtx.close(); } catch {}
+    try {
+      audioCtx.close();
+    } catch {}
     audioCtx = null;
   }
 }

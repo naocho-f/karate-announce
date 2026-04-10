@@ -44,10 +44,7 @@ interface MatchInfo {
  * 前ラウンドに未送信の勝者設定（pendingWinners に含まれる match）がある場合、
  * サーバーでの選手配置が完了していないため開始不可。
  */
-export function shouldBlockNextRoundStart(
-  matchId: string,
-  matches: MatchInfo[],
-): boolean {
+export function shouldBlockNextRoundStart(matchId: string, matches: MatchInfo[]): boolean {
   const target = matches.find((m) => m.id === matchId);
   if (!target) return false;
 

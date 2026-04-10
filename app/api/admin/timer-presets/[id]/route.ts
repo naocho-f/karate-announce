@@ -11,12 +11,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
   const { id } = await ctx.params;
   const body = await request.json();
   body.updated_at = new Date().toISOString();
-  const { data, error } = await supabaseAdmin
-    .from("timer_presets")
-    .update(body)
-    .eq("id", id)
-    .select()
-    .single();
+  const { data, error } = await supabaseAdmin.from("timer_presets").update(body).eq("id", id).select().single();
   if (error) return dbError(error);
   return NextResponse.json(data);
 }

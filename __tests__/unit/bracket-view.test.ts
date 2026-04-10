@@ -77,9 +77,9 @@ describe("BracketView レイアウト計算", () => {
     const pos = 0;
     const nextPos = Math.floor(pos / 2);
     const x1 = cardLeft(round) + BRACKET_CARD_W; // 172
-    const y1 = centerY(round, pos);              // 60
-    const x2 = cardLeft(round + 1);              // 212
-    const y2 = centerY(round + 1, nextPos);      // 120
+    const y1 = centerY(round, pos); // 60
+    const x2 = cardLeft(round + 1); // 212
+    const y2 = centerY(round + 1, nextPos); // 120
     expect(x1).toBe(172);
     expect(y1).toBe(60);
     expect(x2).toBe(212);
@@ -156,8 +156,9 @@ describe("formatResultMethod", () => {
   });
 
   it("ポイント", () => {
-    expect(formatResultMethod("point", { red_points: 3, white_points: 1, red_wazaari: 1, white_wazaari: 0 }))
-      .toBe("ポイント (3-1 技1-0)");
+    expect(formatResultMethod("point", { red_points: 3, white_points: 1, red_wazaari: 1, white_wazaari: 0 })).toBe(
+      "ポイント (3-1 技1-0)",
+    );
   });
 
   it("ポイント（detail なし）", () => {

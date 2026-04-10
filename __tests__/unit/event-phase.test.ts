@@ -76,11 +76,7 @@ describe("getEventPhase", () => {
   });
 
   it("対戦表作成中: entry_closed=true だがトーナメントに matches がない", () => {
-    const phase = getEventPhase(
-      makeEvent({ entry_closed: true }),
-      [makeTournament()],
-      [],
-    );
+    const phase = getEventPhase(makeEvent({ entry_closed: true }), [makeTournament()], []);
     expect(phase.label).toBe("対戦表作成中");
     expect(phase.stepHighlight).toBe(2);
   });
@@ -118,11 +114,7 @@ describe("getEventPhase", () => {
   });
 
   it("試合終了は is_active より優先", () => {
-    const phase = getEventPhase(
-      makeEvent({ status: "finished", is_active: true }),
-      [],
-      [],
-    );
+    const phase = getEventPhase(makeEvent({ status: "finished", is_active: true }), [], []);
     expect(phase.label).toBe("試合終了");
   });
 });

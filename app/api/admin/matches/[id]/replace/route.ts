@@ -16,8 +16,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "slot and entry_id required" }, { status: 400 });
   }
 
-  const { data: entry } = await supabaseAdmin
-    .from("entries").select("*").eq("id", entry_id).single();
+  const { data: entry } = await supabaseAdmin.from("entries").select("*").eq("id", entry_id).single();
   if (!entry) return NextResponse.json({ error: "entry not found" }, { status: 404 });
 
   const fighterId = await ensureFighterFromEntry(entry as Entry);
@@ -26,8 +25,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   const field = slot === "fighter1" ? "fighter1_id" : "fighter2_id";
 
   // 相手が存在すれば status を ready に、なければ waiting のまま
-  const { data: match } = await supabaseAdmin
-    .from("matches").select("fighter1_id, fighter2_id").eq("id", id).single();
+  const { data: match } = await supabaseAdmin.from("matches").select("fighter1_id, fighter2_id").eq("id", id).single();
   const opponentField = slot === "fighter1" ? "fighter2_id" : "fighter1_id";
   const hasOpponent = !!match?.[opponentField];
 

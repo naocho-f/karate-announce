@@ -24,11 +24,7 @@ export default function Home() {
   const [courts, setCourts] = useState<CourtData[]>([]);
 
   const load = useCallback(async () => {
-    const { data: ae } = await supabase
-      .from("events")
-      .select("*")
-      .eq("is_active", true)
-      .maybeSingle();
+    const { data: ae } = await supabase.from("events").select("*").eq("is_active", true).maybeSingle();
     setActiveEvent(ae ?? null);
     if (!ae) return;
 
@@ -40,7 +36,10 @@ export default function Home() {
       .order("sort_order")
       .order("created_at");
 
-    if (!allTourns?.length) { setCourts([]); return; }
+    if (!allTourns?.length) {
+      setCourts([]);
+      return;
+    }
 
     const tournIds = allTourns.map((t) => t.id);
     const { data: allMatches } = await supabase
@@ -62,7 +61,9 @@ export default function Home() {
         .from("fighters")
         .select("*, dojo:dojos(*)")
         .in("id", [...allFighterIds]);
-      (fs ?? []).forEach((f) => { fighterMap[f.id] = f as Fighter; });
+      (fs ?? []).forEach((f) => {
+        fighterMap[f.id] = f as Fighter;
+      });
     }
 
     const matchesByTournament: Record<string, Match[]> = {};
@@ -72,7 +73,9 @@ export default function Home() {
     });
 
     const nameMap = Object.fromEntries(Object.entries(fighterMap).map(([id, f]) => [id, fighterFullName(f)]));
-    const affiliationMap = Object.fromEntries(Object.entries(fighterMap).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""]));
+    const affiliationMap = Object.fromEntries(
+      Object.entries(fighterMap).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""]),
+    );
 
     const courtData: CourtData[] = Array.from({ length: ae.court_count }, (_, i) => ({
       courtNum: i + 1,
@@ -88,23 +91,32 @@ export default function Home() {
     setCourts(courtData);
   }, []);
 
-  useEffect(() => { load(); }, [load]); // eslint-disable-line react-hooks/set-state-in-effect -- async data fetch calls setState in callback after await
   useEffect(() => {
-    const timer = setInterval(load, 5000);
+    let cancelled = false;
+    const doLoad = () => {
+      if (!cancelled) load();
+    };
+    doLoad();
+    const timer = setInterval(doLoad, 5000);
 
     function handleVisibility() {
-      if (document.visibilityState === "visible") load();
+      if (document.visibilityState === "visible") doLoad();
     }
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
+      cancelled = true;
       clearInterval(timer);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [load]);
 
   if (activeEvent === undefined) {
-    return <div className="min-h-screen bg-main-bg flex items-center justify-center"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>;
+    return (
+      <div className="min-h-screen bg-main-bg flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -113,8 +125,12 @@ export default function Home() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">柔空会 - 試合管理 ＆ AI アナウンス</h1>
           <div className="flex items-center gap-4">
-            <Link href="/live" target="_blank" className="text-sm text-blue-400 hover:text-blue-300">試合速報</Link>
-            <Link href="/admin" className="text-sm text-gray-500 hover:text-gray-300 underline">管理画面</Link>
+            <Link href="/live" target="_blank" className="text-sm text-blue-400 hover:text-blue-300">
+              試合速報
+            </Link>
+            <Link href="/admin" className="text-sm text-gray-500 hover:text-gray-300 underline">
+              管理画面
+            </Link>
           </div>
         </div>
 
@@ -153,20 +169,20 @@ export default function Home() {
                           <div key={tournament.id}>
                             <div className="flex items-center gap-2 mb-2">
                               <span className="text-sm font-medium text-gray-200">{tournament.name}</span>
-                              <span className={`text-xs px-2 py-0.5 rounded ${
-                                tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"
-                              }`}>
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded ${
+                                  tournament.status === "ongoing"
+                                    ? "bg-yellow-900 text-yellow-300"
+                                    : "bg-gray-700 text-gray-400"
+                                }`}
+                              >
                                 {tournament.status === "ongoing" ? "進行中" : "準備中"}
                               </span>
                             </div>
                             {matches.length === 0 ? (
                               <p className="text-xs text-gray-500">試合データなし</p>
                             ) : (
-                              <BracketView
-                                matches={matches}
-                                nameMap={nameMap}
-                                affiliationMap={affiliationMap}
-                              />
+                              <BracketView matches={matches} nameMap={nameMap} affiliationMap={affiliationMap} />
                             )}
                           </div>
                         ))

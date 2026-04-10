@@ -115,7 +115,9 @@ export function TimerPresetsPanel() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   // Measure preview container height
   useEffect(() => {
@@ -130,7 +132,10 @@ export function TimerPresetsPanel() {
   }, [editing]);
 
   // Derive layout when editing changes
-  const layout: LayoutConfig = editing?.layout ?? { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) };
+  const layout: LayoutConfig = editing?.layout ?? {
+    ...DEFAULT_LAYOUT,
+    rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })),
+  };
 
   const setLayout = (newLayout: LayoutConfig) => {
     if (!editing) return;
@@ -179,14 +184,20 @@ export function TimerPresetsPanel() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(editing),
         });
-        if (!res.ok) { showToast("保存に失敗しました"); return; }
+        if (!res.ok) {
+          showToast("保存に失敗しました");
+          return;
+        }
       } else {
         const res = await fetch("/api/admin/timer-presets", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(editing),
         });
-        if (!res.ok) { showToast("作成に失敗しました"); return; }
+        if (!res.ok) {
+          showToast("作成に失敗しました");
+          return;
+        }
       }
       setEditing(null);
       setEditId(null);
@@ -213,15 +224,23 @@ export function TimerPresetsPanel() {
     setDuplicatingId(null);
   };
 
-  const field = (key: keyof EditablePreset, label: string, type: "text" | "number" | "checkbox" | "select" | "color" | "duration", opts?: { options?: { value: string; label: string }[] }) => {
+  const field = (
+    key: keyof EditablePreset,
+    label: string,
+    type: "text" | "number" | "checkbox" | "select" | "color" | "duration",
+    opts?: { options?: { value: string; label: string }[] },
+  ) => {
     if (!editing) return null;
     const val = editing[key];
     if (type === "checkbox") {
       return (
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={!!val}
+          <input
+            type="checkbox"
+            checked={!!val}
             onChange={(e) => setEditing({ ...editing, [key]: e.target.checked })}
-            className="rounded" />
+            className="rounded"
+          />
           {label}
         </label>
       );
@@ -230,10 +249,16 @@ export function TimerPresetsPanel() {
       return (
         <label className="text-sm">
           <span className="text-gray-400">{label}</span>
-          <select value={String(val ?? "")}
+          <select
+            value={String(val ?? "")}
             onChange={(e) => setEditing({ ...editing, [key]: e.target.value })}
-            className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm">
-            {opts.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm"
+          >
+            {opts.options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
         </label>
       );
@@ -243,9 +268,12 @@ export function TimerPresetsPanel() {
         <label className="text-sm">
           <span className="text-gray-400">{label}</span>
           <div className="mt-1 flex items-center gap-2">
-            <input type="color" value={String(val ?? "#000000")}
+            <input
+              type="color"
+              value={String(val ?? "#000000")}
               onChange={(e) => setEditing({ ...editing, [key]: e.target.value })}
-              className="h-8 w-10 rounded border border-gray-700 bg-gray-800 cursor-pointer [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded" />
+              className="h-8 w-10 rounded border border-gray-700 bg-gray-800 cursor-pointer [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded"
+            />
             <span className="text-xs text-gray-500 font-mono">{String(val ?? "#000000")}</span>
           </div>
         </label>
@@ -259,13 +287,22 @@ export function TimerPresetsPanel() {
         <label className="text-sm">
           <span className="text-gray-400">{label}</span>
           <div className="mt-1 flex items-center gap-1">
-            <input type="number" min={0} value={min}
+            <input
+              type="number"
+              min={0}
+              value={min}
               onChange={(e) => setEditing({ ...editing, [key]: Number(e.target.value) * 60 + sec })}
-              className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-right" />
+              className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-right"
+            />
             <span className="text-gray-500 text-xs">分</span>
-            <input type="number" min={0} max={59} value={sec}
+            <input
+              type="number"
+              min={0}
+              max={59}
+              value={sec}
               onChange={(e) => setEditing({ ...editing, [key]: min * 60 + Math.min(59, Number(e.target.value)) })}
-              className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-right" />
+              className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-right"
+            />
             <span className="text-gray-500 text-xs">秒</span>
           </div>
         </label>
@@ -274,14 +311,24 @@ export function TimerPresetsPanel() {
     return (
       <label className="text-sm">
         <span className="text-gray-400">{label}</span>
-        <input type={type} value={val as string | number ?? ""}
-          onChange={(e) => setEditing({ ...editing, [key]: type === "number" ? Number(e.target.value) : e.target.value })}
-          className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm" />
+        <input
+          type={type}
+          value={(val as string | number) ?? ""}
+          onChange={(e) =>
+            setEditing({ ...editing, [key]: type === "number" ? Number(e.target.value) : e.target.value })
+          }
+          className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm"
+        />
       </label>
     );
   };
 
-  const alignButton = (current: LayoutAlignment, value: LayoutAlignment, label: string, onChange: (v: LayoutAlignment) => void) => (
+  const alignButton = (
+    current: LayoutAlignment,
+    value: LayoutAlignment,
+    label: string,
+    onChange: (v: LayoutAlignment) => void,
+  ) => (
     <button
       type="button"
       onClick={() => onChange(value)}
@@ -291,7 +338,12 @@ export function TimerPresetsPanel() {
     </button>
   );
 
-  const vAlignButton = (current: LayoutVerticalAlign, value: LayoutVerticalAlign, label: string, onChange: (v: LayoutVerticalAlign) => void) => (
+  const vAlignButton = (
+    current: LayoutVerticalAlign,
+    value: LayoutVerticalAlign,
+    label: string,
+    onChange: (v: LayoutVerticalAlign) => void,
+  ) => (
     <button
       type="button"
       onClick={() => onChange(value)}
@@ -371,7 +423,9 @@ export function TimerPresetsPanel() {
                     padding: "0 4px",
                   }}
                 >
-                  <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.5}px` }}>{layout.labelNewaza || "寝技"}</span>
+                  <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.5}px` }}>
+                    {layout.labelNewaza || "寝技"}
+                  </span>
                   <PreviewTimerDigits text="0:12" style={{ color: "rgb(34 211 238)", fontSize: `${fsPx}px` }} />
                 </div>
               );
@@ -390,7 +444,9 @@ export function TimerPresetsPanel() {
                     padding: "0 4px",
                   }}
                 >
-                  <span className="text-gray-400" style={{ fontSize: `${fsPx}px` }}>A-1 第1試合</span>
+                  <span className="text-gray-400" style={{ fontSize: `${fsPx}px` }}>
+                    A-1 第1試合
+                  </span>
                 </div>
               );
             }
@@ -410,10 +466,14 @@ export function TimerPresetsPanel() {
                   }}
                 >
                   <div className="flex-1 flex" style={{ ...alignStyle(row.align) }}>
-                    <span className="font-bold" style={{ color: colorLeft, fontSize: `${fsPx}px` }}>山田 太郎</span>
+                    <span className="font-bold" style={{ color: colorLeft, fontSize: `${fsPx}px` }}>
+                      山田 太郎
+                    </span>
                   </div>
                   <div className="flex-1 flex" style={{ ...alignStyle(row.align) }}>
-                    <span className="font-bold" style={{ color: colorRight, fontSize: `${fsPx}px` }}>鈴木 一郎</span>
+                    <span className="font-bold" style={{ color: colorRight, fontSize: `${fsPx}px` }}>
+                      鈴木 一郎
+                    </span>
                   </div>
                 </div>
               );
@@ -440,8 +500,13 @@ export function TimerPresetsPanel() {
                   {/* Left: foul indicator + score */}
                   <div className="flex-1 flex">
                     {/* Foul indicator (left edge) */}
-                    <div className="flex flex-col items-center justify-center" style={{ padding: `0 ${fsPx * 0.05}px` }}>
-                      <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.1}px` }}>反則</span>
+                    <div
+                      className="flex flex-col items-center justify-center"
+                      style={{ padding: `0 ${fsPx * 0.05}px` }}
+                    >
+                      <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.1}px` }}>
+                        反則
+                      </span>
                       {[4, 3, 2, 1].map((n) => (
                         <div
                           key={n}
@@ -462,38 +527,85 @@ export function TimerPresetsPanel() {
                     {/* Score content */}
                     <div className="flex-1 flex flex-col items-center justify-center">
                       {showPoints && (
-                        <span className="font-bold tabular-nums leading-none" style={{ color: colorLeft, fontSize: `${mainFsPx}px` }}>3</span>
+                        <span
+                          className="font-bold tabular-nums leading-none"
+                          style={{ color: colorLeft, fontSize: `${mainFsPx}px` }}
+                        >
+                          3
+                        </span>
                       )}
                       {showWazaari && (
-                        <div className="flex items-baseline justify-center gap-0.5" style={{ marginTop: showPoints ? `${fsPx * 0.05}px` : undefined }}>
-                          <span className="text-gray-500 font-bold" style={{ fontSize: `${wazaariFsPx * 0.35}px` }}>技</span>
-                          <span className="font-bold tabular-nums leading-none" style={{ color: colorLeft, fontSize: `${wazaariFsPx}px` }}>1</span>
+                        <div
+                          className="flex items-baseline justify-center gap-0.5"
+                          style={{ marginTop: showPoints ? `${fsPx * 0.05}px` : undefined }}
+                        >
+                          <span className="text-gray-500 font-bold" style={{ fontSize: `${wazaariFsPx * 0.35}px` }}>
+                            技
+                          </span>
+                          <span
+                            className="font-bold tabular-nums leading-none"
+                            style={{ color: colorLeft, fontSize: `${wazaariFsPx}px` }}
+                          >
+                            1
+                          </span>
                         </div>
                       )}
                     </div>
                   </div>
                   {/* Center: newaza */}
-                  <div className="flex flex-col items-center justify-center" style={{ minWidth: `${fsPx * 1.2}px`, borderLeft: `${dividerThickness}px solid ${dividerColor}`, borderRight: `${dividerThickness}px solid ${dividerColor}` }}>
-                    <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.2}px` }}>{layout.labelNewaza || "寝技"}</span>
-                    <PreviewTimerDigits text="0:12" style={{ color: "rgb(34 211 238)", fontSize: `${fsPx * 0.45}px` }} />
+                  <div
+                    className="flex flex-col items-center justify-center"
+                    style={{
+                      minWidth: `${fsPx * 1.2}px`,
+                      borderLeft: `${dividerThickness}px solid ${dividerColor}`,
+                      borderRight: `${dividerThickness}px solid ${dividerColor}`,
+                    }}
+                  >
+                    <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.2}px` }}>
+                      {layout.labelNewaza || "寝技"}
+                    </span>
+                    <PreviewTimerDigits
+                      text="0:12"
+                      style={{ color: "rgb(34 211 238)", fontSize: `${fsPx * 0.45}px` }}
+                    />
                   </div>
                   {/* Right: score + foul indicator */}
                   <div className="flex-1 flex">
                     {/* Score content */}
                     <div className="flex-1 flex flex-col items-center justify-center">
                       {showPoints && (
-                        <span className="font-bold tabular-nums leading-none" style={{ color: colorRight, fontSize: `${mainFsPx}px` }}>1</span>
+                        <span
+                          className="font-bold tabular-nums leading-none"
+                          style={{ color: colorRight, fontSize: `${mainFsPx}px` }}
+                        >
+                          1
+                        </span>
                       )}
                       {showWazaari && (
-                        <div className="flex items-baseline justify-center gap-0.5" style={{ marginTop: showPoints ? `${fsPx * 0.05}px` : undefined }}>
-                          <span className="text-gray-500 font-bold" style={{ fontSize: `${wazaariFsPx * 0.35}px` }}>技</span>
-                          <span className="font-bold tabular-nums leading-none" style={{ color: colorRight, fontSize: `${wazaariFsPx}px` }}>0</span>
+                        <div
+                          className="flex items-baseline justify-center gap-0.5"
+                          style={{ marginTop: showPoints ? `${fsPx * 0.05}px` : undefined }}
+                        >
+                          <span className="text-gray-500 font-bold" style={{ fontSize: `${wazaariFsPx * 0.35}px` }}>
+                            技
+                          </span>
+                          <span
+                            className="font-bold tabular-nums leading-none"
+                            style={{ color: colorRight, fontSize: `${wazaariFsPx}px` }}
+                          >
+                            0
+                          </span>
                         </div>
                       )}
                     </div>
                     {/* Foul indicator (right edge) */}
-                    <div className="flex flex-col items-center justify-center" style={{ padding: `0 ${fsPx * 0.05}px` }}>
-                      <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.1}px` }}>反則</span>
+                    <div
+                      className="flex flex-col items-center justify-center"
+                      style={{ padding: `0 ${fsPx * 0.05}px` }}
+                    >
+                      <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.1}px` }}>
+                        反則
+                      </span>
                       {[4, 3, 2, 1].map((n) => (
                         <div
                           key={n}
@@ -517,12 +629,7 @@ export function TimerPresetsPanel() {
             }
 
             if (row.type === "spacer") {
-              return (
-                <div
-                  key={idx}
-                  style={{ height: `${rowVh}%`, borderTop }}
-                />
-              );
+              return <div key={idx} style={{ height: `${rowVh}%`, borderTop }} />;
             }
 
             return <div key={idx} style={{ height: `${rowVh}%`, borderTop }} />;
@@ -537,8 +644,16 @@ export function TimerPresetsPanel() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold">タイマー管理</h1>
         <div className="flex gap-2">
-          <button onClick={() => { setEditing({ ...EMPTY_PRESET, layout: { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) } }); setEditId(null); }}
-            className="px-3 py-1.5 rounded bg-blue-700 hover:bg-blue-600 text-sm text-white transition">
+          <button
+            onClick={() => {
+              setEditing({
+                ...EMPTY_PRESET,
+                layout: { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) },
+              });
+              setEditId(null);
+            }}
+            className="px-3 py-1.5 rounded bg-blue-700 hover:bg-blue-600 text-sm text-white transition"
+          >
             新規作成
           </button>
         </div>
@@ -552,28 +667,42 @@ export function TimerPresetsPanel() {
       ) : (
         <div className="space-y-2">
           {presets.map((p) => (
-            <div key={p.id} className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-lg p-3">
+            <div
+              key={p.id}
+              className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-lg p-3"
+            >
               <div>
                 <p className="font-bold">{p.name}</p>
                 <p className="text-xs text-gray-500">
-                  {Math.floor(p.match_duration / 60)}分{p.match_duration % 60 > 0 ? `${p.match_duration % 60}秒` : ""} / {p.timer_direction === "countdown" ? "カウントダウン" : "カウントアップ"}
-                  {p.has_extension && ` / 延長${Math.floor(p.extension_duration / 60)}分${p.extension_duration % 60 > 0 ? `${p.extension_duration % 60}秒` : ""}`}
+                  {Math.floor(p.match_duration / 60)}分{p.match_duration % 60 > 0 ? `${p.match_duration % 60}秒` : ""} /{" "}
+                  {p.timer_direction === "countdown" ? "カウントダウン" : "カウントアップ"}
+                  {p.has_extension &&
+                    ` / 延長${Math.floor(p.extension_duration / 60)}分${p.extension_duration % 60 > 0 ? `${p.extension_duration % 60}秒` : ""}`}
                   {p.newaza_enabled && " / 寝技あり"}
                 </p>
               </div>
               <div className="flex gap-1">
-                <button onClick={() => { setEditing({ ...p }); setEditId(p.id); }}
-                  className="px-2 py-1 rounded bg-blue-900/50 hover:bg-blue-800/60 text-xs text-blue-300 transition">
+                <button
+                  onClick={() => {
+                    setEditing({ ...p });
+                    setEditId(p.id);
+                  }}
+                  className="px-2 py-1 rounded bg-blue-900/50 hover:bg-blue-800/60 text-xs text-blue-300 transition"
+                >
                   編集
                 </button>
-                <button onClick={() => handleDuplicate(p.id)}
+                <button
+                  onClick={() => handleDuplicate(p.id)}
                   disabled={duplicatingId === p.id}
-                  className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs text-gray-300 transition disabled:opacity-50">
+                  className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs text-gray-300 transition disabled:opacity-50"
+                >
                   {duplicatingId === p.id ? "複製中..." : "複製"}
                 </button>
-                <button onClick={() => handleDelete(p.id)}
+                <button
+                  onClick={() => handleDelete(p.id)}
                   disabled={deletingId === p.id}
-                  className="px-2 py-1 rounded bg-red-900/50 hover:bg-red-800/60 text-xs text-red-300 transition disabled:opacity-50">
+                  className="px-2 py-1 rounded bg-red-900/50 hover:bg-red-800/60 text-xs text-red-300 transition disabled:opacity-50"
+                >
                   {deletingId === p.id ? "削除中..." : "削除"}
                 </button>
               </div>
@@ -585,19 +714,24 @@ export function TimerPresetsPanel() {
       {/* 編集フォーム */}
       {editing && (
         <div className="mt-6 border border-gray-700 rounded-xl bg-gray-900 p-6">
-            <h2 className="text-lg font-bold mb-4">{editId ? "タイマー編集" : "新規タイマー"}</h2>
+          <h2 className="text-lg font-bold mb-4">{editId ? "タイマー編集" : "新規タイマー"}</h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 左: 設定フォーム */}
             <div className="space-y-4 overflow-y-auto max-h-[80vh]">
               {field("name", "タイマー名", "text")}
-              <p className="text-xs text-gray-600 mt-1">試合時間・延長有無などの設定名を入力（例: 3分カウントダウン・延長1分）</p>
+              <p className="text-xs text-gray-600 mt-1">
+                試合時間・延長有無などの設定名を入力（例: 3分カウントダウン・延長1分）
+              </p>
 
               <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">基本設定</h3>
               <div className="grid grid-cols-2 gap-3">
                 {field("match_duration", "試合時間", "duration")}
                 {field("timer_direction", "タイマー方向", "select", {
-                  options: [{ value: "countdown", label: "カウントダウン" }, { value: "countup", label: "カウントアップ" }]
+                  options: [
+                    { value: "countdown", label: "カウントダウン" },
+                    { value: "countup", label: "カウントアップ" },
+                  ],
                 })}
               </div>
               <div className="space-y-2">
@@ -605,13 +739,19 @@ export function TimerPresetsPanel() {
                 {editing.has_extension && (
                   <div className="space-y-2 pl-4">
                     {field("extension_mode", "延長タイプ", "select", {
-                      options: [{ value: "timed", label: "時間延長" }, { value: "sudden_death", label: "先取延長" }]
+                      options: [
+                        { value: "timed", label: "時間延長" },
+                        { value: "sudden_death", label: "先取延長" },
+                      ],
                     })}
                     {editing.extension_mode === "timed" && (
                       <div className="grid grid-cols-2 gap-3">
                         {field("extension_duration", "延長時間", "duration")}
                         {field("extension_timer_direction", "カウント方向", "select", {
-                          options: [{ value: "countdown", label: "カウントダウン" }, { value: "countup", label: "カウントアップ" }]
+                          options: [
+                            { value: "countdown", label: "カウントダウン" },
+                            { value: "countup", label: "カウントアップ" },
+                          ],
                         })}
                         {field("extension_max_count", "最大延長回数（0=無制限）", "number")}
                       </div>
@@ -632,10 +772,16 @@ export function TimerPresetsPanel() {
                 <div className="grid grid-cols-2 gap-3 pl-4">
                   {field("newaza_duration", "寝技制限時間", "duration")}
                   {field("newaza_direction", "寝技タイマー方向", "select", {
-                    options: [{ value: "countup", label: "カウントアップ" }, { value: "countdown", label: "カウントダウン" }]
+                    options: [
+                      { value: "countup", label: "カウントアップ" },
+                      { value: "countdown", label: "カウントダウン" },
+                    ],
                   })}
                   {field("newaza_limit_type", "起動回数制限", "select", {
-                    options: [{ value: "unlimited", label: "無制限" }, { value: "limited", label: "回数制限あり" }]
+                    options: [
+                      { value: "unlimited", label: "無制限" },
+                      { value: "limited", label: "回数制限あり" },
+                    ],
                   })}
                   {editing.newaza_limit_type === "limited" && field("newaza_max_count", "最大起動回数", "number")}
                   {field("newaza_free_release", "無消費解除時間", "duration")}
@@ -660,7 +806,10 @@ export function TimerPresetsPanel() {
                 {field("foul_point_value", "反則1回あたりの付与ポイント", "number")}
                 {field("foul_loss_count", "反則負け回数（0=なし）", "number")}
                 {field("foul_vs_point_priority", "反則負けvsポイント先取り", "select", {
-                  options: [{ value: "foul_priority", label: "反則負け優先" }, { value: "point_priority", label: "ポイント先取り優先" }]
+                  options: [
+                    { value: "foul_priority", label: "反則負け優先" },
+                    { value: "point_priority", label: "ポイント先取り優先" },
+                  ],
                 })}
               </div>
 
@@ -686,7 +835,11 @@ export function TimerPresetsPanel() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {field("theme_font_family", "フォント", "select", {
-                  options: [{ value: "digital", label: "デジタル" }, { value: "sans", label: "ゴシック" }, { value: "mono", label: "等幅" }]
+                  options: [
+                    { value: "digital", label: "デジタル" },
+                    { value: "sans", label: "ゴシック" },
+                    { value: "mono", label: "等幅" },
+                  ],
                 })}
               </div>
               {field("theme_show_decimals", "0.1秒表示", "checkbox")}
@@ -723,7 +876,12 @@ export function TimerPresetsPanel() {
                       className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-700/30"
                       onClick={() => setExpandedRow(expandedRow === idx ? null : idx)}
                     >
-                      <span className="cursor-grab text-gray-500 hover:text-gray-300 text-lg select-none" title="ドラッグで並べ替え">⠿</span>
+                      <span
+                        className="cursor-grab text-gray-500 hover:text-gray-300 text-lg select-none"
+                        title="ドラッグで並べ替え"
+                      >
+                        ⠿
+                      </span>
                       <span className="flex-1 text-sm font-medium">{rowTypeLabel(row.type)}</span>
                       <span className="text-xs text-gray-500 mr-1">{expandedRow === idx ? "▼" : "▶"}</span>
                       <span className="text-xs text-gray-500">
@@ -731,7 +889,10 @@ export function TimerPresetsPanel() {
                       </span>
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); removeRow(idx); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeRow(idx);
+                        }}
                         className="text-gray-500 hover:text-red-400 text-sm px-1"
                         title="削除"
                       >
@@ -747,14 +908,18 @@ export function TimerPresetsPanel() {
                           <span className="text-xs text-gray-400 w-20 shrink-0">高さ</span>
                           <input
                             type="range"
-                            min={0} max={80} step={1}
+                            min={0}
+                            max={80}
+                            step={1}
                             value={row.height}
                             onChange={(e) => updateRow(idx, { height: Number(e.target.value) })}
                             className="flex-1 accent-blue-500"
                           />
                           <input
                             type="number"
-                            min={0} max={80} step={1}
+                            min={0}
+                            max={80}
+                            step={1}
                             value={row.height}
                             onChange={(e) => updateRow(idx, { height: Number(e.target.value) })}
                             className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right"
@@ -768,14 +933,17 @@ export function TimerPresetsPanel() {
                           <span className="text-xs text-gray-400 w-20 shrink-0">フォント</span>
                           <input
                             type="range"
-                            min={1} max={100} step={0.5}
+                            min={1}
+                            max={100}
+                            step={0.5}
                             value={row.fontSize}
                             onChange={(e) => updateRow(idx, { fontSize: Number(e.target.value) })}
                             className="flex-1 accent-blue-500"
                           />
                           <input
                             type="number"
-                            min={0} step={0.5}
+                            min={0}
+                            step={0.5}
                             value={row.fontSize}
                             onChange={(e) => updateRow(idx, { fontSize: Number(e.target.value) })}
                             className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right"
@@ -798,8 +966,12 @@ export function TimerPresetsPanel() {
                           <span className="text-xs text-gray-400 w-20 shrink-0">垂直揃え</span>
                           <div className="grid grid-cols-3 gap-1">
                             {vAlignButton(row.verticalAlign, "top", "上", (v) => updateRow(idx, { verticalAlign: v }))}
-                            {vAlignButton(row.verticalAlign, "middle", "中", (v) => updateRow(idx, { verticalAlign: v }))}
-                            {vAlignButton(row.verticalAlign, "bottom", "下", (v) => updateRow(idx, { verticalAlign: v }))}
+                            {vAlignButton(row.verticalAlign, "middle", "中", (v) =>
+                              updateRow(idx, { verticalAlign: v }),
+                            )}
+                            {vAlignButton(row.verticalAlign, "bottom", "下", (v) =>
+                              updateRow(idx, { verticalAlign: v }),
+                            )}
                           </div>
                         </div>
 
@@ -810,14 +982,17 @@ export function TimerPresetsPanel() {
                               <span className="text-xs text-gray-400 w-20 shrink-0">副フォント</span>
                               <input
                                 type="range"
-                                min={1} max={100} step={0.5}
+                                min={1}
+                                max={100}
+                                step={0.5}
                                 value={row.subFontSize ?? 6}
                                 onChange={(e) => updateRow(idx, { subFontSize: Number(e.target.value) })}
                                 className="flex-1 accent-blue-500"
                               />
                               <input
                                 type="number"
-                                min={0} step={0.5}
+                                min={0}
+                                step={0.5}
                                 value={row.subFontSize ?? 6}
                                 onChange={(e) => updateRow(idx, { subFontSize: Number(e.target.value) })}
                                 className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right"
@@ -827,9 +1002,15 @@ export function TimerPresetsPanel() {
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-gray-400 w-20 shrink-0">副揃え</span>
                               <div className="grid grid-cols-3 gap-1">
-                                {alignButton(row.subAlign ?? "center", "left", "左", (v) => updateRow(idx, { subAlign: v }))}
-                                {alignButton(row.subAlign ?? "center", "center", "中", (v) => updateRow(idx, { subAlign: v }))}
-                                {alignButton(row.subAlign ?? "center", "right", "右", (v) => updateRow(idx, { subAlign: v }))}
+                                {alignButton(row.subAlign ?? "center", "left", "左", (v) =>
+                                  updateRow(idx, { subAlign: v }),
+                                )}
+                                {alignButton(row.subAlign ?? "center", "center", "中", (v) =>
+                                  updateRow(idx, { subAlign: v }),
+                                )}
+                                {alignButton(row.subAlign ?? "center", "right", "右", (v) =>
+                                  updateRow(idx, { subAlign: v }),
+                                )}
                               </div>
                             </div>
                           </>
@@ -843,40 +1024,52 @@ export function TimerPresetsPanel() {
               {/* 表示ラベル設定 */}
               <div className="mt-3 pt-3 border-t border-gray-700">
                 <p className="text-xs text-gray-400 font-medium mb-2">表示ラベル設定</p>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="text-xs">
-                  <span className="text-gray-400">技ありラベル</span>
-                  <input type="text" value={layout.labelWazaari ?? "W"}
-                    onChange={(e) => setLayout({ ...layout, labelWazaari: e.target.value })}
-                    placeholder="W"
-                    className="mt-0.5 block w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs" />
-                  <span className="text-gray-600 text-[10px]">例: W, 技あり, 技</span>
-                </label>
-                <label className="text-xs">
-                  <span className="text-gray-400">反則ラベル</span>
-                  <input type="text" value={layout.labelFoul ?? "F"}
-                    onChange={(e) => setLayout({ ...layout, labelFoul: e.target.value })}
-                    placeholder="F"
-                    className="mt-0.5 block w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs" />
-                  <span className="text-gray-600 text-[10px]">例: F, 反則, 反</span>
-                </label>
-                <label className="text-xs">
-                  <span className="text-gray-400">ポイントラベル</span>
-                  <input type="text" value={layout.labelPoint ?? ""}
-                    onChange={(e) => setLayout({ ...layout, labelPoint: e.target.value })}
-                    placeholder="空欄で非表示"
-                    className="mt-0.5 block w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs" />
-                  <span className="text-gray-600 text-[10px]">例: pt, P, 空欄</span>
-                </label>
-                <label className="text-xs">
-                  <span className="text-gray-400">寝技ラベル</span>
-                  <input type="text" value={layout.labelNewaza ?? "寝技"}
-                    onChange={(e) => setLayout({ ...layout, labelNewaza: e.target.value })}
-                    placeholder="寝技"
-                    className="mt-0.5 block w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs" />
-                  <span className="text-gray-600 text-[10px]">例: 寝技, NEWAZA</span>
-                </label>
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="text-xs">
+                    <span className="text-gray-400">技ありラベル</span>
+                    <input
+                      type="text"
+                      value={layout.labelWazaari ?? "W"}
+                      onChange={(e) => setLayout({ ...layout, labelWazaari: e.target.value })}
+                      placeholder="W"
+                      className="mt-0.5 block w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs"
+                    />
+                    <span className="text-gray-600 text-[10px]">例: W, 技あり, 技</span>
+                  </label>
+                  <label className="text-xs">
+                    <span className="text-gray-400">反則ラベル</span>
+                    <input
+                      type="text"
+                      value={layout.labelFoul ?? "F"}
+                      onChange={(e) => setLayout({ ...layout, labelFoul: e.target.value })}
+                      placeholder="F"
+                      className="mt-0.5 block w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs"
+                    />
+                    <span className="text-gray-600 text-[10px]">例: F, 反則, 反</span>
+                  </label>
+                  <label className="text-xs">
+                    <span className="text-gray-400">ポイントラベル</span>
+                    <input
+                      type="text"
+                      value={layout.labelPoint ?? ""}
+                      onChange={(e) => setLayout({ ...layout, labelPoint: e.target.value })}
+                      placeholder="空欄で非表示"
+                      className="mt-0.5 block w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs"
+                    />
+                    <span className="text-gray-600 text-[10px]">例: pt, P, 空欄</span>
+                  </label>
+                  <label className="text-xs">
+                    <span className="text-gray-400">寝技ラベル</span>
+                    <input
+                      type="text"
+                      value={layout.labelNewaza ?? "寝技"}
+                      onChange={(e) => setLayout({ ...layout, labelNewaza: e.target.value })}
+                      placeholder="寝技"
+                      className="mt-0.5 block w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs"
+                    />
+                    <span className="text-gray-600 text-[10px]">例: 寝技, NEWAZA</span>
+                  </label>
+                </div>
               </div>
 
               {/* Add row button */}
@@ -907,10 +1100,18 @@ export function TimerPresetsPanel() {
               <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">ブザー</h3>
               <div className="grid grid-cols-2 gap-3">
                 {field("buzzer_on_time_up", "試合終了ブザー", "select", {
-                  options: [{ value: "auto", label: "自動" }, { value: "manual", label: "手動" }, { value: "off", label: "なし" }]
+                  options: [
+                    { value: "auto", label: "自動" },
+                    { value: "manual", label: "手動" },
+                    { value: "off", label: "なし" },
+                  ],
                 })}
                 {field("buzzer_on_newaza", "寝技タイムアップブザー", "select", {
-                  options: [{ value: "auto", label: "自動" }, { value: "manual", label: "手動" }, { value: "off", label: "なし" }]
+                  options: [
+                    { value: "auto", label: "自動" },
+                    { value: "manual", label: "手動" },
+                    { value: "off", label: "なし" },
+                  ],
                 })}
               </div>
               <p className="text-xs text-gray-500 mt-2 mb-1">試合終了ブザー音源</p>
@@ -923,7 +1124,9 @@ export function TimerPresetsPanel() {
                 onSoundChange={(v) => setEditing({ ...editing, buzzer_sound: v })}
                 onDurationChange={(v) => setEditing({ ...editing, buzzer_duration: v })}
                 onRepeatChange={(v) => setEditing({ ...editing, buzzer_repeat: v })}
-                onCustomPathChange={(v) => setEditing({ ...editing, buzzer_custom_path: v, buzzer_sound: v ? "custom" : "mid-square-single" })}
+                onCustomPathChange={(v) =>
+                  setEditing({ ...editing, buzzer_custom_path: v, buzzer_sound: v ? "custom" : "mid-square-single" })
+                }
               />
               <p className="text-xs text-gray-500 mt-3 mb-1">寝技タイムアップブザー音源</p>
               <BuzzerSoundSelector
@@ -942,22 +1145,32 @@ export function TimerPresetsPanel() {
             {/* 右: プレビュー（sticky） */}
             <div className="lg:sticky lg:top-4 self-start">
               <div className="rounded-lg overflow-hidden border border-gray-700">
-                <p className="text-xs text-gray-500 px-2 py-1 bg-gray-800/50">プレビュー（実際のタイマー画面イメージ）</p>
+                <p className="text-xs text-gray-500 px-2 py-1 bg-gray-800/50">
+                  プレビュー（実際のタイマー画面イメージ）
+                </p>
                 {renderPreview()}
               </div>
             </div>
-            </div>
+          </div>
 
-            <div className="flex gap-2 mt-6">
-              <button onClick={handleSave} disabled={saving || !editing.name}
-                className="flex-1 py-2 rounded bg-blue-700 hover:bg-blue-600 text-white font-bold transition disabled:opacity-50">
-                {saving ? "保存中..." : "保存"}
-              </button>
-              <button onClick={() => { setEditing(null); setEditId(null); }}
-                className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition">
-                キャンセル
-              </button>
-            </div>
+          <div className="flex gap-2 mt-6">
+            <button
+              onClick={handleSave}
+              disabled={saving || !editing.name}
+              className="flex-1 py-2 rounded bg-blue-700 hover:bg-blue-600 text-white font-bold transition disabled:opacity-50"
+            >
+              {saving ? "保存中..." : "保存"}
+            </button>
+            <button
+              onClick={() => {
+                setEditing(null);
+                setEditId(null);
+              }}
+              className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition"
+            >
+              キャンセル
+            </button>
+          </div>
         </div>
       )}
     </>
@@ -966,7 +1179,17 @@ export function TimerPresetsPanel() {
 
 // ═══════════ ブザー音源選択コンポーネント ═══════════
 
-function BuzzerSoundSelector({ soundId, duration, repeat, customPath, presetId, onSoundChange, onDurationChange, onRepeatChange, onCustomPathChange }: {
+function BuzzerSoundSelector({
+  soundId,
+  duration,
+  repeat,
+  customPath,
+  presetId,
+  onSoundChange,
+  onDurationChange,
+  onRepeatChange,
+  onCustomPathChange,
+}: {
   soundId: string;
   duration: number;
   repeat: number;
@@ -985,7 +1208,7 @@ function BuzzerSoundSelector({ soundId, duration, repeat, customPath, presetId, 
     setPlaying(true);
     if (soundId === "custom" && customPath) {
       preloadCustomBuzzer(customPath);
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 300));
     }
     await testBuzzer(soundId, duration, repeat);
     setTimeout(() => setPlaying(false), Math.max(duration * 1000 * repeat + 300 * (repeat - 1), 500));
@@ -1025,10 +1248,12 @@ function BuzzerSoundSelector({ soundId, duration, repeat, customPath, presetId, 
               onChange={(e) => onSoundChange(e.target.value)}
               className="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500"
             >
-              {SOUND_CATEGORIES.map(cat => (
+              {SOUND_CATEGORIES.map((cat) => (
                 <optgroup key={cat} label={cat}>
-                  {BUILTIN_SOUNDS.filter(s => s.category === cat).map(s => (
-                    <option key={s.id} value={s.id}>{s.label}</option>
+                  {BUILTIN_SOUNDS.filter((s) => s.category === cat).map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label}
+                    </option>
                   ))}
                 </optgroup>
               ))}
@@ -1053,8 +1278,10 @@ function BuzzerSoundSelector({ soundId, duration, repeat, customPath, presetId, 
             disabled={soundId === "custom" || soundId.endsWith("-double") || soundId.endsWith("-triple")}
             className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500 disabled:opacity-50"
           >
-            {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0].map(v => (
-              <option key={v} value={v}>{v}秒</option>
+            {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0].map((v) => (
+              <option key={v} value={v}>
+                {v}秒
+              </option>
             ))}
           </select>
         </div>
@@ -1078,10 +1305,16 @@ function BuzzerSoundSelector({ soundId, duration, repeat, customPath, presetId, 
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-300 truncate flex-1">アップロード済み</span>
               <div className="flex gap-2 shrink-0">
-                <button onClick={handlePreview} disabled={playing} className="text-xs text-blue-400 hover:text-blue-300">
+                <button
+                  onClick={handlePreview}
+                  disabled={playing}
+                  className="text-xs text-blue-400 hover:text-blue-300"
+                >
                   {playing ? "再生中..." : "試聴"}
                 </button>
-                <button onClick={handleDelete} className="text-xs text-red-400 hover:text-red-300">削除</button>
+                <button onClick={handleDelete} className="text-xs text-red-400 hover:text-red-300">
+                  削除
+                </button>
               </div>
             </div>
           ) : presetId ? (

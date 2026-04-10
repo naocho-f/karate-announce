@@ -14,8 +14,6 @@ export function isDev(): boolean {
  * ローカル: "local"
  */
 export function getAppVersion(): string {
-  const sha =
-    process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ||
-    process.env.VERCEL_GIT_COMMIT_SHA;
+  const sha = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA;
   return sha ? sha.slice(0, 7) : "local";
 }

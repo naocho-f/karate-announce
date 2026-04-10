@@ -34,22 +34,22 @@ export function checkCompatibility(
 }
 
 export const COMPAT_COLORS: Record<CompatibilityLevel, string> = {
-  ok:      "text-green-400",
-  warn:    "text-yellow-400",
-  ng:      "text-red-400",
+  ok: "text-green-400",
+  warn: "text-yellow-400",
+  ng: "text-red-400",
   unknown: "text-gray-500",
 };
 
 export const COMPAT_BG: Record<CompatibilityLevel, string> = {
-  ok:      "bg-green-900 border-green-700",
-  warn:    "bg-yellow-900 border-yellow-700",
-  ng:      "bg-red-900 border-red-700",
+  ok: "bg-green-900 border-green-700",
+  warn: "bg-yellow-900 border-yellow-700",
+  ng: "bg-red-900 border-red-700",
   unknown: "bg-gray-800 border-gray-700",
 };
 
 export const COMPAT_LABEL: Record<CompatibilityLevel, string> = {
-  ok:      "◎",
-  warn:    "△",
-  ng:      "✕",
+  ok: "◎",
+  warn: "△",
+  ng: "✕",
   unknown: "－",
 };

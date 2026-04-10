@@ -33,18 +33,43 @@ export function EventsPanel() {
   const [copying, setCopying] = useState(false);
 
   async function load() {
-    const { data: es } = await supabase.from("events").select("*").order("event_date", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false });
+    const { data: es } = await supabase
+      .from("events")
+      .select("*")
+      .order("event_date", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false });
     const { data: rs } = await supabase.from("rules").select("*").order("name");
     setEvents(es ?? []);
     setRules(rs ?? []);
     setLoading(false);
   }
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch on mount
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: es } = await supabase
+        .from("events")
+        .select("*")
+        .order("event_date", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+      const { data: rs } = await supabase.from("rules").select("*").order("name");
+      if (!cancelled) {
+        setEvents(es ?? []);
+        setRules(rs ?? []);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function toggleRule(id: string) {
-    setSelectedRuleIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+    setSelectedRuleIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   }
 
   async function create() {
@@ -53,9 +78,19 @@ export function EventsPanel() {
     const res = await fetch("/api/admin/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), event_date: eventDate || null, court_count: courtCount, court_names: courtNames.slice(0, courtCount), rule_ids: [...selectedRuleIds] }),
+      body: JSON.stringify({
+        name: name.trim(),
+        event_date: eventDate || null,
+        court_count: courtCount,
+        court_names: courtNames.slice(0, courtCount),
+        rule_ids: [...selectedRuleIds],
+      }),
     });
-    if (!res.ok) { showToast("試合の作成に失敗しました"); setCreating(false); return; }
+    if (!res.ok) {
+      showToast("試合の作成に失敗しました");
+      setCreating(false);
+      return;
+    }
     const { id } = await res.json();
     router.push(`/admin/events/${id}`);
   }
@@ -65,7 +100,10 @@ export function EventsPanel() {
     setRemovingId(id);
     const res = await fetch(`/api/admin/events/${id}`, { method: "DELETE" });
     setRemovingId(null);
-    if (!res.ok) { showToast("削除に失敗しました"); return; }
+    if (!res.ok) {
+      showToast("削除に失敗しました");
+      return;
+    }
     load();
   }
 
@@ -77,7 +115,10 @@ export function EventsPanel() {
       body: JSON.stringify({ is_active: active }),
     });
     setActivatingId(null);
-    if (!res.ok) { showToast("状態の変更に失敗しました"); return; }
+    if (!res.ok) {
+      showToast("状態の変更に失敗しました");
+      return;
+    }
     load();
   }
 
@@ -90,7 +131,10 @@ export function EventsPanel() {
       body: JSON.stringify({ status: "finished", is_active: false }),
     });
     setFinishingId(null);
-    if (!res.ok) { showToast("状態の変更に失敗しました"); return; }
+    if (!res.ok) {
+      showToast("状態の変更に失敗しました");
+      return;
+    }
     load();
   }
 
@@ -102,7 +146,10 @@ export function EventsPanel() {
       body: JSON.stringify({ status: "preparing" }),
     });
     setReopeningId(null);
-    if (!res.ok) { showToast("状態の変更に失敗しました"); return; }
+    if (!res.ok) {
+      showToast("状態の変更に失敗しました");
+      return;
+    }
     load();
   }
 
@@ -118,7 +165,12 @@ export function EventsPanel() {
   async function executeCopy() {
     if (!copySourceId || !copyName.trim()) return;
     if (copyEntries) {
-      if (!confirm("参加者をコピーします。前回大会の参加者情報がそのまま引き継がれます。\n\n実際の参加者と異なる場合があるため、コピー後に必ず確認・修正してください。\n\n続行しますか？")) return;
+      if (
+        !confirm(
+          "参加者をコピーします。前回大会の参加者情報がそのまま引き継がれます。\n\n実際の参加者と異なる場合があるため、コピー後に必ず確認・修正してください。\n\n続行しますか？",
+        )
+      )
+        return;
     }
     setCopying(true);
     const res = await fetch("/api/admin/events", {
@@ -149,7 +201,10 @@ export function EventsPanel() {
   const pastEvents = events.filter((e) => isPast(e));
 
   const renderEventCard = (e: Event, _isPastSection: boolean) => (
-    <li key={e.id} className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active ? "ring-2 ring-green-500" : ""}`}>
+    <li
+      key={e.id}
+      className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active ? "ring-2 ring-green-500" : ""}`}
+    >
       <div className="flex items-center gap-2 min-w-0">
         {e.is_active && (
           <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold shrink-0">● 進行中</span>
@@ -158,9 +213,7 @@ export function EventsPanel() {
           <span className="text-xs bg-gray-600 text-gray-300 px-2 py-0.5 rounded-full shrink-0">完了</span>
         )}
         <span className="font-medium truncate">{e.name}</span>
-        {e.event_date && (
-          <span className="text-xs text-gray-400 shrink-0">{e.event_date.replace(/-/g, "/")}</span>
-        )}
+        {e.event_date && <span className="text-xs text-gray-400 shrink-0">{e.event_date.replace(/-/g, "/")}</span>}
         <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded shrink-0">{e.court_count}コート</span>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
@@ -212,7 +265,11 @@ export function EventsPanel() {
         <button onClick={() => openCopyModal(e.id)} className="text-xs text-gray-400 hover:text-blue-400 transition">
           複製
         </button>
-        <button onClick={() => remove(e.id)} disabled={removingId === e.id} className="text-xs text-red-500 hover:text-red-400 ml-auto transition disabled:opacity-50">
+        <button
+          onClick={() => remove(e.id)}
+          disabled={removingId === e.id}
+          className="text-xs text-red-500 hover:text-red-400 ml-auto transition disabled:opacity-50"
+        >
           {removingId === e.id ? "削除中..." : "削除"}
         </button>
       </div>
@@ -254,9 +311,13 @@ export function EventsPanel() {
               <p className="text-xs text-gray-400">コート数</p>
               <div className="flex gap-2">
                 {[1, 2, 3, 4].map((n) => (
-                  <button key={n} onClick={() => setCourtCount(n)}
+                  <button
+                    key={n}
+                    onClick={() => setCourtCount(n)}
                     className={`w-12 h-12 rounded-xl text-lg font-bold transition ${courtCount === n ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
-                  >{n}</button>
+                  >
+                    {n}
+                  </button>
                 ))}
               </div>
               <div className="grid grid-cols-2 gap-2 pt-1">
@@ -264,7 +325,13 @@ export function EventsPanel() {
                   <input
                     key={i}
                     value={courtNames[i] ?? ""}
-                    onChange={(e) => setCourtNames((prev) => { const next = [...prev]; next[i] = e.target.value; return next; })}
+                    onChange={(e) =>
+                      setCourtNames((prev) => {
+                        const next = [...prev];
+                        next[i] = e.target.value;
+                        return next;
+                      })
+                    }
                     placeholder={`コート${i + 1}の名前（任意）`}
                     className="bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
                   />
@@ -283,15 +350,19 @@ export function EventsPanel() {
                         onClick={() => toggleRule(r.id)}
                         className={`text-xs px-3 py-1.5 rounded-lg transition ${checked ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}
                       >
-                        {checked ? "✓ " : ""}{r.name}
+                        {checked ? "✓ " : ""}
+                        {r.name}
                       </button>
                     );
                   })}
                 </div>
               </div>
             )}
-            <button onClick={create} disabled={creating || !name.trim()}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2 rounded-lg text-sm font-medium transition">
+            <button
+              onClick={create}
+              disabled={creating || !name.trim()}
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2 rounded-lg text-sm font-medium transition"
+            >
               {creating ? "作成中..." : "試合を作成"}
             </button>
           </div>
@@ -318,11 +389,7 @@ export function EventsPanel() {
                 <span className={`transition-transform ${showPast ? "rotate-90" : ""}`}>▶</span>
                 過去・完了の試合（{pastEvents.length}件）
               </button>
-              {showPast && (
-                <ul className="space-y-2 mt-2">
-                  {pastEvents.map((e) => renderEventCard(e, true))}
-                </ul>
-              )}
+              {showPast && <ul className="space-y-2 mt-2">{pastEvents.map((e) => renderEventCard(e, true))}</ul>}
             </div>
           )}
         </>
@@ -330,12 +397,16 @@ export function EventsPanel() {
 
       {/* 複製モーダル */}
       {showCopyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowCopyModal(false)}>
-          <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-md mx-4 space-y-4" onClick={(ev) => ev.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => setShowCopyModal(false)}
+        >
+          <div
+            className="bg-gray-800 rounded-2xl p-6 w-full max-w-md mx-4 space-y-4"
+            onClick={(ev) => ev.stopPropagation()}
+          >
             <h3 className="text-lg font-bold">大会を複製</h3>
-            <p className="text-xs text-gray-400">
-              コピー元: {events.find((e) => e.id === copySourceId)?.name}
-            </p>
+            <p className="text-xs text-gray-400">コピー元: {events.find((e) => e.id === copySourceId)?.name}</p>
             <p className="text-xs text-gray-500">
               大会名、コート設定、体重差/身長差上限、ルール、フォーム設定がコピーされます。
             </p>

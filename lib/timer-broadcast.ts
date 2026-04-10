@@ -42,7 +42,10 @@ export function createTimerChannel(courtId: string) {
     /** 排他制御: 既存タブの存在確認 ping */
     ping(): Promise<boolean> {
       return new Promise((resolve) => {
-        if (!channel) { resolve(false); return; }
+        if (!channel) {
+          resolve(false);
+          return;
+        }
         const timeout = setTimeout(() => resolve(false), 500);
         const handler = (e: MessageEvent) => {
           if (e.data?.type === "pong") {
@@ -81,12 +84,16 @@ export function createTimerChannel(courtId: string) {
 
     /** 操作権の引き継ぎ通知を送信 */
     sendTakeover() {
-      try { channel?.postMessage({ type: "takeover" }); } catch {}
+      try {
+        channel?.postMessage({ type: "takeover" });
+      } catch {}
     },
 
     /** チャンネルを閉じる */
     close() {
-      try { channel?.close(); } catch {}
+      try {
+        channel?.close();
+      } catch {}
       channel = null;
     },
   };

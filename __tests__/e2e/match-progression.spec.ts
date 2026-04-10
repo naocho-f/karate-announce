@@ -59,15 +59,16 @@ async function createTournament(
         family_name_reading: `シンコウテスト${i + 1}`,
         given_name_reading: "センシュ",
       },
-      e2: i + 1 < entryIds.length
-        ? {
-            id: entryIds[i + 1],
-            family_name: `進行テスト${i + 2}`,
-            given_name: "選手",
-            family_name_reading: `シンコウテスト${i + 2}`,
-            given_name_reading: "センシュ",
-          }
-        : null,
+      e2:
+        i + 1 < entryIds.length
+          ? {
+              id: entryIds[i + 1],
+              family_name: `進行テスト${i + 2}`,
+              given_name: "選手",
+              family_name_reading: `シンコウテスト${i + 2}`,
+              given_name_reading: "センシュ",
+            }
+          : null,
       matchLabel: null,
       ruleName: null,
     });
@@ -88,7 +89,6 @@ async function createTournament(
   // 試合IDを取得するためにマッチを取得（Supabase直接クエリの代わりにコート画面で確認）
   return { tournamentId, matchIds: [] };
 }
-
 
 // ── テスト ──
 
@@ -121,7 +121,7 @@ test.describe("試合進行", () => {
 
       // 勝者を設定（選手枠をクリック）
       // 最初の選手名を含む要素をクリック
-      const fighterEl = page.locator('text=進行テスト1 選手').first();
+      const fighterEl = page.locator("text=進行テスト1 選手").first();
       if (await fighterEl.isVisible({ timeout: 5_000 }).catch(() => false)) {
         await fighterEl.click();
 
@@ -175,7 +175,7 @@ test.describe("試合進行", () => {
       await expect(page.locator("text=進行テスト").first()).toBeVisible({ timeout: 5_000 });
 
       // 勝者設定
-      const fighterEl = page.locator('text=進行テスト1 選手').first();
+      const fighterEl = page.locator("text=進行テスト1 選手").first();
       if (await fighterEl.isVisible({ timeout: 5_000 }).catch(() => false)) {
         await fighterEl.click();
 

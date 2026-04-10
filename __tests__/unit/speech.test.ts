@@ -9,10 +9,18 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const store = new Map<string, string>();
 const localStorageMock: Storage = {
   getItem: (key: string) => store.get(key) ?? null,
-  setItem: (key: string, value: string) => { store.set(key, value); },
-  removeItem: (key: string) => { store.delete(key); },
-  clear: () => { store.clear(); },
-  get length() { return store.size; },
+  setItem: (key: string, value: string) => {
+    store.set(key, value);
+  },
+  removeItem: (key: string) => {
+    store.delete(key);
+  },
+  clear: () => {
+    store.clear();
+  },
+  get length() {
+    return store.size;
+  },
   key: (index: number) => [...store.keys()][index] ?? null,
 };
 vi.stubGlobal("localStorage", localStorageMock);
@@ -40,7 +48,7 @@ const {
 
 describe("renderTemplate", () => {
   it("変数を置換する", () => {
-    expect(renderTemplate("{{名前}}選手", { "名前": "太郎" })).toBe("太郎選手");
+    expect(renderTemplate("{{名前}}選手", { 名前: "太郎" })).toBe("太郎選手");
   });
 
   it("複数の変数を置換する", () => {
@@ -163,7 +171,7 @@ describe("定数エクスポート", () => {
 
   it("SAMPLE_TEXT がスペック通りの値である", () => {
     expect(SAMPLE_TEXT).toBe(
-      "Aコート、男子一般部、準決勝。極真会所属、山田太郎選手。対。正道会館所属、鈴木一郎選手。これより試合を開始します。"
+      "Aコート、男子一般部、準決勝。極真会所属、山田太郎選手。対。正道会館所属、鈴木一郎選手。これより試合を開始します。",
     );
   });
 });
@@ -207,11 +215,7 @@ describe("splitAffiliationParts", () => {
 
 describe("buildMatchStartText", () => {
   it("テンプレートに選手情報を埋め込んだテキストを返す", () => {
-    const text = buildMatchStartText(
-      "山田太郎", "極真会　本部道場",
-      "鈴木一郎", "正道会館",
-      "準決勝",
-    );
+    const text = buildMatchStartText("山田太郎", "極真会　本部道場", "鈴木一郎", "正道会館", "準決勝");
     expect(text).toContain("じゅんけっしょう");
     expect(text).toContain("山田太郎");
     expect(text).toContain("鈴木一郎");
@@ -221,11 +225,15 @@ describe("buildMatchStartText", () => {
 
   it("読み仮名がある場合は読み仮名を使う", () => {
     const text = buildMatchStartText(
-      "山田太郎", "極真会",
-      "鈴木一郎", "正道会館",
+      "山田太郎",
+      "極真会",
+      "鈴木一郎",
+      "正道会館",
       "決勝",
-      "やまだたろう", "きょくしんかい",
-      "すずきいちろう", "せいどうかいかん",
+      "やまだたろう",
+      "きょくしんかい",
+      "すずきいちろう",
+      "せいどうかいかん",
     );
     expect(text).toContain("やまだたろう");
     expect(text).toContain("きょくしんかい");
@@ -237,10 +245,15 @@ describe("buildMatchStartText", () => {
 
   it("matchLabel がある場合はそちらを使う", () => {
     const text = buildMatchStartText(
-      "山田太郎", "極真会",
-      "鈴木一郎", "正道会館",
+      "山田太郎",
+      "極真会",
+      "鈴木一郎",
+      "正道会館",
       "準決勝",
-      null, null, null, null,
+      null,
+      null,
+      null,
+      null,
       "第3試合",
     );
     expect(text).toContain("だいさんしあい");
@@ -253,11 +266,18 @@ describe("buildMatchStartText", () => {
       winner: "{{勝者名前}}の勝ち",
     };
     const text = buildMatchStartText(
-      "山田太郎", "",
-      "鈴木一郎", "",
+      "山田太郎",
+      "",
+      "鈴木一郎",
+      "",
       "決勝",
-      null, null, null, null,
-      null, null, templates,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      templates,
     );
     expect(text).toBe("山田太郎 対 鈴木一郎");
   });
@@ -270,10 +290,10 @@ describe("announceWinner テンプレート展開", () => {
     const aff = buildAffiliationForTts("極真会　本部道場");
     const parts = splitAffiliationParts("極真会　本部道場");
     const text = renderTemplate(winner, {
-      "勝者名前": name,
+      勝者名前: name,
       "勝者流派＋道場": aff,
-      "勝者流派": parts.school,
-      "勝者道場": parts.dojo,
+      勝者流派: parts.school,
+      勝者道場: parts.dojo,
     });
     expect(text).toContain("やまだたろう");
     expect(text).toContain("極真会、本部道場");
@@ -282,10 +302,10 @@ describe("announceWinner テンプレート展開", () => {
   it("カスタムテンプレートで変数が展開される", () => {
     const template = "{{勝者名前}}選手の勝ちです。所属、{{勝者流派}}。";
     const text = renderTemplate(template, {
-      "勝者名前": "鈴木一郎",
+      勝者名前: "鈴木一郎",
       "勝者流派＋道場": "柔空会、本部道場",
-      "勝者流派": "柔空会",
-      "勝者道場": "本部道場",
+      勝者流派: "柔空会",
+      勝者道場: "本部道場",
     });
     expect(text).toBe("鈴木一郎選手の勝ちです。所属、柔空会。");
   });
@@ -302,9 +322,12 @@ describe("prefetchTts", () => {
   it("テキストがある場合は /api/tts に POST する", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response());
     await prefetchTts("テストテキスト");
-    expect(fetchSpy).toHaveBeenCalledWith("/api/tts", expect.objectContaining({
-      method: "POST",
-    }));
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/tts",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
     fetchSpy.mockRestore();
   });
 
@@ -323,9 +346,9 @@ describe("prefetchTts", () => {
  */
 function mockSpeakDeps() {
   const audioBlob = new Blob(["fake-audio"], { type: "audio/mpeg" });
-  const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-    new Response(audioBlob, { status: 200, headers: { "Content-Type": "audio/mpeg" } }),
-  );
+  const fetchSpy = vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValue(new Response(audioBlob, { status: 200, headers: { "Content-Type": "audio/mpeg" } }));
 
   // Audio モック: play() 呼び出し時に即座に onended を発火
   const audioInstances: { onended: (() => void) | null; onerror: (() => void) | null }[] = [];
@@ -368,16 +391,15 @@ describe("announceMatchStart", () => {
     const deps = mockSpeakDeps();
     store.clear();
 
-    await announceMatchStart(
-      "山田太郎", "極真会　本部道場",
-      "鈴木一郎", "正道会館",
-      "決勝",
-    );
+    await announceMatchStart("山田太郎", "極真会　本部道場", "鈴木一郎", "正道会館", "決勝");
 
     // fetch が /api/tts に POST で呼ばれたことを検証
-    expect(deps.fetchSpy).toHaveBeenCalledWith("/api/tts", expect.objectContaining({
-      method: "POST",
-    }));
+    expect(deps.fetchSpy).toHaveBeenCalledWith(
+      "/api/tts",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
     // fetch の body にテンプレート展開済みテキストが含まれる
     const callBody = JSON.parse((deps.fetchSpy.mock.calls[0][1] as RequestInit).body as string);
     expect(callBody.text).toContain("けっしょう");
@@ -393,11 +415,15 @@ describe("announceMatchStart", () => {
     store.clear();
 
     await announceMatchStart(
-      "山田太郎", "極真会　本部道場",
-      "鈴木一郎", "正道会館",
+      "山田太郎",
+      "極真会　本部道場",
+      "鈴木一郎",
+      "正道会館",
       "決勝",
-      "やまだたろう", "きょくしんかい、ほんぶどうじょう",
-      "すずきいちろう", "せいどうかいかん",
+      "やまだたろう",
+      "きょくしんかい、ほんぶどうじょう",
+      "すずきいちろう",
+      "せいどうかいかん",
     );
 
     const callBody = JSON.parse((deps.fetchSpy.mock.calls[0][1] as RequestInit).body as string);
@@ -415,9 +441,12 @@ describe("announceWinner", () => {
 
     await announceWinner("山田太郎", "極真会　本部道場");
 
-    expect(deps.fetchSpy).toHaveBeenCalledWith("/api/tts", expect.objectContaining({
-      method: "POST",
-    }));
+    expect(deps.fetchSpy).toHaveBeenCalledWith(
+      "/api/tts",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
     const callBody = JSON.parse((deps.fetchSpy.mock.calls[0][1] as RequestInit).body as string);
     expect(callBody.text).toContain("山田太郎");
     expect(callBody.text).toContain("勝ち");
@@ -428,10 +457,7 @@ describe("announceWinner", () => {
     const deps = mockSpeakDeps();
     store.clear();
 
-    await announceWinner(
-      "山田太郎", "極真会　本部道場",
-      "やまだたろう", "きょくしんかい、ほんぶどうじょう",
-    );
+    await announceWinner("山田太郎", "極真会　本部道場", "やまだたろう", "きょくしんかい、ほんぶどうじょう");
 
     const callBody = JSON.parse((deps.fetchSpy.mock.calls[0][1] as RequestInit).body as string);
     expect(callBody.text).toContain("やまだたろう");
@@ -455,9 +481,7 @@ describe("announceCustom", () => {
 
 describe("speak（内部関数の間接テスト）", () => {
   it("TTS API エラー時もエラーを投げない", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(null, { status: 500 }),
-    );
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 500 }));
     vi.stubGlobal("URL", { ...globalThis.URL, createObjectURL: vi.fn(), revokeObjectURL: vi.fn() });
     store.clear();
 

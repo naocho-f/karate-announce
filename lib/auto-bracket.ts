@@ -11,8 +11,8 @@ import { gradeToNumber, findAgeCategory } from "./grade-options";
 export type AutoGroup = {
   id: string;
   name: string;
-  ruleId: string | null;       // 対象の競技ルールID
-  courtNum: number | null;     // 割り当てコート（null=自動）
+  ruleId: string | null; // 対象の競技ルールID
+  courtNum: number | null; // 割り当てコート（null=自動）
   entries: Entry[];
   pairs: PairEntry[];
   maxWeightDiff: number | null;
@@ -36,11 +36,7 @@ function getAge(entry: Entry, referenceDate?: Date): number | null {
 // gradeToNumber は lib/grade-options.ts からインポート
 
 /** エントリーが振り分けルールの条件に合致するか判定 */
-export function matchesRule(
-  entry: Entry,
-  rule: BracketRule,
-  entryRuleIds: Record<string, Set<string>>,
-): boolean {
+export function matchesRule(entry: Entry, rule: BracketRule, entryRuleIds: Record<string, Set<string>>): boolean {
   // 競技ルール条件
   if (rule.rule_id) {
     const rids = entryRuleIds[entry.id];
@@ -167,9 +163,7 @@ export function groupEntriesByRules(
   const groups: AutoGroup[] = [];
 
   for (const rule of sortedRules) {
-    const matching = entries.filter(
-      (e) => !assignedIds.has(e.id) && matchesRule(e, rule, entryRuleIds),
-    );
+    const matching = entries.filter((e) => !assignedIds.has(e.id) && matchesRule(e, rule, entryRuleIds));
 
     if (matching.length === 0) continue;
 
@@ -233,10 +227,7 @@ export function groupEntriesByRules(
  * - courtNum が null のグループは試合数が最小のコートに割り当て
  * - コート間の試合数差が全体の30%以上の場合、null グループを調整
  */
-export function assignCourts(
-  groups: AutoGroup[],
-  courtCount: number,
-): AutoGroup[] {
+export function assignCourts(groups: AutoGroup[], courtCount: number): AutoGroup[] {
   if (courtCount <= 0) return groups;
 
   // 各コートの試合数をカウント

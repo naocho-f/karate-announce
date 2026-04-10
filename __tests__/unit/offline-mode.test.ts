@@ -9,20 +9,23 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const store = new Map<string, string>();
 const localStorageMock: Storage = {
   getItem: (key: string) => store.get(key) ?? null,
-  setItem: (key: string, value: string) => { store.set(key, value); },
-  removeItem: (key: string) => { store.delete(key); },
-  clear: () => { store.clear(); },
-  get length() { return store.size; },
+  setItem: (key: string, value: string) => {
+    store.set(key, value);
+  },
+  removeItem: (key: string) => {
+    store.delete(key);
+  },
+  clear: () => {
+    store.clear();
+  },
+  get length() {
+    return store.size;
+  },
   key: (index: number) => [...store.keys()][index] ?? null,
 };
 vi.stubGlobal("localStorage", localStorageMock);
 
-const {
-  getMode,
-  setMode,
-  subscribe,
-  STORAGE_KEY,
-} = await import("@/lib/offline-mode");
+const { getMode, setMode, subscribe, STORAGE_KEY } = await import("@/lib/offline-mode");
 
 beforeEach(() => {
   store.clear();
@@ -67,11 +70,7 @@ describe("offline-mode", () => {
   });
 });
 
-const {
-  shouldShowRecoveryPrompt,
-  RECOVERY_COOLDOWN_MS,
-  testConnection,
-} = await import("@/lib/offline-mode");
+const { shouldShowRecoveryPrompt, RECOVERY_COOLDOWN_MS, testConnection } = await import("@/lib/offline-mode");
 
 describe("shouldShowRecoveryPrompt", () => {
   it("一度も拒否していない場合は true を返す", () => {
