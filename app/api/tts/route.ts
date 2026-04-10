@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 
 const ALLOWED_VOICES = ["alloy", "echo", "fable", "nova", "onyx", "shimmer"];

@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest} from "next/server";
+import { NextResponse } from "next/server";
 import { submitEntry } from "@/lib/services/entry-service";
 
 // --- IP-based rate limiter ---

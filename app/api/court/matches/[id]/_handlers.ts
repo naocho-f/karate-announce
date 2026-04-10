@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** 楽観ロックチェック: matchUpdatedAt が指定されている場合、DB の updated_at と比較 */
 async function checkOptimisticLock(

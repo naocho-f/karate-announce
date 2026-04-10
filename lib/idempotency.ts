@@ -6,7 +6,8 @@
  * Vercel のサーバーレス環境ではコールドスタートでメモリがリセットされるため、
  * DB を権威データとし、インメモリは同一インスタンス内の高速チェック用。
  */
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 interface CachedResponse {

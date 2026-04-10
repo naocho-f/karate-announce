@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 const SALT = "karate-announce-v1";
 const COOKIE_NAME = "admin_auth";

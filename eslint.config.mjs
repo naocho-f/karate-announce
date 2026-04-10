@@ -21,6 +21,10 @@ const eslintConfig = [
       "@typescript-eslint/no-non-null-assertion": "warn",
       "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/no-misused-promises": "error",
+      "@typescript-eslint/consistent-type-imports": [
+        "warn",
+        { prefer: "type-imports", disallowTypeAnnotations: false },
+      ],
     },
   },
   // React / Next.js ルール調整
