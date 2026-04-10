@@ -75,6 +75,9 @@ jobs:
 
           echo "All static checks passed."
 
+      - name: ESLint（警告も0件必須）
+        run: npx eslint . --max-warnings 0
+
       - name: TypeScript 型チェック
         run: npx tsc --noEmit
 

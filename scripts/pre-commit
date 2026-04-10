@@ -180,6 +180,9 @@ fi
 # ── Phase 3: 動的チェック（ブロック） ─────────────────────────
 # build は CI と Vercel が担当するため pre-commit では実行しない（高速化）
 
+echo "Running eslint..."
+npx eslint . --max-warnings 0 || { echo ""; echo "ERROR: ESLint エラーまたは警告があります（警告も0件必須）"; exit 1; }
+
 echo "Running tsc --noEmit..."
 npx tsc --noEmit || { echo ""; echo "ERROR: TypeScript 型チェック失敗"; exit 1; }
 
