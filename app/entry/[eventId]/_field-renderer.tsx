@@ -312,476 +312,242 @@ export function FieldRenderer({
 // FieldItem — 個別フィールド
 // ──────────────────────────────────────────────
 
-function FieldItem({
-  config,
-  def,
-  visibleFields,
-  formConfig,
-  values,
-  multiValues,
-  otherValues,
-  fieldErrors,
-  emailConfirm,
-  emailMismatch,
-  ageConflict,
-  event,
-  eventRules,
-  ageCategories,
-  dojoMaster,
-  inp,
-  onSetValue,
-  onSetMultiValue,
-  onSetOtherValues,
-  onSetEmailConfirm,
-  renderFieldNotices,
-  handleOrgSelect,
-}: {
-  config: FormFieldConfig;
-  def: FieldPoolItem;
-  visibleFields: VisibleField[];
+type FieldItemProps = {
+  config: FormFieldConfig; def: FieldPoolItem; visibleFields: VisibleField[];
   formConfig: { fields?: FormFieldConfig[] } | null;
-  values: Record<string, string>;
-  multiValues: Record<string, Set<string>>;
-  otherValues: Record<string, string>;
-  fieldErrors: Record<string, string>;
-  emailConfirm: string;
-  emailMismatch: boolean;
-  ageConflict: string | null;
-  event: Event | null;
-  eventRules: { id: string; name: string }[];
-  ageCategories: AgeCategory[] | undefined;
-  dojoMaster: { name: string; name_reading: string | null }[];
-  inp: string;
-  onSetValue: (key: string, val: string) => void;
-  onSetMultiValue: (key: string, val: Set<string>) => void;
-  onSetOtherValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  onSetEmailConfirm: (val: string) => void;
-  renderFieldNotices: (fieldKey: string) => React.ReactNode;
-  handleOrgSelect: (name: string) => void;
-}) {
+  values: Record<string, string>; multiValues: Record<string, Set<string>>; otherValues: Record<string, string>;
+  fieldErrors: Record<string, string>; emailConfirm: string; emailMismatch: boolean; ageConflict: string | null;
+  event: Event | null; eventRules: { id: string; name: string }[]; ageCategories: AgeCategory[] | undefined;
+  dojoMaster: { name: string; name_reading: string | null }[]; inp: string;
+  onSetValue: (key: string, val: string) => void; onSetMultiValue: (key: string, val: Set<string>) => void;
+  onSetOtherValues: React.Dispatch<React.SetStateAction<Record<string, string>>>; onSetEmailConfirm: (val: string) => void;
+  renderFieldNotices: (fieldKey: string) => React.ReactNode; handleOrgSelect: (name: string) => void;
+};
+
+function FieldItem(props: FieldItemProps) {
+  const { config, def, visibleFields, formConfig, values, fieldErrors, ageConflict, event, eventRules, ageCategories, inp, onSetValue, renderFieldNotices } = props;
   const key = def.key;
+
+  if (key === "full_name") return <FullNameField {...props} />;
+  if (key === "kana") return null;
+  if (key === "organization") return <OrganizationField {...props} />;
+  if (key === "organization_kana") return null;
+  if (key === "branch") return <BranchField {...props} />;
+  if (key === "branch_kana") return null;
+  if (key === "birthday") return <BirthdayField config={config} def={def} formConfig={formConfig} values={values} fieldErrors={fieldErrors} ageConflict={ageConflict} event={event} ageCategories={ageCategories} inp={inp} onSetValue={onSetValue} renderFieldNotices={renderFieldNotices} />;
+  if (isKanaField(key)) { const parent = def.kanaParent; if (parent && visibleFields.some((f) => f.def.key === parent)) return null; }
+
   const choices = getChoices(config, def, eventRules, ageCategories);
+  return <GenericField {...props} choices={choices} />;
+}
+
+// ── FullName ──
+function FullNameField({ config, def, visibleFields, values, fieldErrors, inp, onSetValue, renderFieldNotices }: FieldItemProps) {
+  const key = def.key;
   const isReq = config.required;
   const label = config.custom_label || def.label;
-
-  // full_name: 姓名 + 読み仮名をグループ表示
-  if (key === "full_name") {
-    const kanaConfig = visibleFields.find((f) => f.def.key === "kana");
-    const kanaRequired = kanaConfig?.config.required ?? false;
-    const showKana = !!kanaConfig;
-    return (
-      <div id={`field-${key}`} className="space-y-2">
-        <p className="text-xs text-gray-300 font-medium">
-          {label}
-          {isReq && <span className="text-red-400 ml-1">*</span>}
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <label htmlFor="field-family_name" className="text-xs text-gray-400">
-              姓{isReq && <span className="text-red-400 ml-1">*</span>}
-            </label>
-            <input
-              id="field-family_name"
-              value={values["family_name"] ?? ""}
-              onChange={(e) => onSetValue("family_name", e.target.value)}
-              placeholder="山田"
-              className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`}
-              required={isReq}
-            />
-          </div>
-          <div className="space-y-1">
-            <label htmlFor="field-given_name" className="text-xs text-gray-400">
-              名{isReq && <span className="text-red-400 ml-1">*</span>}
-            </label>
-            <input
-              id="field-given_name"
-              value={values["given_name"] ?? ""}
-              onChange={(e) => onSetValue("given_name", e.target.value)}
-              placeholder="太郎"
-              className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`}
-              required={isReq}
-            />
-          </div>
-          {showKana && (
-            <>
-              <div className="space-y-1">
-                <label htmlFor="field-family_name_reading" className="text-xs text-gray-400">
-                  姓（読み）{kanaRequired && <span className="text-red-400 ml-1">*</span>}
-                </label>
-                <input
-                  id="field-family_name_reading"
-                  value={values["family_name_reading"] ?? ""}
-                  onChange={(e) => onSetValue("family_name_reading", e.target.value)}
-                  placeholder="やまだ"
-                  className={`${inp} ${fieldErrors["kana"] ? "border-red-500" : ""}`}
-                  required={kanaRequired}
-                />
-              </div>
-              <div className="space-y-1">
-                <label htmlFor="field-given_name_reading" className="text-xs text-gray-400">
-                  名（読み）{kanaRequired && <span className="text-red-400 ml-1">*</span>}
-                </label>
-                <input
-                  id="field-given_name_reading"
-                  value={values["given_name_reading"] ?? ""}
-                  onChange={(e) => onSetValue("given_name_reading", e.target.value)}
-                  placeholder="たろう"
-                  className={`${inp} ${fieldErrors["kana"] ? "border-red-500" : ""}`}
-                  required={kanaRequired}
-                />
-              </div>
-            </>
-          )}
-        </div>
-        {renderFieldNotices(key)}
-        {showKana && renderFieldNotices("kana")}
-        {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
-        {fieldErrors["kana"] && <p className="text-xs text-red-400">{fieldErrors["kana"]}</p>}
+  const kanaConfig = visibleFields.find((f) => f.def.key === "kana");
+  const kanaRequired = kanaConfig?.config.required ?? false;
+  const showKana = !!kanaConfig;
+  const errCls = fieldErrors[key] ? "border-red-500" : "";
+  const kanaErrCls = fieldErrors["kana"] ? "border-red-500" : "";
+  return (
+    <div id={`field-${key}`} className="space-y-2">
+      <FieldLabel label={label} required={isReq} />
+      <div className="grid grid-cols-2 gap-2">
+        <NameInput id="field-family_name" label="姓" required={isReq} value={values["family_name"] ?? ""} placeholder="山田" inp={inp} errCls={errCls} onChange={(v) => onSetValue("family_name", v)} />
+        <NameInput id="field-given_name" label="名" required={isReq} value={values["given_name"] ?? ""} placeholder="太郎" inp={inp} errCls={errCls} onChange={(v) => onSetValue("given_name", v)} />
+        {showKana && <>
+          <NameInput id="field-family_name_reading" label="姓（読み）" required={kanaRequired} value={values["family_name_reading"] ?? ""} placeholder="やまだ" inp={inp} errCls={kanaErrCls} onChange={(v) => onSetValue("family_name_reading", v)} />
+          <NameInput id="field-given_name_reading" label="名（読み）" required={kanaRequired} value={values["given_name_reading"] ?? ""} placeholder="たろう" inp={inp} errCls={kanaErrCls} onChange={(v) => onSetValue("given_name_reading", v)} />
+        </>}
       </div>
-    );
-  }
+      {renderFieldNotices(key)}
+      {showKana && renderFieldNotices("kana")}
+      {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
+      {fieldErrors["kana"] && <p className="text-xs text-red-400">{fieldErrors["kana"]}</p>}
+    </div>
+  );
+}
 
-  // kana フィールドは full_name 内で処理するのでスキップ
-  if (key === "kana") return null;
+function NameInput({ id, label, required, value, placeholder, inp, errCls, onChange }: { id: string; label: string; required: boolean; value: string; placeholder: string; inp: string; errCls: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-1">
+      <label htmlFor={id} className="text-xs text-gray-400">{label}{required && <span className="text-red-400 ml-1">*</span>}</label>
+      <input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={`${inp} ${errCls}`} required={required} />
+    </div>
+  );
+}
 
-  // organization: マスタ選択 + 自由入力 + 読み仮名
-  if (key === "organization") {
-    const kanaConfig = visibleFields.find((f) => f.def.key === "organization_kana");
-    const kanaRequired = isReq && (kanaConfig?.config.required ?? false);
-    const showKana = !!kanaConfig;
-    const orgValue = values["organization"] ?? "";
+function FieldLabel({ label, required, unit }: { label: string; required: boolean; unit?: string }) {
+  return (
+    <p className="text-xs text-gray-300 font-medium">{label}{required && <span className="text-red-400 ml-1">*</span>}{unit && <span className="text-gray-500 ml-1">（{unit}）</span>}</p>
+  );
+}
 
-    return (
-      <div id={`field-${key}`} className="space-y-2">
-        <p className="text-xs text-gray-300 font-medium">
-          {label}
-          {isReq && <span className="text-red-400 ml-1">*</span>}
-        </p>
-        <ComboInput
-          value={orgValue}
-          onChange={(v) => onSetValue("organization", v)}
-          onSelect={handleOrgSelect}
-          suggestions={dojoMaster.map((d) => d.name)}
-          placeholder={def.placeholder}
-          className={inp}
-          required={isReq}
-        />
-        {showKana && (
-          <div className="space-y-1">
-            <label htmlFor="field-organization_kana" className="text-xs text-gray-400">
-              {kanaConfig?.config.custom_label || (getFieldDef("organization_kana")?.label ?? "よみがな")}
-              {kanaRequired && <span className="text-red-400 ml-1">*</span>}
-            </label>
-            <input
-              id="field-organization_kana"
-              value={values["organization_kana"] ?? ""}
-              onChange={(e) => onSetValue("organization_kana", e.target.value)}
-              placeholder={getFieldDef("organization_kana")?.placeholder}
-              className={inp}
-              required={kanaRequired}
-            />
-          </div>
-        )}
-        {renderFieldNotices(key)}
-        {showKana && renderFieldNotices("organization_kana")}
-        {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
-      </div>
-    );
-  }
-  // organization_kana: organization 内で処理
-  if (key === "organization_kana") return null;
+function KanaSubField({ id, kanaKey, kanaConfig, required, values, inp, onSetValue }: { id: string; kanaKey: string; kanaConfig: VisibleField | undefined; required: boolean; values: Record<string, string>; inp: string; onSetValue: (k: string, v: string) => void }) {
+  if (!kanaConfig) return null;
+  const kLabel = kanaConfig.config.custom_label || (getFieldDef(kanaKey)?.label ?? "よみがな");
+  return (
+    <div className="space-y-1">
+      <label htmlFor={id} className="text-xs text-gray-400">{kLabel}{required && <span className="text-red-400 ml-1">*</span>}</label>
+      <input id={id} value={values[kanaKey] ?? ""} onChange={(e) => onSetValue(kanaKey, e.target.value)} placeholder={getFieldDef(kanaKey)?.placeholder} className={inp} required={required} />
+    </div>
+  );
+}
 
-  // branch + branch_kana
-  if (key === "branch") {
-    const kanaConfig = visibleFields.find((f) => f.def.key === "branch_kana");
-    const kanaRequired = isReq && (kanaConfig?.config.required ?? false);
-    const showKana = !!kanaConfig;
-    return (
-      <div id={`field-${key}`} className="space-y-2">
-        <p className="text-xs text-gray-300 font-medium">
-          {label}
-          {isReq && <span className="text-red-400 ml-1">*</span>}
-        </p>
-        <input
-          value={values[key] ?? ""}
-          onChange={(e) => onSetValue(key, e.target.value)}
-          placeholder={def.placeholder}
-          className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`}
-          required={isReq}
-        />
-        {showKana && (
-          <div className="space-y-1">
-            <label htmlFor="field-branch_kana" className="text-xs text-gray-400">
-              {kanaConfig?.config.custom_label || (getFieldDef("branch_kana")?.label ?? "よみがな")}
-              {kanaRequired && <span className="text-red-400 ml-1">*</span>}
-            </label>
-            <input
-              id="field-branch_kana"
-              value={values["branch_kana"] ?? ""}
-              onChange={(e) => onSetValue("branch_kana", e.target.value)}
-              placeholder={getFieldDef("branch_kana")?.placeholder}
-              className={inp}
-              required={kanaRequired}
-            />
-          </div>
-        )}
-        {renderFieldNotices(key)}
-        {showKana && renderFieldNotices("branch_kana")}
-        {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
-      </div>
-    );
-  }
-  if (key === "branch_kana") return null;
+// ── Organization ──
+function OrganizationField({ config, def, visibleFields, values, fieldErrors, inp, onSetValue, renderFieldNotices, handleOrgSelect, dojoMaster }: FieldItemProps) {
+  const key = def.key;
+  const isReq = config.required;
+  const kanaConfig = visibleFields.find((f) => f.def.key === "organization_kana");
+  const kanaRequired = isReq && (kanaConfig?.config.required ?? false);
+  return (
+    <div id={`field-${key}`} className="space-y-2">
+      <FieldLabel label={config.custom_label || def.label} required={isReq} />
+      <ComboInput value={values["organization"] ?? ""} onChange={(v) => onSetValue("organization", v)} onSelect={handleOrgSelect} suggestions={dojoMaster.map((d) => d.name)} placeholder={def.placeholder} className={inp} required={isReq} />
+      <KanaSubField id="field-organization_kana" kanaKey="organization_kana" kanaConfig={kanaConfig ? { config: kanaConfig.config, def: kanaConfig.def } : undefined} required={kanaRequired} values={values} inp={inp} onSetValue={onSetValue} />
+      {renderFieldNotices(key)}
+      {kanaConfig && renderFieldNotices("organization_kana")}
+      {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
+    </div>
+  );
+}
 
-  if (key === "birthday") {
-    return (
-      <BirthdayField
-        config={config}
-        def={def}
-        formConfig={formConfig}
-        values={values}
-        fieldErrors={fieldErrors}
-        ageConflict={ageConflict}
-        event={event}
-        ageCategories={ageCategories}
-        inp={inp}
-        onSetValue={onSetValue}
-        renderFieldNotices={renderFieldNotices}
-      />
-    );
-  }
+// ── Branch ──
+function BranchField({ config, def, visibleFields, values, fieldErrors, inp, onSetValue, renderFieldNotices }: FieldItemProps) {
+  const key = def.key;
+  const isReq = config.required;
+  const kanaConfig = visibleFields.find((f) => f.def.key === "branch_kana");
+  const kanaRequired = isReq && (kanaConfig?.config.required ?? false);
+  return (
+    <div id={`field-${key}`} className="space-y-2">
+      <FieldLabel label={config.custom_label || def.label} required={isReq} />
+      <input value={values[key] ?? ""} onChange={(e) => onSetValue(key, e.target.value)} placeholder={def.placeholder} className={`${inp} ${fieldErrors[key] ? "border-red-500" : ""}`} required={isReq} />
+      <KanaSubField id="field-branch_kana" kanaKey="branch_kana" kanaConfig={kanaConfig ? { config: kanaConfig.config, def: kanaConfig.def } : undefined} required={kanaRequired} values={values} inp={inp} onSetValue={onSetValue} />
+      {renderFieldNotices(key)}
+      {kanaConfig && renderFieldNotices("branch_kana")}
+      {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
+    </div>
+  );
+}
 
-  // 一般的な読み仮名フィールド（親と一緒に処理される場合はスキップ）
-  if (isKanaField(key)) {
-    const parent = def.kanaParent;
-    if (parent && visibleFields.some((f) => f.def.key === parent)) return null;
-  }
-
-  // ── 汎用レンダリング ──
+// ── Generic Field ──
+function GenericField(props: FieldItemProps & { choices: { label: string; value: string }[] }) {
+  const { config, def, fieldErrors, ageConflict, renderFieldNotices, choices } = props;
+  const key = def.key;
+  const isReq = config.required;
+  const label = config.custom_label || def.label;
   const hasError = !!fieldErrors[key];
   return (
     <div id={`field-${key}`} className="space-y-2">
-      <p className="text-xs text-gray-300 font-medium">
-        {label}
-        {isReq && <span className="text-red-400 ml-1">*</span>}
-        {def.unit && <span className="text-gray-500 ml-1">（{def.unit}）</span>}
-      </p>
-
-      {def.type === "text" && (
-        <input
-          value={values[key] ?? ""}
-          onChange={(e) => onSetValue(key, e.target.value)}
-          placeholder={def.placeholder}
-          className={`${inp} ${hasError ? "border-red-500" : ""}`}
-          required={isReq}
-          maxLength={def.maxLength}
-        />
-      )}
-
-      {def.type === "textarea" && (
-        <textarea
-          value={values[key] ?? ""}
-          onChange={(e) => onSetValue(key, e.target.value)}
-          placeholder={def.placeholder}
-          rows={3}
-          className={`${inp} resize-none ${hasError ? "border-red-500" : ""}`}
-          required={isReq}
-          maxLength={def.maxLength}
-        />
-      )}
-
-      {def.type === "number" && (
-        <input
-          type="number"
-          value={values[key] ?? ""}
-          onChange={(e) => onSetValue(key, e.target.value)}
-          placeholder={def.placeholder}
-          step={def.step}
-          className={`${inp} ${hasError || (key === "age" && ageConflict) ? "border-red-500" : ""}`}
-          required={isReq}
-        />
-      )}
-
-      {def.type === "tel" && (
-        <input
-          type="tel"
-          value={values[key] ?? ""}
-          onChange={(e) => onSetValue(key, e.target.value)}
-          placeholder={def.placeholder}
-          className={`${inp} ${hasError ? "border-red-500" : ""}`}
-          required={isReq}
-        />
-      )}
-
-      {def.type === "email" && (
-        <>
-          <input
-            type="email"
-            value={values[key] ?? ""}
-            onChange={(e) => onSetValue(key, e.target.value)}
-            placeholder={def.placeholder || "example@mail.com"}
-            className={`${inp} ${hasError ? "border-red-500" : ""}`}
-            required={isReq}
-          />
-          {def.hasConfirmInput && (
-            <div className="space-y-1">
-              <label htmlFor="field-email-confirm" className="text-xs text-gray-400">
-                メールアドレス（確認）
-              </label>
-              <input
-                id="field-email-confirm"
-                type="email"
-                value={emailConfirm}
-                onChange={(e) => onSetEmailConfirm(e.target.value)}
-                placeholder="もう一度入力してください"
-                className={`${inp} ${emailMismatch || hasError ? "border-red-500" : ""}`}
-                required={isReq}
-              />
-              {emailMismatch && <p className="text-xs text-red-400">メールアドレスが一致しません</p>}
-            </div>
-          )}
-        </>
-      )}
-
-      {def.type === "date" && (
-        <input
-          type="date"
-          value={values[key] ?? ""}
-          onChange={(e) => onSetValue(key, e.target.value)}
-          className={`${inp} ${hasError ? "border-red-500" : ""}`}
-          required={isReq}
-        />
-      )}
-
-      {def.type === "select" && !def.useMaster && (
-        <select
-          value={values[key] ?? ""}
-          onChange={(e) => onSetValue(key, e.target.value)}
-          className={`${inp} ${hasError ? "border-red-500" : ""}`}
-          required={isReq}
-        >
-          <option value="">選択してください</option>
-          {choices.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
-            </option>
-          ))}
-          {config.has_other_option && <option value="__other__">その他</option>}
-        </select>
-      )}
-
-      {def.type === "select" && !def.useMaster && values[key] === "__other__" && config.has_other_option && (
-        <input
-          value={otherValues[key] ?? ""}
-          onChange={(e) => onSetOtherValues((prev) => ({ ...prev, [key]: e.target.value }))}
-          placeholder="その他の内容を入力"
-          className={inp}
-          required={isReq}
-        />
-      )}
-
-      {def.type === "radio" && (
-        <div className="space-y-1">
-          {choices.map((c) => (
-            <label key={c.value} className="flex items-center gap-2 cursor-pointer py-1">
-              <input
-                type="radio"
-                name={key}
-                value={c.value}
-                checked={values[key] === c.value}
-                onChange={() => onSetValue(key, c.value)}
-                className="accent-blue-500"
-              />
-              <span className="text-sm text-gray-200">{c.label}</span>
-            </label>
-          ))}
-          {config.has_other_option && (
-            <label className="flex items-center gap-2 cursor-pointer py-1">
-              <input
-                type="radio"
-                name={key}
-                value="__other__"
-                checked={values[key] === "__other__"}
-                onChange={() => onSetValue(key, "__other__")}
-                className="accent-blue-500"
-              />
-              <span className="text-sm text-gray-200">その他</span>
-            </label>
-          )}
-          {values[key] === "__other__" && config.has_other_option && (
-            <input
-              value={otherValues[key] ?? ""}
-              onChange={(e) => onSetOtherValues((prev) => ({ ...prev, [key]: e.target.value }))}
-              placeholder="その他の内容を入力"
-              className={`${inp} ml-6`}
-              required={isReq}
-            />
-          )}
-        </div>
-      )}
-
-      {def.type === "checkbox" && isSingleSelect(config) ? (
-        /* 単一選択モード（radio として表示） */
-        <div className="space-y-1">
-          {choices.map((c) => (
-            <label key={c.value} className="flex items-center gap-2 cursor-pointer py-1">
-              <input
-                type="radio"
-                name={key}
-                value={c.value}
-                checked={values[key] === c.value}
-                onChange={() => onSetValue(key, c.value)}
-                className="accent-blue-500"
-              />
-              <span className="text-sm text-gray-200">{c.label}</span>
-            </label>
-          ))}
-        </div>
-      ) : def.type === "checkbox" ? (
-        <div className="space-y-1">
-          {choices.map((c) => {
-            const checked = multiValues[key]?.has(c.value) ?? false;
-            return (
-              <label key={c.value} className="flex items-start gap-2 cursor-pointer py-1">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => {
-                    onSetMultiValue(
-                      key,
-                      (() => {
-                        const next = new Set(multiValues[key] ?? []);
-                        checked ? next.delete(c.value) : next.add(c.value);
-                        return next;
-                      })(),
-                    );
-                  }}
-                  className="mt-0.5 accent-blue-500"
-                />
-                <span className="text-sm text-gray-200">{c.label}</span>
-              </label>
-            );
-          })}
-          {config.has_other_option && (
-            <div className="flex items-start gap-2 py-1">
-              <span className="text-sm text-gray-200">その他：</span>
-              <input
-                value={otherValues[key] ?? ""}
-                onChange={(e) => onSetOtherValues((prev) => ({ ...prev, [key]: e.target.value }))}
-                placeholder="自由入力"
-                className={`${inp} flex-1`}
-              />
-            </div>
-          )}
-        </div>
-      ) : null}
-
-      {/* 年齢矛盾メッセージ */}
+      <FieldLabel label={label} required={isReq} unit={def.unit} />
+      <GenericInput {...props} hasError={hasError} choices={choices} />
       {key === "age" && ageConflict && <p className="text-xs text-red-400">{ageConflict}</p>}
-
       {renderFieldNotices(key)}
-
       {hasError && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
+    </div>
+  );
+}
+
+function SimpleInput({ type, fieldKey, def, values, ageConflict, inp, hasError, isReq, onSetValue }: { type: string; fieldKey: string; def: FieldPoolItem; values: Record<string, string>; ageConflict: string | null; inp: string; hasError: boolean; isReq: boolean; onSetValue: (k: string, v: string) => void }) {
+  const errCls = hasError ? "border-red-500" : "";
+  const val = values[fieldKey] ?? "";
+  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onSetValue(fieldKey, e.target.value);
+  if (type === "textarea") return <textarea value={val} onChange={onChange} placeholder={def.placeholder} rows={3} className={`${inp} resize-none ${errCls}`} required={isReq} maxLength={def.maxLength} />;
+  if (type === "number") return <input type="number" value={val} onChange={onChange} placeholder={def.placeholder} step={def.step} className={`${inp} ${hasError || (fieldKey === "age" && ageConflict) ? "border-red-500" : ""}`} required={isReq} />;
+  if (type === "date") return <input type="date" value={val} onChange={onChange} className={`${inp} ${errCls}`} required={isReq} />;
+  const inputType = type === "tel" ? "tel" : "text";
+  return <input type={inputType} value={val} onChange={onChange} placeholder={def.placeholder} className={`${inp} ${errCls}`} required={isReq} maxLength={def.maxLength} />;
+}
+
+function GenericInput(props: FieldItemProps & { hasError: boolean; choices: { label: string; value: string }[] }) {
+  const { config, def, values, multiValues, otherValues, emailConfirm, emailMismatch, ageConflict, inp, onSetValue, onSetMultiValue, onSetOtherValues, onSetEmailConfirm, hasError, choices } = props;
+  const key = def.key;
+  const isReq = config.required;
+
+  const simpleTypes = ["text", "textarea", "number", "tel", "date"];
+  if (simpleTypes.includes(def.type)) return <SimpleInput type={def.type} fieldKey={key} def={def} values={values} ageConflict={ageConflict} inp={inp} hasError={hasError} isReq={isReq} onSetValue={onSetValue} />;
+  if (def.type === "email") return <EmailInput fieldKey={key} def={def} values={values} emailConfirm={emailConfirm} emailMismatch={emailMismatch} inp={inp} hasError={hasError} isReq={isReq} onSetValue={onSetValue} onSetEmailConfirm={onSetEmailConfirm} />;
+  if (def.type === "select" && !def.useMaster) return <SelectInput fieldKey={key} config={config} values={values} otherValues={otherValues} choices={choices} inp={inp} hasError={hasError} isReq={isReq} onSetValue={onSetValue} onSetOtherValues={onSetOtherValues} />;
+  if (def.type === "radio") return <RadioInput fieldKey={key} config={config} values={values} otherValues={otherValues} choices={choices} inp={inp} isReq={isReq} onSetValue={onSetValue} onSetOtherValues={onSetOtherValues} />;
+  if (def.type === "checkbox") return <CheckboxInput fieldKey={key} config={config} values={values} multiValues={multiValues} otherValues={otherValues} choices={choices} inp={inp} onSetValue={onSetValue} onSetMultiValue={onSetMultiValue} onSetOtherValues={onSetOtherValues} />;
+  return null;
+}
+
+function EmailInput({ fieldKey, def, values, emailConfirm, emailMismatch, inp, hasError, isReq, onSetValue, onSetEmailConfirm }: { fieldKey: string; def: FieldPoolItem; values: Record<string, string>; emailConfirm: string; emailMismatch: boolean; inp: string; hasError: boolean; isReq: boolean; onSetValue: (k: string, v: string) => void; onSetEmailConfirm: (v: string) => void }) {
+  return (
+    <>
+      <input type="email" value={values[fieldKey] ?? ""} onChange={(e) => onSetValue(fieldKey, e.target.value)} placeholder={def.placeholder || "example@mail.com"} className={`${inp} ${hasError ? "border-red-500" : ""}`} required={isReq} />
+      {def.hasConfirmInput && (
+        <div className="space-y-1">
+          <label htmlFor="field-email-confirm" className="text-xs text-gray-400">メールアドレス（確認）</label>
+          <input id="field-email-confirm" type="email" value={emailConfirm} onChange={(e) => onSetEmailConfirm(e.target.value)} placeholder="もう一度入力してください" className={`${inp} ${emailMismatch || hasError ? "border-red-500" : ""}`} required={isReq} />
+          {emailMismatch && <p className="text-xs text-red-400">メールアドレスが一致しません</p>}
+        </div>
+      )}
+    </>
+  );
+}
+
+function SelectInput({ fieldKey, config, values, otherValues, choices, inp, hasError, isReq, onSetValue, onSetOtherValues }: { fieldKey: string; config: FormFieldConfig; values: Record<string, string>; otherValues: Record<string, string>; choices: { label: string; value: string }[]; inp: string; hasError: boolean; isReq: boolean; onSetValue: (k: string, v: string) => void; onSetOtherValues: React.Dispatch<React.SetStateAction<Record<string, string>>> }) {
+  return (
+    <>
+      <select value={values[fieldKey] ?? ""} onChange={(e) => onSetValue(fieldKey, e.target.value)} className={`${inp} ${hasError ? "border-red-500" : ""}`} required={isReq}>
+        <option value="">選択してください</option>
+        {choices.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+        {config.has_other_option && <option value="__other__">その他</option>}
+      </select>
+      {values[fieldKey] === "__other__" && config.has_other_option && (
+        <input value={otherValues[fieldKey] ?? ""} onChange={(e) => onSetOtherValues((prev) => ({ ...prev, [fieldKey]: e.target.value }))} placeholder="その他の内容を入力" className={inp} required={isReq} />
+      )}
+    </>
+  );
+}
+
+function RadioInput({ fieldKey, config, values, otherValues, choices, inp, isReq, onSetValue, onSetOtherValues }: { fieldKey: string; config: FormFieldConfig; values: Record<string, string>; otherValues: Record<string, string>; choices: { label: string; value: string }[]; inp: string; isReq: boolean; onSetValue: (k: string, v: string) => void; onSetOtherValues: React.Dispatch<React.SetStateAction<Record<string, string>>> }) {
+  return (
+    <div className="space-y-1">
+      {choices.map((c) => (
+        <label key={c.value} className="flex items-center gap-2 cursor-pointer py-1"><input type="radio" name={fieldKey} value={c.value} checked={values[fieldKey] === c.value} onChange={() => onSetValue(fieldKey, c.value)} className="accent-blue-500" /><span className="text-sm text-gray-200">{c.label}</span></label>
+      ))}
+      {config.has_other_option && (
+        <label className="flex items-center gap-2 cursor-pointer py-1"><input type="radio" name={fieldKey} value="__other__" checked={values[fieldKey] === "__other__"} onChange={() => onSetValue(fieldKey, "__other__")} className="accent-blue-500" /><span className="text-sm text-gray-200">その他</span></label>
+      )}
+      {values[fieldKey] === "__other__" && config.has_other_option && (
+        <input value={otherValues[fieldKey] ?? ""} onChange={(e) => onSetOtherValues((prev) => ({ ...prev, [fieldKey]: e.target.value }))} placeholder="その他の内容を入力" className={`${inp} ml-6`} required={isReq} />
+      )}
+    </div>
+  );
+}
+
+function CheckboxInput({ fieldKey, config, values, multiValues, otherValues, choices, inp, onSetValue, onSetMultiValue, onSetOtherValues }: { fieldKey: string; config: FormFieldConfig; values: Record<string, string>; multiValues: Record<string, Set<string>>; otherValues: Record<string, string>; choices: { label: string; value: string }[]; inp: string; onSetValue: (k: string, v: string) => void; onSetMultiValue: (k: string, v: Set<string>) => void; onSetOtherValues: React.Dispatch<React.SetStateAction<Record<string, string>>> }) {
+  if (isSingleSelect(config)) {
+    return (
+      <div className="space-y-1">
+        {choices.map((c) => (
+          <label key={c.value} className="flex items-center gap-2 cursor-pointer py-1"><input type="radio" name={fieldKey} value={c.value} checked={values[fieldKey] === c.value} onChange={() => onSetValue(fieldKey, c.value)} className="accent-blue-500" /><span className="text-sm text-gray-200">{c.label}</span></label>
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      {choices.map((c) => {
+        const checked = multiValues[fieldKey]?.has(c.value) ?? false;
+        return (
+          <label key={c.value} className="flex items-start gap-2 cursor-pointer py-1">
+            <input type="checkbox" checked={checked} onChange={() => { const next = new Set(multiValues[fieldKey] ?? []); checked ? next.delete(c.value) : next.add(c.value); onSetMultiValue(fieldKey, next); }} className="mt-0.5 accent-blue-500" />
+            <span className="text-sm text-gray-200">{c.label}</span>
+          </label>
+        );
+      })}
+      {config.has_other_option && (
+        <div className="flex items-start gap-2 py-1">
+          <span className="text-sm text-gray-200">その他：</span>
+          <input value={otherValues[fieldKey] ?? ""} onChange={(e) => onSetOtherValues((prev) => ({ ...prev, [fieldKey]: e.target.value }))} placeholder="自由入力" className={`${inp} flex-1`} />
+        </div>
+      )}
     </div>
   );
 }

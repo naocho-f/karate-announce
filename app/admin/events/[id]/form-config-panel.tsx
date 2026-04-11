@@ -81,531 +81,444 @@ function InlineLabelEditor({
   );
 }
 
-// ══════════════════════════════════════════════════════════════
-// メインパネル
-// ══════════════════════════════════════════════════════════════
+// ── カスタムフィールドDef/Config生成ヘルパー ──
+function buildCustomFieldDef(configId: string, fieldKey: string, label: string, fieldType: string, choices: { label: string; value: string }[] | null, sortOrder: number): CustomFieldDef {
+  return { id: `temp_def_${crypto.randomUUID()}`, form_config_id: configId, field_key: fieldKey, label, field_type: fieldType as CustomFieldDef["field_type"], choices, sort_order: sortOrder, created_at: "" };
+}
+function buildFieldConfig(configId: string, fieldKey: string, sortOrder: number, opts: { visible?: boolean; required?: boolean; hasOther?: boolean; choices?: { label: string; value: string }[] | null; label?: string } = {}): FormFieldConfig {
+  return { id: `temp_ffc_${crypto.randomUUID()}`, form_config_id: configId, field_key: fieldKey, visible: opts.visible ?? true, required: opts.required ?? false, sort_order: sortOrder, has_other_option: opts.hasOther ?? false, custom_choices: opts.choices ?? null, custom_label: opts.label ?? null };
+}
 
-export function FormConfigPanel({ eventId }: Props) {
+// ── 注意書き/画像管理フック ──
+function useNoticesAndImages(
+  setDirty: (v: boolean) => void,
+) {
+  const [notices, setNotices] = useState<FormNotice[]>([]);
+  const [busyNotices, setBusyNotices] = useState<Set<string>>(new Set());
+  const [deletedNoticeIds, setDeletedNoticeIds] = useState<string[]>([]);
+  const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
+
+  const resetNotices = useCallback((newNotices: FormNotice[]) => {
+    setNotices(newNotices);
+    setDeletedNoticeIds([]);
+    setDeletedImageIds([]);
+  }, []);
+  function addNotice(configId: string, anchorType: "form_start" | "field" | "form_end", anchorFieldKey?: string) {
+    const notice: FormNotice = {
+      id: `temp_${crypto.randomUUID()}`, form_config_id: configId, anchor_type: anchorType,
+      anchor_field_key: anchorFieldKey ?? null,
+      sort_order: notices.filter((n) => n.anchor_type === anchorType && n.anchor_field_key === anchorFieldKey).length,
+      text_content: null, scrollable_text: null, link_url: null, link_label: null,
+      require_consent: false, consent_label: null, created_at: "", images: [],
+    };
+    setNotices((prev) => [...prev, notice]);
+    setDirty(true);
+  }
+  function updateNotice(id: string, patch: Partial<FormNotice>) {
+    setNotices((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
+    setDirty(true);
+  }
+  function deleteNotice(id: string) {
+    setNotices((prev) => prev.filter((n) => n.id !== id));
+    if (!id.startsWith("temp_")) setDeletedNoticeIds((prev) => [...prev, id]);
+    setDirty(true);
+  }
+  function removeFieldNotices(fieldKey: string) {
+    setNotices((prev) => prev.filter((n) => !(n.anchor_type === "field" && n.anchor_field_key === fieldKey)));
+  }
+  async function uploadImage(noticeId: string, file: File) {
+    if (noticeId.startsWith("temp_")) { showToast("先に保存してから画像を追加してください"); return; }
+    setBusyNotices((s) => new Set(s).add(noticeId));
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("notice_id", noticeId);
+    const res = await fetch("/api/admin/form-config/image-upload", { method: "POST", credentials: "include", body: fd });
+    setBusyNotices((s) => { const n = new Set(s); n.delete(noticeId); return n; });
+    if (!res.ok) { showToast("画像アップロードに失敗しました"); return; }
+    const img = await res.json();
+    setNotices((prev) => prev.map((n) => (n.id === noticeId ? { ...n, images: [...(n.images ?? []), img] } : n)));
+    setDirty(true);
+  }
+  function deleteImage(imageId: string, noticeId: string) {
+    setNotices((prev) => prev.map((n) => (n.id === noticeId ? { ...n, images: (n.images ?? []).filter((img) => img.id !== imageId) } : n)));
+    setDeletedImageIds((prev) => [...prev, imageId]);
+    setDirty(true);
+  }
+  return { notices, busyNotices, deletedNoticeIds, deletedImageIds, resetNotices, addNotice, updateNotice, deleteNotice, removeFieldNotices, uploadImage, deleteImage };
+}
+
+// ── メインフック ──
+function useFormConfig(eventId: string) {
   const [config, setConfig] = useState<FormConfigState | null>(null);
   const [fields, setFields] = useState<FormFieldConfig[]>([]);
-  const [notices, setNotices] = useState<FormNotice[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [pastEvents, setPastEvents] = useState<{ id: string; name: string }[]>([]);
   const [showCopyModal, setShowCopyModal] = useState(false);
-  const [busyNotices, setBusyNotices] = useState<Set<string>>(new Set());
   const [rules, setRules] = useState<{ id: string; name: string }[]>([]);
   const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDef[]>([]);
   const [copying, setCopying] = useState(false);
-  const [deletingCustomKey, _setDeletingCustomKey] = useState<string | null>(null);
-  const [duplicatingCustomKey, _setDuplicatingCustomKey] = useState<string | null>(null);
-  const [deletedNoticeIds, setDeletedNoticeIds] = useState<string[]>([]);
+  const [deletingCustomKey] = useState<string | null>(null);
+  const [duplicatingCustomKey] = useState<string | null>(null);
   const [deletedCustomFieldKeys, setDeletedCustomFieldKeys] = useState<string[]>([]);
-  const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
-
-  const addBusy = (id: string) => setBusyNotices((s) => new Set(s).add(id));
-  const removeBusy = (id: string) =>
-    setBusyNotices((s) => {
-      const n = new Set(s);
-      n.delete(id);
-      return n;
-    });
-
-  const load = useCallback(
-    async (showLoading = true) => {
-      if (showLoading) setLoading(true);
-      const res = await fetch(`/api/admin/form-config?event_id=${eventId}`, { credentials: "include" });
-      const data = await res.json();
-      setConfig(data.config);
-      setFields(data.fields);
-      setNotices(data.notices);
-      setCustomFieldDefs(data.customFieldDefs ?? []);
-      setDeletedNoticeIds([]);
-      setDeletedCustomFieldKeys([]);
-      setDeletedImageIds([]);
-      if (showLoading) setLoading(false);
-      setDirty(false);
-    },
-    [eventId],
-  );
-
+  const ni = useNoticesAndImages(setDirty);
+  const { resetNotices } = ni;
+  const load = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    const res = await fetch(`/api/admin/form-config?event_id=${eventId}`, { credentials: "include" });
+    const data = await res.json();
+    setConfig(data.config); setFields(data.fields); setCustomFieldDefs(data.customFieldDefs ?? []);
+    resetNotices(data.notices); setDeletedCustomFieldKeys([]);
+    if (showLoading) setLoading(false);
+    setDirty(false);
+  }, [eventId, resetNotices]);
+  useEffect(() => { void load(); }, [load]);
   useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    supabase
-      .from("events")
-      .select("id, name")
-      .neq("id", eventId)
-      .order("created_at", { ascending: false })
+    supabase.from("events").select("id, name").neq("id", eventId).order("created_at", { ascending: false })
       .then(({ data }) => setPastEvents((data ?? []).map((e) => ({ id: e.id, name: e.name }))));
-    supabase
-      .from("rules")
-      .select("id, name")
-      .order("name")
+    supabase.from("rules").select("id, name").order("name")
       .then(({ data }) => setRules((data ?? []).map((r) => ({ id: r.id, name: r.name }))));
   }, [eventId]);
-
-  function showSaveMessage(msg: string) {
-    setSaveMessage(msg);
-    setTimeout(() => setSaveMessage(null), 2000);
-  }
-
-  async function save() {
-    if (!config) return;
-    if (!dirty) {
-      showSaveMessage("変更はありません");
-      return;
-    }
+  const showSaveMsg = (msg: string) => { setSaveMessage(msg); setTimeout(() => setSaveMessage(null), 2000); };
+  const save = async () => {
+    if (!config || !dirty) { if (!dirty) showSaveMsg("変更はありません"); return; }
     setSaving(true);
     try {
-      // notices から images/created_at を除外
-      const noticeUpserts = notices.map(({ images: _images, created_at: _created_at, ...rest }) => rest);
-      // 新規カスタムフィールドを特定
-      const newCustomFields = customFieldDefs
-        .filter((d) => d.id.startsWith("temp_"))
-        .map((d) => ({ field_key: d.field_key, label: d.label, field_type: d.field_type, choices: d.choices }));
-
-      const res = await fetch("/api/admin/form-config", {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          config_id: config.id,
-          fields,
-          notices: {
-            upsert: noticeUpserts,
-            delete_ids: deletedNoticeIds,
-          },
-          custom_fields: {
-            create: newCustomFields,
-            delete_keys: deletedCustomFieldKeys,
-          },
-          deleted_image_ids: deletedImageIds,
-        }),
-      });
-      if (!res.ok) {
-        showToast("保存に失敗しました");
-        return;
-      }
-      await load(false);
-      showSaveMessage("保存しました");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function copyFromEvent(sourceEventId: string) {
+      const upserts = ni.notices.map(({ images: _i, created_at: _c, ...rest }) => rest);
+      const newCF = customFieldDefs.filter((d) => d.id.startsWith("temp_")).map((d) => ({ field_key: d.field_key, label: d.label, field_type: d.field_type, choices: d.choices }));
+      const r = await fetch("/api/admin/form-config", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config_id: config.id, fields, notices: { upsert: upserts, delete_ids: ni.deletedNoticeIds }, custom_fields: { create: newCF, delete_keys: deletedCustomFieldKeys }, deleted_image_ids: ni.deletedImageIds }) });
+      if (!r.ok) { showToast("保存に失敗しました"); return; }
+      await load(false); showSaveMsg("保存しました");
+    } finally { setSaving(false); }
+  };
+  const copyFromEvent = async (sourceEventId: string) => {
     if (!config) return;
     if (dirty && !confirm("未保存の変更があります。コピーすると失われます。続行しますか？")) return;
     setCopying(true);
-    const res = await fetch("/api/admin/form-config/copy", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ source_event_id: sourceEventId, target_config_id: config.id }),
-    });
-    if (!res.ok) {
-      showToast("フォーム設定のコピーに失敗しました");
-      setCopying(false);
-      return;
-    }
-    setShowCopyModal(false);
-    await load();
-    setCopying(false);
-  }
-
-  function updateField(id: string, patch: Partial<FormFieldConfig>) {
-    setFields((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
-    setDirty(true);
-  }
-
-  function moveField(fieldKey: string, dir: -1 | 1) {
-    setFields((prev) => {
-      const sorted = [...prev].sort((a, b) => a.sort_order - b.sort_order);
-      const visibleMain = sorted.filter((f) => f.visible && !isKanaField(f.field_key) && f.field_key !== "age");
-      const idx = visibleMain.findIndex((f) => f.field_key === fieldKey);
-      const newIdx = idx + dir;
-      if (newIdx < 0 || newIdx >= visibleMain.length) return prev;
-
-      const a = visibleMain[idx];
-      const b = visibleMain[newIdx];
-      const tmpSort = a.sort_order;
-
-      const result = sorted.map((f) => {
-        if (f.id === a.id) return { ...f, sort_order: b.sort_order };
-        if (f.id === b.id) return { ...f, sort_order: tmpSort };
-        return f;
-      });
-
-      // 読み仮名は親に追従
-      const kanaDef = FIELD_POOL.find((p) => p.kanaParent === fieldKey);
-      if (kanaDef) {
-        const kana = result.find((f) => f.field_key === kanaDef.key);
-        const parent = result.find((f) => f.field_key === fieldKey);
-        if (kana && parent) {
-          return result
-            .map((f) => (f.id === kana.id ? { ...f, sort_order: parent.sort_order + 0.5 } : f))
-            .sort((x, y) => x.sort_order - y.sort_order)
-            .map((f, i) => ({ ...f, sort_order: i }));
-        }
-      }
-
-      // birthday と age を連動
-      if (fieldKey === "birthday") {
-        const age = result.find((f) => f.field_key === "age");
-        const bday = result.find((f) => f.field_key === "birthday");
-        if (age && bday) {
-          return result
-            .map((f) => (f.id === age.id ? { ...f, sort_order: bday.sort_order + 0.5 } : f))
-            .sort((x, y) => x.sort_order - y.sort_order)
-            .map((f, i) => ({ ...f, sort_order: i }));
-        }
-      }
-
-      return result.sort((x, y) => x.sort_order - y.sort_order).map((f, i) => ({ ...f, sort_order: i }));
-    });
-    setDirty(true);
-  }
-
-  function toggleVisibility(fieldKey: string) {
+    const r = await fetch("/api/admin/form-config/copy", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source_event_id: sourceEventId, target_config_id: config.id }) });
+    if (!r.ok) { showToast("フォーム設定のコピーに失敗しました"); setCopying(false); return; }
+    setShowCopyModal(false); await load(); setCopying(false);
+  };
+  const updateField = (id: string, patch: Partial<FormFieldConfig>) => { setFields((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f))); setDirty(true); };
+  const moveField = (fieldKey: string, dir: -1 | 1) => { setFields((prev) => reorderFields(prev, fieldKey, dir)); setDirty(true); };
+  const toggleVisibility = (fieldKey: string) => {
     const field = fields.find((f) => f.field_key === fieldKey);
     if (!field) return;
-    const newVisible = !field.visible;
-    updateField(field.id, { visible: newVisible });
-    // 読み仮名も連動
-    const kanaDef = FIELD_POOL.find((p) => p.kanaParent === fieldKey);
-    if (kanaDef) {
-      const kana = fields.find((f) => f.field_key === kanaDef.key);
-      if (kana) updateField(kana.id, { visible: newVisible });
-    }
-    // birthday と age を連動
-    if (fieldKey === "birthday") {
-      const age = fields.find((f) => f.field_key === "age");
-      if (age) updateField(age.id, { visible: newVisible });
-    }
-  }
-
-  // 注意書き操作
-  function addNotice(anchorType: "form_start" | "field" | "form_end", anchorFieldKey?: string) {
+    const v = !field.visible;
+    updateField(field.id, { visible: v });
+    const kd = FIELD_POOL.find((p) => p.kanaParent === fieldKey);
+    if (kd) { const k = fields.find((f) => f.field_key === kd.key); if (k) updateField(k.id, { visible: v }); }
+    if (fieldKey === "birthday") { const a = fields.find((f) => f.field_key === "age"); if (a) updateField(a.id, { visible: v }); }
+  };
+  const addNotice = (anchorType: "form_start" | "field" | "form_end", k?: string) => { if (config) ni.addNotice(config.id, anchorType, k); };
+  const addCustomField = (label: string, ft: string, ch: { label: string; value: string }[] | null) => {
     if (!config) return;
-    const notice = {
-      id: `temp_${crypto.randomUUID()}`,
-      form_config_id: config.id,
-      anchor_type: anchorType,
-      anchor_field_key: anchorFieldKey ?? null,
-      sort_order: notices.filter((n) => n.anchor_type === anchorType && n.anchor_field_key === anchorFieldKey).length,
-      text_content: null,
-      scrollable_text: null,
-      link_url: null,
-      link_label: null,
-      require_consent: false,
-      consent_label: null,
-      created_at: "",
-      images: [],
-    };
-    setNotices((prev) => [...prev, notice]);
-    setDirty(true);
-  }
-
-  function updateNotice(id: string, patch: Partial<FormNotice>) {
-    setNotices((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
-    setDirty(true);
-  }
-
-  function deleteNotice(id: string) {
-    setNotices((prev) => prev.filter((n) => n.id !== id));
-    if (!id.startsWith("temp_")) {
-      setDeletedNoticeIds((prev) => [...prev, id]);
-    }
-    setDirty(true);
-  }
-
-  // ── カスタムフィールド操作 ──
-  function addCustomField(label: string, fieldType: string, choices: { label: string; value: string }[] | null) {
+    const fk = `custom_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
+    const no = fields.length > 0 ? Math.max(...fields.map((f) => f.sort_order)) + 1 : 0;
+    setCustomFieldDefs((p) => [...p, buildCustomFieldDef(config.id, fk, label, ft, ch, no)]);
+    setFields((p) => [...p, buildFieldConfig(config.id, fk, no, { choices: ch, label })]); setDirty(true);
+  };
+  const deleteCustomField = (fieldKey: string) => {
+    const d = customFieldDefs.find((x) => x.field_key === fieldKey);
+    if (d && !d.id.startsWith("temp_")) setDeletedCustomFieldKeys((p) => [...p, fieldKey]);
+    setCustomFieldDefs((p) => p.filter((x) => x.field_key !== fieldKey));
+    setFields((p) => p.filter((x) => x.field_key !== fieldKey));
+    ni.removeFieldNotices(fieldKey); setDirty(true);
+  };
+  const duplicateCustomField = (fieldKey: string) => {
     if (!config) return;
-    const fieldKey = `custom_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
-    const nextOrder = fields.length > 0 ? Math.max(...fields.map((f) => f.sort_order)) + 1 : 0;
-    const def: CustomFieldDef = {
-      id: `temp_def_${crypto.randomUUID()}`,
-      form_config_id: config.id,
-      field_key: fieldKey,
-      label,
-      field_type: fieldType as CustomFieldDef["field_type"],
-      choices,
-      sort_order: nextOrder,
-      created_at: "",
-    };
-    const fieldConfig: FormFieldConfig = {
-      id: `temp_ffc_${crypto.randomUUID()}`,
-      form_config_id: config.id,
-      field_key: fieldKey,
-      visible: true,
-      required: false,
-      sort_order: nextOrder,
-      has_other_option: false,
-      custom_choices: choices,
-      custom_label: label,
-    };
-    setCustomFieldDefs((prev) => [...prev, def]);
-    setFields((prev) => [...prev, fieldConfig]);
-    setDirty(true);
-  }
+    const src = customFieldDefs.find((x) => x.field_key === fieldKey);
+    const sc = fields.find((x) => x.field_key === fieldKey);
+    if (!src || !sc) return;
+    const nk = `custom_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
+    const no = Math.max(...fields.map((f) => f.sort_order)) + 1;
+    setCustomFieldDefs((p) => [...p, buildCustomFieldDef(config.id, nk, `${src.label}(コピー)`, src.field_type, src.choices, no)]);
+    setFields((p) => [...p, buildFieldConfig(config.id, nk, no, { visible: sc.visible, required: sc.required, hasOther: sc.has_other_option, choices: sc.custom_choices, label: `${src.label}(コピー)` })]); setDirty(true);
+  };
+  return {
+    config, fields, notices: ni.notices, loading, saving, dirty, saveMessage,
+    pastEvents, showCopyModal, setShowCopyModal, busyNotices: ni.busyNotices,
+    rules, customFieldDefs, copying, deletingCustomKey, duplicatingCustomKey,
+    save, copyFromEvent, updateField, moveField, toggleVisibility,
+    addNotice, updateNotice: ni.updateNotice, deleteNotice: ni.deleteNotice,
+    addCustomField, deleteCustomField, duplicateCustomField,
+    uploadImage: ni.uploadImage, deleteImage: ni.deleteImage,
+  };
+}
 
-  function deleteCustomField(fieldKey: string) {
-    const def = customFieldDefs.find((d) => d.field_key === fieldKey);
-    if (def && !def.id.startsWith("temp_")) {
-      setDeletedCustomFieldKeys((prev) => [...prev, fieldKey]);
-    }
-    setCustomFieldDefs((prev) => prev.filter((d) => d.field_key !== fieldKey));
-    setFields((prev) => prev.filter((f) => f.field_key !== fieldKey));
-    setNotices((prev) => prev.filter((n) => !(n.anchor_type === "field" && n.anchor_field_key === fieldKey)));
-    setDirty(true);
-  }
+// ── フィールド並べ替えロジック ──
+function reorderFields(prev: FormFieldConfig[], fieldKey: string, dir: -1 | 1): FormFieldConfig[] {
+  const sorted = [...prev].sort((a, b) => a.sort_order - b.sort_order);
+  const visibleMain = sorted.filter((f) => f.visible && !isKanaField(f.field_key) && f.field_key !== "age");
+  const idx = visibleMain.findIndex((f) => f.field_key === fieldKey);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= visibleMain.length) return prev;
 
-  function duplicateCustomField(fieldKey: string) {
-    if (!config) return;
-    const sourceDef = customFieldDefs.find((d) => d.field_key === fieldKey);
-    const sourceConfig = fields.find((f) => f.field_key === fieldKey);
-    if (!sourceDef || !sourceConfig) return;
-    const newFieldKey = `custom_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
-    const nextOrder = Math.max(...fields.map((f) => f.sort_order)) + 1;
-    const def: CustomFieldDef = {
-      id: `temp_def_${crypto.randomUUID()}`,
-      form_config_id: config.id,
-      field_key: newFieldKey,
-      label: `${sourceDef.label}(コピー)`,
-      field_type: sourceDef.field_type,
-      choices: sourceDef.choices,
-      sort_order: nextOrder,
-      created_at: "",
-    };
-    const fieldConfig: FormFieldConfig = {
-      id: `temp_ffc_${crypto.randomUUID()}`,
-      form_config_id: config.id,
-      field_key: newFieldKey,
-      visible: sourceConfig.visible,
-      required: sourceConfig.required,
-      sort_order: nextOrder,
-      has_other_option: sourceConfig.has_other_option,
-      custom_choices: sourceConfig.custom_choices,
-      custom_label: `${sourceDef.label}(コピー)`,
-    };
-    setCustomFieldDefs((prev) => [...prev, def]);
-    setFields((prev) => [...prev, fieldConfig]);
-    setDirty(true);
-  }
+  const a = visibleMain[idx];
+  const b = visibleMain[newIdx];
+  const tmpSort = a.sort_order;
 
-  async function uploadImage(noticeId: string, file: File) {
-    if (noticeId.startsWith("temp_")) {
-      showToast("先に保存してから画像を追加してください");
-      return;
-    }
-    addBusy(noticeId);
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("notice_id", noticeId);
-    const res = await fetch("/api/admin/form-config/image-upload", {
-      method: "POST",
-      credentials: "include",
-      body: fd,
-    });
-    removeBusy(noticeId);
-    if (!res.ok) {
-      showToast("画像アップロードに失敗しました");
-      return;
-    }
-    const img = await res.json();
-    setNotices((prev) => prev.map((n) => (n.id === noticeId ? { ...n, images: [...(n.images ?? []), img] } : n)));
-    setDirty(true);
-  }
+  const result = sorted.map((f) => {
+    if (f.id === a.id) return { ...f, sort_order: b.sort_order };
+    if (f.id === b.id) return { ...f, sort_order: tmpSort };
+    return f;
+  });
 
-  function deleteImage(imageId: string, noticeId: string) {
-    setNotices((prev) =>
-      prev.map((n) => (n.id === noticeId ? { ...n, images: (n.images ?? []).filter((img) => img.id !== imageId) } : n)),
-    );
-    setDeletedImageIds((prev) => [...prev, imageId]);
-    setDirty(true);
-  }
+  const linkedParent = fieldKey === "birthday" ? "birthday" : null;
+  const kanaDef = FIELD_POOL.find((p) => p.kanaParent === fieldKey);
 
-  if (loading)
+  if (kanaDef) {
+    return applySortFollower(result, kanaDef.key, fieldKey);
+  }
+  if (linkedParent) {
+    return applySortFollower(result, "age", "birthday");
+  }
+  return result.sort((x, y) => x.sort_order - y.sort_order).map((f, i) => ({ ...f, sort_order: i }));
+}
+
+function applySortFollower(result: FormFieldConfig[], followerKey: string, parentKey: string): FormFieldConfig[] {
+  const follower = result.find((f) => f.field_key === followerKey);
+  const parent = result.find((f) => f.field_key === parentKey);
+  if (!follower || !parent) {
+    return result.sort((x, y) => x.sort_order - y.sort_order).map((f, i) => ({ ...f, sort_order: i }));
+  }
+  return result
+    .map((f) => (f.id === follower.id ? { ...f, sort_order: parent.sort_order + 0.5 } : f))
+    .sort((x, y) => x.sort_order - y.sort_order)
+    .map((f, i) => ({ ...f, sort_order: i }));
+}
+
+// ══════════════════════════════════════════════════════════════
+// メインパネル
+// ══════════════════════════════════════════════════════════════
+
+export function FormConfigPanel({ eventId }: Props) {
+  const state = useFormConfig(eventId);
+
+  if (state.loading) {
     return (
       <div className="text-center py-8 text-gray-500">
         <Spinner className="inline-block mr-2" />
         読み込み中...
       </div>
     );
-  if (!config) return <div className="text-center py-8 text-red-400">設定の読み込みに失敗しました</div>;
-
-  // フィールドをソート順に — age は birthday に統合するので独立表示しない
-  const sorted = [...fields].sort((a, b) => a.sort_order - b.sort_order);
-  const mainFields = sorted.filter((f) => !isKanaField(f.field_key) && f.field_key !== "age");
-
-  const formStartNotices = notices.filter((n) => n.anchor_type === "form_start");
-  const formEndNotices = notices.filter((n) => n.anchor_type === "form_end");
-  const fieldNoticesMap = (key: string) =>
-    notices.filter((n) => n.anchor_type === "field" && n.anchor_field_key === key);
+  }
+  if (!state.config) return <div className="text-center py-8 text-red-400">設定の読み込みに失敗しました</div>;
 
   return (
     <div className="space-y-4">
-      {/* ヘッダー */}
-      <div className="bg-gray-800 rounded-xl p-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => setShowCopyModal(true)}
-            disabled={copying}
-            className="px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 rounded-lg transition disabled:opacity-50"
-          >
-            {copying ? "コピー中..." : "過去の大会から読み込む"}
-          </button>
-          <button
-            onClick={() => void save()}
-            disabled={saving || busyNotices.size > 0}
-            className={`px-4 py-1.5 text-sm rounded-lg transition font-medium disabled:opacity-50 ${dirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}
-          >
-            {saving ? (
-              <>
-                <Spinner className="inline-block mr-1" />
-                保存中...
-              </>
-            ) : (
-              "保存"
-            )}
-          </button>
-          {saveMessage && (
-            <span
-              className={`text-xs animate-pulse ${saveMessage === "保存しました" ? "text-green-400" : "text-gray-400"}`}
-            >
-              {saveMessage}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* ── フォームプレビュー ── */}
-      <div className="bg-gray-800 rounded-xl overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-gray-700 bg-gray-750">
-          <p className="text-xs text-gray-400">
-            実際のフォームに近い見た目で表示しています。トグルで表示/非表示を切り替えできます。
-          </p>
-        </div>
-
-        <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
-          {/* タイトル */}
-          <div className="text-center pb-2">
-            <div className="text-lg font-bold text-gray-300">大会名</div>
-            <div className="text-sm text-gray-500">参加申込フォーム</div>
-          </div>
-
-          {/* フォーム先頭注意書き */}
-          {formStartNotices
-            .sort((a, b) => a.sort_order - b.sort_order)
-            .map((n) => (
-              <InlineNoticeEditor
-                key={n.id}
-                notice={n}
-                busy={busyNotices.has(n.id)}
-                onUpdate={updateNotice}
-                onDelete={deleteNotice}
-                onUploadImage={(id, file) => void uploadImage(id, file)}
-                onDeleteImage={deleteImage}
-              />
-            ))}
-          <button onClick={() => addNotice("form_start")} className="text-xs text-blue-400 hover:text-blue-300 block">
-            + フォーム先頭に注意書きを追加
-          </button>
-
-          {/* 全フィールド（表示/非表示とも） */}
-          {mainFields.map((f, _i) => {
-            // カスタムフィールドの場合は customFieldDefs から def を生成
-            const def = isCustomField(f.field_key)
-              ? (() => {
-                  const cd = customFieldDefs.find((d) => d.field_key === f.field_key);
-                  return cd ? customFieldToPoolItem(cd) : null;
-                })()
-              : getFieldDef(f.field_key);
-            if (!def) return null;
-            const kanaField = isCustomField(f.field_key)
-              ? null
-              : fields.find((kf) => {
-                  const kDef = FIELD_POOL.find((p) => p.kanaParent === f.field_key);
-                  return kDef && kf.field_key === kDef.key;
-                });
-            // birthday の場合、age フィールドも渡す
-            const ageField = f.field_key === "birthday" ? (fields.find((af) => af.field_key === "age") ?? null) : null;
-            const fNotices = fieldNoticesMap(f.field_key);
-            const visibleCount = mainFields.filter((mf) => mf.visible).length;
-            const visibleIdx = mainFields.filter((mf) => mf.visible).indexOf(f);
-            return (
-              <FieldPreviewCard
-                key={f.id}
-                field={f}
-                def={def}
-                kanaField={kanaField ?? null}
-                ageField={ageField}
-                index={visibleIdx}
-                total={visibleCount}
-                notices={fNotices}
-                allFields={fields}
-                onUpdate={updateField}
-                onMove={moveField}
-                onToggle={toggleVisibility}
-                onAddNotice={() => addNotice("field", f.field_key)}
-                onUpdateNotice={updateNotice}
-                onDeleteNotice={deleteNotice}
-                onUploadImage={(id, file) => void uploadImage(id, file)}
-                onDeleteImage={deleteImage}
-                busyNotices={busyNotices}
-                rules={rules}
-                onDeleteCustom={isCustomField(f.field_key) ? deleteCustomField : undefined}
-                onDuplicateCustom={isCustomField(f.field_key) ? duplicateCustomField : undefined}
-                deletingCustom={deletingCustomKey === f.field_key}
-                duplicatingCustom={duplicatingCustomKey === f.field_key}
-              />
-            );
-          })}
-
-          {/* 自由設問の追加 */}
-          <AddCustomFieldForm onAdd={addCustomField} />
-
-          {/* フォーム末尾注意書き */}
-          {formEndNotices
-            .sort((a, b) => a.sort_order - b.sort_order)
-            .map((n) => (
-              <InlineNoticeEditor
-                key={n.id}
-                notice={n}
-                busy={busyNotices.has(n.id)}
-                onUpdate={updateNotice}
-                onDelete={deleteNotice}
-                onUploadImage={(id, file) => void uploadImage(id, file)}
-                onDeleteImage={deleteImage}
-              />
-            ))}
-          <button onClick={() => addNotice("form_end")} className="text-xs text-blue-400 hover:text-blue-300 block">
-            + 送信ボタン前に注意書きを追加
-          </button>
-
-          {/* 送信ボタン */}
-          <div className="bg-blue-600/30 border border-blue-700/50 py-3 rounded-xl text-center text-sm text-blue-300 font-bold cursor-default">
-            申し込む
-          </div>
-        </div>
-      </div>
-
-      {/* コピーモーダル */}
-      {showCopyModal && (
+      <FormConfigHeader state={state} />
+      <FormPreviewBody state={state} />
+      {state.showCopyModal && (
         <CopyModal
-          events={pastEvents}
-          onCopy={(id) => void copyFromEvent(id)}
-          onClose={() => setShowCopyModal(false)}
-          copying={copying}
+          events={state.pastEvents}
+          onCopy={(id) => void state.copyFromEvent(id)}
+          onClose={() => state.setShowCopyModal(false)}
+          copying={state.copying}
         />
       )}
     </div>
+  );
+}
+
+// ── ヘッダー ──
+function FormConfigHeader({ state }: { state: ReturnType<typeof useFormConfig> }) {
+  return (
+    <div className="bg-gray-800 rounded-xl p-4">
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={() => state.setShowCopyModal(true)}
+          disabled={state.copying}
+          className="px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 rounded-lg transition disabled:opacity-50"
+        >
+          {state.copying ? "コピー中..." : "過去の大会から読み込む"}
+        </button>
+        <button
+          onClick={() => void state.save()}
+          disabled={state.saving || state.busyNotices.size > 0}
+          className={`px-4 py-1.5 text-sm rounded-lg transition font-medium disabled:opacity-50 ${state.dirty ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}
+        >
+          {state.saving ? (
+            <>
+              <Spinner className="inline-block mr-1" />
+              保存中...
+            </>
+          ) : (
+            "保存"
+          )}
+        </button>
+        {state.saveMessage && (
+          <span
+            className={`text-xs animate-pulse ${state.saveMessage === "保存しました" ? "text-green-400" : "text-gray-400"}`}
+          >
+            {state.saveMessage}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── フォームプレビュー本体 ──
+function FormPreviewBody({ state }: { state: ReturnType<typeof useFormConfig> }) {
+  const sorted = [...state.fields].sort((a, b) => a.sort_order - b.sort_order);
+  const mainFields = sorted.filter((f) => !isKanaField(f.field_key) && f.field_key !== "age");
+  const formStartNotices = state.notices.filter((n) => n.anchor_type === "form_start");
+  const formEndNotices = state.notices.filter((n) => n.anchor_type === "form_end");
+  const fieldNoticesMap = (key: string) =>
+    state.notices.filter((n) => n.anchor_type === "field" && n.anchor_field_key === key);
+
+  return (
+    <div className="bg-gray-800 rounded-xl overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-gray-700 bg-gray-750">
+        <p className="text-xs text-gray-400">
+          実際のフォームに近い見た目で表示しています。トグルで表示/非表示を切り替えできます。
+        </p>
+      </div>
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
+        <div className="text-center pb-2">
+          <div className="text-lg font-bold text-gray-300">大会名</div>
+          <div className="text-sm text-gray-500">参加申込フォーム</div>
+        </div>
+
+        <NoticeList
+          notices={formStartNotices}
+          busyNotices={state.busyNotices}
+          onUpdate={state.updateNotice}
+          onDelete={state.deleteNotice}
+          onUploadImage={(id, file) => void state.uploadImage(id, file)}
+          onDeleteImage={state.deleteImage}
+        />
+        <button onClick={() => state.addNotice("form_start")} className="text-xs text-blue-400 hover:text-blue-300 block">
+          + フォーム先頭に注意書きを追加
+        </button>
+
+        {mainFields.map((f) => (
+          <FieldPreviewCardWrapper
+            key={f.id}
+            field={f}
+            mainFields={mainFields}
+            state={state}
+            fieldNotices={fieldNoticesMap(f.field_key)}
+          />
+        ))}
+
+        <AddCustomFieldForm onAdd={state.addCustomField} />
+
+        <NoticeList
+          notices={formEndNotices}
+          busyNotices={state.busyNotices}
+          onUpdate={state.updateNotice}
+          onDelete={state.deleteNotice}
+          onUploadImage={(id, file) => void state.uploadImage(id, file)}
+          onDeleteImage={state.deleteImage}
+        />
+        <button onClick={() => state.addNotice("form_end")} className="text-xs text-blue-400 hover:text-blue-300 block">
+          + 送信ボタン前に注意書きを追加
+        </button>
+
+        <div className="bg-blue-600/30 border border-blue-700/50 py-3 rounded-xl text-center text-sm text-blue-300 font-bold cursor-default">
+          申し込む
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 注意書きリスト ──
+function NoticeList({
+  notices,
+  busyNotices,
+  onUpdate,
+  onDelete,
+  onUploadImage,
+  onDeleteImage,
+}: {
+  notices: FormNotice[];
+  busyNotices: Set<string>;
+  onUpdate: (id: string, patch: Partial<FormNotice>) => void;
+  onDelete: (id: string) => void;
+  onUploadImage: (noticeId: string, file: File) => void;
+  onDeleteImage: (imageId: string, noticeId: string) => void;
+}) {
+  return (
+    <>
+      {[...notices]
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((n) => (
+          <InlineNoticeEditor
+            key={n.id}
+            notice={n}
+            busy={busyNotices.has(n.id)}
+            onUpdate={onUpdate}
+            onDelete={onDelete}
+            onUploadImage={onUploadImage}
+            onDeleteImage={onDeleteImage}
+          />
+        ))}
+    </>
+  );
+}
+
+// ── フィールドプレビューカードラッパー ──
+function FieldPreviewCardWrapper({
+  field,
+  mainFields,
+  state,
+  fieldNotices,
+}: {
+  field: FormFieldConfig;
+  mainFields: FormFieldConfig[];
+  state: ReturnType<typeof useFormConfig>;
+  fieldNotices: FormNotice[];
+}) {
+  const key = field.field_key;
+  const def = isCustomField(key)
+    ? (() => {
+        const cd = state.customFieldDefs.find((d) => d.field_key === key);
+        return cd ? customFieldToPoolItem(cd) : null;
+      })()
+    : getFieldDef(key);
+  if (!def) return null;
+
+  const kanaField = isCustomField(key)
+    ? null
+    : state.fields.find((kf) => {
+        const kDef = FIELD_POOL.find((p) => p.kanaParent === key);
+        return kDef && kf.field_key === kDef.key;
+      });
+  const ageField = key === "birthday" ? (state.fields.find((af) => af.field_key === "age") ?? null) : null;
+  const visibleCount = mainFields.filter((mf) => mf.visible).length;
+  const visibleIdx = mainFields.filter((mf) => mf.visible).indexOf(field);
+
+  return (
+    <FieldPreviewCard
+      field={field}
+      def={def}
+      kanaField={kanaField ?? null}
+      ageField={ageField}
+      index={visibleIdx}
+      total={visibleCount}
+      notices={fieldNotices}
+      allFields={state.fields}
+      onUpdate={state.updateField}
+      onMove={state.moveField}
+      onToggle={state.toggleVisibility}
+      onAddNotice={() => state.addNotice("field", key)}
+      onUpdateNotice={state.updateNotice}
+      onDeleteNotice={state.deleteNotice}
+      onUploadImage={(id, file) => void state.uploadImage(id, file)}
+      onDeleteImage={state.deleteImage}
+      busyNotices={state.busyNotices}
+      rules={state.rules}
+      onDeleteCustom={isCustomField(key) ? state.deleteCustomField : undefined}
+      onDuplicateCustom={isCustomField(key) ? state.duplicateCustomField : undefined}
+      deletingCustom={state.deletingCustomKey === key}
+      duplicatingCustom={state.duplicatingCustomKey === key}
+    />
   );
 }
 
@@ -616,30 +529,7 @@ export function FormConfigPanel({ eventId }: Props) {
 const inp =
   "w-full bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-500 pointer-events-none select-none min-h-[38px]";
 
-function FieldPreviewCard({
-  field,
-  def,
-  kanaField,
-  ageField,
-  index,
-  total,
-  notices,
-  allFields,
-  onUpdate,
-  onMove,
-  onToggle,
-  onAddNotice,
-  onUpdateNotice,
-  onDeleteNotice,
-  onUploadImage,
-  onDeleteImage,
-  busyNotices,
-  rules,
-  onDeleteCustom,
-  onDuplicateCustom,
-  deletingCustom,
-  duplicatingCustom,
-}: {
+type FieldPreviewCardProps = {
   field: FormFieldConfig;
   def: FieldPoolItem;
   kanaField: FormFieldConfig | null;
@@ -662,194 +552,20 @@ function FieldPreviewCard({
   onDuplicateCustom?: (fieldKey: string) => void;
   deletingCustom?: boolean;
   duplicatingCustom?: boolean;
-}) {
+};
+
+function FieldPreviewCard(props: FieldPreviewCardProps) {
+  const { field, def, kanaField, ageField, notices, allFields, onUpdate, busyNotices, rules } = props;
   const [expanded, setExpanded] = useState(false);
   const key = def.key;
   const choices = (
     field.custom_choices?.length ? field.custom_choices : (def.fixedChoices ?? def.defaultChoices ?? [])
   ).filter((c) => c.value !== "__single_select__");
-  // 選択肢をフォーム設定で編集可能な項目（organization/rule_preference はDB管理なので除外）
-  const dbManagedFields = ["organization", "rule_preference"];
-  const hasChoices =
-    (def.type === "radio" || def.type === "checkbox" || (def.type === "select" && !def.fixedChoices)) &&
-    !def.fixedChoices &&
-    !dbManagedFields.includes(key);
   const isHidden = !field.visible;
 
   return (
     <div className="group">
-      {/* ── カードヘッダー（2段構成） ── */}
-      <div
-        className={`rounded-t-xl border border-b-0 ${
-          isHidden ? "border-gray-600/40 bg-gray-800/40" : "border-gray-500 bg-gray-700/30"
-        }`}
-      >
-        {/* 1段目: 表示順・必須/任意・トグル */}
-        <div className="flex items-center justify-between gap-2 px-3 py-1.5">
-          <div className="flex items-center gap-1.5">
-            {!isHidden && (
-              <>
-                <span className="text-[10px] text-gray-500 tabular-nums min-w-[2ch] text-right">{index + 1}</span>
-                <div className="flex items-center gap-0.5">
-                  <button
-                    onClick={() => onMove(key, -1)}
-                    disabled={index === 0}
-                    className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-50 transition"
-                  >
-                    ▲
-                  </button>
-                  <button
-                    onClick={() => onMove(key, 1)}
-                    disabled={index === total - 1}
-                    className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-50 transition"
-                  >
-                    ▼
-                  </button>
-                  <span className="text-[10px] text-gray-500 ml-0.5">順序</span>
-                </div>
-                <span className="w-px h-3 bg-gray-600 mx-1" />
-                <select
-                  value={field.required ? "required" : "optional"}
-                  onChange={(e) => {
-                    const newRequired = e.target.value === "required";
-                    onUpdate(field.id, { required: newRequired });
-                    if (kanaField) onUpdate(kanaField.id, { required: newRequired });
-                  }}
-                  className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
-                >
-                  <option value="required">必須</option>
-                  <option value="optional">任意</option>
-                </select>
-                {kanaField && (
-                  <select
-                    value={kanaField.required ? "required" : "optional"}
-                    onChange={(e) => onUpdate(kanaField.id, { required: e.target.value === "required" })}
-                    className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
-                  >
-                    <option value="required">読み:必須</option>
-                    <option value="optional">読み:任意</option>
-                  </select>
-                )}
-              </>
-            )}
-            {isHidden && <span className="text-[10px] text-gray-600">非表示</span>}
-          </div>
-
-          {/* 右: バッジ・操作・トグル */}
-          <div className="flex items-center gap-1.5">
-            {isCustomField(key) && (
-              <>
-                <span className="text-[10px] bg-purple-600/30 text-purple-300 px-1.5 py-0.5 rounded font-medium">
-                  自由設問
-                </span>
-                {onDuplicateCustom && (
-                  <button
-                    onClick={() => onDuplicateCustom(key)}
-                    disabled={duplicatingCustom}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-gray-600 text-gray-200 hover:bg-blue-600 hover:text-white transition font-medium disabled:opacity-50"
-                    title="複製"
-                  >
-                    {duplicatingCustom ? "複製中..." : "複製"}
-                  </button>
-                )}
-                {onDeleteCustom && (
-                  <button
-                    onClick={() => {
-                      if (confirm("この自由設問を削除しますか？")) onDeleteCustom(key);
-                    }}
-                    disabled={deletingCustom}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-red-900/60 text-red-300 hover:bg-red-700 hover:text-white transition font-medium disabled:opacity-50"
-                    title="削除"
-                  >
-                    {deletingCustom ? "削除中..." : "削除"}
-                  </button>
-                )}
-                <span className="w-px h-3 bg-gray-600" />
-              </>
-            )}
-            <span className="text-[10px] text-gray-500">{field.visible ? "表示" : "非表示"}</span>
-            <button
-              onClick={() => onToggle(key)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${
-                field.visible ? "bg-blue-600" : "bg-gray-600"
-              }`}
-              title={field.visible ? "非表示にする" : "表示する"}
-            >
-              <span
-                className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-                  field.visible ? "translate-x-[18px]" : "translate-x-[3px]"
-                }`}
-              />
-            </button>
-          </div>
-        </div>
-
-        {/* 2段目: ラベル編集・選択肢設定・注意書き追加（表示中のみ） */}
-        {!isHidden && (
-          <div className="flex items-center gap-2 px-3 py-1.5 border-t border-gray-700/30 flex-wrap">
-            {/* ラベル編集 */}
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] text-gray-500 shrink-0">ラベル:</span>
-              <InlineLabelEditor
-                value={field.custom_label ?? ""}
-                placeholder={def.label}
-                onChange={(v) => onUpdate(field.id, { custom_label: v || null })}
-              />
-            </div>
-
-            <span className="w-px h-3 bg-gray-600" />
-
-            {/* 選択肢設定（選択肢のある項目のみ） */}
-            {hasChoices && (
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className={`px-2 py-0.5 text-[10px] rounded transition ${expanded ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-300 hover:bg-gray-500"}`}
-              >
-                選択肢設定
-              </button>
-            )}
-
-            {/* DB管理フィールドのオプション */}
-            {dbManagedFields.includes(key) && (
-              <label className="flex items-center gap-1 text-[10px] text-gray-400 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={field.has_other_option}
-                  onChange={(e) => onUpdate(field.id, { has_other_option: e.target.checked })}
-                  className="rounded w-3 h-3"
-                />
-                その他
-              </label>
-            )}
-            {key === "rule_preference" && (
-              <select
-                value={field.custom_choices?.some((c) => c.value === "__single_select__") ? "single" : "multi"}
-                onChange={(e) => {
-                  if (e.target.value === "single") {
-                    onUpdate(field.id, { custom_choices: [{ label: "__meta__", value: "__single_select__" }] });
-                  } else {
-                    onUpdate(field.id, { custom_choices: null });
-                  }
-                }}
-                className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
-              >
-                <option value="multi">複数選択</option>
-                <option value="single">単一選択</option>
-              </select>
-            )}
-
-            {/* 注意書き追加 */}
-            <button
-              onClick={onAddNotice}
-              className="px-2 py-0.5 text-[10px] rounded bg-gray-600 text-gray-300 hover:bg-gray-500 transition"
-            >
-              + 注意書き
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* ── ボディ（プレビュー専用） ── */}
+      <CardHeader {...props} />
       <div
         className={`border rounded-b-xl transition relative ${
           isHidden
@@ -863,30 +579,11 @@ function FieldPreviewCard({
           </div>
         ) : (
           <>
-            {/* ラベル表示 */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-gray-200 font-medium">{field.custom_label || def.label}</span>
-              {field.required && <span className="text-red-400 text-xs">*</span>}
-              {def.unit && <span className="text-xs text-gray-500">（{def.unit}）</span>}
-              {kanaField && <span className="text-xs text-gray-500">+ 読み仮名</span>}
-              {ageField && <span className="text-xs text-gray-500">+ 年齢自動計算</span>}
-            </div>
-
-            {/* 入力プレビュー */}
-            {renderInputPreview(key, def, choices, field, kanaField, ageField, rules)}
-
-            {/* 詳細設定（ヘッダーの選択肢設定ボタンで展開） */}
+            <FieldLabel field={field} def={def} kanaField={kanaField} ageField={ageField} />
+            <InputPreview fieldKey={key} def={def} choices={choices} field={field} kanaField={kanaField} rules={rules} />
             {expanded && (
-              <FieldDetailEditor
-                field={field}
-                def={def}
-                allFields={allFields}
-                onUpdate={onUpdate}
-                onClose={() => setExpanded(false)}
-              />
+              <FieldDetailEditor field={field} def={def} allFields={allFields} onUpdate={onUpdate} onClose={() => setExpanded(false)} />
             )}
-
-            {/* この項目の注意書き */}
             {notices
               .sort((a, b) => a.sort_order - b.sort_order)
               .map((n) => (
@@ -894,10 +591,10 @@ function FieldPreviewCard({
                   key={n.id}
                   notice={n}
                   busy={busyNotices.has(n.id)}
-                  onUpdate={onUpdateNotice}
-                  onDelete={onDeleteNotice}
-                  onUploadImage={onUploadImage}
-                  onDeleteImage={onDeleteImage}
+                  onUpdate={props.onUpdateNotice}
+                  onDelete={props.onDeleteNotice}
+                  onUploadImage={props.onUploadImage}
+                  onDeleteImage={props.onDeleteImage}
                 />
               ))}
           </>
@@ -907,207 +604,526 @@ function FieldPreviewCard({
   );
 }
 
-// ── 入力プレビュー ──
+// ── フィールドラベル ──
+function FieldLabel({
+  field,
+  def,
+  kanaField,
+  ageField,
+}: {
+  field: FormFieldConfig;
+  def: FieldPoolItem;
+  kanaField: FormFieldConfig | null;
+  ageField: FormFieldConfig | null;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-gray-200 font-medium">{field.custom_label || def.label}</span>
+      {field.required && <span className="text-red-400 text-xs">*</span>}
+      {def.unit && <span className="text-xs text-gray-500">（{def.unit}）</span>}
+      {kanaField && <span className="text-xs text-gray-500">+ 読み仮名</span>}
+      {ageField && <span className="text-xs text-gray-500">+ 年齢自動計算</span>}
+    </div>
+  );
+}
 
-function renderInputPreview(
-  key: string,
-  def: FieldPoolItem,
-  choices: { label: string; value: string }[],
-  field: FormFieldConfig,
-  kanaField: FormFieldConfig | null,
-  ageField: FormFieldConfig | null,
-  rules?: { id: string; name: string }[],
-) {
-  // rule_preference: 登録済みルール表示 + 説明
-  if (key === "rule_preference") {
-    return (
-      <div className="space-y-1.5">
-        {rules && rules.length > 0 ? (
-          <div className="space-y-1 pl-1">
-            <p className="text-[10px] text-gray-500 mb-1">登録済みルール:</p>
-            {rules.map((r) => (
-              <label key={r.id} className="flex items-start gap-2 text-xs text-gray-500">
-                <div className="w-3.5 h-3.5 rounded border border-gray-600 shrink-0 mt-0.5" />
-                {r.name}
-              </label>
-            ))}
-            {field.has_other_option && (
-              <label className="flex items-center gap-2 text-xs text-gray-600">
-                <div className="w-3.5 h-3.5 rounded border border-gray-600" />
-                その他（自由入力）
-              </label>
-            )}
-          </div>
+// ── カードヘッダー ──
+function CardHeader(props: FieldPreviewCardProps) {
+  const { field, def, kanaField, onUpdate, onMove, onToggle, onAddNotice, onDeleteCustom, onDuplicateCustom, deletingCustom, duplicatingCustom } = props;
+  const key = def.key;
+  const isHidden = !field.visible;
+  const dbManagedFields = ["organization", "rule_preference"];
+  const hasChoices =
+    (def.type === "radio" || def.type === "checkbox" || (def.type === "select" && !def.fixedChoices)) &&
+    !def.fixedChoices &&
+    !dbManagedFields.includes(key);
+
+  return (
+    <div
+      className={`rounded-t-xl border border-b-0 ${
+        isHidden ? "border-gray-600/40 bg-gray-800/40" : "border-gray-500 bg-gray-700/30"
+      }`}
+    >
+      <CardHeaderRow1
+        field={field}
+        fieldKey={key}
+        index={props.index}
+        total={props.total}
+        isHidden={isHidden}
+        kanaField={kanaField}
+        onUpdate={onUpdate}
+        onMove={onMove}
+        onToggle={onToggle}
+        onDeleteCustom={onDeleteCustom}
+        onDuplicateCustom={onDuplicateCustom}
+        deletingCustom={deletingCustom}
+        duplicatingCustom={duplicatingCustom}
+      />
+      {!isHidden && (
+        <CardHeaderRow2
+          field={field}
+          def={def}
+          fieldKey={key}
+          hasChoices={hasChoices}
+          dbManagedFields={dbManagedFields}
+          onUpdate={onUpdate}
+          onAddNotice={onAddNotice}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── ヘッダー1段目 ──
+function CardHeaderRow1({
+  field,
+  fieldKey,
+  index,
+  total,
+  isHidden,
+  kanaField,
+  onUpdate,
+  onMove,
+  onToggle,
+  onDeleteCustom,
+  onDuplicateCustom,
+  deletingCustom,
+  duplicatingCustom,
+}: {
+  field: FormFieldConfig;
+  fieldKey: string;
+  index: number;
+  total: number;
+  isHidden: boolean;
+  kanaField: FormFieldConfig | null;
+  onUpdate: (id: string, patch: Partial<FormFieldConfig>) => void;
+  onMove: (fieldKey: string, dir: -1 | 1) => void;
+  onToggle: (fieldKey: string) => void;
+  onDeleteCustom?: (fieldKey: string) => void;
+  onDuplicateCustom?: (fieldKey: string) => void;
+  deletingCustom?: boolean;
+  duplicatingCustom?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2 px-3 py-1.5">
+      <div className="flex items-center gap-1.5">
+        {!isHidden ? (
+          <VisibleFieldControls
+            field={field}
+            fieldKey={fieldKey}
+            index={index}
+            total={total}
+            kanaField={kanaField}
+            onUpdate={onUpdate}
+            onMove={onMove}
+          />
         ) : (
-          <p className="text-xs text-gray-500">ルールが登録されていません</p>
-        )}
-        <p className="text-[10px] text-gray-500 leading-relaxed">
-          選択肢は{" "}
-          <a href="/admin?tab=settings" target="_blank" className="text-blue-400 hover:text-blue-300 underline">
-            設定 &gt; ルール管理
-          </a>{" "}
-          で登録したルールが自動で表示されます。 対戦表作成時にルールごとに参加者を振り分けます。
-        </p>
-      </div>
-    );
-  }
-
-  // full_name: 姓名 + 読み仮名 4カラム
-  if (key === "full_name") {
-    return (
-      <div className="grid grid-cols-2 gap-1.5">
-        <div className="space-y-0.5">
-          <span className="text-[10px] text-gray-400">姓</span>
-          <div className={inp}>山田</div>
-        </div>
-        <div className="space-y-0.5">
-          <span className="text-[10px] text-gray-400">名</span>
-          <div className={inp}>太郎</div>
-        </div>
-        {kanaField?.visible && (
-          <>
-            <div className="space-y-0.5">
-              <span className="text-[10px] text-gray-400">姓（読み）</span>
-              <div className={inp}>やまだ</div>
-            </div>
-            <div className="space-y-0.5">
-              <span className="text-[10px] text-gray-400">名（読み）</span>
-              <div className={inp}>たろう</div>
-            </div>
-          </>
+          <span className="text-[10px] text-gray-600">非表示</span>
         )}
       </div>
-    );
-  }
-
-  // birthday: 左に生年月日、右に試合日時点の年齢表示
-  if (key === "birthday") {
-    return (
-      <div className="grid grid-cols-2 gap-2 items-end">
-        <div className="space-y-0.5">
-          <span className="text-[10px] text-gray-400">生年月日</span>
-          <div className={inp}>2000-01-01</div>
-        </div>
-        <div className="space-y-0.5">
-          <span className="text-[10px] text-gray-400">大会日時点の年齢</span>
-          <div className="w-full bg-gray-900/40 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-500 pointer-events-none select-none min-h-[38px]">
-            26歳（自動計算）
-          </div>
-        </div>
+      <div className="flex items-center gap-1.5">
+        <CustomFieldBadge
+          fieldKey={fieldKey}
+          onDeleteCustom={onDeleteCustom}
+          onDuplicateCustom={onDuplicateCustom}
+          deletingCustom={deletingCustom}
+          duplicatingCustom={duplicatingCustom}
+        />
+        <span className="text-[10px] text-gray-500">{field.visible ? "表示" : "非表示"}</span>
+        <button
+          onClick={() => onToggle(fieldKey)}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ${
+            field.visible ? "bg-blue-600" : "bg-gray-600"
+          }`}
+          title={field.visible ? "非表示にする" : "表示する"}
+        >
+          <span
+            className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+              field.visible ? "translate-x-[18px]" : "translate-x-[3px]"
+            }`}
+          />
+        </button>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
-  // organization: セレクト＋自由入力 + 読み仮名
-  if (key === "organization") {
-    return (
-      <div className="space-y-1.5">
-        <div className={inp}>登録済み団体から選択 ▼</div>
-        <p className="text-[10px] text-gray-500 leading-relaxed">
-          選択肢は{" "}
-          <a href="/admin?tab=settings" target="_blank" className="text-blue-400 hover:text-blue-300 underline">
-            設定 &gt; 道場/団体マスター
-          </a>{" "}
-          で登録できます。 未登録の団体は「その他」を選択すると自由入力欄が表示されます。
-        </p>
-        {kanaField?.visible && (
-          <div className="space-y-0.5">
-            <span className="text-[10px] text-gray-400">よみがな</span>
-            <div className={inp}>じゅうくうかい</div>
-          </div>
-        )}
+// ── 表示中フィールドの操作 ──
+function VisibleFieldControls({
+  field,
+  fieldKey,
+  index,
+  total,
+  kanaField,
+  onUpdate,
+  onMove,
+}: {
+  field: FormFieldConfig;
+  fieldKey: string;
+  index: number;
+  total: number;
+  kanaField: FormFieldConfig | null;
+  onUpdate: (id: string, patch: Partial<FormFieldConfig>) => void;
+  onMove: (fieldKey: string, dir: -1 | 1) => void;
+}) {
+  return (
+    <>
+      <span className="text-[10px] text-gray-500 tabular-nums min-w-[2ch] text-right">{index + 1}</span>
+      <div className="flex items-center gap-0.5">
+        <button onClick={() => onMove(fieldKey, -1)} disabled={index === 0} className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-50 transition">▲</button>
+        <button onClick={() => onMove(fieldKey, 1)} disabled={index === total - 1} className="px-1 py-0.5 text-xs text-gray-400 hover:text-white disabled:opacity-50 transition">▼</button>
+        <span className="text-[10px] text-gray-500 ml-0.5">順序</span>
       </div>
-    );
-  }
+      <span className="w-px h-3 bg-gray-600 mx-1" />
+      <select
+        value={field.required ? "required" : "optional"}
+        onChange={(e) => {
+          const newRequired = e.target.value === "required";
+          onUpdate(field.id, { required: newRequired });
+          if (kanaField) onUpdate(kanaField.id, { required: newRequired });
+        }}
+        className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
+      >
+        <option value="required">必須</option>
+        <option value="optional">任意</option>
+      </select>
+      {kanaField && (
+        <select
+          value={kanaField.required ? "required" : "optional"}
+          onChange={(e) => onUpdate(kanaField.id, { required: e.target.value === "required" })}
+          className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
+        >
+          <option value="required">読み:必須</option>
+          <option value="optional">読み:任意</option>
+        </select>
+      )}
+    </>
+  );
+}
 
-  // branch + 読み仮名
-  if (key === "branch") {
-    return (
-      <div className="space-y-1.5">
-        <div className={inp}>{def.placeholder || "\u00A0"}</div>
-        {kanaField?.visible && (
-          <div className="space-y-0.5">
-            <span className="text-[10px] text-gray-400">よみがな</span>
-            <div className={inp}>{"\u00A0"}</div>
-          </div>
-        )}
+// ── カスタムフィールドバッジ ──
+function CustomFieldBadge({
+  fieldKey,
+  onDeleteCustom,
+  onDuplicateCustom,
+  deletingCustom,
+  duplicatingCustom,
+}: {
+  fieldKey: string;
+  onDeleteCustom?: (fieldKey: string) => void;
+  onDuplicateCustom?: (fieldKey: string) => void;
+  deletingCustom?: boolean;
+  duplicatingCustom?: boolean;
+}) {
+  if (!isCustomField(fieldKey)) return null;
+  return (
+    <>
+      <span className="text-[10px] bg-purple-600/30 text-purple-300 px-1.5 py-0.5 rounded font-medium">自由設問</span>
+      {onDuplicateCustom && (
+        <button
+          onClick={() => onDuplicateCustom(fieldKey)}
+          disabled={duplicatingCustom}
+          className="text-[10px] px-1.5 py-0.5 rounded bg-gray-600 text-gray-200 hover:bg-blue-600 hover:text-white transition font-medium disabled:opacity-50"
+          title="複製"
+        >
+          {duplicatingCustom ? "複製中..." : "複製"}
+        </button>
+      )}
+      {onDeleteCustom && (
+        <button
+          onClick={() => {
+            if (confirm("この自由設問を削除しますか？")) onDeleteCustom(fieldKey);
+          }}
+          disabled={deletingCustom}
+          className="text-[10px] px-1.5 py-0.5 rounded bg-red-900/60 text-red-300 hover:bg-red-700 hover:text-white transition font-medium disabled:opacity-50"
+          title="削除"
+        >
+          {deletingCustom ? "削除中..." : "削除"}
+        </button>
+      )}
+      <span className="w-px h-3 bg-gray-600" />
+    </>
+  );
+}
+
+// ── ヘッダー2段目 ──
+function CardHeaderRow2({
+  field,
+  def,
+  fieldKey,
+  hasChoices,
+  dbManagedFields,
+  onUpdate,
+  onAddNotice,
+}: {
+  field: FormFieldConfig;
+  def: FieldPoolItem;
+  fieldKey: string;
+  hasChoices: boolean;
+  dbManagedFields: string[];
+  onUpdate: (id: string, patch: Partial<FormFieldConfig>) => void;
+  onAddNotice: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 border-t border-gray-700/30 flex-wrap">
+      <div className="flex items-center gap-1">
+        <span className="text-[10px] text-gray-500 shrink-0">ラベル:</span>
+        <InlineLabelEditor value={field.custom_label ?? ""} placeholder={def.label} onChange={(v) => onUpdate(field.id, { custom_label: v || null })} />
       </div>
-    );
-  }
+      <span className="w-px h-3 bg-gray-600" />
+      {hasChoices && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className={`px-2 py-0.5 text-[10px] rounded transition ${expanded ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-300 hover:bg-gray-500"}`}
+        >
+          選択肢設定
+        </button>
+      )}
+      {dbManagedFields.includes(fieldKey) && (
+        <label className="flex items-center gap-1 text-[10px] text-gray-400 cursor-pointer">
+          <input type="checkbox" checked={field.has_other_option} onChange={(e) => onUpdate(field.id, { has_other_option: e.target.checked })} className="rounded w-3 h-3" />
+          その他
+        </label>
+      )}
+      {fieldKey === "rule_preference" && (
+        <RulePreferenceSelector field={field} onUpdate={onUpdate} />
+      )}
+      <button onClick={onAddNotice} className="px-2 py-0.5 text-[10px] rounded bg-gray-600 text-gray-300 hover:bg-gray-500 transition">
+        + 注意書き
+      </button>
+    </div>
+  );
+}
 
-  // 読み仮名は親と一緒に表示されるのでスキップ
-  if (isKanaField(key)) return null;
+// ── ルール希望の選択タイプ切り替え ──
+function RulePreferenceSelector({
+  field,
+  onUpdate,
+}: {
+  field: FormFieldConfig;
+  onUpdate: (id: string, patch: Partial<FormFieldConfig>) => void;
+}) {
+  return (
+    <select
+      value={field.custom_choices?.some((c) => c.value === "__single_select__") ? "single" : "multi"}
+      onChange={(e) => {
+        if (e.target.value === "single") {
+          onUpdate(field.id, { custom_choices: [{ label: "__meta__", value: "__single_select__" }] });
+        } else {
+          onUpdate(field.id, { custom_choices: null });
+        }
+      }}
+      className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
+    >
+      <option value="multi">複数選択</option>
+      <option value="single">単一選択</option>
+    </select>
+  );
+}
 
-  // radio
-  if (def.type === "radio") {
-    return (
-      <div className="space-y-1 pl-1">
-        {choices.map((c) => (
-          <label key={c.value} className="flex items-center gap-2 text-xs text-gray-500">
-            <div className="w-3.5 h-3.5 rounded-full border border-gray-600" />
-            {c.label}
-          </label>
-        ))}
-        {field.has_other_option && (
-          <label className="flex items-center gap-2 text-xs text-gray-600">
-            <div className="w-3.5 h-3.5 rounded-full border border-gray-600" />
-            その他
-          </label>
-        )}
-      </div>
-    );
-  }
+// ══════════════════════════════════════════════════════════════
+// 入力プレビュー
+// ══════════════════════════════════════════════════════════════
 
-  // checkbox
-  if (def.type === "checkbox") {
-    return (
-      <div className="space-y-1 pl-1">
-        {choices.map((c) => (
-          <label key={c.value} className="flex items-start gap-2 text-xs text-gray-500">
-            <div className="w-3.5 h-3.5 rounded border border-gray-600 shrink-0 mt-0.5" />
-            {c.label}
-          </label>
-        ))}
-        {field.has_other_option && (
-          <label className="flex items-center gap-2 text-xs text-gray-600">
-            <div className="w-3.5 h-3.5 rounded border border-gray-600" />
-            その他
-          </label>
-        )}
-      </div>
-    );
-  }
-
-  // select
-  if (def.type === "select") {
-    return (
-      <div className={`${inp} flex items-center justify-between`}>
-        <span>選択してください</span>
-        <span className="text-gray-600">▼</span>
-      </div>
-    );
-  }
-
-  // textarea
-  if (def.type === "textarea") {
-    return <div className={`${inp} h-16`}>{def.placeholder || "\u00A0"}</div>;
-  }
-
-  // email with confirm
-  if (def.type === "email" && def.hasConfirmInput) {
-    return (
-      <div className="space-y-1.5">
-        <div className={inp}>example@mail.com</div>
-        <div className="space-y-0.5">
-          <span className="text-[10px] text-gray-400">メールアドレス（確認）</span>
-          <div className={inp}>もう一度入力</div>
-        </div>
-      </div>
-    );
-  }
-
-  // default: text, number, tel, email, date
+function InputPreview({
+  fieldKey,
+  def,
+  choices,
+  field,
+  kanaField,
+  rules,
+}: {
+  fieldKey: string;
+  def: FieldPoolItem;
+  choices: { label: string; value: string }[];
+  field: FormFieldConfig;
+  kanaField: FormFieldConfig | null;
+  rules?: { id: string; name: string }[];
+}) {
+  if (fieldKey === "rule_preference") return <RulePreferencePreview rules={rules} field={field} />;
+  if (fieldKey === "full_name") return <FullNamePreview kanaField={kanaField} />;
+  if (fieldKey === "birthday") return <BirthdayPreview />;
+  if (fieldKey === "organization") return <OrganizationPreview kanaField={kanaField} />;
+  if (fieldKey === "branch") return <BranchPreview def={def} kanaField={kanaField} />;
+  if (isKanaField(fieldKey)) return null;
+  if (def.type === "radio") return <RadioPreview choices={choices} hasOther={field.has_other_option} />;
+  if (def.type === "checkbox") return <CheckboxPreview choices={choices} hasOther={field.has_other_option} />;
+  if (def.type === "select") return <SelectPreview />;
+  if (def.type === "textarea") return <div className={`${inp} h-16`}>{def.placeholder || "\u00A0"}</div>;
+  if (def.type === "email" && def.hasConfirmInput) return <EmailConfirmPreview />;
   return <div className={inp}>{def.placeholder || "\u00A0"}</div>;
+}
+
+function RulePreferencePreview({ rules, field }: { rules?: { id: string; name: string }[]; field: FormFieldConfig }) {
+  return (
+    <div className="space-y-1.5">
+      {rules && rules.length > 0 ? (
+        <div className="space-y-1 pl-1">
+          <p className="text-[10px] text-gray-500 mb-1">登録済みルール:</p>
+          {rules.map((r) => (
+            <label key={r.id} className="flex items-start gap-2 text-xs text-gray-500">
+              <div className="w-3.5 h-3.5 rounded border border-gray-600 shrink-0 mt-0.5" />
+              {r.name}
+            </label>
+          ))}
+          {field.has_other_option && (
+            <label className="flex items-center gap-2 text-xs text-gray-600">
+              <div className="w-3.5 h-3.5 rounded border border-gray-600" />
+              その他（自由入力）
+            </label>
+          )}
+        </div>
+      ) : (
+        <p className="text-xs text-gray-500">ルールが登録されていません</p>
+      )}
+      <p className="text-[10px] text-gray-500 leading-relaxed">
+        選択肢は{" "}
+        <a href="/admin?tab=settings" target="_blank" className="text-blue-400 hover:text-blue-300 underline">
+          設定 &gt; ルール管理
+        </a>{" "}
+        で登録したルールが自動で表示されます。 対戦表作成時にルールごとに参加者を振り分けます。
+      </p>
+    </div>
+  );
+}
+
+function FullNamePreview({ kanaField }: { kanaField: FormFieldConfig | null }) {
+  return (
+    <div className="grid grid-cols-2 gap-1.5">
+      <div className="space-y-0.5">
+        <span className="text-[10px] text-gray-400">姓</span>
+        <div className={inp}>山田</div>
+      </div>
+      <div className="space-y-0.5">
+        <span className="text-[10px] text-gray-400">名</span>
+        <div className={inp}>太郎</div>
+      </div>
+      {kanaField?.visible && (
+        <>
+          <div className="space-y-0.5">
+            <span className="text-[10px] text-gray-400">姓（読み）</span>
+            <div className={inp}>やまだ</div>
+          </div>
+          <div className="space-y-0.5">
+            <span className="text-[10px] text-gray-400">名（読み）</span>
+            <div className={inp}>たろう</div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function BirthdayPreview() {
+  return (
+    <div className="grid grid-cols-2 gap-2 items-end">
+      <div className="space-y-0.5">
+        <span className="text-[10px] text-gray-400">生年月日</span>
+        <div className={inp}>2000-01-01</div>
+      </div>
+      <div className="space-y-0.5">
+        <span className="text-[10px] text-gray-400">大会日時点の年齢</span>
+        <div className="w-full bg-gray-900/40 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-500 pointer-events-none select-none min-h-[38px]">
+          26歳（自動計算）
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OrganizationPreview({ kanaField }: { kanaField: FormFieldConfig | null }) {
+  return (
+    <div className="space-y-1.5">
+      <div className={inp}>登録済み団体から選択 ▼</div>
+      <p className="text-[10px] text-gray-500 leading-relaxed">
+        選択肢は{" "}
+        <a href="/admin?tab=settings" target="_blank" className="text-blue-400 hover:text-blue-300 underline">
+          設定 &gt; 道場/団体マスター
+        </a>{" "}
+        で登録できます。 未登録の団体は「その他」を選択すると自由入力欄が表示されます。
+      </p>
+      {kanaField?.visible && (
+        <div className="space-y-0.5">
+          <span className="text-[10px] text-gray-400">よみがな</span>
+          <div className={inp}>じゅうくうかい</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BranchPreview({ def, kanaField }: { def: FieldPoolItem; kanaField: FormFieldConfig | null }) {
+  return (
+    <div className="space-y-1.5">
+      <div className={inp}>{def.placeholder || "\u00A0"}</div>
+      {kanaField?.visible && (
+        <div className="space-y-0.5">
+          <span className="text-[10px] text-gray-400">よみがな</span>
+          <div className={inp}>{"\u00A0"}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RadioPreview({ choices, hasOther }: { choices: { label: string; value: string }[]; hasOther: boolean }) {
+  return (
+    <div className="space-y-1 pl-1">
+      {choices.map((c) => (
+        <label key={c.value} className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="w-3.5 h-3.5 rounded-full border border-gray-600" />
+          {c.label}
+        </label>
+      ))}
+      {hasOther && (
+        <label className="flex items-center gap-2 text-xs text-gray-600">
+          <div className="w-3.5 h-3.5 rounded-full border border-gray-600" />
+          その他
+        </label>
+      )}
+    </div>
+  );
+}
+
+function CheckboxPreview({ choices, hasOther }: { choices: { label: string; value: string }[]; hasOther: boolean }) {
+  return (
+    <div className="space-y-1 pl-1">
+      {choices.map((c) => (
+        <label key={c.value} className="flex items-start gap-2 text-xs text-gray-500">
+          <div className="w-3.5 h-3.5 rounded border border-gray-600 shrink-0 mt-0.5" />
+          {c.label}
+        </label>
+      ))}
+      {hasOther && (
+        <label className="flex items-center gap-2 text-xs text-gray-600">
+          <div className="w-3.5 h-3.5 rounded border border-gray-600" />
+          その他
+        </label>
+      )}
+    </div>
+  );
+}
+
+function SelectPreview() {
+  return (
+    <div className={`${inp} flex items-center justify-between`}>
+      <span>選択してください</span>
+      <span className="text-gray-600">▼</span>
+    </div>
+  );
+}
+
+function EmailConfirmPreview() {
+  return (
+    <div className="space-y-1.5">
+      <div className={inp}>example@mail.com</div>
+      <div className="space-y-0.5">
+        <span className="text-[10px] text-gray-400">メールアドレス（確認）</span>
+        <div className={inp}>もう一度入力</div>
+      </div>
+    </div>
+  );
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1151,8 +1167,6 @@ function FieldDetailEditor({
           キャンセル
         </button>
       </div>
-
-      {/* その他オプション */}
       {(def.defaultHasOther !== undefined || hasChoices) && (
         <label className="flex items-center gap-2 text-xs text-gray-400">
           <input
@@ -1164,8 +1178,6 @@ function FieldDetailEditor({
           「その他の回答」欄を表示
         </label>
       )}
-
-      {/* 選択肢編集 */}
       {hasChoices && (
         <div className="space-y-1.5">
           <p className="text-xs text-gray-500">選択肢（1行1つ）</p>
@@ -1208,6 +1220,116 @@ function InlineNoticeEditor({
   onDeleteImage: (imageId: string, noticeId: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
+
+  if (!editing) {
+    return <NoticePreview notice={notice} busy={busy} onEdit={() => setEditing(true)} onDelete={onDelete} />;
+  }
+
+  return (
+    <NoticeEditForm
+      notice={notice}
+      busy={busy}
+      onUpdate={onUpdate}
+      onUploadImage={onUploadImage}
+      onDeleteImage={onDeleteImage}
+      onClose={() => setEditing(false)}
+    />
+  );
+}
+
+// ── 注意書きプレビュー ──
+function NoticePreview({
+  notice,
+  busy,
+  onEdit,
+  onDelete,
+}: {
+  notice: FormNotice;
+  busy: boolean;
+  onEdit: () => void;
+  onDelete: (id: string) => void;
+}) {
+  const hasContent =
+    notice.text_content || notice.scrollable_text || notice.link_url || (notice.images?.length ?? 0) > 0;
+  return (
+    <div className="bg-gray-800/60 border border-dashed border-gray-600 rounded-lg p-2.5 group/notice relative">
+      {busy && (
+        <div className="absolute inset-0 bg-gray-900/50 rounded-lg flex items-center justify-center z-10">
+          <Spinner className="text-blue-400" />
+        </div>
+      )}
+      <div className="absolute -top-1.5 right-1 flex gap-1 opacity-0 group-hover/notice:opacity-100 transition">
+        <button onClick={onEdit} className="px-2 py-0.5 text-[10px] bg-gray-700 text-gray-300 hover:bg-gray-600 rounded shadow">編集</button>
+        <button onClick={() => onDelete(notice.id)} className="px-2 py-0.5 text-[10px] bg-red-900 text-red-300 hover:bg-red-800 rounded shadow">削除</button>
+      </div>
+      {!hasContent && (
+        <button onClick={onEdit} className="text-xs text-gray-500 italic hover:text-blue-400 transition w-full text-left">空の注意書き — クリックして編集</button>
+      )}
+      <NoticePreviewContent notice={notice} />
+    </div>
+  );
+}
+
+function NoticePreviewContent({ notice }: { notice: FormNotice }) {
+  return (
+    <>
+      {notice.text_content && (
+        <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">{notice.text_content}</p>
+      )}
+      {notice.scrollable_text && (
+        <div className="max-h-24 overflow-y-auto border border-gray-600 rounded-lg p-2 text-xs text-gray-400 leading-relaxed whitespace-pre-wrap bg-gray-900 mt-1">
+          {notice.scrollable_text.slice(0, 200)}
+          {notice.scrollable_text.length > 200 && "..."}
+        </div>
+      )}
+      <NoticeImages images={notice.images ?? []} />
+      {notice.link_url && <p className="text-xs text-blue-400 mt-1">{notice.link_label || notice.link_url}</p>}
+      {notice.require_consent && (
+        <label className="flex items-center gap-1.5 text-xs text-gray-400 mt-1">
+          <div className="w-3.5 h-3.5 rounded border border-gray-600" />
+          {notice.consent_label || "上記に同意します"}
+        </label>
+      )}
+    </>
+  );
+}
+
+// ── 注意書き画像表示 ──
+function NoticeImages({ images }: { images: (FormNoticeImage & { public_url?: string })[] }) {
+  if (images.length === 0) return null;
+  return (
+    <div className="space-y-2 mt-1">
+      {images.map((img) => (
+        <Image
+          key={img.id}
+          src={img.public_url ?? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${img.storage_path}`}
+          alt=""
+          className="w-full rounded-lg"
+          width={800}
+          height={600}
+          unoptimized
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── 注意書き編集フォーム ──
+function NoticeEditForm({
+  notice,
+  busy,
+  onUpdate,
+  onUploadImage,
+  onDeleteImage,
+  onClose,
+}: {
+  notice: FormNotice;
+  busy: boolean;
+  onUpdate: (id: string, patch: Partial<FormNotice>) => void;
+  onUploadImage: (noticeId: string, file: File) => void;
+  onDeleteImage: (imageId: string, noticeId: string) => void;
+  onClose: () => void;
+}) {
   const [localText, setLocalText] = useState(notice.text_content ?? "");
   const [localScrollable, setLocalScrollable] = useState(notice.scrollable_text ?? "");
   const [localUrl, setLocalUrl] = useState(notice.link_url ?? "");
@@ -1222,85 +1344,9 @@ function InlineNoticeEditor({
       link_label: localUrlLabel || null,
       consent_label: localConsentLabel || null,
     });
-    setEditing(false);
+    onClose();
   }
 
-  // プレビュー表示
-  if (!editing) {
-    const hasContent =
-      notice.text_content || notice.scrollable_text || notice.link_url || (notice.images?.length ?? 0) > 0;
-    return (
-      <div className="bg-gray-800/60 border border-dashed border-gray-600 rounded-lg p-2.5 group/notice relative">
-        {busy && (
-          <div className="absolute inset-0 bg-gray-900/50 rounded-lg flex items-center justify-center z-10">
-            <Spinner className="text-blue-400" />
-          </div>
-        )}
-        <div className="absolute -top-1.5 right-1 flex gap-1 opacity-0 group-hover/notice:opacity-100 transition">
-          <button
-            onClick={() => setEditing(true)}
-            className="px-2 py-0.5 text-[10px] bg-gray-700 text-gray-300 hover:bg-gray-600 rounded shadow"
-          >
-            編集
-          </button>
-          <button
-            onClick={() => onDelete(notice.id)}
-            className="px-2 py-0.5 text-[10px] bg-red-900 text-red-300 hover:bg-red-800 rounded shadow"
-          >
-            削除
-          </button>
-        </div>
-
-        {!hasContent && (
-          <button
-            onClick={() => setEditing(true)}
-            className="text-xs text-gray-500 italic hover:text-blue-400 transition w-full text-left"
-          >
-            空の注意書き — クリックして編集
-          </button>
-        )}
-
-        {notice.text_content && (
-          <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">
-            {notice.text_content}
-          </p>
-        )}
-        {notice.scrollable_text && (
-          <div className="max-h-24 overflow-y-auto border border-gray-600 rounded-lg p-2 text-xs text-gray-400 leading-relaxed whitespace-pre-wrap bg-gray-900 mt-1">
-            {notice.scrollable_text.slice(0, 200)}
-            {notice.scrollable_text.length > 200 && "..."}
-          </div>
-        )}
-        {(notice.images ?? []).length > 0 && (
-          <div className="space-y-2 mt-1">
-            {(notice.images ?? []).map((img: FormNoticeImage & { public_url?: string }) => (
-              <Image
-                key={img.id}
-                src={
-                  img.public_url ??
-                  `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${img.storage_path}`
-                }
-                alt=""
-                className="w-full rounded-lg"
-                width={800}
-                height={600}
-                unoptimized
-              />
-            ))}
-          </div>
-        )}
-        {notice.link_url && <p className="text-xs text-blue-400 mt-1">{notice.link_label || notice.link_url}</p>}
-        {notice.require_consent && (
-          <label className="flex items-center gap-1.5 text-xs text-gray-400 mt-1">
-            <div className="w-3.5 h-3.5 rounded border border-gray-600" />
-            {notice.consent_label || "上記に同意します"}
-          </label>
-        )}
-      </div>
-    );
-  }
-
-  // 編集モード
   return (
     <div className="bg-gray-900/60 border border-blue-700/50 rounded-lg p-3 space-y-2.5 relative">
       {busy && (
@@ -1308,96 +1354,10 @@ function InlineNoticeEditor({
           <Spinner className="text-blue-400" />
         </div>
       )}
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-blue-400 font-medium">注意書き編集</span>
-        <div className="flex gap-2">
-          <button onClick={saveAll} className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded">
-            適用
-          </button>
-          <button onClick={() => setEditing(false)} className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded">
-            キャンセル
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <label className="text-xs text-gray-500 block mb-0.5">テキスト</label>
-        <textarea
-          value={localText}
-          onChange={(e) => setLocalText(e.target.value)}
-          rows={3}
-          className="w-full bg-gray-800 border border-gray-600 rounded p-2 text-xs text-gray-200"
-          placeholder="注意書きテキスト..."
-        />
-      </div>
-
-      <div>
-        <label className="text-xs text-gray-500 block mb-0.5">画像</label>
-        <div className="flex flex-wrap gap-2 mb-1">
-          {(notice.images ?? []).map((img: FormNoticeImage & { public_url?: string }) => (
-            <div key={img.id} className="relative group/img">
-              <Image
-                src={
-                  img.public_url ??
-                  `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${img.storage_path}`
-                }
-                alt=""
-                className="h-16 rounded border border-gray-600"
-                width={64}
-                height={64}
-                unoptimized
-              />
-              <button
-                onClick={() => onDeleteImage(img.id, notice.id)}
-                className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full text-white text-[10px] leading-none flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
-        {notice.id.startsWith("temp_") ? (
-          <span className="text-xs text-gray-500" title="保存後に画像を追加できます">
-            + 画像をアップロード（保存後に利用可能）
-          </span>
-        ) : (
-          <label className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
-            + 画像をアップロード
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) onUploadImage(notice.id, f);
-                e.target.value = "";
-              }}
-            />
-          </label>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-xs text-gray-500 block mb-0.5">リンクURL</label>
-          <input
-            value={localUrl}
-            onChange={(e) => setLocalUrl(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-200"
-            placeholder="https://..."
-          />
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 block mb-0.5">リンク表示名</label>
-          <input
-            value={localUrlLabel}
-            onChange={(e) => setLocalUrlLabel(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-200"
-            placeholder="解説動画を見る"
-          />
-        </div>
-      </div>
-
+      <NoticeEditHeader onSave={saveAll} onClose={onClose} />
+      <NoticeTextFields localText={localText} setLocalText={setLocalText} />
+      <NoticeImageEditor notice={notice} onUploadImage={onUploadImage} onDeleteImage={onDeleteImage} />
+      <NoticeLinksFields localUrl={localUrl} setLocalUrl={setLocalUrl} localUrlLabel={localUrlLabel} setLocalUrlLabel={setLocalUrlLabel} />
       <details className="text-xs">
         <summary className="text-gray-500 cursor-pointer hover:text-gray-400">規約テキスト（スクロール表示）</summary>
         <textarea
@@ -1408,15 +1368,9 @@ function InlineNoticeEditor({
           placeholder="規約全文をここに入力..."
         />
       </details>
-
       <div className="flex items-center gap-2">
         <label className="flex items-center gap-1.5 text-xs text-gray-400">
-          <input
-            type="checkbox"
-            checked={notice.require_consent}
-            onChange={(e) => onUpdate(notice.id, { require_consent: e.target.checked })}
-            className="rounded"
-          />
+          <input type="checkbox" checked={notice.require_consent} onChange={(e) => onUpdate(notice.id, { require_consent: e.target.checked })} className="rounded" />
           同意チェック必須
         </label>
         {notice.require_consent && (
@@ -1427,6 +1381,111 @@ function InlineNoticeEditor({
             placeholder="上記に同意します"
           />
         )}
+      </div>
+    </div>
+  );
+}
+
+function NoticeEditHeader({ onSave, onClose }: { onSave: () => void; onClose: () => void }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-xs text-blue-400 font-medium">注意書き編集</span>
+      <div className="flex gap-2">
+        <button onClick={onSave} className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded">適用</button>
+        <button onClick={onClose} className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded">キャンセル</button>
+      </div>
+    </div>
+  );
+}
+
+function NoticeTextFields({ localText, setLocalText }: { localText: string; setLocalText: (v: string) => void }) {
+  return (
+    <div>
+      <label className="text-xs text-gray-500 block mb-0.5">テキスト</label>
+      <textarea
+        value={localText}
+        onChange={(e) => setLocalText(e.target.value)}
+        rows={3}
+        className="w-full bg-gray-800 border border-gray-600 rounded p-2 text-xs text-gray-200"
+        placeholder="注意書きテキスト..."
+      />
+    </div>
+  );
+}
+
+function NoticeImageEditor({
+  notice,
+  onUploadImage,
+  onDeleteImage,
+}: {
+  notice: FormNotice;
+  onUploadImage: (noticeId: string, file: File) => void;
+  onDeleteImage: (imageId: string, noticeId: string) => void;
+}) {
+  return (
+    <div>
+      <label className="text-xs text-gray-500 block mb-0.5">画像</label>
+      <div className="flex flex-wrap gap-2 mb-1">
+        {(notice.images ?? []).map((img: FormNoticeImage & { public_url?: string }) => (
+          <div key={img.id} className="relative group/img">
+            <Image
+              src={img.public_url ?? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${img.storage_path}`}
+              alt=""
+              className="h-16 rounded border border-gray-600"
+              width={64}
+              height={64}
+              unoptimized
+            />
+            <button
+              onClick={() => onDeleteImage(img.id, notice.id)}
+              className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full text-white text-[10px] leading-none flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+      {notice.id.startsWith("temp_") ? (
+        <span className="text-xs text-gray-500" title="保存後に画像を追加できます">+ 画像をアップロード（保存後に利用可能）</span>
+      ) : (
+        <label className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
+          + 画像をアップロード
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onUploadImage(notice.id, f);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
+
+function NoticeLinksFields({
+  localUrl,
+  setLocalUrl,
+  localUrlLabel,
+  setLocalUrlLabel,
+}: {
+  localUrl: string;
+  setLocalUrl: (v: string) => void;
+  localUrlLabel: string;
+  setLocalUrlLabel: (v: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <div>
+        <label className="text-xs text-gray-500 block mb-0.5">リンクURL</label>
+        <input value={localUrl} onChange={(e) => setLocalUrl(e.target.value)} className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-200" placeholder="https://..." />
+      </div>
+      <div>
+        <label className="text-xs text-gray-500 block mb-0.5">リンク表示名</label>
+        <input value={localUrlLabel} onChange={(e) => setLocalUrlLabel(e.target.value)} className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-200" placeholder="解説動画を見る" />
       </div>
     </div>
   );
@@ -1445,8 +1504,51 @@ function AddCustomFieldForm({
   const [label, setLabel] = useState("");
   const [fieldType, setFieldType] = useState("text");
   const [choicesText, setChoicesText] = useState("");
-  const [adding, _setAdding] = useState(false);
 
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full py-2.5 border-2 border-dashed border-purple-600/40 hover:border-purple-500/60 rounded-xl text-sm text-purple-400 hover:text-purple-300 transition font-medium"
+      >
+        + 自由設問を追加
+      </button>
+    );
+  }
+
+  return (
+    <AddCustomFieldFormBody
+      label={label}
+      setLabel={setLabel}
+      fieldType={fieldType}
+      setFieldType={setFieldType}
+      choicesText={choicesText}
+      setChoicesText={setChoicesText}
+      onAdd={onAdd}
+      onClose={() => setOpen(false)}
+    />
+  );
+}
+
+function AddCustomFieldFormBody({
+  label,
+  setLabel,
+  fieldType,
+  setFieldType,
+  choicesText,
+  setChoicesText,
+  onAdd,
+  onClose,
+}: {
+  label: string;
+  setLabel: (v: string) => void;
+  fieldType: string;
+  setFieldType: (v: string) => void;
+  choicesText: string;
+  setChoicesText: (v: string) => void;
+  onAdd: (label: string, fieldType: string, choices: { label: string; value: string }[] | null) => void;
+  onClose: () => void;
+}) {
   const needsChoices = fieldType === "select" || fieldType === "checkbox";
 
   function handleAdd() {
@@ -1468,44 +1570,22 @@ function AddCustomFieldForm({
     setLabel("");
     setFieldType("text");
     setChoicesText("");
-    setOpen(false);
-  }
-
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="w-full py-2.5 border-2 border-dashed border-purple-600/40 hover:border-purple-500/60 rounded-xl text-sm text-purple-400 hover:text-purple-300 transition font-medium"
-      >
-        + 自由設問を追加
-      </button>
-    );
+    onClose();
   }
 
   return (
     <div className="border border-purple-600/40 rounded-xl p-4 space-y-3 bg-purple-900/10">
       <div className="flex items-center justify-between">
         <span className="text-sm text-purple-300 font-medium">自由設問を追加</span>
-        <button onClick={() => setOpen(false)} className="text-xs text-gray-500 hover:text-gray-300">
-          キャンセル
-        </button>
+        <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-300">キャンセル</button>
       </div>
       <div>
         <label className="text-xs text-gray-400 block mb-1">ラベル（質問文）</label>
-        <input
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="例: 保険加入の有無"
-          className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:border-purple-500 focus:outline-none"
-        />
+        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="例: 保険加入の有無" className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:border-purple-500 focus:outline-none" />
       </div>
       <div>
         <label className="text-xs text-gray-400 block mb-1">タイプ</label>
-        <select
-          value={fieldType}
-          onChange={(e) => setFieldType(e.target.value)}
-          className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:border-purple-500 focus:outline-none"
-        >
+        <select value={fieldType} onChange={(e) => setFieldType(e.target.value)} className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:border-purple-500 focus:outline-none">
           <option value="text">テキスト（1行）</option>
           <option value="textarea">テキスト（複数行）</option>
           <option value="number">数値</option>
@@ -1516,29 +1596,10 @@ function AddCustomFieldForm({
       {needsChoices && (
         <div>
           <label className="text-xs text-gray-400 block mb-1">選択肢（1行1つ）</label>
-          <textarea
-            value={choicesText}
-            onChange={(e) => setChoicesText(e.target.value)}
-            rows={4}
-            placeholder={"あり\nなし"}
-            className="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 text-sm text-gray-200 focus:border-purple-500 focus:outline-none"
-          />
+          <textarea value={choicesText} onChange={(e) => setChoicesText(e.target.value)} rows={4} placeholder={"あり\nなし"} className="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 text-sm text-gray-200 focus:border-purple-500 focus:outline-none" />
         </div>
       )}
-      <button
-        onClick={handleAdd}
-        disabled={adding}
-        className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg transition font-medium"
-      >
-        {adding ? (
-          <>
-            <Spinner className="inline-block mr-1" />
-            追加中...
-          </>
-        ) : (
-          "追加する"
-        )}
-      </button>
+      <button onClick={handleAdd} className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 rounded-lg transition font-medium">追加する</button>
     </div>
   );
 }

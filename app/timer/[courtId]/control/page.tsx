@@ -11,6 +11,16 @@ import { PHASE_BADGE } from "./_timer-constants";
 import MiniPreview from "./_mini-preview";
 import { useTimerControl } from "./_use-timer-control";
 
+function OfflineBanner({ offlineMode }: { offlineMode: string }) {
+  if (offlineMode !== "offline") return null;
+  return (
+    <div className="bg-blue-600 text-white text-center px-3 py-1 text-xs font-medium flex items-center justify-center gap-2">
+      <span>オフラインモード</span>
+      <button onClick={() => { setMode("online"); flush().catch(() => {}); }} className="bg-blue-800 hover:bg-blue-900 px-2 py-0.5 rounded text-xs">オンラインに切り替え</button>
+    </div>
+  );
+}
+
 export default function TimerControlPage() {
   const { mode: offlineMode } = useOfflineMode();
   const tc = useTimerControl();
@@ -20,20 +30,7 @@ export default function TimerControlPage() {
 
   return (
     <div className="min-h-screen h-screen bg-gray-950 text-gray-100 flex flex-col">
-      {offlineMode === "offline" && (
-        <div className="bg-blue-600 text-white text-center px-3 py-1 text-xs font-medium flex items-center justify-center gap-2">
-          <span>オフラインモード</span>
-          <button
-            onClick={() => {
-              setMode("online");
-              flush().catch(() => {});
-            }}
-            className="bg-blue-800 hover:bg-blue-900 px-2 py-0.5 rounded text-xs"
-          >
-            オンラインに切り替え
-          </button>
-        </div>
-      )}
+      <OfflineBanner offlineMode={offlineMode} />
 
       <MiniPreview
         state={tc.state}

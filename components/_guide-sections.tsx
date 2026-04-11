@@ -164,27 +164,37 @@ function CopyLiveUrlButton() {
 
 // ═══════════ 第1部: 事前設定 ═══════════
 
-export function GuidePartPresetup({
-  openIds,
-  toggle,
-  onNavigate,
-}: {
-  openIds: Set<string>;
-  toggle: (id: string) => void;
-  onNavigate: (tab: AdminTab) => void;
-}) {
+type GuideProps = { openIds: Set<string>; toggle: (id: string) => void; onNavigate: (tab: AdminTab) => void };
+
+export function GuidePartPresetup({ openIds, toggle, onNavigate }: GuideProps) {
   return (
     <div>
       <h2 className="text-base font-bold text-white mb-3 flex items-center gap-2">
         <span className="bg-yellow-600 text-white text-xs px-2 py-0.5 rounded">第1部</span>
         事前設定
       </h2>
-      <p className="text-xs text-gray-500 mb-4">
-        大会の前に設定しておく項目です。ルールとタイマーは必須、それ以外はデフォルトでも使えます。
-      </p>
-
+      <p className="text-xs text-gray-500 mb-4">大会の前に設定しておく項目です。ルールとタイマーは必須、それ以外はデフォルトでも使えます。</p>
       <div className="space-y-1.5">
-        {/* ── 1. ルール設定 ── */}
+        <PresetupSections1 openIds={openIds} toggle={toggle} onNavigate={onNavigate} />
+        <PresetupSections2 openIds={openIds} toggle={toggle} onNavigate={onNavigate} />
+      </div>
+    </div>
+  );
+}
+
+function PresetupSections1({ openIds, toggle, onNavigate }: GuideProps) {
+  return (
+    <>
+      <PresetupSection1a openIds={openIds} toggle={toggle} onNavigate={onNavigate} />
+      <PresetupSection1b openIds={openIds} toggle={toggle} onNavigate={onNavigate} />
+    </>
+  );
+}
+
+function PresetupSection1a({ openIds, toggle, onNavigate }: GuideProps) {
+  return (
+    <div className="space-y-1.5">
+      {/* ── 1. ルール設定 ── */}
         <Section
           id="rule"
           openIds={openIds}
@@ -255,7 +265,13 @@ export function GuidePartPresetup({
           </MockScreen>
           <NavButton label="設定タブ（ルール）へ →" onClick={() => onNavigate("settings")} />
         </Section>
+    </div>
+  );
+}
 
+function PresetupSection1b({ openIds, toggle, onNavigate }: GuideProps) {
+  return (
+    <div className="space-y-1.5">
         {/* ── 2. タイマー設定 ── */}
         <Section
           id="timer"
@@ -338,7 +354,22 @@ export function GuidePartPresetup({
           </MockScreen>
           <NavButton label="設定タブ（タイマー）へ →" onClick={() => onNavigate("settings")} />
         </Section>
+    </div>
+  );
+}
 
+function PresetupSections2({ openIds, toggle, onNavigate }: GuideProps) {
+  return (
+    <>
+      <PresetupSection2a openIds={openIds} toggle={toggle} onNavigate={onNavigate} />
+      <PresetupSection2b openIds={openIds} toggle={toggle} onNavigate={onNavigate} />
+    </>
+  );
+}
+
+function PresetupSection2a({ openIds, toggle, onNavigate }: GuideProps) {
+  return (
+    <div className="space-y-1.5">
         {/* ── 3. アナウンス設定 ── */}
         <Section
           id="announce"
@@ -393,7 +424,13 @@ export function GuidePartPresetup({
           </Tip>
           <NavButton label="設定タブ（アナウンス）へ →" onClick={() => onNavigate("settings")} />
         </Section>
+    </div>
+  );
+}
 
+function PresetupSection2b({ openIds, toggle, onNavigate }: GuideProps) {
+  return (
+    <div className="space-y-1.5">
         {/* ── 4. 年代区分 ── */}
         <Section
           id="age"
@@ -456,22 +493,13 @@ export function GuidePartPresetup({
           </Tip>
           <NavButton label="設定タブ（流派）へ →" onClick={() => onNavigate("settings")} />
         </Section>
-      </div>
     </div>
   );
 }
 
 // ═══════════ 第2部: 試合運営フロー ═══════════
 
-export function GuidePartOperations({
-  openIds,
-  toggle,
-  onNavigate,
-}: {
-  openIds: Set<string>;
-  toggle: (id: string) => void;
-  onNavigate: (tab: AdminTab) => void;
-}) {
+export function GuidePartOperations({ openIds, toggle, onNavigate }: GuideProps) {
   return (
     <div>
       <h2 className="text-base font-bold text-white mb-3 flex items-center gap-2">
@@ -479,8 +507,30 @@ export function GuidePartOperations({
         試合運営フロー
       </h2>
       <p className="text-xs text-gray-500 mb-4">大会の作成から試合進行までの流れです。上から順に進めてください。</p>
-
       <div className="space-y-1.5">
+        <OperationsSections1 openIds={openIds} toggle={toggle} onNavigate={onNavigate} />
+        <OperationsSections2 openIds={openIds} toggle={toggle} onNavigate={onNavigate} />
+        <OperationsSections3 openIds={openIds} toggle={toggle} onNavigate={onNavigate} />
+      </div>
+    </div>
+  );
+}
+
+function OperationsSections1({ openIds, toggle, onNavigate }: GuideProps) {
+  return (
+    <>
+      <OperationsSections1a openIds={openIds} toggle={toggle} onNavigate={onNavigate} />
+      <OperationsSections1b openIds={openIds} toggle={toggle} onNavigate={onNavigate} />
+    </>
+  );
+}
+
+function OperationsSections1a({ openIds, toggle, onNavigate }: GuideProps) {
+  return (<><OpSec1a1 openIds={openIds} toggle={toggle} onNavigate={onNavigate} /><OpSec1a2 openIds={openIds} toggle={toggle} onNavigate={onNavigate} /></>);
+}
+function OpSec1a1({ openIds, toggle, onNavigate }: GuideProps) {
+  return (
+    <div className="space-y-1.5">
         {/* ── 6. イベント作成 ── */}
         <Section
           id="event"
@@ -528,7 +578,12 @@ export function GuidePartOperations({
           </MockScreen>
           <NavButton label="試合タブへ →" onClick={() => onNavigate("events")} />
         </Section>
-
+    </div>
+  );
+}
+function OpSec1a2({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
+  return (
+    <div className="space-y-1.5">
         {/* ── 7. 参加者管理 ── */}
         <Section
           id="entry"
@@ -584,7 +639,13 @@ export function GuidePartOperations({
             </div>
           </MockScreen>
         </Section>
+    </div>
+  );
+}
 
+function OperationsSections1b({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
+  return (
+    <div className="space-y-1.5">
         {/* ── 8. 対戦表作成 ── */}
         <Section
           id="bracket"
@@ -655,7 +716,14 @@ export function GuidePartOperations({
             </div>
           </MockScreen>
         </Section>
+    </div>
+  );
+}
 
+function OperationsSections2({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
+  return (
+    <>
+      <div className="space-y-1.5">
         {/* ── 9. 試合番号設定 ── */}
         <Section
           id="label"
@@ -702,7 +770,26 @@ export function GuidePartOperations({
             </div>
           </MockScreen>
         </Section>
+      </div>
+    </>
+  );
+}
 
+function OperationsSections3({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
+  return (
+    <>
+      <OperationsSections3a openIds={openIds} toggle={toggle} onNavigate={_onNavigate} />
+      <OperationsSections3b openIds={openIds} toggle={toggle} onNavigate={_onNavigate} />
+    </>
+  );
+}
+
+function OperationsSections3a({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
+  return (<><OpSec3a1 openIds={openIds} toggle={toggle} onNavigate={_onNavigate} /><OpSec3a2 openIds={openIds} toggle={toggle} onNavigate={_onNavigate} /></>);
+}
+function OpSec3a1({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
+  return (
+    <div className="space-y-1.5">
         {/* ── 10. 試合進行（タイマー＋操作パネル） ── */}
         <Section
           id="timer-op"
@@ -761,7 +848,12 @@ export function GuidePartOperations({
             </div>
           </MockScreen>
         </Section>
-
+    </div>
+  );
+}
+function OpSec3a2({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
+  return (
+    <div className="space-y-1.5">
         {/* ── 11. コート画面（タイマー不使用時） ── */}
         <Section
           id="court"
@@ -830,7 +922,16 @@ export function GuidePartOperations({
             <p className="text-[10px] text-gray-500 mt-1 text-center">↑ 選手名をタップで勝者確定 → 自動アナウンス</p>
           </MockScreen>
         </Section>
+    </div>
+  );
+}
 
+function OperationsSections3b({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
+  return (<><OpSec3b1 openIds={openIds} toggle={toggle} onNavigate={_onNavigate} /><OpSec3b2 openIds={openIds} toggle={toggle} onNavigate={_onNavigate} /></>);
+}
+function OpSec3b1({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
+  return (
+    <div className="space-y-1.5">
         {/* ── 12. 試合速報 ── */}
         <Section
           id="live"
@@ -870,7 +971,12 @@ export function GuidePartOperations({
             <CopyLiveUrlButton />
           </div>
         </Section>
-
+    </div>
+  );
+}
+function OpSec3b2({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
+  return (
+    <div className="space-y-1.5">
         {/* ── 13. オフラインモード ── */}
         <Section
           id="offline"
@@ -943,7 +1049,6 @@ export function GuidePartOperations({
             </Tip>
           </div>
         </Section>
-      </div>
     </div>
   );
 }

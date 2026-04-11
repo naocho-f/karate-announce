@@ -26,261 +26,142 @@ import {
   BracketQualityBadge,
 } from "@/components/_bracket-shared";
 
+function rangeLabel(min: string, max: string, unit: string): string | null {
+  if (!min && !max) return null;
+  if (min && max && min !== max) return `${min}〜${max}${unit}`;
+  if (min && max) return `${min}${unit}`;
+  if (min) return `${min}${unit}以上`;
+  return `${max}${unit}以下`;
+}
+
+function buildAutoGroupName(f: { minGrade: string; maxGrade: string; sexFilter: string; minAge: string; maxAge: string; minWeight: string; maxWeight: string; minHeight: string; maxHeight: string }): string | null {
+  const parts: string[] = [];
+  const grade = rangeLabel(f.minGrade, f.maxGrade, "");
+  if (grade) parts.push(grade);
+  if (f.sexFilter === "male") parts.push("男子");
+  else if (f.sexFilter === "female") parts.push("女子");
+  const age = rangeLabel(f.minAge, f.maxAge, "歳");
+  if (age) parts.push(age);
+  const weight = rangeLabel(f.minWeight, f.maxWeight, "kg");
+  if (weight) parts.push(weight);
+  const height = rangeLabel(f.minHeight, f.maxHeight, "cm");
+  if (height) parts.push(height);
+  return parts.length > 0 ? parts.join(" ") : null;
+}
+
+function inRange(value: number | null | undefined, minStr: string, maxStr: string, parseFn: (s: string) => number): boolean {
+  if (minStr !== "" && (value == null || value < parseFn(minStr))) return false;
+  if (maxStr !== "" && (value == null || value > parseFn(maxStr))) return false;
+  return true;
+}
+
+type FilterState = { minWeight: string; maxWeight: string; minAge: string; maxAge: string; minHeight: string; maxHeight: string; sexFilter: string; minGrade: string; maxGrade: string; experienceFilter: string; nameFilter: string; matchCountFilter: string };
+
+function filterEntryNumeric(e: Entry, f: FilterState): boolean {
+  if (!inRange(e.weight, f.minWeight, f.maxWeight, parseFloat)) return false;
+  if (!inRange(e.age, f.minAge, f.maxAge, parseInt)) return false;
+  if (!inRange(e.height, f.minHeight, f.maxHeight, parseFloat)) return false;
+  return true;
+}
+
+function filterEntry(e: Entry, f: FilterState, ageCategories: AgeCategory[] | undefined, getTotalMatchCount: (e: Entry) => number, getDesiredMatchCount: (e: Entry) => number): boolean {
+  if (!filterEntryNumeric(e, f)) return false;
+  if (f.sexFilter && e.sex !== f.sexFilter) return false;
+  if ((f.minGrade || f.maxGrade) && !gradeFilterPredicate(f.minGrade, f.maxGrade, ageCategories)(e)) return false;
+  if (f.experienceFilter && !e.experience?.includes(f.experienceFilter)) return false;
+  if (f.nameFilter && !entryFullName(e).toLowerCase().includes(f.nameFilter.toLowerCase())) return false;
+  return matchCountFilterPredicate(f.matchCountFilter, getTotalMatchCount, getDesiredMatchCount)(e);
+}
+
+const EMPTY_FILTER: FilterState = { minWeight: "", maxWeight: "", minAge: "", maxAge: "", minHeight: "", maxHeight: "", sexFilter: "", minGrade: "", maxGrade: "", experienceFilter: "", nameFilter: "", matchCountFilter: "" };
+
+function initFilter(f: Group["filters"]): FilterState {
+  if (!f) return { ...EMPTY_FILTER };
+  return { minWeight: f.minWeight ?? "", maxWeight: f.maxWeight ?? "", minAge: f.minAge ?? "", maxAge: f.maxAge ?? "", minHeight: f.minHeight ?? "", maxHeight: f.maxHeight ?? "", sexFilter: f.sexFilter ?? "", minGrade: f.minGrade ?? "", maxGrade: f.maxGrade ?? "", experienceFilter: f.experienceFilter ?? "", nameFilter: f.nameFilter ?? "", matchCountFilter: f.matchCountFilter ?? "" };
+}
+
+function useGroupFilters(group: Group, unassigned: Entry[], ageCategories: AgeCategory[] | undefined, getTotalMatchCount: (e: Entry) => number, getDesiredMatchCount: (e: Entry) => number, onRename: (name: string) => void, onUpdateFilters: (f: GroupFilters) => void) {
+  const [manualName, setManualName] = useState(false);
+  const [filters, setFilters] = useState<FilterState>(() => initFilter(group.filters));
+  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set());
+  const setField = (key: keyof FilterState, value: string) => setFilters((prev) => ({ ...prev, [key]: value }));
+
+  useEffect(() => {
+    if (manualName) return;
+    const autoName = buildAutoGroupName(filters);
+    if (autoName) onRename(autoName);
+  }, [filters, manualName, onRename]);
+  useEffect(() => {
+    onUpdateFilters(filters);
+  }, [filters, onUpdateFilters]);
+
+  const filteredUnassigned = unassigned.filter((e) => filterEntry(e, filters, ageCategories, getTotalMatchCount, getDesiredMatchCount));
+  const sortComparator = buildFilterSortComparator(filters);
+  const sortedFilteredUnassigned = [...filteredUnassigned].sort(sortComparator);
+  const validSelectedIds = new Set([...selectedEntryIds].filter((id) => sortedFilteredUnassigned.some((e) => e.id === id)));
+
+  return {
+    filters, sortedFilteredUnassigned, validSelectedIds, selectedEntryIds, setSelectedEntryIds, setManualName,
+    ...filters, setField,
+    setMinWeight: (v: string) => setField("minWeight", v), setMaxWeight: (v: string) => setField("maxWeight", v),
+    setMinAge: (v: string) => setField("minAge", v), setMaxAge: (v: string) => setField("maxAge", v),
+    setSexFilter: (v: string) => setField("sexFilter", v), setMinGrade: (v: string) => setField("minGrade", v),
+    setMaxGrade: (v: string) => setField("maxGrade", v), setExperienceFilter: (v: string) => setField("experienceFilter", v),
+    setMinHeight: (v: string) => setField("minHeight", v), setMaxHeight: (v: string) => setField("maxHeight", v),
+    setNameFilter: (v: string) => setField("nameFilter", v), setMatchCountFilter: (v: string) => setField("matchCountFilter", v),
+  };
+}
+
 export function GroupSection({
-  group,
-  entries: _entries,
-  unassigned,
-  allEntries: _allEntries,
-  rules: _rules,
-  eventRules,
-  entryRuleIds,
-  defaultRuleId,
-  mismatchSettings: _mismatchSettings,
-  ageCategories,
-  canRemove,
-  getDesiredMatchCount,
-  getTotalMatchCount,
-  existingPairs,
-  onRename,
-  onRemove,
-  onAutoAssign,
-  onUpdateMismatch,
-  onAddPair,
-  onRemovePair,
-  onMovePair,
-  onUpdateE1,
-  onUpdateE2,
-  onUpdateField: _onUpdateField,
-  onUpdateFilters,
+  group, entries: _entries, unassigned, allEntries: _allEntries, rules: _rules,
+  eventRules, entryRuleIds, defaultRuleId, mismatchSettings: _mismatchSettings, ageCategories,
+  canRemove, getDesiredMatchCount, getTotalMatchCount, existingPairs,
+  onRename, onRemove, onAutoAssign, onUpdateMismatch, onAddPair, onRemovePair, onMovePair, onUpdateE1, onUpdateE2, onUpdateField: _onUpdateField, onUpdateFilters,
 }: {
-  group: Group;
-  entries: Entry[];
-  unassigned: Entry[];
-  allEntries: Entry[];
-  rules: Rule[];
-  eventRules: Rule[];
-  entryRuleIds: Record<string, Set<string>>;
-  defaultRuleId: string;
-  mismatchSettings: MismatchSettings;
-  ageCategories?: AgeCategory[];
-  canRemove: boolean;
-  getDesiredMatchCount: (entry: Entry) => number;
-  getTotalMatchCount: (entry: Entry) => number;
+  group: Group; entries: Entry[]; unassigned: Entry[]; allEntries: Entry[]; rules: Rule[];
+  eventRules: Rule[]; entryRuleIds: Record<string, Set<string>>; defaultRuleId: string;
+  mismatchSettings: MismatchSettings; ageCategories?: AgeCategory[]; canRemove: boolean;
+  getDesiredMatchCount: (entry: Entry) => number; getTotalMatchCount: (entry: Entry) => number;
   existingPairs: { e1Id: string; e2Id: string; ruleId: string; pairId: string }[];
-  onRename: (name: string) => void;
-  onRemove: () => void;
-  onAutoAssign: (entries: Entry[]) => void;
+  onRename: (name: string) => void; onRemove: () => void; onAutoAssign: (entries: Entry[]) => void;
   onUpdateMismatch: (maxWeightDiff: number | null, maxHeightDiff: number | null) => void;
-  onAddPair: () => void;
-  onRemovePair: (pairId: string) => void;
-  onMovePair: (pairId: string, dir: "up" | "down") => void;
-  onUpdateE1: (pairId: string, entryId: string) => void;
-  onUpdateE2: (pairId: string, entryId: string | null) => void;
+  onAddPair: () => void; onRemovePair: (pairId: string) => void; onMovePair: (pairId: string, dir: "up" | "down") => void;
+  onUpdateE1: (pairId: string, entryId: string) => void; onUpdateE2: (pairId: string, entryId: string | null) => void;
   onUpdateField: (pairId: string, field: "matchLabel" | "ruleId", value: string) => void;
   onUpdateFilters: (filters: GroupFilters) => void;
 }) {
   const [previewMode, setPreviewMode] = useState(false);
-  const [manualName, setManualName] = useState(false);
-  const [minWeight, setMinWeight] = useState(group.filters?.minWeight ?? "");
-  const [maxWeight, setMaxWeight] = useState(group.filters?.maxWeight ?? "");
-  const [minAge, setMinAge] = useState(group.filters?.minAge ?? "");
-  const [maxAge, setMaxAge] = useState(group.filters?.maxAge ?? "");
-  const [sexFilter, setSexFilter] = useState(group.filters?.sexFilter ?? "");
-  const [minGrade, setMinGrade] = useState(group.filters?.minGrade ?? "");
-  const [maxGrade, setMaxGrade] = useState(group.filters?.maxGrade ?? "");
-  const [experienceFilter, setExperienceFilter] = useState(group.filters?.experienceFilter ?? "");
-  const [minHeight, setMinHeight] = useState(group.filters?.minHeight ?? "");
-  const [maxHeight, setMaxHeight] = useState(group.filters?.maxHeight ?? "");
-  const [nameFilter, setNameFilter] = useState(group.filters?.nameFilter ?? "");
-  const [matchCountFilter, setMatchCountFilter] = useState(group.filters?.matchCountFilter ?? "");
-  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (manualName) return;
-    const parts: string[] = [];
-    if (minGrade || maxGrade) {
-      if (minGrade && maxGrade && minGrade !== maxGrade) parts.push(`${minGrade}〜${maxGrade}`);
-      else if (minGrade && maxGrade) parts.push(minGrade);
-      else if (minGrade) parts.push(`${minGrade}以上`);
-      else parts.push(`${maxGrade}以下`);
-    }
-    if (sexFilter === "male") parts.push("男子");
-    else if (sexFilter === "female") parts.push("女子");
-    if (minAge || maxAge) {
-      if (minAge && maxAge) parts.push(`${minAge}〜${maxAge}歳`);
-      else if (minAge) parts.push(`${minAge}歳以上`);
-      else parts.push(`${maxAge}歳以下`);
-    }
-    if (minWeight || maxWeight) {
-      if (minWeight && maxWeight) parts.push(`${minWeight}〜${maxWeight}kg`);
-      else if (minWeight) parts.push(`${minWeight}kg以上`);
-      else parts.push(`${maxWeight}kg以下`);
-    }
-    if (minHeight || maxHeight) {
-      if (minHeight && maxHeight) parts.push(`${minHeight}〜${maxHeight}cm`);
-      else if (minHeight) parts.push(`${minHeight}cm以上`);
-      else parts.push(`${maxHeight}cm以下`);
-    }
-    if (parts.length > 0) {
-      const autoName = parts.join(" ");
-      onRename(autoName);
-    }
-  }, [sexFilter, minAge, maxAge, minWeight, maxWeight, minHeight, maxHeight, minGrade, maxGrade, manualName, onRename]);
-
-  useEffect(() => {
-    onUpdateFilters({
-      minWeight,
-      maxWeight,
-      minAge,
-      maxAge,
-      sexFilter,
-      minGrade,
-      maxGrade,
-      experienceFilter,
-      minHeight,
-      maxHeight,
-      nameFilter,
-      matchCountFilter,
-    });
-  }, [
-    minWeight,
-    maxWeight,
-    minAge,
-    maxAge,
-    sexFilter,
-    minGrade,
-    maxGrade,
-    experienceFilter,
-    minHeight,
-    maxHeight,
-    nameFilter,
-    matchCountFilter,
-    onUpdateFilters,
-  ]);
-
-  const filteredUnassigned = unassigned.filter((e) => {
-    if (minWeight !== "" && (e.weight == null || e.weight < parseFloat(minWeight))) return false;
-    if (maxWeight !== "" && (e.weight == null || e.weight > parseFloat(maxWeight))) return false;
-    if (minAge !== "" && (e.age == null || e.age < parseInt(minAge))) return false;
-    if (maxAge !== "" && (e.age == null || e.age > parseInt(maxAge))) return false;
-    if (minHeight !== "" && (e.height == null || e.height < parseFloat(minHeight))) return false;
-    if (maxHeight !== "" && (e.height == null || e.height > parseFloat(maxHeight))) return false;
-    if (sexFilter && e.sex !== sexFilter) return false;
-    if ((minGrade || maxGrade) && !gradeFilterPredicate(minGrade, maxGrade, ageCategories)(e)) return false;
-    if (experienceFilter && !e.experience?.includes(experienceFilter)) return false;
-    if (nameFilter && !entryFullName(e).toLowerCase().includes(nameFilter.toLowerCase())) return false;
-    const matchPred = matchCountFilterPredicate(matchCountFilter, getTotalMatchCount, getDesiredMatchCount);
-    if (!matchPred(e)) return false;
-    return true;
-  });
-
-  const sortComparator = buildFilterSortComparator({
-    minGrade,
-    maxGrade,
-    minAge,
-    maxAge,
-    minWeight,
-    maxWeight,
-    minHeight,
-    maxHeight,
-  });
-  const sortedFilteredUnassigned = [...filteredUnassigned].sort(sortComparator);
-
-  const validSelectedIds = new Set(
-    [...selectedEntryIds].filter((id) => sortedFilteredUnassigned.some((e) => e.id === id)),
-  );
-
-  const groupMismatch: MismatchSettings = {
-    maxWeightDiff: group.maxWeightDiff,
-    maxHeightDiff: group.maxHeightDiff,
-  };
-
+  const gf = useGroupFilters(group, unassigned, ageCategories, getTotalMatchCount, getDesiredMatchCount, onRename, onUpdateFilters);
+  const groupMismatch: MismatchSettings = { maxWeightDiff: group.maxWeightDiff, maxHeightDiff: group.maxHeightDiff };
   const isOneMatch = group.type === "one_match";
   const preview = !isOneMatch && previewMode && group.pairs.length > 1 ? buildBracketPreview(group.pairs) : null;
-  const inpSm =
-    "bg-gray-700 border border-gray-600 rounded px-1.5 py-1 text-xs text-white outline-none focus:border-blue-500";
+  const inpSm = "bg-gray-700 border border-gray-600 rounded px-1.5 py-1 text-xs text-white outline-none focus:border-blue-500";
 
   return (
     <div className="border border-gray-600 rounded-xl p-3 space-y-3">
-      <GroupHeader
-        group={group}
-        isOneMatch={isOneMatch}
-        previewMode={previewMode}
-        canRemove={canRemove}
-        inpSm={inpSm}
-        onRename={(name) => {
-          setManualName(true);
-          onRename(name);
-        }}
-        onUpdateMismatch={onUpdateMismatch}
-        onSetPreviewMode={setPreviewMode}
-        onRemove={onRemove}
-      />
-
-      <GroupFilterPanel
-        isOneMatch={isOneMatch}
-        sortedFilteredUnassigned={sortedFilteredUnassigned}
-        unassigned={unassigned}
-        eventRules={eventRules}
-        entryRuleIds={entryRuleIds}
-        defaultRuleId={defaultRuleId}
-        ageCategories={ageCategories}
-        group={group}
-        validSelectedIds={validSelectedIds}
-        inpSm={inpSm}
-        minWeight={minWeight}
-        maxWeight={maxWeight}
-        minAge={minAge}
-        maxAge={maxAge}
-        sexFilter={sexFilter}
-        minGrade={minGrade}
-        maxGrade={maxGrade}
-        experienceFilter={experienceFilter}
-        minHeight={minHeight}
-        maxHeight={maxHeight}
-        nameFilter={nameFilter}
-        matchCountFilter={matchCountFilter}
-        getDesiredMatchCount={getDesiredMatchCount}
-        getTotalMatchCount={getTotalMatchCount}
-        onSetMinWeight={setMinWeight}
-        onSetMaxWeight={setMaxWeight}
-        onSetMinAge={setMinAge}
-        onSetMaxAge={setMaxAge}
-        onSetSexFilter={setSexFilter}
-        onSetMinGrade={setMinGrade}
-        onSetMaxGrade={setMaxGrade}
-        onSetExperienceFilter={setExperienceFilter}
-        onSetMinHeight={setMinHeight}
-        onSetMaxHeight={setMaxHeight}
-        onSetNameFilter={setNameFilter}
-        onSetMatchCountFilter={setMatchCountFilter}
-        onSetSelectedEntryIds={setSelectedEntryIds}
-        onAutoAssign={onAutoAssign}
-      />
-
+      <GroupHeader group={group} isOneMatch={isOneMatch} previewMode={previewMode} canRemove={canRemove} inpSm={inpSm}
+        onRename={(name) => { gf.setManualName(true); onRename(name); }} onUpdateMismatch={onUpdateMismatch} onSetPreviewMode={setPreviewMode} onRemove={onRemove} />
+      <GroupFilterPanel isOneMatch={isOneMatch} sortedFilteredUnassigned={gf.sortedFilteredUnassigned} unassigned={unassigned}
+        eventRules={eventRules} entryRuleIds={entryRuleIds} defaultRuleId={defaultRuleId} ageCategories={ageCategories}
+        group={group} validSelectedIds={gf.validSelectedIds} inpSm={inpSm}
+        minWeight={gf.minWeight} maxWeight={gf.maxWeight} minAge={gf.minAge} maxAge={gf.maxAge}
+        sexFilter={gf.sexFilter} minGrade={gf.minGrade} maxGrade={gf.maxGrade} experienceFilter={gf.experienceFilter}
+        minHeight={gf.minHeight} maxHeight={gf.maxHeight} nameFilter={gf.nameFilter} matchCountFilter={gf.matchCountFilter}
+        getDesiredMatchCount={getDesiredMatchCount} getTotalMatchCount={getTotalMatchCount}
+        onSetMinWeight={gf.setMinWeight} onSetMaxWeight={gf.setMaxWeight} onSetMinAge={gf.setMinAge} onSetMaxAge={gf.setMaxAge}
+        onSetSexFilter={gf.setSexFilter} onSetMinGrade={gf.setMinGrade} onSetMaxGrade={gf.setMaxGrade} onSetExperienceFilter={gf.setExperienceFilter}
+        onSetMinHeight={gf.setMinHeight} onSetMaxHeight={gf.setMaxHeight} onSetNameFilter={gf.setNameFilter} onSetMatchCountFilter={gf.setMatchCountFilter}
+        onSetSelectedEntryIds={gf.setSelectedEntryIds} onAutoAssign={onAutoAssign} />
       {previewMode && preview ? (
         <BracketView matches={preview.matches} nameMap={preview.nameMap} affiliationMap={preview.affiliationMap} />
       ) : (
         <>
           {group.pairs.length > 0 && (
-            <PairList
-              pairs={group.pairs}
-              sortedFilteredUnassigned={sortedFilteredUnassigned}
-              existingPairs={existingPairs}
-              groupMismatch={groupMismatch}
-              onUpdateE1={onUpdateE1}
-              onUpdateE2={onUpdateE2}
-              onMovePair={onMovePair}
-              onRemovePair={onRemovePair}
-            />
+            <PairList pairs={group.pairs} sortedFilteredUnassigned={gf.sortedFilteredUnassigned} existingPairs={existingPairs}
+              groupMismatch={groupMismatch} onUpdateE1={onUpdateE1} onUpdateE2={onUpdateE2} onMovePair={onMovePair} onRemovePair={onRemovePair} />
           )}
-          <button
-            onClick={onAddPair}
-            disabled={unassigned.length === 0 || (isOneMatch && group.pairs.length >= 1)}
-            className="w-full bg-gray-700 hover:bg-gray-600 disabled:opacity-50 py-1.5 rounded text-xs transition"
-          >
-            ＋ 手動で対戦を追加
-          </button>
+          <button onClick={onAddPair} disabled={unassigned.length === 0 || (isOneMatch && group.pairs.length >= 1)}
+            className="w-full bg-gray-700 hover:bg-gray-600 disabled:opacity-50 py-1.5 rounded text-xs transition">＋ 手動で対戦を追加</button>
         </>
       )}
     </div>
@@ -382,85 +263,34 @@ function GroupHeader({
 
 // ── GroupFilterPanel ──────────────────────────────────────
 
-function GroupFilterPanel({
-  isOneMatch,
-  sortedFilteredUnassigned,
-  unassigned,
-  eventRules,
-  entryRuleIds,
-  defaultRuleId,
-  ageCategories,
-  group,
-  validSelectedIds,
-  inpSm,
-  minWeight,
-  maxWeight,
-  minAge,
-  maxAge,
-  sexFilter,
-  minGrade,
-  maxGrade,
-  experienceFilter,
-  minHeight,
-  maxHeight,
-  nameFilter,
-  matchCountFilter,
-  getDesiredMatchCount,
-  getTotalMatchCount,
-  onSetMinWeight,
-  onSetMaxWeight,
-  onSetMinAge,
-  onSetMaxAge,
-  onSetSexFilter,
-  onSetMinGrade,
-  onSetMaxGrade,
-  onSetExperienceFilter,
-  onSetMinHeight,
-  onSetMaxHeight,
-  onSetNameFilter,
-  onSetMatchCountFilter,
-  onSetSelectedEntryIds,
-  onAutoAssign,
-}: {
-  isOneMatch: boolean;
-  sortedFilteredUnassigned: Entry[];
-  unassigned: Entry[];
-  eventRules: Rule[];
-  entryRuleIds: Record<string, Set<string>>;
-  defaultRuleId: string;
-  ageCategories?: AgeCategory[];
-  group: Group;
-  validSelectedIds: Set<string>;
-  inpSm: string;
-  minWeight: string;
-  maxWeight: string;
-  minAge: string;
-  maxAge: string;
-  sexFilter: string;
-  minGrade: string;
-  maxGrade: string;
-  experienceFilter: string;
-  minHeight: string;
-  maxHeight: string;
-  nameFilter: string;
-  matchCountFilter: string;
-  getDesiredMatchCount: (entry: Entry) => number;
-  getTotalMatchCount: (entry: Entry) => number;
-  onSetMinWeight: (v: string) => void;
-  onSetMaxWeight: (v: string) => void;
-  onSetMinAge: (v: string) => void;
-  onSetMaxAge: (v: string) => void;
-  onSetSexFilter: (v: string) => void;
-  onSetMinGrade: (v: string) => void;
-  onSetMaxGrade: (v: string) => void;
-  onSetExperienceFilter: (v: string) => void;
-  onSetMinHeight: (v: string) => void;
-  onSetMaxHeight: (v: string) => void;
-  onSetNameFilter: (v: string) => void;
-  onSetMatchCountFilter: (v: string) => void;
+type GroupFilterPanelProps = {
+  isOneMatch: boolean; sortedFilteredUnassigned: Entry[]; unassigned: Entry[];
+  eventRules: Rule[]; entryRuleIds: Record<string, Set<string>>; defaultRuleId: string;
+  ageCategories?: AgeCategory[]; group: Group; validSelectedIds: Set<string>; inpSm: string;
+  minWeight: string; maxWeight: string; minAge: string; maxAge: string; sexFilter: string;
+  minGrade: string; maxGrade: string; experienceFilter: string;
+  minHeight: string; maxHeight: string; nameFilter: string; matchCountFilter: string;
+  getDesiredMatchCount: (entry: Entry) => number; getTotalMatchCount: (entry: Entry) => number;
+  onSetMinWeight: (v: string) => void; onSetMaxWeight: (v: string) => void;
+  onSetMinAge: (v: string) => void; onSetMaxAge: (v: string) => void;
+  onSetSexFilter: (v: string) => void; onSetMinGrade: (v: string) => void;
+  onSetMaxGrade: (v: string) => void; onSetExperienceFilter: (v: string) => void;
+  onSetMinHeight: (v: string) => void; onSetMaxHeight: (v: string) => void;
+  onSetNameFilter: (v: string) => void; onSetMatchCountFilter: (v: string) => void;
   onSetSelectedEntryIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   onAutoAssign: (entries: Entry[]) => void;
-}) {
+};
+
+function GroupFilterPanel(props: GroupFilterPanelProps) {
+  const {
+    isOneMatch, sortedFilteredUnassigned, unassigned, eventRules, entryRuleIds, defaultRuleId,
+    ageCategories, group, validSelectedIds, inpSm, minWeight, maxWeight, minAge, maxAge,
+    sexFilter, minGrade, maxGrade, experienceFilter, minHeight, maxHeight, nameFilter,
+    matchCountFilter, getDesiredMatchCount, getTotalMatchCount,
+    onSetMinWeight, onSetMaxWeight, onSetMinAge, onSetMaxAge, onSetSexFilter,
+    onSetMinGrade, onSetMaxGrade, onSetExperienceFilter, onSetMinHeight, onSetMaxHeight,
+    onSetNameFilter, onSetMatchCountFilter, onSetSelectedEntryIds, onAutoAssign,
+  } = props;
   return (
     <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-2.5 space-y-2">
       <p className="text-xs text-gray-400 font-medium">
@@ -498,312 +328,164 @@ function GroupFilterPanel({
       )}
 
       {sortedFilteredUnassigned.length > 0 ? (
-        <>
-          <EntryChipList
-            sortedFilteredUnassigned={sortedFilteredUnassigned}
-            eventRules={eventRules}
-            entryRuleIds={entryRuleIds}
-            defaultRuleId={defaultRuleId}
-            validSelectedIds={validSelectedIds}
-            getDesiredMatchCount={getDesiredMatchCount}
-            getTotalMatchCount={getTotalMatchCount}
-            onSetSelectedEntryIds={onSetSelectedEntryIds}
-          />
-          {!isOneMatch && (
-            <div className="flex flex-wrap gap-1 items-center">
-              <button
-                onClick={() => onSetSelectedEntryIds(new Set(sortedFilteredUnassigned.map((e) => e.id)))}
-                className="text-xs text-blue-400 hover:text-blue-300 transition"
-              >
-                全選択
-              </button>
-              <button
-                onClick={() => onSetSelectedEntryIds(new Set())}
-                className="text-xs text-gray-400 hover:text-gray-300 transition"
-              >
-                全解除
-              </button>
-              <span className="text-xs text-gray-500">
-                {validSelectedIds.size > 0 ? `${validSelectedIds.size}名選択中` : ""}
-              </span>
-            </div>
-          )}
-          {!isOneMatch &&
-            (() => {
-              const totalEntries =
-                group.pairs.reduce((s, p) => s + 1 + (p.e2 ? 1 : 0), 0) + sortedFilteredUnassigned.length;
-              const totalPairs = Math.ceil(totalEntries / 2);
-              const q = bracketQuality(totalPairs);
-              if (!q.isClean && totalPairs > 1) {
-                return (
-                  <p
-                    className={`text-xs px-2 py-1 rounded ${
-                      q.addNeeded <= 2 || q.removeNeeded <= 2
-                        ? "bg-yellow-900/40 text-yellow-300 border border-yellow-800"
-                        : "bg-red-900/40 text-red-300 border border-red-900"
-                    }`}
-                  >
-                    ⚠ 追加後 {totalPairs} 対戦 — ブラケットが不規則になります。 理想は{" "}
-                    {q.prevCleanPairs > 0 && (
-                      <>
-                        <b>{q.prevCleanPairs * 2}名以下</b>（{q.prevCleanPairs}対戦）
-                      </>
-                    )}
-                    {q.prevCleanPairs > 0 && <> または </>}
-                    <b>{q.nextCleanPairs * 2}名以下</b>（{q.nextCleanPairs}対戦）
-                  </p>
-                );
-              }
-              return null;
-            })()}
-          {!isOneMatch && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => onAutoAssign(sortedFilteredUnassigned)}
-                className="flex-1 bg-blue-700 hover:bg-blue-600 py-1.5 rounded text-xs font-medium transition"
-              >
-                全員（{sortedFilteredUnassigned.length}名）を追加してペアリング
-              </button>
-              <button
-                onClick={() => {
-                  const selected = sortedFilteredUnassigned.filter((e) => validSelectedIds.has(e.id));
-                  onAutoAssign(selected);
-                  onSetSelectedEntryIds(new Set());
-                }}
-                disabled={validSelectedIds.size === 0}
-                className={`flex-1 py-1.5 rounded text-xs font-medium transition ${
-                  validSelectedIds.size > 0
-                    ? "bg-green-700 hover:bg-green-600"
-                    : "bg-gray-700 text-gray-500 cursor-not-allowed"
-                }`}
-              >
-                選択した{validSelectedIds.size}名を追加してペアリング
-              </button>
-            </div>
-          )}
-        </>
+        <FilteredEntryActions isOneMatch={isOneMatch} sortedFilteredUnassigned={sortedFilteredUnassigned}
+          eventRules={eventRules} entryRuleIds={entryRuleIds} defaultRuleId={defaultRuleId}
+          validSelectedIds={validSelectedIds} getDesiredMatchCount={getDesiredMatchCount} getTotalMatchCount={getTotalMatchCount}
+          onSetSelectedEntryIds={onSetSelectedEntryIds} onAutoAssign={onAutoAssign} group={group} />
       ) : (
-        <p className="text-xs text-gray-500">
-          {unassigned.length === 0 ? "未割当の選手はいません" : "条件に合う選手がいません"}
-        </p>
+        <p className="text-xs text-gray-500">{unassigned.length === 0 ? "未割当の選手はいません" : "条件に合う選手がいません"}</p>
       )}
+    </div>
+  );
+}
+
+function FilteredEntryActions({ isOneMatch, sortedFilteredUnassigned, eventRules, entryRuleIds, defaultRuleId, validSelectedIds, getDesiredMatchCount, getTotalMatchCount, onSetSelectedEntryIds, onAutoAssign, group }: {
+  isOneMatch: boolean; sortedFilteredUnassigned: Entry[]; eventRules: Rule[]; entryRuleIds: Record<string, Set<string>>;
+  defaultRuleId: string; validSelectedIds: Set<string>; getDesiredMatchCount: (e: Entry) => number; getTotalMatchCount: (e: Entry) => number;
+  onSetSelectedEntryIds: React.Dispatch<React.SetStateAction<Set<string>>>; onAutoAssign: (entries: Entry[]) => void; group: Group;
+}) {
+  return (
+    <>
+      <EntryChipList sortedFilteredUnassigned={sortedFilteredUnassigned} eventRules={eventRules} entryRuleIds={entryRuleIds}
+        defaultRuleId={defaultRuleId} validSelectedIds={validSelectedIds} getDesiredMatchCount={getDesiredMatchCount}
+        getTotalMatchCount={getTotalMatchCount} onSetSelectedEntryIds={onSetSelectedEntryIds} />
+      {!isOneMatch && <SelectionControls sortedFilteredUnassigned={sortedFilteredUnassigned} validSelectedIds={validSelectedIds} onSetSelectedEntryIds={onSetSelectedEntryIds} />}
+      {!isOneMatch && <BracketQualityWarning group={group} sortedFilteredUnassigned={sortedFilteredUnassigned} />}
+      {!isOneMatch && <AutoAssignButtons sortedFilteredUnassigned={sortedFilteredUnassigned} validSelectedIds={validSelectedIds} onAutoAssign={onAutoAssign} onSetSelectedEntryIds={onSetSelectedEntryIds} />}
+    </>
+  );
+}
+
+function SelectionControls({ sortedFilteredUnassigned, validSelectedIds, onSetSelectedEntryIds }: {
+  sortedFilteredUnassigned: Entry[]; validSelectedIds: Set<string>; onSetSelectedEntryIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1 items-center">
+      <button onClick={() => onSetSelectedEntryIds(new Set(sortedFilteredUnassigned.map((e) => e.id)))} className="text-xs text-blue-400 hover:text-blue-300 transition">全選択</button>
+      <button onClick={() => onSetSelectedEntryIds(new Set())} className="text-xs text-gray-400 hover:text-gray-300 transition">全解除</button>
+      <span className="text-xs text-gray-500">{validSelectedIds.size > 0 ? `${validSelectedIds.size}名選択中` : ""}</span>
+    </div>
+  );
+}
+
+function BracketQualityWarning({ group, sortedFilteredUnassigned }: { group: Group; sortedFilteredUnassigned: Entry[] }) {
+  const totalEntries = group.pairs.reduce((s, p) => s + 1 + (p.e2 ? 1 : 0), 0) + sortedFilteredUnassigned.length;
+  const totalPairs = Math.ceil(totalEntries / 2);
+  const q = bracketQuality(totalPairs);
+  if (q.isClean || totalPairs <= 1) return null;
+  return (
+    <p className={`text-xs px-2 py-1 rounded ${q.addNeeded <= 2 || q.removeNeeded <= 2 ? "bg-yellow-900/40 text-yellow-300 border border-yellow-800" : "bg-red-900/40 text-red-300 border border-red-900"}`}>
+      ⚠ 追加後 {totalPairs} 対戦 — ブラケットが不規則になります。 理想は{" "}
+      {q.prevCleanPairs > 0 && <><b>{q.prevCleanPairs * 2}名以下</b>（{q.prevCleanPairs}対戦）</>}
+      {q.prevCleanPairs > 0 && <> または </>}
+      <b>{q.nextCleanPairs * 2}名以下</b>（{q.nextCleanPairs}対戦）
+    </p>
+  );
+}
+
+function AutoAssignButtons({ sortedFilteredUnassigned, validSelectedIds, onAutoAssign, onSetSelectedEntryIds }: {
+  sortedFilteredUnassigned: Entry[]; validSelectedIds: Set<string>; onAutoAssign: (entries: Entry[]) => void;
+  onSetSelectedEntryIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+}) {
+  return (
+    <div className="flex gap-2">
+      <button onClick={() => onAutoAssign(sortedFilteredUnassigned)} className="flex-1 bg-blue-700 hover:bg-blue-600 py-1.5 rounded text-xs font-medium transition">
+        全員（{sortedFilteredUnassigned.length}名）を追加してペアリング
+      </button>
+      <button onClick={() => { onAutoAssign(sortedFilteredUnassigned.filter((e) => validSelectedIds.has(e.id))); onSetSelectedEntryIds(new Set()); }}
+        disabled={validSelectedIds.size === 0}
+        className={`flex-1 py-1.5 rounded text-xs font-medium transition ${validSelectedIds.size > 0 ? "bg-green-700 hover:bg-green-600" : "bg-gray-700 text-gray-500 cursor-not-allowed"}`}>
+        選択した{validSelectedIds.size}名を追加してペアリング
+      </button>
     </div>
   );
 }
 
 // ── FilterInputs ──────────────────────────────────────────
 
-function FilterInputs({
-  inpSm,
-  ageCategories,
-  minWeight,
-  maxWeight,
-  minAge,
-  maxAge,
-  sexFilter,
-  minGrade,
-  maxGrade,
-  experienceFilter,
-  minHeight,
-  maxHeight,
-  nameFilter,
-  matchCountFilter,
-  onSetMinWeight,
-  onSetMaxWeight,
-  onSetMinAge,
-  onSetMaxAge,
-  onSetSexFilter,
-  onSetMinGrade,
-  onSetMaxGrade,
-  onSetExperienceFilter,
-  onSetMinHeight,
-  onSetMaxHeight,
-  onSetNameFilter,
-  onSetMatchCountFilter,
-}: {
-  inpSm: string;
-  ageCategories?: AgeCategory[];
-  minWeight: string;
-  maxWeight: string;
-  minAge: string;
-  maxAge: string;
-  sexFilter: string;
-  minGrade: string;
-  maxGrade: string;
-  experienceFilter: string;
-  minHeight: string;
-  maxHeight: string;
-  nameFilter: string;
-  matchCountFilter: string;
-  onSetMinWeight: (v: string) => void;
-  onSetMaxWeight: (v: string) => void;
-  onSetMinAge: (v: string) => void;
-  onSetMaxAge: (v: string) => void;
-  onSetSexFilter: (v: string) => void;
-  onSetMinGrade: (v: string) => void;
-  onSetMaxGrade: (v: string) => void;
-  onSetExperienceFilter: (v: string) => void;
-  onSetMinHeight: (v: string) => void;
-  onSetMaxHeight: (v: string) => void;
-  onSetNameFilter: (v: string) => void;
-  onSetMatchCountFilter: (v: string) => void;
+function RangeFilter({ label, min, max, onSetMin, onSetMax, unit, width, step, inpSm }: {
+  label: string; min: string; max: string; onSetMin: (v: string) => void; onSetMax: (v: string) => void;
+  unit?: string; width?: string; step?: string; inpSm: string;
+}) {
+  const w = width ?? "w-14";
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-xs text-gray-500">{label}</span>
+      <input value={min} onChange={(e) => onSetMin(e.target.value)} placeholder="下限" type="number" min="0" step={step ?? "1"} className={`${w} ${inpSm}`} />
+      <span className="text-xs text-gray-500">〜</span>
+      <input value={max} onChange={(e) => onSetMax(e.target.value)} placeholder="上限" type="number" min="0" step={step ?? "1"} className={`${w} ${inpSm}`} />
+      {unit && <span className="text-xs text-gray-500">{unit}</span>}
+    </div>
+  );
+}
+
+function ClearableSelect({ label, value, onChange, options, width, inpSm }: {
+  label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[];
+  width: string; inpSm: string;
 }) {
   return (
+    <div className="flex items-center gap-1">
+      <span className="text-xs text-gray-500">{label}</span>
+      <div className="relative">
+        <select value={value} onChange={(e) => onChange(e.target.value)} className={`${inpSm} ${width} pr-6`}>
+          {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        {value && (
+          <button type="button" onClick={() => onChange("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs leading-none" aria-label={`${label}をクリア`}>×</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FilterInputs({ inpSm, ageCategories, minWeight, maxWeight, minAge, maxAge, sexFilter, minGrade, maxGrade, experienceFilter, minHeight, maxHeight, nameFilter, matchCountFilter, onSetMinWeight, onSetMaxWeight, onSetMinAge, onSetMaxAge, onSetSexFilter, onSetMinGrade, onSetMaxGrade, onSetExperienceFilter, onSetMinHeight, onSetMaxHeight, onSetNameFilter, onSetMatchCountFilter }: {
+  inpSm: string; ageCategories?: AgeCategory[];
+  minWeight: string; maxWeight: string; minAge: string; maxAge: string; sexFilter: string; minGrade: string; maxGrade: string;
+  experienceFilter: string; minHeight: string; maxHeight: string; nameFilter: string; matchCountFilter: string;
+  onSetMinWeight: (v: string) => void; onSetMaxWeight: (v: string) => void; onSetMinAge: (v: string) => void; onSetMaxAge: (v: string) => void;
+  onSetSexFilter: (v: string) => void; onSetMinGrade: (v: string) => void; onSetMaxGrade: (v: string) => void;
+  onSetExperienceFilter: (v: string) => void; onSetMinHeight: (v: string) => void; onSetMaxHeight: (v: string) => void;
+  onSetNameFilter: (v: string) => void; onSetMatchCountFilter: (v: string) => void;
+}) {
+  const gradeOpts = getGradeOptions(ageCategories);
+  return (
     <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-center">
-      <div className="flex items-center gap-1">
-        <span className="text-xs text-gray-500">年代</span>
-        <select value={minGrade} onChange={(e) => onSetMinGrade(e.target.value)} className={`w-20 ${inpSm}`}>
-          <option value="">下限</option>
-          {getGradeOptions(ageCategories).map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        <span className="text-xs text-gray-500">〜</span>
-        <select value={maxGrade} onChange={(e) => onSetMaxGrade(e.target.value)} className={`w-20 ${inpSm}`}>
-          <option value="">上限</option>
-          {getGradeOptions(ageCategories).map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="flex items-center gap-1">
-        <span className="text-xs text-gray-500">年齢</span>
-        <input
-          value={minAge}
-          onChange={(e) => onSetMinAge(e.target.value)}
-          placeholder="下限"
-          type="number"
-          min="0"
-          max="99"
-          className={`w-14 ${inpSm}`}
-        />
-        <span className="text-xs text-gray-500">〜</span>
-        <input
-          value={maxAge}
-          onChange={(e) => onSetMaxAge(e.target.value)}
-          placeholder="上限"
-          type="number"
-          min="0"
-          max="99"
-          className={`w-14 ${inpSm}`}
-        />
-      </div>
-      <div className="flex items-center gap-1">
-        <span className="text-xs text-gray-500">体重</span>
-        <input
-          value={minWeight}
-          onChange={(e) => onSetMinWeight(e.target.value)}
-          placeholder="下限"
-          type="number"
-          min="0"
-          step="0.5"
-          className={`w-14 ${inpSm}`}
-        />
-        <span className="text-xs text-gray-500">〜</span>
-        <input
-          value={maxWeight}
-          onChange={(e) => onSetMaxWeight(e.target.value)}
-          placeholder="上限"
-          type="number"
-          min="0"
-          step="0.5"
-          className={`w-14 ${inpSm}`}
-        />
-        <span className="text-xs text-gray-500">kg</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <span className="text-xs text-gray-500">身長</span>
-        <input
-          value={minHeight}
-          onChange={(e) => onSetMinHeight(e.target.value)}
-          placeholder="下限"
-          type="number"
-          min="0"
-          step="1"
-          className={`w-14 ${inpSm}`}
-        />
-        <span className="text-xs text-gray-500">〜</span>
-        <input
-          value={maxHeight}
-          onChange={(e) => onSetMaxHeight(e.target.value)}
-          placeholder="上限"
-          type="number"
-          min="0"
-          step="1"
-          className={`w-14 ${inpSm}`}
-        />
-        <span className="text-xs text-gray-500">cm</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <span className="text-xs text-gray-500">性別</span>
-        <div className="relative">
-          <select value={sexFilter} onChange={(e) => onSetSexFilter(e.target.value)} className={`${inpSm} w-16 pr-6`}>
-            <option value="">全て</option>
-            <option value="male">男性</option>
-            <option value="female">女性</option>
-          </select>
-          {sexFilter && (
-            <button
-              type="button"
-              onClick={() => onSetSexFilter("")}
-              className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs leading-none"
-              aria-label="性別をクリア"
-            >
-              ×
-            </button>
-          )}
-        </div>
-      </div>
+      <GradeRangeFilter minGrade={minGrade} maxGrade={maxGrade} onSetMinGrade={onSetMinGrade} onSetMaxGrade={onSetMaxGrade} gradeOpts={gradeOpts} inpSm={inpSm} />
+      <RangeFilter label="年齢" min={minAge} max={maxAge} onSetMin={onSetMinAge} onSetMax={onSetMaxAge} inpSm={inpSm} />
+      <RangeFilter label="体重" min={minWeight} max={maxWeight} onSetMin={onSetMinWeight} onSetMax={onSetMaxWeight} unit="kg" step="0.5" inpSm={inpSm} />
+      <RangeFilter label="身長" min={minHeight} max={maxHeight} onSetMin={onSetMinHeight} onSetMax={onSetMaxHeight} unit="cm" inpSm={inpSm} />
+      <ClearableSelect label="性別" value={sexFilter} onChange={onSetSexFilter} options={[{ value: "", label: "全て" }, { value: "male", label: "男性" }, { value: "female", label: "女性" }]} width="w-16" inpSm={inpSm} />
       <div className="flex items-center gap-1">
         <span className="text-xs text-gray-500">経験</span>
-        <input
-          value={experienceFilter}
-          onChange={(e) => onSetExperienceFilter(e.target.value)}
-          placeholder="10年"
-          className={`w-20 ${inpSm}`}
-        />
+        <input value={experienceFilter} onChange={(e) => onSetExperienceFilter(e.target.value)} placeholder="10年" className={`w-20 ${inpSm}`} />
       </div>
       <div className="flex items-center gap-1">
         <span className="text-xs text-gray-500">名前</span>
-        <input
-          value={nameFilter}
-          onChange={(e) => onSetNameFilter(e.target.value)}
-          placeholder="山田"
-          className={`w-20 ${inpSm}`}
-        />
+        <input value={nameFilter} onChange={(e) => onSetNameFilter(e.target.value)} placeholder="山田" className={`w-20 ${inpSm}`} />
       </div>
-      <div className="flex items-center gap-1">
-        <span className="text-xs text-gray-500">試合数</span>
-        <div className="relative">
-          <select
-            value={matchCountFilter}
-            onChange={(e) => onSetMatchCountFilter(e.target.value)}
-            className={`${inpSm} w-20 pr-6`}
-          >
-            <option value="">全て</option>
-            <option value="unmet">未達</option>
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-              <option key={n} value={String(n)}>
-                {n}試合
-              </option>
-            ))}
-          </select>
-          {matchCountFilter && (
-            <button
-              type="button"
-              onClick={() => onSetMatchCountFilter("")}
-              className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs leading-none"
-              aria-label="試合数をクリア"
-            >
-              ×
-            </button>
-          )}
-        </div>
-      </div>
+      <ClearableSelect label="試合数" value={matchCountFilter} onChange={onSetMatchCountFilter}
+        options={[{ value: "", label: "全て" }, { value: "unmet", label: "未達" }, ...[0,1,2,3,4,5,6,7,8,9].map((n) => ({ value: String(n), label: `${n}試合` }))]}
+        width="w-20" inpSm={inpSm} />
+    </div>
+  );
+}
+
+function GradeRangeFilter({ minGrade, maxGrade, onSetMinGrade, onSetMaxGrade, gradeOpts, inpSm }: {
+  minGrade: string; maxGrade: string; onSetMinGrade: (v: string) => void; onSetMaxGrade: (v: string) => void;
+  gradeOpts: { value: string; label: string }[]; inpSm: string;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-xs text-gray-500">年代</span>
+      <select value={minGrade} onChange={(e) => onSetMinGrade(e.target.value)} className={`w-20 ${inpSm}`}>
+        <option value="">下限</option>
+        {gradeOpts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      <span className="text-xs text-gray-500">〜</span>
+      <select value={maxGrade} onChange={(e) => onSetMaxGrade(e.target.value)} className={`w-20 ${inpSm}`}>
+        <option value="">上限</option>
+        {gradeOpts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
     </div>
   );
 }
@@ -900,159 +582,102 @@ function EntryChipList({
 
 // ── PairList ──────────────────────────────────────────────
 
-function PairList({
-  pairs,
-  sortedFilteredUnassigned,
-  existingPairs,
-  groupMismatch,
-  onUpdateE1,
-  onUpdateE2,
-  onMovePair,
-  onRemovePair,
-}: {
-  pairs: Pair[];
-  sortedFilteredUnassigned: Entry[];
+function buildCompatText(pair: Pair, compat: CompatibilityLevel): string | null {
+  const wt = pair.e2 && pair.e1.weight && pair.e2.weight ? `体重差 ${Math.abs(pair.e1.weight - pair.e2.weight).toFixed(1)}kg` : null;
+  const ht = pair.e2 && pair.e1.height && pair.e2.height ? `身長差 ${Math.abs(pair.e1.height - pair.e2.height).toFixed(0)}cm` : null;
+  const parts = [wt, ht].filter(Boolean);
+  if (compat === "ok") return `規定内${parts.map((t) => `（${t}）`).join("")}`;
+  if (compat === "warn") return `注意 — ${parts.join("・")}`;
+  if (compat === "ng") return `超過 — ${parts.join("・")}`;
+  return null;
+}
+
+function buildMemos(pair: Pair) {
+  return [
+    pair.e1.admin_memo ? { name: entryFullName(pair.e1), text: pair.e1.admin_memo, kind: "admin" as const } : null,
+    pair.e2?.admin_memo ? { name: entryFullName(pair.e2), text: pair.e2.admin_memo, kind: "admin" as const } : null,
+    pair.e1.memo ? { name: entryFullName(pair.e1), text: pair.e1.memo, kind: "app" as const } : null,
+    pair.e2?.memo ? { name: entryFullName(pair.e2), text: pair.e2.memo, kind: "app" as const } : null,
+  ].filter((m): m is NonNullable<typeof m> => m !== null);
+}
+
+function PairList({ pairs, sortedFilteredUnassigned, existingPairs, groupMismatch, onUpdateE1, onUpdateE2, onMovePair, onRemovePair }: {
+  pairs: Pair[]; sortedFilteredUnassigned: Entry[];
   existingPairs: { e1Id: string; e2Id: string; ruleId: string; pairId: string }[];
   groupMismatch: MismatchSettings;
-  onUpdateE1: (pairId: string, entryId: string) => void;
-  onUpdateE2: (pairId: string, entryId: string | null) => void;
-  onMovePair: (pairId: string, dir: "up" | "down") => void;
-  onRemovePair: (pairId: string) => void;
+  onUpdateE1: (pairId: string, entryId: string) => void; onUpdateE2: (pairId: string, entryId: string | null) => void;
+  onMovePair: (pairId: string, dir: "up" | "down") => void; onRemovePair: (pairId: string) => void;
 }) {
   return (
     <div className="space-y-2">
-      {pairs.map((pair, idx) => {
-        const compat: CompatibilityLevel = pair.e2 ? checkCompatibility(pair.e1, pair.e2, groupMismatch) : "unknown";
-        const e1Options = [pair.e1, ...sortedFilteredUnassigned];
-        const isAlreadyPaired = (entryId: string) =>
-          existingPairs.some(
-            (p) =>
-              p.pairId !== pair.id &&
-              p.ruleId === pair.ruleId &&
-              ((p.e1Id === pair.e1.id && p.e2Id === entryId) || (p.e2Id === pair.e1.id && p.e1Id === entryId)),
-          );
-        const e2Options = [
-          ...(pair.e2 ? [pair.e2] : []),
-          ...sortedFilteredUnassigned.filter((e) => e.id !== pair.e1.id && !isAlreadyPaired(e.id)),
-        ];
-        const e2Sorted = [...e2Options].sort((a, b) => entryCompatScore(a, pair.e1) - entryCompatScore(b, pair.e1));
+      {pairs.map((pair, idx) => (
+        <PairRow key={pair.id} pair={pair} idx={idx} totalPairs={pairs.length}
+          sortedFilteredUnassigned={sortedFilteredUnassigned} existingPairs={existingPairs} groupMismatch={groupMismatch}
+          onUpdateE1={onUpdateE1} onUpdateE2={onUpdateE2} onMovePair={onMovePair} onRemovePair={onRemovePair} />
+      ))}
+    </div>
+  );
+}
 
-        const weightDiffText =
-          pair.e2 && pair.e1.weight && pair.e2.weight
-            ? `体重差 ${Math.abs(pair.e1.weight - pair.e2.weight).toFixed(1)}kg`
-            : null;
-        const heightDiffText =
-          pair.e2 && pair.e1.height && pair.e2.height
-            ? `身長差 ${Math.abs(pair.e1.height - pair.e2.height).toFixed(0)}cm`
-            : null;
-        const compatText =
-          compat === "ok"
-            ? `規定内${[weightDiffText, heightDiffText]
-                .filter(Boolean)
-                .map((t) => `（${t}）`)
-                .join("")}`
-            : compat === "warn"
-              ? `注意 — ${[weightDiffText, heightDiffText].filter(Boolean).join("・")}`
-              : compat === "ng"
-                ? `超過 — ${[weightDiffText, heightDiffText].filter(Boolean).join("・")}`
-                : null;
+function PairRow({ pair, idx, totalPairs, sortedFilteredUnassigned, existingPairs, groupMismatch, onUpdateE1, onUpdateE2, onMovePair, onRemovePair }: {
+  pair: Pair; idx: number; totalPairs: number; sortedFilteredUnassigned: Entry[];
+  existingPairs: { e1Id: string; e2Id: string; ruleId: string; pairId: string }[];
+  groupMismatch: MismatchSettings;
+  onUpdateE1: (pairId: string, entryId: string) => void; onUpdateE2: (pairId: string, entryId: string | null) => void;
+  onMovePair: (pairId: string, dir: "up" | "down") => void; onRemovePair: (pairId: string) => void;
+}) {
+  const compat: CompatibilityLevel = pair.e2 ? checkCompatibility(pair.e1, pair.e2, groupMismatch) : "unknown";
+  const e1Options = [pair.e1, ...sortedFilteredUnassigned];
+  const isAlreadyPaired = (entryId: string) =>
+    existingPairs.some((p) => p.pairId !== pair.id && p.ruleId === pair.ruleId && ((p.e1Id === pair.e1.id && p.e2Id === entryId) || (p.e2Id === pair.e1.id && p.e1Id === entryId)));
+  const e2Options = [...(pair.e2 ? [pair.e2] : []), ...sortedFilteredUnassigned.filter((e) => e.id !== pair.e1.id && !isAlreadyPaired(e.id))];
+  const e2Sorted = [...e2Options].sort((a, b) => entryCompatScore(a, pair.e1) - entryCompatScore(b, pair.e1));
+  const compatText = buildCompatText(pair, compat);
+  const memos = buildMemos(pair);
 
-        const memos = [
-          pair.e1.admin_memo
-            ? { name: entryFullName(pair.e1), text: pair.e1.admin_memo, kind: "admin" as const }
-            : null,
-          pair.e2?.admin_memo
-            ? { name: entryFullName(pair.e2), text: pair.e2.admin_memo, kind: "admin" as const }
-            : null,
-          pair.e1.memo ? { name: entryFullName(pair.e1), text: pair.e1.memo, kind: "app" as const } : null,
-          pair.e2?.memo ? { name: entryFullName(pair.e2), text: pair.e2.memo, kind: "app" as const } : null,
-        ].filter((m): m is NonNullable<typeof m> => m !== null);
-
-        return (
-          <div key={pair.id} className="border border-gray-700 rounded-lg overflow-hidden">
-            <div className="flex gap-0">
-              <div className="flex-1 p-2.5 space-y-1.5 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-gray-500 w-5 shrink-0 text-center">{idx + 1}</span>
-                  <select
-                    value={pair.e1.id}
-                    onChange={(ev) => onUpdateE1(pair.id, ev.target.value)}
-                    className="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500"
-                  >
-                    {e1Options.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {entryOptionLabel(e)}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="flex flex-col shrink-0">
-                    <button
-                      onClick={() => onMovePair(pair.id, "up")}
-                      disabled={idx === 0}
-                      className="text-gray-500 hover:text-gray-200 disabled:opacity-50 text-xs leading-none px-1 py-0.5 transition"
-                    >
-                      ▲
-                    </button>
-                    <button
-                      onClick={() => onMovePair(pair.id, "down")}
-                      disabled={idx === pairs.length - 1}
-                      className="text-gray-500 hover:text-gray-200 disabled:opacity-50 text-xs leading-none px-1 py-0.5 transition"
-                    >
-                      ▼
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => onRemovePair(pair.id)}
-                    className="text-xs text-red-400 hover:text-red-300 shrink-0 transition"
-                  >
-                    削除
-                  </button>
-                </div>
-                <div className="flex items-center gap-1.5 pl-6">
-                  <span className="text-gray-600 text-xs shrink-0">vs</span>
-                  <select
-                    value={pair.e2?.id ?? ""}
-                    onChange={(ev) => onUpdateE2(pair.id, ev.target.value || null)}
-                    className="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500"
-                  >
-                    <option value="">不戦勝</option>
-                    {e2Sorted.map((e) => {
-                      const c: CompatibilityLevel = checkCompatibility(pair.e1, e, groupMismatch);
-                      const prefix = c === "ok" ? "◎ " : c === "warn" ? "△ " : c === "ng" ? "✕ " : "";
-                      return (
-                        <option key={e.id} value={e.id}>
-                          {entryOptionLabel(e, prefix)}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-                {pair.e2 && compatText && (
-                  <p className={`text-xs pl-6 font-medium ${COMPAT_COLORS[compat]}`}>
-                    {COMPAT_LABEL[compat]} {compatText}
-                  </p>
-                )}
-              </div>
-              {memos.length > 0 && (
-                <div className="w-44 shrink-0 border-l border-gray-700 bg-gray-900/40 p-2 space-y-1.5">
-                  {memos.map((m, mi) => (
-                    <div key={mi}>
-                      <p className="text-[10px] text-gray-500">
-                        {m.kind === "admin" ? "📋" : "📝"} {m.name}
-                      </p>
-                      <p
-                        className={`text-xs leading-tight ${m.kind === "admin" ? "text-yellow-200" : "text-gray-400 italic"}`}
-                      >
-                        {m.text}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
+  return (
+    <div className="border border-gray-700 rounded-lg overflow-hidden">
+      <div className="flex gap-0">
+        <div className="flex-1 p-2.5 space-y-1.5 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-500 w-5 shrink-0 text-center">{idx + 1}</span>
+            <select value={pair.e1.id} onChange={(ev) => onUpdateE1(pair.id, ev.target.value)} className="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500">
+              {e1Options.map((e) => <option key={e.id} value={e.id}>{entryOptionLabel(e)}</option>)}
+            </select>
+            <div className="flex flex-col shrink-0">
+              <button onClick={() => onMovePair(pair.id, "up")} disabled={idx === 0} className="text-gray-500 hover:text-gray-200 disabled:opacity-50 text-xs leading-none px-1 py-0.5 transition">▲</button>
+              <button onClick={() => onMovePair(pair.id, "down")} disabled={idx === totalPairs - 1} className="text-gray-500 hover:text-gray-200 disabled:opacity-50 text-xs leading-none px-1 py-0.5 transition">▼</button>
             </div>
+            <button onClick={() => onRemovePair(pair.id)} className="text-xs text-red-400 hover:text-red-300 shrink-0 transition">削除</button>
           </div>
-        );
-      })}
+          <div className="flex items-center gap-1.5 pl-6">
+            <span className="text-gray-600 text-xs shrink-0">vs</span>
+            <select value={pair.e2?.id ?? ""} onChange={(ev) => onUpdateE2(pair.id, ev.target.value || null)} className="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500">
+              <option value="">不戦勝</option>
+              {e2Sorted.map((e) => {
+                const c: CompatibilityLevel = checkCompatibility(pair.e1, e, groupMismatch);
+                const prefix = c === "ok" ? "◎ " : c === "warn" ? "△ " : c === "ng" ? "✕ " : "";
+                return <option key={e.id} value={e.id}>{entryOptionLabel(e, prefix)}</option>;
+              })}
+            </select>
+          </div>
+          {pair.e2 && compatText && <p className={`text-xs pl-6 font-medium ${COMPAT_COLORS[compat]}`}>{COMPAT_LABEL[compat]} {compatText}</p>}
+        </div>
+        {memos.length > 0 && <PairMemos memos={memos} />}
+      </div>
+    </div>
+  );
+}
+
+function PairMemos({ memos }: { memos: { name: string; text: string; kind: "admin" | "app" }[] }) {
+  return (
+    <div className="w-44 shrink-0 border-l border-gray-700 bg-gray-900/40 p-2 space-y-1.5">
+      {memos.map((m, mi) => (
+        <div key={mi}>
+          <p className="text-[10px] text-gray-500">{m.kind === "admin" ? "📋" : "📝"} {m.name}</p>
+          <p className={`text-xs leading-tight ${m.kind === "admin" ? "text-yellow-200" : "text-gray-400 italic"}`}>{m.text}</p>
+        </div>
+      ))}
     </div>
   );
 }

@@ -18,54 +18,46 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(data);
 }
 
+const NULLABLE_BRACKET_KEYS = [
+  "rule_id",
+  "min_age",
+  "max_age",
+  "min_weight",
+  "max_weight",
+  "min_height",
+  "max_height",
+  "min_grade",
+  "max_grade",
+  "max_grade_diff",
+  "max_weight_diff",
+  "max_height_diff",
+  "sex_filter",
+  "court_num",
+] as const;
+
+function buildBracketRuleInsert(body: Record<string, unknown>) {
+  const row: Record<string, unknown> = {
+    event_id: body.event_id,
+    name: body.name,
+    sort_order: body.sort_order ?? 0,
+  };
+  for (const key of NULLABLE_BRACKET_KEYS) {
+    row[key] = body[key] ?? null;
+  }
+  return row;
+}
+
 export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const body = await request.json();
-  const {
-    event_id,
-    name,
-    rule_id,
-    min_age,
-    max_age,
-    min_weight,
-    max_weight,
-    min_height,
-    max_height,
-    min_grade,
-    max_grade,
-    max_grade_diff,
-    max_weight_diff,
-    max_height_diff,
-    sex_filter,
-    court_num,
-    sort_order,
-  } = body;
 
-  if (!event_id || !name) {
+  if (!body.event_id || !body.name) {
     return NextResponse.json({ error: "event_id and name required" }, { status: 400 });
   }
 
   const { data, error } = await supabaseAdmin
     .from("bracket_rules")
-    .insert({
-      event_id,
-      name,
-      rule_id: rule_id ?? null,
-      min_age: min_age ?? null,
-      max_age: max_age ?? null,
-      min_weight: min_weight ?? null,
-      max_weight: max_weight ?? null,
-      min_height: min_height ?? null,
-      max_height: max_height ?? null,
-      min_grade: min_grade ?? null,
-      max_grade: max_grade ?? null,
-      max_grade_diff: max_grade_diff ?? null,
-      max_weight_diff: max_weight_diff ?? null,
-      max_height_diff: max_height_diff ?? null,
-      sex_filter: sex_filter ?? null,
-      court_num: court_num ?? null,
-      sort_order: sort_order ?? 0,
-    })
+    .insert(buildBracketRuleInsert(body))
     .select()
     .single();
 

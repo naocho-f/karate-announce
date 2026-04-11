@@ -84,6 +84,83 @@ export async function linkEntryRules(entryId: string, ruleIds: string[]): Promis
 
 // ── 確認メール送信 ──
 
+async function fetchRuleNames(ruleIds: string[] | undefined): Promise<string[]> {
+  if (!ruleIds || ruleIds.length === 0) return [];
+  const { data: rules } = await supabaseAdmin.from("rules").select("name").in("id", ruleIds);
+  return (rules ?? []).map((r) => r.name);
+}
+
+type FieldMapping = {
+  fieldLabels: Record<string, string>;
+  fieldChoices: Record<string, { value: string; label: string }[]>;
+};
+
+function applyFieldConfigs(
+  fieldConfigs: { field_key: string; custom_label: string | null; custom_choices: { value: string; label: string }[] | null }[],
+  mapping: FieldMapping,
+): void {
+  for (const fc of fieldConfigs) {
+    const poolDef = getFieldDef(fc.field_key);
+    mapping.fieldLabels[fc.field_key] = fc.custom_label || poolDef?.label || fc.field_key;
+    const choices = fc.custom_choices ?? poolDef?.defaultChoices ?? poolDef?.fixedChoices;
+    if (choices && choices.length > 0) mapping.fieldChoices[fc.field_key] = choices;
+  }
+}
+
+function applyCustomDefs(
+  customDefs: { field_key: string; label: string; choices: { value: string; label: string }[] | null }[],
+  mapping: FieldMapping,
+): void {
+  for (const cd of customDefs) {
+    mapping.fieldLabels[cd.field_key] = cd.label;
+    if (cd.choices && cd.choices.length > 0) mapping.fieldChoices[cd.field_key] = cd.choices;
+  }
+}
+
+async function buildFieldMappings(eventId: string): Promise<FieldMapping> {
+  const mapping: FieldMapping = { fieldLabels: {}, fieldChoices: {} };
+
+  const { data: formConfigs } = await supabaseAdmin.from("form_configs").select("id").eq("event_id", eventId).limit(1);
+  const formConfigId = formConfigs?.[0]?.id;
+  if (!formConfigId) return mapping;
+
+  const [{ data: fieldConfigs }, { data: customDefs }] = await Promise.all([
+    supabaseAdmin.from("form_field_configs").select("field_key, custom_label, custom_choices").eq("form_config_id", formConfigId),
+    supabaseAdmin.from("custom_field_defs").select("field_key, label, choices").eq("form_config_id", formConfigId),
+  ]);
+
+  applyFieldConfigs(fieldConfigs ?? [], mapping);
+  applyCustomDefs(customDefs ?? [], mapping);
+  return mapping;
+}
+
+async function fetchEventForEmail(eventId: string) {
+  const { data } = await supabaseAdmin
+    .from("events")
+    .select("name, event_date, venue_info, email_subject_template, email_body_template, notification_emails")
+    .eq("id", eventId)
+    .single();
+  return data;
+}
+
+function buildEmailVariables(
+  entry: Record<string, unknown>,
+  eventData: { name: string; event_date: string | null; venue_info: string | null },
+  ruleNames: string[],
+  fieldLabels: Record<string, string>,
+  fieldChoices: Record<string, { value: string; label: string }[]>,
+): Record<string, string> {
+  const participantName = [entry.family_name, entry.given_name].filter(Boolean).join(" ");
+  return {
+    participant_name: participantName || "申込者",
+    event_name: eventData.name,
+    event_date: eventData.event_date ?? "",
+    venue_info: eventData.venue_info ?? "",
+    entry_details: buildEntryDetails(entry, ruleNames, fieldLabels, fieldChoices),
+    submission_date: new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }),
+  };
+}
+
 export async function sendConfirmationEmail(
   entry: Record<string, unknown>,
   entryId: string,
@@ -95,80 +172,21 @@ export async function sendConfirmationEmail(
   const eventId = entry.event_id as string;
   if (!eventId) return;
 
-  const { data: eventData } = await supabaseAdmin
-    .from("events")
-    .select("name, event_date, venue_info, email_subject_template, email_body_template, notification_emails")
-    .eq("id", eventId)
-    .single();
+  const eventData = await fetchEventForEmail(eventId);
   if (!eventData) return;
 
   const extra = (entry.extra_fields ?? {}) as Record<string, unknown>;
   const applicantEmail = (extra.email as string) || null;
   if (!applicantEmail) return;
 
-  // ルール名取得
-  let ruleNames: string[] = [];
-  if (ruleIds && ruleIds.length > 0) {
-    const { data: rules } = await supabaseAdmin.from("rules").select("name").in("id", ruleIds);
-    ruleNames = (rules ?? []).map((r) => r.name);
-  }
+  const [ruleNames, { fieldLabels, fieldChoices }] = await Promise.all([
+    fetchRuleNames(ruleIds),
+    buildFieldMappings(eventId),
+  ]);
 
-  // フィールド表示名・選択肢マッピングを構築
-  const fieldLabels: Record<string, string> = {};
-  const fieldChoices: Record<string, { value: string; label: string }[]> = {};
-  const { data: formConfigs } = await supabaseAdmin.from("form_configs").select("id").eq("event_id", eventId).limit(1);
-  const formConfigId = formConfigs?.[0]?.id;
-  const { data: fieldConfigs } = formConfigId
-    ? await supabaseAdmin
-        .from("form_field_configs")
-        .select("field_key, custom_label, custom_choices")
-        .eq("form_config_id", formConfigId)
-    : {
-        data: [] as {
-          field_key: string;
-          custom_label: string | null;
-          custom_choices: { value: string; label: string }[] | null;
-        }[],
-      };
-  const { data: customDefs } = formConfigId
-    ? await supabaseAdmin
-        .from("custom_field_defs")
-        .select("field_key, label, choices")
-        .eq("form_config_id", formConfigId)
-    : {
-        data: [] as {
-          field_key: string;
-          label: string;
-          choices: { value: string; label: string }[] | null;
-        }[],
-      };
-  for (const fc of fieldConfigs ?? []) {
-    const poolDef = getFieldDef(fc.field_key);
-    fieldLabels[fc.field_key] = fc.custom_label || poolDef?.label || fc.field_key;
-    const choices = fc.custom_choices ?? poolDef?.defaultChoices ?? poolDef?.fixedChoices;
-    if (choices && choices.length > 0) fieldChoices[fc.field_key] = choices;
-  }
-  for (const cd of customDefs ?? []) {
-    fieldLabels[cd.field_key] = cd.label;
-    if (cd.choices && cd.choices.length > 0) fieldChoices[cd.field_key] = cd.choices;
-  }
-
-  const participantName = [entry.family_name, entry.given_name].filter(Boolean).join(" ");
-
-  const variables: Record<string, string> = {
-    participant_name: participantName || "申込者",
-    event_name: eventData.name,
-    event_date: eventData.event_date ?? "",
-    venue_info: eventData.venue_info ?? "",
-    entry_details: buildEntryDetails(entry, ruleNames, fieldLabels, fieldChoices),
-    submission_date: new Date().toLocaleString("ja-JP", {
-      timeZone: "Asia/Tokyo",
-    }),
-  };
-
+  const variables = buildEmailVariables(entry, eventData, ruleNames, fieldLabels, fieldChoices);
   const subject = renderTemplate(eventData.email_subject_template || DEFAULT_SUBJECT, variables);
   const body = renderTemplate(eventData.email_body_template || DEFAULT_BODY, variables);
-
   const adminEmails: string[] = eventData.notification_emails ?? [];
   const from = process.env.RESEND_FROM_EMAIL || "参加受付 <onboarding@resend.dev>";
 

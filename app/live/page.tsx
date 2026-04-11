@@ -18,149 +18,31 @@ type CourtData = {
   tournaments: { tournament: Tournament; matches: Match[] }[];
 };
 
-export default function LivePage() {
-  const [activeEvent, setActiveEvent] = useState<Event | null | undefined>(undefined);
-  const [courts, setCourts] = useState<CourtData[]>([]);
-  const [selectedCourt, setSelectedCourt] = useState<number>(0);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const prevCourtsRef = useRef<string>("");
+// ── ウォッチ機能フック ──
 
-  // ウォッチ機能
-  const [watchList, setWatchList] = useState<string[]>([]);
+function useWatchList(courts: CourtData[]) {
+  const [watchList, setWatchList] = useState<string[]>(() => {
+    try {
+      const saved = typeof window !== "undefined" ? localStorage.getItem("karate_watch_list") : null;
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [showWatch, setShowWatch] = useState(false);
   const [watchSearch, setWatchSearch] = useState("");
   const [watchNotifications, setWatchNotifications] = useState<WatchNotification[]>([]);
   const notifiedRef = useRef<Set<string>>(new Set());
 
-  // localStorage からウォッチリストを復元
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("karate_watch_list");
-      if (saved) setWatchList(JSON.parse(saved));
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  // ウォッチリスト変更時に localStorage に保存
   useEffect(() => {
     localStorage.setItem("karate_watch_list", JSON.stringify(watchList));
   }, [watchList]);
 
-  const load = useCallback(async () => {
-    const { data: ae } = await supabase.from("events").select("*").eq("is_active", true).maybeSingle();
-    setActiveEvent(ae ?? null);
-    if (!ae) return;
-
-    // バッチクエリ: 全トーナメント→全マッチを一括取得（N+1 回避）
-    const { data: allTourns } = await supabase
-      .from("tournaments")
-      .select("*")
-      .eq("event_id", ae.id)
-      .neq("status", "finished")
-      .order("sort_order")
-      .order("created_at");
-
-    const tournIds = (allTourns ?? []).map((t) => t.id);
-    const { data: allMatches } =
-      tournIds.length > 0
-        ? await supabase
-            .from("matches")
-            .select(
-              "*, fighter1:fighters!fighter1_id(id,name), fighter2:fighters!fighter2_id(id,name), winner:fighters!winner_id(id,name)",
-            )
-            .in("tournament_id", tournIds)
-            .order("round")
-            .order("position")
-        : { data: [] };
-
-    // マッチをトーナメント ID でグループ化
-    const matchesByTourn = new Map<string, Match[]>();
-    for (const m of (allMatches ?? []) as Match[]) {
-      const list = matchesByTourn.get(m.tournament_id) ?? [];
-      list.push(m);
-      matchesByTourn.set(m.tournament_id, list);
-    }
-
-    // コートごとに整理
-    const courtData: CourtData[] = [];
-    for (let c = 1; c <= ae.court_count; c++) {
-      const courtName = ae.court_names?.[c - 1]?.trim() || `コート${c}`;
-      const courtTourns = (allTourns ?? []).filter((t) => t.court === String(c));
-      const tournData: CourtData["tournaments"] = courtTourns.map((t) => ({
-        tournament: t,
-        matches: matchesByTourn.get(t.id) ?? [],
-      }));
-      courtData.push({ courtNum: c, courtName, tournaments: tournData });
-    }
-    const serialized = JSON.stringify(courtData);
-    if (serialized !== prevCourtsRef.current) {
-      prevCourtsRef.current = serialized;
-      setCourts(courtData);
-      setLastUpdated(new Date());
-    }
-  }, []);
-
-  const { mode: offlineMode } = useOfflineMode();
-  const pendingCount = usePendingCount();
-  const { showRecoveryPrompt, acceptRecovery, declineRecovery } = useAutoRecovery(offlineMode);
-  const {
-    isOffline: _isOffline,
-    quality,
-    wrappedFetch,
-  } = useConnectionStatus(load, {
-    baseInterval: 5000,
-    enabled: offlineMode === "online",
-    onReconnect: () => {
-      flush().catch(() => {});
-    },
-  });
-
-  useEffect(() => {
-    void wrappedFetch();
-  }, [wrappedFetch]);
-
-  useEffect(() => {
-    // オフラインモード時は Realtime を接続しない
-    if (offlineMode === "offline") return;
-
-    // Supabase Realtime: matches テーブルの変更を即座に検知
-    const channel = supabase
-      .channel("live-matches")
-      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => {
-        void wrappedFetch();
-      })
-      .subscribe((status, err) => {
-        if (status === "SUBSCRIBED") {
-          void wrappedFetch();
-        }
-        if (status === "CLOSED" || status === "TIMED_OUT") {
-          console.warn(`Realtime ${status}`, err);
-        }
-      });
-
-    // バックグラウンドタブ復帰時に即座にリロード（Android等でsetIntervalが停止するため）
-    function handleVisibility() {
-      if (document.visibilityState === "visible") void wrappedFetch();
-    }
-    document.addEventListener("visibilitychange", handleVisibility);
-
-    return () => {
-      void supabase.removeChannel(channel);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, [wrappedFetch, offlineMode]);
-
-  // courts が更新されたらウォッチ判定
   useEffect(() => {
     if (courts.length === 0 || watchList.length === 0) return;
     const matchesByCourt = courts.map((c) => ({
       courtLabel: c.courtName,
       matches: c.tournaments.flatMap(({ matches }) =>
         matches.map((m) => ({
-          id: m.id,
-          status: m.status,
-          match_label: m.match_label,
+          id: m.id, status: m.status, match_label: m.match_label,
           fighter1_name: (m.fighter1 as FighterInfo | null)?.name ?? null,
           fighter2_name: (m.fighter2 as FighterInfo | null)?.name ?? null,
           courtLabel: c.courtName,
@@ -168,13 +50,9 @@ export default function LivePage() {
       ),
     }));
     const newNotifs = checkWatchNotifications(matchesByCourt, watchList, notifiedRef.current);
-    if (newNotifs.length > 0) {
-      setWatchNotifications((prev) => [...prev, ...newNotifs]);
-      // バイブレーションは多くの端末で非対応のため削除済み
-    }
+    if (newNotifs.length > 0) setWatchNotifications((prev) => [...prev, ...newNotifs]);
   }, [courts, watchList]);
 
-  // 通知の自動消去（10秒）
   useEffect(() => {
     if (watchNotifications.length === 0) return;
     const timer = setTimeout(() => {
@@ -184,7 +62,6 @@ export default function LivePage() {
     return () => clearTimeout(timer);
   }, [watchNotifications]);
 
-  // 全試合から選手名候補を抽出（検索用）
   const allFighterNames = useMemo(() => {
     const names = new Set<string>();
     for (const court of courts) {
@@ -199,6 +76,85 @@ export default function LivePage() {
     }
     return [...names].sort((a, b) => a.localeCompare(b, "ja"));
   }, [courts]);
+
+  return {
+    watchList, setWatchList, showWatch, setShowWatch, watchSearch, setWatchSearch,
+    watchNotifications, setWatchNotifications, allFighterNames,
+  };
+}
+
+// ── データ読み込みフック ──
+
+function useLiveData() {
+  const [activeEvent, setActiveEvent] = useState<Event | null | undefined>(undefined);
+  const [courts, setCourts] = useState<CourtData[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const prevCourtsRef = useRef<string>("");
+
+  const load = useCallback(async () => {
+    const { data: ae } = await supabase.from("events").select("*").eq("is_active", true).maybeSingle();
+    setActiveEvent(ae ?? null);
+    if (!ae) return;
+    const { data: allTourns } = await supabase.from("tournaments").select("*")
+      .eq("event_id", ae.id).neq("status", "finished").order("sort_order").order("created_at");
+    const tournIds = (allTourns ?? []).map((t) => t.id);
+    const { data: allMatches } = tournIds.length > 0
+      ? await supabase.from("matches")
+          .select("*, fighter1:fighters!fighter1_id(id,name), fighter2:fighters!fighter2_id(id,name), winner:fighters!winner_id(id,name)")
+          .in("tournament_id", tournIds).order("round").order("position")
+      : { data: [] };
+    const matchesByTourn = new Map<string, Match[]>();
+    for (const m of (allMatches ?? []) as Match[]) {
+      const list = matchesByTourn.get(m.tournament_id) ?? [];
+      list.push(m);
+      matchesByTourn.set(m.tournament_id, list);
+    }
+    const courtData: CourtData[] = [];
+    for (let c = 1; c <= ae.court_count; c++) {
+      const courtName = ae.court_names?.[c - 1]?.trim() || `コート${c}`;
+      const courtTourns = (allTourns ?? []).filter((t) => t.court === String(c));
+      courtData.push({ courtNum: c, courtName, tournaments: courtTourns.map((t) => ({ tournament: t, matches: matchesByTourn.get(t.id) ?? [] })) });
+    }
+    const serialized = JSON.stringify(courtData);
+    if (serialized !== prevCourtsRef.current) {
+      prevCourtsRef.current = serialized;
+      setCourts(courtData);
+      setLastUpdated(new Date());
+    }
+  }, []);
+
+  return { activeEvent, courts, lastUpdated, load };
+}
+
+// ── メインページ ──
+
+export default function LivePage() {
+  const { activeEvent, courts, lastUpdated, load } = useLiveData();
+  const [selectedCourt, setSelectedCourt] = useState<number>(0);
+  const watch = useWatchList(courts);
+
+  const { mode: offlineMode } = useOfflineMode();
+  const pendingCount = usePendingCount();
+  const { showRecoveryPrompt, acceptRecovery, declineRecovery } = useAutoRecovery(offlineMode);
+  const { isOffline: _isOffline, quality, wrappedFetch } = useConnectionStatus(load, {
+    baseInterval: 5000, enabled: offlineMode === "online",
+    onReconnect: () => { flush().catch(() => {}); },
+  });
+
+  useEffect(() => { void wrappedFetch(); }, [wrappedFetch]);
+
+  useEffect(() => {
+    if (offlineMode === "offline") return;
+    const channel = supabase.channel("live-matches")
+      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => { void wrappedFetch(); })
+      .subscribe((status, err) => {
+        if (status === "SUBSCRIBED") void wrappedFetch();
+        if (status === "CLOSED" || status === "TIMED_OUT") console.warn(`Realtime ${status}`, err);
+      });
+    function handleVisibility() { if (document.visibilityState === "visible") void wrappedFetch(); }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => { void supabase.removeChannel(channel); document.removeEventListener("visibilitychange", handleVisibility); };
+  }, [wrappedFetch, offlineMode]);
 
   if (activeEvent === undefined) {
     return (
@@ -226,148 +182,23 @@ export default function LivePage() {
 
   return (
     <main className="min-h-screen bg-main-bg text-white">
-      <UnifiedStatusBar
-        quality={quality}
-        mode={offlineMode}
-        pendingCount={pendingCount}
+      <UnifiedStatusBar quality={quality} mode={offlineMode} pendingCount={pendingCount}
         onToggleOfflineMode={() => {
           const next = offlineMode === "online" ? "offline" : "online";
           setMode(next);
           if (next === "online") flush().catch(() => {});
         }}
-        showRecoveryPrompt={showRecoveryPrompt}
-        onAcceptRecovery={acceptRecovery}
-        onDeclineRecovery={declineRecovery}
-      />
-      {/* ヘッダー（sticky: タイトル + タブ + 試合中カード） */}
-      <div className="sticky top-0 z-10 bg-gray-900 backdrop-blur border-b border-gray-700/60">
-        <div className="max-w-lg mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="shrink-0 text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded-full font-medium">
-              LIVE
-            </span>
-            <span className="font-bold text-sm truncate">{activeEvent.name}</span>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {lastUpdated && (
-              <span className="text-[10px] text-gray-500">
-                {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-              </span>
-            )}
-            <button
-              onClick={() => setShowWatch(!showWatch)}
-              className={`relative text-xs px-2 py-1 rounded-lg transition ${showWatch ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}
-            >
-              ⭐ ウォッチ
-              {watchList.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                  {watchList.length}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
+        showRecoveryPrompt={showRecoveryPrompt} onAcceptRecovery={acceptRecovery} onDeclineRecovery={declineRecovery} />
+      <LiveHeader activeEvent={activeEvent} courts={courts} selectedCourt={selectedCourt}
+        lastUpdated={lastUpdated} activeOngoing={activeOngoing} watch={watch}
+        onSetSelectedCourt={setSelectedCourt} />
 
-        {/* コートタブ（2コート以上の場合のみ表示） */}
-        {courts.length > 1 && (
-          <div
-            className="max-w-lg mx-auto grid px-3 pb-2 gap-1.5"
-            style={{ gridTemplateColumns: `repeat(${courts.length}, 1fr)` }}
-          >
-            {courts.map((court, idx) => {
-              const hasOngoing = court.tournaments.some(({ matches }) => matches.some((m) => m.status === "ongoing"));
-              const isActive = idx === selectedCourt;
-              return (
-                <button
-                  key={court.courtNum}
-                  onClick={() => setSelectedCourt(idx)}
-                  className={`relative py-2.5 text-sm font-bold text-center transition-colors rounded-lg ${
-                    isActive
-                      ? "bg-blue-600/30 text-blue-200 border border-blue-500/40"
-                      : "text-gray-400 bg-gray-800/60 border border-gray-700/40 active:bg-gray-700/60"
-                  }`}
-                >
-                  {court.courtName}
-                  {hasOngoing && (
-                    <span className="absolute top-1 right-2 w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* 試合中バナー（sticky ヘッダー内に固定） */}
-        {activeOngoing && <OngoingBanner match={activeOngoing} />}
-
-        {/* ウォッチパネル */}
-        {showWatch && (
-          <div className="bg-gray-800 border-t border-gray-700/60 px-3 py-3">
-            <div className="max-w-lg mx-auto space-y-2">
-              <input
-                type="text"
-                value={watchSearch}
-                onChange={(e) => setWatchSearch(e.target.value)}
-                placeholder="選手名で検索..."
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500"
-              />
-              {watchSearch.length > 0 && (
-                <div className="max-h-32 overflow-y-auto space-y-0.5">
-                  {allFighterNames
-                    .filter((n) => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n))
-                    .slice(0, 10)
-                    .map((name) => (
-                      <button
-                        key={name}
-                        onClick={() => {
-                          setWatchList((prev) => [...prev, name]);
-                          setWatchSearch("");
-                        }}
-                        className="w-full text-left text-sm text-gray-200 bg-gray-700/50 hover:bg-gray-600 rounded px-3 py-1.5 transition"
-                      >
-                        + {name}
-                      </button>
-                    ))}
-                  {allFighterNames.filter(
-                    (n) => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n),
-                  ).length === 0 && <p className="text-xs text-gray-500 py-1">該当する選手がいません</p>}
-                </div>
-              )}
-              {watchList.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-[10px] text-gray-500">ウォッチ中:</p>
-                  {watchList.map((name) => (
-                    <div key={name} className="flex items-center justify-between bg-gray-700/50 rounded px-3 py-1.5">
-                      <span className="text-sm text-gray-200">⭐ {name}</span>
-                      <button
-                        onClick={() => setWatchList((prev) => prev.filter((n) => n !== name))}
-                        className="text-xs text-red-400 hover:text-red-300"
-                      >
-                        解除
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {watchList.length === 0 && watchSearch.length === 0 && (
-                <p className="text-xs text-gray-500">
-                  選手名を入力してウォッチリストに追加すると、試合の3試合前に通知します
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ウォッチ通知バナー */}
-      {watchNotifications.length > 0 && (
+      {watch.watchNotifications.length > 0 && (
         <div className="fixed top-0 left-0 right-0 z-50 space-y-1 p-2">
-          {watchNotifications.map((n) => (
-            <button
-              key={n.id}
-              onClick={() => setWatchNotifications((prev) => prev.filter((x) => x.id !== n.id))}
-              className="w-full bg-orange-600 text-white rounded-xl px-5 py-4 text-base font-bold shadow-2xl animate-pulse text-left"
-            >
+          {watch.watchNotifications.map((n) => (
+            <button key={n.id}
+              onClick={() => watch.setWatchNotifications((prev) => prev.filter((x) => x.id !== n.id))}
+              className="w-full bg-orange-600 text-white rounded-xl px-5 py-4 text-base font-bold shadow-2xl animate-pulse text-left">
               🔔 {n.message}
             </button>
           ))}
@@ -376,6 +207,109 @@ export default function LivePage() {
 
       <div className="max-w-lg mx-auto px-3 py-3">{activeCourt && <CourtView court={activeCourt} />}</div>
     </main>
+  );
+}
+
+// ── ヘッダー ──
+
+type WatchState = ReturnType<typeof useWatchList>;
+
+function LiveHeader({ activeEvent, courts, selectedCourt, lastUpdated, activeOngoing, watch, onSetSelectedCourt }: {
+  activeEvent: Event; courts: CourtData[]; selectedCourt: number;
+  lastUpdated: Date | null; activeOngoing: Match | null; watch: WatchState;
+  onSetSelectedCourt: (idx: number) => void;
+}) {
+  return (
+    <div className="sticky top-0 z-10 bg-gray-900 backdrop-blur border-b border-gray-700/60">
+      <div className="max-w-lg mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="shrink-0 text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded-full font-medium">LIVE</span>
+          <span className="font-bold text-sm truncate">{activeEvent.name}</span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {lastUpdated && (
+            <span className="text-[10px] text-gray-500">
+              {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            </span>
+          )}
+          <button onClick={() => watch.setShowWatch(!watch.showWatch)}
+            className={`relative text-xs px-2 py-1 rounded-lg transition ${watch.showWatch ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}>
+            ⭐ ウォッチ
+            {watch.watchList.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                {watch.watchList.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+      {courts.length > 1 && (
+        <CourtTabs courts={courts} selectedCourt={selectedCourt} onSelect={onSetSelectedCourt} />
+      )}
+      {activeOngoing && <OngoingBanner match={activeOngoing} />}
+      {watch.showWatch && <WatchPanel watch={watch} />}
+    </div>
+  );
+}
+
+function CourtTabs({ courts, selectedCourt, onSelect }: { courts: CourtData[]; selectedCourt: number; onSelect: (idx: number) => void }) {
+  return (
+    <div className="max-w-lg mx-auto grid px-3 pb-2 gap-1.5" style={{ gridTemplateColumns: `repeat(${courts.length}, 1fr)` }}>
+      {courts.map((court, idx) => {
+        const hasOngoing = court.tournaments.some(({ matches }) => matches.some((m) => m.status === "ongoing"));
+        const isActive = idx === selectedCourt;
+        return (
+          <button key={court.courtNum} onClick={() => onSelect(idx)}
+            className={`relative py-2.5 text-sm font-bold text-center transition-colors rounded-lg ${
+              isActive ? "bg-blue-600/30 text-blue-200 border border-blue-500/40"
+                : "text-gray-400 bg-gray-800/60 border border-gray-700/40 active:bg-gray-700/60"
+            }`}>
+            {court.courtName}
+            {hasOngoing && <span className="absolute top-1 right-2 w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse" />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function WatchPanel({ watch }: { watch: WatchState }) {
+  const { watchSearch, setWatchSearch, watchList, setWatchList, allFighterNames } = watch;
+  return (
+    <div className="bg-gray-800 border-t border-gray-700/60 px-3 py-3">
+      <div className="max-w-lg mx-auto space-y-2">
+        <input type="text" value={watchSearch} onChange={(e) => setWatchSearch(e.target.value)}
+          placeholder="選手名で検索..."
+          className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500" />
+        {watchSearch.length > 0 && (
+          <div className="max-h-32 overflow-y-auto space-y-0.5">
+            {allFighterNames.filter((n) => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n)).slice(0, 10)
+              .map((name) => (
+                <button key={name} onClick={() => { setWatchList((prev) => [...prev, name]); setWatchSearch(""); }}
+                  className="w-full text-left text-sm text-gray-200 bg-gray-700/50 hover:bg-gray-600 rounded px-3 py-1.5 transition">+ {name}</button>
+              ))}
+            {allFighterNames.filter((n) => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n)).length === 0 && (
+              <p className="text-xs text-gray-500 py-1">該当する選手がいません</p>
+            )}
+          </div>
+        )}
+        {watchList.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-[10px] text-gray-500">ウォッチ中:</p>
+            {watchList.map((name) => (
+              <div key={name} className="flex items-center justify-between bg-gray-700/50 rounded px-3 py-1.5">
+                <span className="text-sm text-gray-200">⭐ {name}</span>
+                <button onClick={() => setWatchList((prev) => prev.filter((n) => n !== name))}
+                  className="text-xs text-red-400 hover:text-red-300">解除</button>
+              </div>
+            ))}
+          </div>
+        )}
+        {watchList.length === 0 && watchSearch.length === 0 && (
+          <p className="text-xs text-gray-500">選手名を入力してウォッチリストに追加すると、試合の3試合前に通知します</p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -450,87 +384,80 @@ function OngoingBanner({ match }: { match: Match }) {
   );
 }
 
+function getMatchRowStyle(isOngoing: boolean, isNext: boolean, isDone: boolean): string {
+  if (isOngoing) return "bg-blue-900/50 border-2 border-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.3)]";
+  if (isNext) return "bg-amber-900/30 border-2 border-amber-400/60 shadow-[0_0_8px_rgba(251,191,36,0.2)]";
+  if (isDone) return "bg-gray-800/40 border border-gray-700/30";
+  return "bg-gray-800/70 border border-gray-700/40";
+}
+
+function getMatchLabelColor(isOngoing: boolean, isDone: boolean): string {
+  if (isOngoing) return "text-blue-300";
+  if (isDone) return "text-gray-500";
+  return "text-gray-400";
+}
+
+function MatchStatusBadge({ isOngoing, isNext, isDone, hasWinner, hasFighter2 }: {
+  isOngoing: boolean; isNext: boolean; isDone: boolean; hasWinner: boolean; hasFighter2: boolean;
+}) {
+  if (isDone && hasWinner) return <span className="text-[10px] text-green-400 font-medium">終了</span>;
+  if (isOngoing) return (
+    <span className="flex items-center gap-1">
+      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+      <span className="text-[10px] text-blue-300 font-medium">試合中</span>
+    </span>
+  );
+  if (isNext) return (
+    <span className="flex items-center gap-1">
+      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+      <span className="text-[10px] text-amber-300 font-medium">次の試合</span>
+    </span>
+  );
+  if (!hasFighter2) return <span className="text-[10px] text-gray-500">未定</span>;
+  return null;
+}
+
+function FighterName({ fighter, isWinner, isDone, isRight, hasFighter }: {
+  fighter: FighterInfo | null; isWinner: boolean; isDone: boolean; isRight?: boolean; hasFighter?: boolean;
+}) {
+  const textClass = isWinner ? "font-bold text-white" : isDone ? "text-gray-400" : (hasFighter !== false ? "text-gray-100" : "text-gray-500");
+  return (
+    <span className={`flex-1 min-w-0 flex items-center ${isRight ? "justify-end" : ""} gap-1 text-sm ${textClass}`}>
+      <span className={`truncate ${isRight ? "text-right" : ""}`}>{fighter?.name ?? "未定"}</span>
+      {isWinner && <span className="shrink-0 text-[10px] text-green-400">勝</span>}
+    </span>
+  );
+}
+
 function MatchRow({ match, isOngoing, isNext }: { match: Match; isOngoing: boolean; isNext: boolean }) {
   const f1 = match.fighter1 as FighterInfo | null;
   const f2 = match.fighter2 as FighterInfo | null;
   const winner = match.winner as FighterInfo | null;
   const isDone = match.status === "done";
-  const isBye = match.round === 1 && f1 && !f2;
 
-  if (isBye) {
+  if (match.round === 1 && f1 && !f2) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/50 border border-gray-700/30 text-xs">
         {match.match_label && <span className="text-gray-500 shrink-0">{match.match_label}</span>}
-        <span className="text-gray-300 truncate">{f1?.name ?? "未定"}</span>
+        <span className="text-gray-300 truncate">{f1.name}</span>
         <span className="text-gray-500 ml-auto shrink-0">不戦勝</span>
       </div>
     );
   }
 
-  // 2行レイアウト: 1行目=試合番号+ステータス、2行目=選手名
   return (
-    <div
-      className={`px-3 py-2.5 rounded-xl ${
-        isOngoing
-          ? "bg-blue-900/50 border-2 border-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.3)]"
-          : isNext
-            ? "bg-amber-900/30 border-2 border-amber-400/60 shadow-[0_0_8px_rgba(251,191,36,0.2)]"
-            : isDone
-              ? "bg-gray-800/40 border border-gray-700/30"
-              : "bg-gray-800/70 border border-gray-700/40"
-      }`}
-    >
-      {/* 1行目: 試合番号 + ステータス */}
+    <div className={`px-3 py-2.5 rounded-xl ${getMatchRowStyle(isOngoing, isNext, isDone)}`}>
       <div className="flex items-center gap-1.5 mb-1">
         {match.match_label && (
-          <span
-            className={`text-xs font-semibold ${
-              isOngoing ? "text-blue-300" : isDone ? "text-gray-500" : "text-gray-400"
-            }`}
-          >
-            {match.match_label}
-          </span>
+          <span className={`text-xs font-semibold ${getMatchLabelColor(isOngoing, isDone)}`}>{match.match_label}</span>
         )}
-        {isDone && winner && <span className="text-[10px] text-green-400 font-medium">終了</span>}
-        {isOngoing && (
-          <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-            <span className="text-[10px] text-blue-300 font-medium">試合中</span>
-          </span>
-        )}
-        {isNext && !isOngoing && (
-          <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-            <span className="text-[10px] text-amber-300 font-medium">次の試合</span>
-          </span>
-        )}
-        {!isDone && !isOngoing && !isNext && !f2 && <span className="text-[10px] text-gray-500">未定</span>}
+        <MatchStatusBadge isOngoing={isOngoing} isNext={isNext} isDone={isDone}
+          hasWinner={!!winner} hasFighter2={!!f2} />
       </div>
-      {/* 2行目: 選手名 */}
       <div className="flex items-center gap-2">
-        <span
-          className={`flex-1 min-w-0 flex items-center gap-1 text-sm ${
-            winner?.id === f1?.id ? "font-bold text-white" : isDone ? "text-gray-400" : "text-gray-100"
-          }`}
-        >
-          <span className="truncate">{f1?.name ?? "未定"}</span>
-          {winner?.id === f1?.id && <span className="shrink-0 text-[10px] text-green-400">勝</span>}
-        </span>
+        <FighterName fighter={f1} isWinner={winner?.id === f1?.id} isDone={isDone} />
         <span className={`text-[10px] shrink-0 ${isDone ? "text-gray-600" : "text-gray-500"}`}>vs</span>
-        <span
-          className={`flex-1 min-w-0 flex items-center justify-end gap-1 text-sm ${
-            winner?.id === f2?.id
-              ? "font-bold text-white"
-              : isDone
-                ? "text-gray-400"
-                : f2
-                  ? "text-gray-100"
-                  : "text-gray-500"
-          }`}
-        >
-          <span className="truncate text-right">{f2 ? f2.name : "未定"}</span>
-          {winner?.id === f2?.id && <span className="shrink-0 text-[10px] text-green-400">勝</span>}
-        </span>
+        <FighterName fighter={f2} isWinner={winner?.id === f2?.id} isDone={isDone} isRight hasFighter={!!f2} />
       </div>
     </div>
   );

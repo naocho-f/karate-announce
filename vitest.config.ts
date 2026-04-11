@@ -13,5 +13,12 @@ export default defineConfig({
     globals: true,
     testTimeout: 10_000,
     setupFiles: ["fake-indexeddb/auto"],
+    coverage: {
+      provider: "v8",
+      include: ["lib/**"],
+      thresholds: {
+        lines: 70,
+      },
+    },
   },
 });

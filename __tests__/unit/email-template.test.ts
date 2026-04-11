@@ -7,7 +7,6 @@ import {
   DEFAULT_SUBJECT,
   DEFAULT_BODY,
   buildEntryDetails,
-  TEMPLATE_VARIABLES,
 } from "@/lib/email-template";
 
 describe("email-template", () => {
@@ -314,24 +313,6 @@ describe("email-template", () => {
         [],
       );
       expect(result).toBe("phone: 090-1234-5678");
-    });
-  });
-
-  describe("TEMPLATE_VARIABLES", () => {
-    it("必要な変数キーがすべて定義されている", () => {
-      const keys = TEMPLATE_VARIABLES.map((v) => v.key);
-      expect(keys).toContain("participant_name");
-      expect(keys).toContain("event_name");
-      expect(keys).toContain("event_date");
-      expect(keys).toContain("venue_info");
-      expect(keys).toContain("entry_details");
-      expect(keys).toContain("submission_date");
-    });
-
-    it("各変数にラベルが設定されている", () => {
-      for (const v of TEMPLATE_VARIABLES) {
-        expect(v.label).toBeTruthy();
-      }
     });
   });
 

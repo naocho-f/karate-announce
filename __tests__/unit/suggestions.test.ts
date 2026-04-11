@@ -4,7 +4,7 @@
  * computeSuggestions / computeBalance の検証
  */
 import { describe, it, expect } from "vitest";
-import { computeSuggestions, computeBalance, type SplitSuggestion } from "@/lib/suggestions";
+import { computeSuggestions, type SplitSuggestion } from "@/lib/suggestions";
 import type { Entry } from "@/lib/types";
 
 function makeEntry(id: string, overrides?: Partial<Entry>): Entry {
@@ -38,18 +38,25 @@ function makeEntry(id: string, overrides?: Partial<Entry>): Entry {
   };
 }
 
-describe("computeBalance", () => {
-  it("差が1以下なら◎を返す", () => {
-    expect(computeBalance(5, 5)).toBe("◎");
-    expect(computeBalance(4, 5)).toBe("◎");
+describe("computeBalance（computeSuggestions経由で検証）", () => {
+  it("均等な分割は◎を返す", () => {
+    const entries = [
+      makeEntry("1", { sex: "male" }), makeEntry("2", { sex: "male" }),
+      makeEntry("3", { sex: "female" }), makeEntry("4", { sex: "female" }),
+    ];
+    const result = computeSuggestions(entries);
+    const sexSuggestion = result.find((s) => s.axis === "sex");
+    expect(sexSuggestion?.balance).toBe("◎");
   });
 
-  it("差が中程度なら△を返す", () => {
-    expect(computeBalance(3, 5)).toBe("△");
-  });
-
-  it("差が大きいなら✕を返す", () => {
-    expect(computeBalance(1, 10)).toBe("✕");
+  it("偏った分割は✕を返す", () => {
+    const entries = [
+      ...Array.from({ length: 10 }, (_, i) => makeEntry(`m${i}`, { sex: "male" })),
+      makeEntry("f1", { sex: "female" }),
+    ];
+    const result = computeSuggestions(entries);
+    const sexSuggestion = result.find((s) => s.axis === "sex");
+    expect(sexSuggestion?.balance).toBe("✕");
   });
 });
 

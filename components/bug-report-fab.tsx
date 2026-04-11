@@ -4,6 +4,15 @@ import { useState } from "react";
 import { isDev, getAppVersion } from "@/lib/app-mode";
 import { showToast } from "@/components/toast";
 
+function BugTextField({ label, required, value, onChange, placeholder }: { label: string; required?: boolean; value: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <div className="space-y-1">
+      <label className="text-xs text-gray-400">{label}{required && <span className="text-red-400"> *</span>}</label>
+      <textarea rows={2} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-white placeholder:text-gray-600 resize-none" />
+    </div>
+  );
+}
+
 export function BugReportFab() {
   const [open, setOpen] = useState(false);
   const [whatDid, setWhatDid] = useState("");
@@ -62,42 +71,9 @@ export function BugReportFab() {
           <h3 className="font-bold text-sm text-white">不具合を報告</h3>
           <p className="text-[10px] text-gray-500">URL・端末情報・バージョンは自動で記録されます</p>
 
-          <div className="space-y-1">
-            <label className="text-xs text-gray-400">
-              何をした？ <span className="text-red-400">*</span>
-            </label>
-            <textarea
-              rows={2}
-              value={whatDid}
-              onChange={(e) => setWhatDid(e.target.value)}
-              placeholder="例: 自由設問を追加した"
-              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-white placeholder:text-gray-600 resize-none"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs text-gray-400">
-              どうなった？ / 何が気になった？ <span className="text-red-400">*</span>
-            </label>
-            <textarea
-              rows={2}
-              value={whatHappened}
-              onChange={(e) => setWhatHappened(e.target.value)}
-              placeholder="例: 保存ボタンが押せなかった"
-              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-white placeholder:text-gray-600 resize-none"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs text-gray-400">こうなってほしい（任意）</label>
-            <textarea
-              rows={2}
-              value={whatExpected}
-              onChange={(e) => setWhatExpected(e.target.value)}
-              placeholder="例: 保存ボタンが押せるようになってほしい"
-              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-white placeholder:text-gray-600 resize-none"
-            />
-          </div>
+          <BugTextField label="何をした？" required value={whatDid} onChange={setWhatDid} placeholder="例: 自由設問を追加した" />
+          <BugTextField label="どうなった？ / 何が気になった？" required value={whatHappened} onChange={setWhatHappened} placeholder="例: 保存ボタンが押せなかった" />
+          <BugTextField label="こうなってほしい（任意）" value={whatExpected} onChange={setWhatExpected} placeholder="例: 保存ボタンが押せるようになってほしい" />
 
           {sent ? (
             <p className="text-xs text-green-400 font-medium text-center py-2">送信しました！</p>

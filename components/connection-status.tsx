@@ -67,50 +67,37 @@ export function useConnectionStatus(
     prevQualityRef.current = newQuality;
   }, []);
 
-  // rescheduleRef を先に宣言し、自己参照を可能にする
   const rescheduleRef = useRef<() => void>(() => {});
+
+  const handleSuccess = useCallback(() => {
+    const wasOffline = failCountRef.current >= 3;
+    failCountRef.current = 0;
+    hasOperationRetryRef.current = false;
+    updateQuality();
+    if (wasOffline) rescheduleRef.current();
+  }, [updateQuality]);
+
+  const handleFailure = useCallback(() => {
+    failCountRef.current += 1;
+    updateQuality();
+    rescheduleRef.current();
+  }, [updateQuality]);
+
+  const pollOnce = useCallback(async () => {
+    try { await fetchFnRef.current(); handleSuccess(); } catch { handleFailure(); }
+  }, [handleSuccess, handleFailure]);
 
   const reschedule = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     const interval = calcBackoffInterval(baseIntervalRef.current, failCountRef.current);
-    intervalRef.current = setInterval(() => {
-      void (async () => {
-        try {
-          await fetchFnRef.current();
-          const wasOffline = failCountRef.current >= 3;
-          failCountRef.current = 0;
-          hasOperationRetryRef.current = false;
-          updateQuality();
-          if (wasOffline) rescheduleRef.current();
-        } catch {
-          failCountRef.current += 1;
-          updateQuality();
-          rescheduleRef.current();
-        }
-      })();
-    }, interval);
-  }, [updateQuality]);
+    intervalRef.current = setInterval(() => void pollOnce(), interval);
+  }, [pollOnce]);
 
-  useEffect(() => {
-    rescheduleRef.current = reschedule;
-  }, [reschedule]);
+  useEffect(() => { rescheduleRef.current = reschedule; }, [reschedule]);
 
   const wrappedFetch = useCallback(async () => {
-    try {
-      await fetchFnRef.current();
-      const wasOffline = failCountRef.current >= 3;
-      failCountRef.current = 0;
-      hasOperationRetryRef.current = false;
-      updateQuality();
-      // オフライン→成功に復帰したらポーリング間隔をリセット
-      if (wasOffline) reschedule();
-    } catch {
-      failCountRef.current += 1;
-      updateQuality();
-      // 失敗が増えたらバックオフ間隔に更新
-      reschedule();
-    }
-  }, [updateQuality, reschedule]);
+    try { await fetchFnRef.current(); handleSuccess(); } catch { handleFailure(); }
+  }, [handleSuccess, handleFailure]);
 
   // navigator online/offline イベント
   useEffect(() => {
@@ -132,39 +119,17 @@ export function useConnectionStatus(
     };
   }, [updateQuality, reschedule]);
 
-  // 初回ポーリング開始（enabled=false で停止）
   useEffect(() => {
     if (!enabled) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
       return;
     }
-    // enabled が true に戻った時、バックオフカウンタをリセットして正常状態から再開
     failCountRef.current = 0;
     hasOperationRetryRef.current = false;
     updateQuality();
-    intervalRef.current = setInterval(() => {
-      void (async () => {
-        try {
-          await fetchFnRef.current();
-          const wasOffline = failCountRef.current >= 3;
-          failCountRef.current = 0;
-          hasOperationRetryRef.current = false;
-          updateQuality();
-          if (wasOffline) reschedule();
-        } catch {
-          failCountRef.current += 1;
-          updateQuality();
-          reschedule();
-        }
-      })();
-    }, baseInterval);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [baseInterval, enabled, updateQuality, reschedule]);
+    intervalRef.current = setInterval(() => void pollOnce(), baseInterval);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [baseInterval, enabled, updateQuality, pollOnce]);
 
   return {
     quality,

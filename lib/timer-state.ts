@@ -178,7 +178,7 @@ function log(state: TimerState, action: string, payload?: Record<string, unknown
 }
 
 /** メインタイマーの経過時間（ms） */
-export function getMainElapsedMs(state: TimerState): number {
+function getMainElapsedMs(state: TimerState): number {
   if (state.phase === "running" && state.timerStartedAt) {
     const delta = Date.now() - state.timerStartedAt;
     if (state.preset?.timer_direction === "countup") {
@@ -401,55 +401,51 @@ function pushUndo(state: TimerState, action: string, prevPhase?: TimerPhase): vo
   if (state.undoStack.length > 100) state.undoStack.shift();
 }
 
-/** ポイントを自動判定する。先取り勝ち・反則負け・一本判定 */
-function checkAutoFinish(state: TimerState): TimerState {
+function checkIpponFinish(state: TimerState): TimerState | null {
   const p = state.preset;
-  if (!p) return state;
-
-  const redPts = state.redScore.points;
-  const whitePts = state.whiteScore.points;
-  const redFouls = state.redScore.fouls;
-  const whiteFouls = state.whiteScore.fouls;
-
-  // 一本判定
+  if (!p) return null;
   if (p.ippon_wins) {
     if (state.redScore.ippon > 0) return finishAuto(state, "red", "ippon");
     if (state.whiteScore.ippon > 0) return finishAuto(state, "white", "ippon");
   }
-
-  // 合わせ一本判定（技あり2回で自動勝利）
   if (p.combined_ippon_wins) {
     if (state.redScore.wazaari >= 2) return finishAuto(state, "red", "combined_ippon");
     if (state.whiteScore.wazaari >= 2) return finishAuto(state, "white", "combined_ippon");
   }
+  return null;
+}
 
-  // 反則負け & ポイント先取り同時判定
-  const redFoulLoss = p.foul_loss_count > 0 && redFouls >= p.foul_loss_count;
-  const whiteFoulLoss = p.foul_loss_count > 0 && whiteFouls >= p.foul_loss_count;
-  const redPointWin = p.point_win_threshold > 0 && redPts >= p.point_win_threshold;
-  const whitePointWin = p.point_win_threshold > 0 && whitePts >= p.point_win_threshold;
+function checkFoulAndPointFinish(state: TimerState): TimerState | null {
+  const p = state.preset;
+  if (!p) return null;
+  const redFoulLoss = p.foul_loss_count > 0 && state.redScore.fouls >= p.foul_loss_count;
+  const whiteFoulLoss = p.foul_loss_count > 0 && state.whiteScore.fouls >= p.foul_loss_count;
+  const redPointWin = p.point_win_threshold > 0 && state.redScore.points >= p.point_win_threshold;
+  const whitePointWin = p.point_win_threshold > 0 && state.whiteScore.points >= p.point_win_threshold;
+  const foulMethod = p.foul_vs_point_priority === "foul_priority" ? "foul" as const : "point" as const;
 
-  // 赤の反則負け + 白のポイント先取り
-  if (redFoulLoss && whitePointWin) {
-    return finishAuto(state, "white", p.foul_vs_point_priority === "foul_priority" ? "foul" : "point");
-  }
-  // 白の反則負け + 赤のポイント先取り
-  if (whiteFoulLoss && redPointWin) {
-    return finishAuto(state, "red", p.foul_vs_point_priority === "foul_priority" ? "foul" : "point");
-  }
-
-  // 反則負け単独
+  if (redFoulLoss && whitePointWin) return finishAuto(state, "white", foulMethod);
+  if (whiteFoulLoss && redPointWin) return finishAuto(state, "red", foulMethod);
   if (redFoulLoss) return finishAuto(state, "white", "foul");
   if (whiteFoulLoss) return finishAuto(state, "red", "foul");
-
-  // ポイント先取り
   if (redPointWin) return finishAuto(state, "red", "point");
   if (whitePointWin) return finishAuto(state, "white", "point");
+  return null;
+}
 
-  // サドンデス中: ポイント差が付いた瞬間
-  if (state.extensionCount > 0 && state.preset?.extension_mode === "sudden_death") {
-    if (redPts > whitePts) return finishAuto(state, "red", "sudden_death");
-    if (whitePts > redPts) return finishAuto(state, "white", "sudden_death");
+/** ポイントを自動判定する。先取り勝ち・反則負け・一本判定 */
+function checkAutoFinish(state: TimerState): TimerState {
+  if (!state.preset) return state;
+
+  const ipponResult = checkIpponFinish(state);
+  if (ipponResult) return ipponResult;
+
+  const foulPointResult = checkFoulAndPointFinish(state);
+  if (foulPointResult) return foulPointResult;
+
+  if (state.extensionCount > 0 && state.preset.extension_mode === "sudden_death") {
+    if (state.redScore.points > state.whiteScore.points) return finishAuto(state, "red", "sudden_death");
+    if (state.whiteScore.points > state.redScore.points) return finishAuto(state, "white", "sudden_death");
   }
 
   return state;

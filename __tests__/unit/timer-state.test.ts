@@ -27,7 +27,6 @@ import {
   markResultWritten,
   cancelResult,
   resetToIdle,
-  getMainElapsedMs,
   getDisplayMs,
   getNewazaElapsedMs,
   tick,
@@ -800,13 +799,12 @@ describe("timer-state", () => {
       expect(getDisplayMs(s)).toBe(0);
     });
 
-    it("getMainElapsedMs: running 中のカウントアップ", () => {
-      let s = startTimer(readyState({ timer_direction: "countup" }));
-      // timerStartedAt を少し前にする
+    it("getDisplayMs: running 中のカウントアップ（内部でgetMainElapsedMsが使われる）", () => {
+      let s = startTimer(readyState({ timer_direction: "countup", match_duration: 120 }));
       s = { ...s, timerStartedAt: Date.now() - 5_000, timerBaseMs: 0 };
-      const elapsed = getMainElapsedMs(s);
-      expect(elapsed).toBeGreaterThanOrEqual(4_000);
-      expect(elapsed).toBeLessThanOrEqual(6_000);
+      const displayMs = getDisplayMs(s);
+      expect(displayMs).toBeGreaterThanOrEqual(4_000);
+      expect(displayMs).toBeLessThanOrEqual(6_000);
     });
 
     it("getNewazaElapsedMs: 寝技アクティブ中", () => {

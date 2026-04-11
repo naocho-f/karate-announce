@@ -38,75 +38,75 @@ class ResilientFetchError extends Error {
  * @returns 成功した Response
  * @throws ResilientFetchError - 最大リトライ到達後、または abort 時
  */
+function queuedResponse(): Response {
+  return new Response('{"queued":true}', { status: 202 });
+}
+
+function fallbackOrThrow(
+  onQueueFallback: ((url: string, init: RequestInit) => void) | undefined,
+  url: string,
+  init: RequestInit,
+  errorMsg: string,
+  lastResponse?: Response,
+): Response {
+  if (onQueueFallback) {
+    onQueueFallback(url, init);
+    return queuedResponse();
+  }
+  throw new ResilientFetchError(errorMsg, lastResponse);
+}
+
+async function attemptFetch(
+  url: string,
+  init: RequestInit,
+  options: ResilientFetchOptions,
+  _attempt: number,
+): Promise<{ response?: Response; shouldRetry: boolean; errorMsg?: string }> {
+  const { timeout, signal } = options;
+  try {
+    const res = await fetchWithTimeout(url, init, timeout, signal);
+    if (res.ok || (res.status >= 400 && res.status < 500)) {
+      return { response: res, shouldRetry: false };
+    }
+    return { shouldRetry: true, errorMsg: `Server error ${res.status}`, response: res };
+  } catch (error) {
+    if (signal?.aborted) throw new ResilientFetchError("Request aborted");
+    if (error instanceof ResilientFetchError) throw error;
+    const msg = `Network error: ${error instanceof Error ? error.message : String(error)}`;
+    return { shouldRetry: true, errorMsg: msg };
+  }
+}
+
 export async function resilientFetch(
   url: string,
   init: RequestInit,
   options: ResilientFetchOptions,
 ): Promise<Response> {
-  const { maxRetries, timeout, signal, onQueueFallback, offlineMode } = options;
+  const { maxRetries, signal, onQueueFallback, offlineMode } = options;
 
-  // オフラインモード: fetch を呼ばず即座にキューへ
   if (offlineMode && onQueueFallback) {
     onQueueFallback(url, init);
-    // 呼び出し元が結果を待たないようダミーレスポンスを返す
-    return new Response('{"queued":true}', { status: 202 });
+    return queuedResponse();
   }
+
+  let lastErrorMsg = "Unexpected: exhausted retries";
+  let lastResponse: Response | undefined;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    // abort 済みなら即座に中断
-    if (signal?.aborted) {
-      throw new ResilientFetchError("Request aborted");
-    }
+    if (signal?.aborted) throw new ResilientFetchError("Request aborted");
 
-    try {
-      const res = await fetchWithTimeout(url, init, timeout, signal);
+    const result = await attemptFetch(url, init, options, attempt);
+    if (!result.shouldRetry && result.response) return result.response;
 
-      // 成功 or 4xx → リトライしない
-      if (res.ok || (res.status >= 400 && res.status < 500)) {
-        return res;
-      }
+    lastErrorMsg = `${result.errorMsg} after ${maxRetries} retries`;
+    lastResponse = result.response;
 
-      // 5xx → リトライ対象
-      if (attempt < maxRetries) {
-        await backoff(attempt, signal);
-        continue;
-      }
-
-      // 最大リトライ到達
-      if (onQueueFallback) {
-        onQueueFallback(url, init);
-        return new Response('{"queued":true}', { status: 202 });
-      }
-      throw new ResilientFetchError(`Server error ${res.status} after ${maxRetries} retries`, res);
-    } catch (error) {
-      // abort されたら即座に中断（リトライしない）
-      if (signal?.aborted) {
-        throw new ResilientFetchError("Request aborted");
-      }
-
-      // ResilientFetchError はそのまま throw
-      if (error instanceof ResilientFetchError) {
-        throw error;
-      }
-
-      // ネットワークエラー / タイムアウト → リトライ
-      if (attempt < maxRetries) {
-        await backoff(attempt, signal);
-        continue;
-      }
-
-      if (onQueueFallback) {
-        onQueueFallback(url, init);
-        return new Response('{"queued":true}', { status: 202 });
-      }
-      throw new ResilientFetchError(
-        `Network error after ${maxRetries} retries: ${error instanceof Error ? error.message : String(error)}`,
-      );
+    if (attempt < maxRetries) {
+      await backoff(attempt, signal);
     }
   }
 
-  // TypeScript の到達不能コード対策
-  throw new ResilientFetchError("Unexpected: exhausted retries");
+  return fallbackOrThrow(onQueueFallback, url, init, lastErrorMsg, lastResponse);
 }
 
 /**

@@ -102,7 +102,25 @@ if grep -rn 'eslint-disable' app/ lib/ components/ __tests__/ 2>/dev/null | grep
   exit 1
 fi
 
-# 11. scripts/pre-commit == .git/hooks/pre-commit
+# 11. lib/ の export がアプリコードから使われているか（テストのみは不可）
+# 新規追加・変更された lib/ ファイルの export を検証
+for libfile in $(git diff --cached --name-only --diff-filter=AM | grep '^lib/[^/]*\.ts$'); do
+  libname=$(basename "$libfile" .ts | sed 's/\.tsx$//')
+  # types.ts, supabase*.ts, errors.ts は除外（型定義・設定・基盤）
+  case "$libname" in types|supabase|supabase-admin|errors) continue;; esac
+  for funcname in $(grep -oE 'export (function|const|class|type|interface) [a-zA-Z_]+' "$libfile" 2>/dev/null | awk '{print $NF}'); do
+    # type/interface は除外
+    if grep -qE "export (type|interface) ${funcname}" "$libfile" 2>/dev/null; then continue; fi
+    # app/ components/ lib/ から参照されているか（自分自身とテスト除外）
+    app_refs=$(grep -rl "$funcname" app/ components/ lib/ 2>/dev/null | grep -v "$libfile" | grep -v '__tests__/' | head -1)
+    if [ -z "$app_refs" ]; then
+      echo ""; echo "ERROR: ${libfile} の export '${funcname}' がアプリコードから使われていません（テストのみ不可）"; echo ""
+      exit 1
+    fi
+  done
+done
+
+# 12. scripts/pre-commit == .git/hooks/pre-commit
 if [ -f "scripts/pre-commit" ]; then
   if ! diff -q scripts/pre-commit .git/hooks/pre-commit > /dev/null 2>&1; then
     echo ""; echo "ERROR: scripts/pre-commit と .git/hooks/pre-commit が一致しません"; echo ""

@@ -173,39 +173,33 @@ describe("gradeToNumber", () => {
     expect(gradeToNumber("大学1")).toBeNull();
   });
 
+  function isInGradeRange(grade: string, min: number, max: number): boolean {
+    const num = gradeToNumber(grade);
+    if (num == null) return false;
+    return num >= min && num <= max;
+  }
+
   it("should support range filtering with gradeToNumber (minGrade/maxGrade)", () => {
-    // 小1〜小4の範囲フィルタリング
-    const minNum = gradeToNumber("小1");
-    const maxNum = gradeToNumber("小4");
-    expect(minNum).toBe(1);
-    expect(maxNum).toBe(4);
+    expect(gradeToNumber("小1")).toBe(1);
+    expect(gradeToNumber("小4")).toBe(4);
 
-    // 範囲内 (minNum and maxNum are verified non-null above via toBe assertions)
-    const min = minNum as number;
-    const max = maxNum as number;
-    expect((gradeToNumber("小1") ?? -Infinity) >= min && (gradeToNumber("小1") ?? Infinity) <= max).toBe(true);
-    expect((gradeToNumber("小3") ?? -Infinity) >= min && (gradeToNumber("小3") ?? Infinity) <= max).toBe(true);
-    expect((gradeToNumber("小4") ?? -Infinity) >= min && (gradeToNumber("小4") ?? Infinity) <= max).toBe(true);
-
-    // 範囲外
-    expect((gradeToNumber("年長") ?? -Infinity) >= min && (gradeToNumber("年長") ?? Infinity) <= max).toBe(false);
-    expect((gradeToNumber("小5") ?? -Infinity) >= min && (gradeToNumber("小5") ?? Infinity) <= max).toBe(false);
-    expect((gradeToNumber("中1") ?? -Infinity) >= min && (gradeToNumber("中1") ?? Infinity) <= max).toBe(false);
+    expect(isInGradeRange("小1", 1, 4)).toBe(true);
+    expect(isInGradeRange("小3", 1, 4)).toBe(true);
+    expect(isInGradeRange("小4", 1, 4)).toBe(true);
+    expect(isInGradeRange("年長", 1, 4)).toBe(false);
+    expect(isInGradeRange("小5", 1, 4)).toBe(false);
+    expect(isInGradeRange("中1", 1, 4)).toBe(false);
   });
 
   it("should support cross-level range (kindergarten to elementary)", () => {
-    const minNum = gradeToNumber("年長");
-    const maxNum = gradeToNumber("小2");
-    expect(minNum).toBe(0);
-    expect(maxNum).toBe(2);
+    expect(gradeToNumber("年長")).toBe(0);
+    expect(gradeToNumber("小2")).toBe(2);
 
-    const min = minNum as number;
-    const max = maxNum as number;
-    expect((gradeToNumber("年長") ?? -Infinity) >= min && (gradeToNumber("年長") ?? Infinity) <= max).toBe(true);
-    expect((gradeToNumber("小1") ?? -Infinity) >= min && (gradeToNumber("小1") ?? Infinity) <= max).toBe(true);
-    expect((gradeToNumber("小2") ?? -Infinity) >= min && (gradeToNumber("小2") ?? Infinity) <= max).toBe(true);
-    expect((gradeToNumber("年中") ?? -Infinity) >= min && (gradeToNumber("年中") ?? Infinity) <= max).toBe(false);
-    expect((gradeToNumber("小3") ?? -Infinity) >= min && (gradeToNumber("小3") ?? Infinity) <= max).toBe(false);
+    expect(isInGradeRange("年長", 0, 2)).toBe(true);
+    expect(isInGradeRange("小1", 0, 2)).toBe(true);
+    expect(isInGradeRange("小2", 0, 2)).toBe(true);
+    expect(isInGradeRange("年中", 0, 2)).toBe(false);
+    expect(isInGradeRange("小3", 0, 2)).toBe(false);
   });
 });
 

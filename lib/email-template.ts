@@ -45,17 +45,13 @@ export function renderTemplate(template: string, variables: Record<string, strin
  * @param fieldLabels extra_fields のキー → 表示名のマッピング。
  *   未指定の場合はキー名がそのまま表示される（後方互換）。
  */
-export function buildEntryDetails(
-  entry: Record<string, unknown>,
-  ruleNames: string[],
-  fieldLabels?: Record<string, string>,
-  fieldChoices?: Record<string, { value: string; label: string }[]>,
-): string {
-  const participantName = [entry.family_name, entry.given_name].filter(Boolean).join(" ");
+const SEX_LABELS: Record<string, string> = { male: "男性", female: "女性" };
+
+function buildBasicLines(entry: Record<string, unknown>, ruleNames: string[]): string[] {
   const lines: string[] = [];
+  const participantName = [entry.family_name, entry.given_name].filter(Boolean).join(" ");
   if (participantName) lines.push(`氏名: ${participantName}`);
-  if (entry.sex)
-    lines.push(`性別: ${entry.sex === "male" ? "男性" : entry.sex === "female" ? "女性" : String(entry.sex)}`);
+  if (entry.sex) lines.push(`性別: ${SEX_LABELS[entry.sex as string] ?? String(entry.sex)}`);
   if (entry.birth_date) lines.push(`生年月日: ${String(entry.birth_date)}`);
   if (entry.age) lines.push(`年齢: ${String(entry.age)}歳`);
   if (entry.weight) lines.push(`体重: ${String(entry.weight)}kg`);
@@ -63,48 +59,52 @@ export function buildEntryDetails(
   if (entry.dojo_name) lines.push(`所属: ${String(entry.dojo_name)}`);
   if (entry.school_name) lines.push(`支部: ${String(entry.school_name)}`);
   if (ruleNames.length > 0) lines.push(`参加ルール: ${ruleNames.join(", ")}`);
+  return lines;
+}
 
-  // value → label 変換ヘルパー
-  const resolveLabel = (key: string, raw: string): string => {
-    if (raw.startsWith("other:")) return `その他: ${raw.slice(6)}`;
-    const choices = fieldChoices?.[key];
-    if (choices) {
-      const found = choices.find((c) => c.value === raw);
-      if (found) return found.label;
-    }
-    return raw;
-  };
+function resolveLabel(
+  key: string,
+  raw: string,
+  fieldChoices?: Record<string, { value: string; label: string }[]>,
+): string {
+  if (raw.startsWith("other:")) return `その他: ${raw.slice(6)}`;
+  const found = fieldChoices?.[key]?.find((c) => c.value === raw);
+  return found ? found.label : raw;
+}
 
-  // extra_fields から主要項目
+function formatExtraValue(label: string, val: string): string {
+  if (val.includes("\n")) return `${label}:\n  ${val.split("\n").join("\n  ")}`;
+  return `${label}: ${val}`;
+}
+
+function buildExtraLines(
+  entry: Record<string, unknown>,
+  fieldLabels?: Record<string, string>,
+  fieldChoices?: Record<string, { value: string; label: string }[]>,
+): string[] {
   const extra = (entry.extra_fields ?? {}) as Record<string, unknown>;
+  const lines: string[] = [];
   for (const [k, v] of Object.entries(extra)) {
     if (k === "email" || k === "email_confirm" || !v) continue;
     const label = fieldLabels?.[k] ?? k;
     if (Array.isArray(v)) {
-      const items = v.map((item: string) => resolveLabel(k, item));
+      const items = v.map((item: string) => resolveLabel(k, item, fieldChoices));
       if (items.length > 0) lines.push(`${label}:\n  ${items.join("\n  ")}`);
     } else {
-      const val = resolveLabel(k, String(v));
-      if (val) {
-        if (val.includes("\n")) {
-          lines.push(`${label}:\n  ${val.split("\n").join("\n  ")}`);
-        } else {
-          lines.push(`${label}: ${val}`);
-        }
-      }
+      const val = resolveLabel(k, String(v), fieldChoices);
+      if (val) lines.push(formatExtraValue(label, val));
     }
   }
+  return lines;
+}
+
+export function buildEntryDetails(
+  entry: Record<string, unknown>,
+  ruleNames: string[],
+  fieldLabels?: Record<string, string>,
+  fieldChoices?: Record<string, { value: string; label: string }[]>,
+): string {
+  const lines = [...buildBasicLines(entry, ruleNames), ...buildExtraLines(entry, fieldLabels, fieldChoices)];
   return lines.join("\n");
 }
 
-/**
- * テンプレートで利用可能な変数一覧を返す（管理画面で表示用）
- */
-export const TEMPLATE_VARIABLES = [
-  { key: "participant_name", label: "申込者名" },
-  { key: "event_name", label: "大会名" },
-  { key: "event_date", label: "開催日" },
-  { key: "venue_info", label: "会場情報" },
-  { key: "entry_details", label: "申込内容（自動生成）" },
-  { key: "submission_date", label: "申込日時" },
-];

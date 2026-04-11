@@ -35,69 +35,91 @@ function getAge(entry: Entry, referenceDate?: Date): number | null {
 
 // gradeToNumber は lib/grade-options.ts からインポート
 
-/** エントリーが振り分けルールの条件に合致するか判定 */
-export function matchesRule(entry: Entry, rule: BracketRule, entryRuleIds: Record<string, Set<string>>): boolean {
-  // 競技ルール条件
-  if (rule.rule_id) {
-    const rids = entryRuleIds[entry.id];
-    if (!rids || !rids.has(rule.rule_id)) return false;
-  }
+/** 競技ルール条件 */
+function matchesRuleId(entry: Entry, rule: BracketRule, entryRuleIds: Record<string, Set<string>>): boolean {
+  if (!rule.rule_id) return true;
+  const rids = entryRuleIds[entry.id];
+  return !!(rids && rids.has(rule.rule_id));
+}
 
-  // 年齢条件
+/** 年齢条件 */
+function matchesAge(entry: Entry, rule: BracketRule): boolean {
   const age = getAge(entry);
   if (rule.min_age != null && (age == null || age < rule.min_age)) return false;
   if (rule.max_age != null && (age == null || age > rule.max_age)) return false;
+  return true;
+}
 
-  // 体重条件
-  if (rule.min_weight != null && (entry.weight == null || entry.weight < rule.min_weight)) return false;
-  if (rule.max_weight != null && (entry.weight == null || entry.weight > rule.max_weight)) return false;
+/** 範囲条件（体重・身長） */
+function matchesRange(value: number | null | undefined, min: number | null | undefined, max: number | null | undefined): boolean {
+  if (min != null && (value == null || value < min)) return false;
+  if (max != null && (value == null || value > max)) return false;
+  return true;
+}
 
-  // 身長条件
-  if (rule.min_height != null && (entry.height == null || entry.height < rule.min_height)) return false;
-  if (rule.max_height != null && (entry.height == null || entry.height > rule.max_height)) return false;
+/** 学年ベースのエントリーに対する年代条件 */
+function matchesGradeByNumber(entryGradeNum: number, rule: BracketRule): boolean {
+  if (rule.min_grade != null) {
+    const minNum = gradeToNumber(rule.min_grade);
+    if (minNum != null && entryGradeNum < minNum) return false;
+  }
+  if (rule.max_grade != null) {
+    const maxNum = gradeToNumber(rule.max_grade);
+    if (maxNum != null && entryGradeNum > maxNum) return false;
+  }
+  return true;
+}
 
-  // 年代条件
-  if (rule.min_grade != null || rule.max_grade != null) {
-    const entryGradeNum = gradeToNumber(entry.grade);
-    if (entryGradeNum != null) {
-      // 学年ベース: 数値で範囲比較
-      if (rule.min_grade != null) {
-        const minNum = gradeToNumber(rule.min_grade);
-        if (minNum != null && entryGradeNum < minNum) return false;
-      }
-      if (rule.max_grade != null) {
-        const maxNum = gradeToNumber(rule.max_grade);
-        if (maxNum != null && entryGradeNum > maxNum) return false;
-      }
-    } else {
-      // entry が年齢ベース区分（一般、シニア等）の場合
-      const entryAge = getAge(entry);
-      // まずルールの grade が年齢区分かチェック
-      const minCat = rule.min_grade ? findAgeCategory(rule.min_grade) : null;
-      const maxCat = rule.max_grade ? findAgeCategory(rule.max_grade) : null;
-      if (minCat || maxCat) {
-        // ルールも年齢区分 → 年齢で直接比較
-        if (entryAge == null) return false;
-        if (minCat && entryAge < minCat.minAge) return false;
-        if (maxCat && maxCat.maxAge != null && entryAge > maxCat.maxAge) return false;
-      } else {
-        // ルールは数値学年（小1-小6等）→ 推定年齢で比較（gradeToNumber + 5〜6歳）
-        if (entryAge == null) return false;
-        if (rule.min_grade != null) {
-          const minNum = gradeToNumber(rule.min_grade);
-          if (minNum != null && entryAge < minNum + 5) return false;
-        }
-        if (rule.max_grade != null) {
-          const maxNum = gradeToNumber(rule.max_grade);
-          if (maxNum != null && entryAge > maxNum + 6) return false;
-        }
-      }
-    }
+/** 年齢カテゴリベースで年代条件を判定 */
+function matchesAgeByCategoryRange(entryAge: number, minCat: { minAge: number } | null, maxCat: { maxAge: number | null } | null): boolean {
+  if (minCat && entryAge < minCat.minAge) return false;
+  if (maxCat && maxCat.maxAge != null && entryAge > maxCat.maxAge) return false;
+  return true;
+}
+
+/** 数値学年から推定年齢で比較 */
+function matchesAgeByGradeEstimate(entryAge: number, rule: BracketRule): boolean {
+  if (rule.min_grade != null) {
+    const minNum = gradeToNumber(rule.min_grade);
+    if (minNum != null && entryAge < minNum + 5) return false;
+  }
+  if (rule.max_grade != null) {
+    const maxNum = gradeToNumber(rule.max_grade);
+    if (maxNum != null && entryAge > maxNum + 6) return false;
+  }
+  return true;
+}
+
+/** 年齢ベース区分のエントリーに対する年代条件 */
+function matchesGradeByAge(entryAge: number | null, rule: BracketRule): boolean {
+  const minCat = rule.min_grade ? findAgeCategory(rule.min_grade) : null;
+  const maxCat = rule.max_grade ? findAgeCategory(rule.max_grade) : null;
+
+  if (minCat || maxCat) {
+    if (entryAge == null) return false;
+    return matchesAgeByCategoryRange(entryAge, minCat, maxCat);
   }
 
-  // 性別条件
-  if (rule.sex_filter && entry.sex !== rule.sex_filter) return false;
+  if (entryAge == null) return false;
+  return matchesAgeByGradeEstimate(entryAge, rule);
+}
 
+/** 年代条件 */
+function matchesGrade(entry: Entry, rule: BracketRule): boolean {
+  if (rule.min_grade == null && rule.max_grade == null) return true;
+  const entryGradeNum = gradeToNumber(entry.grade);
+  if (entryGradeNum != null) return matchesGradeByNumber(entryGradeNum, rule);
+  return matchesGradeByAge(getAge(entry), rule);
+}
+
+/** エントリーが振り分けルールの条件に合致するか判定 */
+function matchesRule(entry: Entry, rule: BracketRule, entryRuleIds: Record<string, Set<string>>): boolean {
+  if (!matchesRuleId(entry, rule, entryRuleIds)) return false;
+  if (!matchesAge(entry, rule)) return false;
+  if (!matchesRange(entry.weight, rule.min_weight, rule.max_weight)) return false;
+  if (!matchesRange(entry.height, rule.min_height, rule.max_height)) return false;
+  if (!matchesGrade(entry, rule)) return false;
+  if (rule.sex_filter && entry.sex !== rule.sex_filter) return false;
   return true;
 }
 

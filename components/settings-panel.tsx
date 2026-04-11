@@ -99,341 +99,214 @@ function DojoPanel() {
 
   return (
     <div>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void add();
-        }}
-        className="space-y-2 mb-4"
-      >
-        <div className="flex gap-2">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="流派名（例: 極真会）"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-          />
-          <input
-            value={reading}
-            onChange={(e) => setReading(e.target.value)}
-            placeholder="読み仮名（例: きょくしんかい）"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-          />
-          <button
-            type="submit"
-            disabled={adding}
-            className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50 flex items-center gap-1.5"
-          >
-            {adding && (
-              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-            )}
-            {adding ? "追加中..." : "追加"}
-          </button>
-        </div>
-      </form>
+      <DojoAddForm name={name} reading={reading} adding={adding} onNameChange={setName} onReadingChange={setReading} onAdd={() => void add()} />
       {loading ? (
         <p className="text-sm text-gray-500">読み込み中...</p>
       ) : (
-        <ul className="space-y-2">
-          {dojos.map((d) => (
-            <li key={d.id} className="bg-gray-800 rounded-lg px-4 py-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-medium">{d.name}</span>
-                <button
-                  onClick={() => void remove(d.id)}
-                  disabled={removingId === d.id}
-                  className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50"
-                >
-                  {removingId === d.id ? "削除中..." : "削除"}
-                </button>
-              </div>
-              <ReadingInput
-                value={d.name_reading ?? ""}
-                placeholder="読み仮名（例: きょくしんかい）"
-                onSave={(v) => updateReading(d.id, v)}
-              />
-            </li>
-          ))}
-          {dojos.length === 0 && <li className="text-gray-500 text-sm">流派が登録されていません</li>}
-        </ul>
+        <DojoList dojos={dojos} removingId={removingId} onRemove={(id) => void remove(id)} onUpdateReading={(id, v) => void updateReading(id, v)} />
       )}
     </div>
   );
 }
 
+function DojoAddForm({ name, reading, adding, onNameChange, onReadingChange, onAdd }: {
+  name: string; reading: string; adding: boolean; onNameChange: (v: string) => void; onReadingChange: (v: string) => void; onAdd: () => void;
+}) {
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); onAdd(); }} className="space-y-2 mb-4">
+      <div className="flex gap-2">
+        <input value={name} onChange={(e) => onNameChange(e.target.value)} placeholder="流派名（例: 極真会）" className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500" />
+        <input value={reading} onChange={(e) => onReadingChange(e.target.value)} placeholder="読み仮名（例: きょくしんかい）" className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500" />
+        <button type="submit" disabled={adding} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50 flex items-center gap-1.5">
+          {adding && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
+          {adding ? "追加中..." : "追加"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function DojoList({ dojos, removingId, onRemove, onUpdateReading }: {
+  dojos: Dojo[]; removingId: string | null; onRemove: (id: string) => void; onUpdateReading: (id: string, v: string) => void;
+}) {
+  return (
+    <ul className="space-y-2">
+      {dojos.map((d) => (
+        <li key={d.id} className="bg-gray-800 rounded-lg px-4 py-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-medium">{d.name}</span>
+            <button onClick={() => onRemove(d.id)} disabled={removingId === d.id} className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50">{removingId === d.id ? "削除中..." : "削除"}</button>
+          </div>
+          <ReadingInput value={d.name_reading ?? ""} placeholder="読み仮名（例: きょくしんかい）" onSave={(v) => onUpdateReading(d.id, v)} />
+        </li>
+      ))}
+      {dojos.length === 0 && <li className="text-gray-500 text-sm">流派が登録されていません</li>}
+    </ul>
+  );
+}
+
 // ── ルール ────────────────────────────────────────────────────────────────
 
-function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
+async function patchRule(id: string, body: Record<string, unknown>, errorMsg: string): Promise<boolean> {
+  const res = await fetch(`/api/admin/rules/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) { showToast(errorMsg); return false; }
+  return true;
+}
+
+function useRulesData() {
   const [rules, setRules] = useState<Rule[]>([]);
   const [loading, setLoading] = useState(true);
+  const [presets, setPresets] = useState<{ id: string; name: string }[]>([]);
+  const [linkingRuleId, setLinkingRuleId] = useState<string | null>(null);
+  const [selectingRuleId, setSelectingRuleId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const load = async () => {
+    const [{ data }, presetsRes] = await Promise.all([supabase.from("rules").select("*").order("name"), fetch("/api/admin/timer-presets")]);
+    setRules(data ?? []); setLoading(false);
+    if (presetsRes.ok) setPresets(await presetsRes.json());
+  };
+  useEffect(() => { let c = false; void (async () => { const [{ data }, pr] = await Promise.all([supabase.from("rules").select("*").order("name"), fetch("/api/admin/timer-presets")]); if (!c) { setRules(data ?? []); setLoading(false); if (pr.ok) setPresets(await pr.json()); } })(); return () => { c = true; }; }, []);
+  const linkPreset = async (ruleId: string, presetId: string | null) => { setLinkingRuleId(ruleId); await patchRule(ruleId, { timer_preset_id: presetId }, "タイマーの設定に失敗しました"); await load(); setLinkingRuleId(null); setSelectingRuleId(null); };
+  const updateReading = async (id: string, v: string) => { if (await patchRule(id, { name_reading: v.trim() || null }, "読み仮名の更新に失敗しました")) void load(); };
+  const updateDescription = async (id: string, v: string) => { if (await patchRule(id, { description: v.trim() || null }, "説明の更新に失敗しました")) void load(); };
+  const remove = async (id: string) => { if (!confirm("このルールを削除しますか？")) return; setRemovingId(id); const res = await fetch(`/api/admin/rules/${id}`, { method: "DELETE" }); setRemovingId(null); if (!res.ok) { showToast("削除に失敗しました"); return; } void load(); };
+  return { rules, loading, presets, linkingRuleId, selectingRuleId, removingId, setSelectingRuleId, load, linkPreset, updateReading, updateDescription, remove };
+}
+
+function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
   const [name, setName] = useState("");
   const [reading, setReading] = useState("");
   const [description, setDescription] = useState("");
   const [adding, setAdding] = useState(false);
-  const [removingId, setRemovingId] = useState<string | null>(null);
-  const [presets, setPresets] = useState<{ id: string; name: string }[]>([]);
-  const [linkingRuleId, setLinkingRuleId] = useState<string | null>(null);
-  const [selectingRuleId, setSelectingRuleId] = useState<string | null>(null);
-
-  async function loadPresets() {
-    const presetsRes = await fetch("/api/admin/timer-presets");
-    if (presetsRes.ok) setPresets(await presetsRes.json());
-  }
-
-  async function load() {
-    const { data } = await supabase.from("rules").select("*").order("name");
-    setRules(data ?? []);
-    setLoading(false);
-    await loadPresets();
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const { data } = await supabase.from("rules").select("*").order("name");
-      if (!cancelled) {
-        setRules(data ?? []);
-        setLoading(false);
-      }
-      const presetsRes = await fetch("/api/admin/timer-presets");
-      if (!cancelled && presetsRes.ok) setPresets(await presetsRes.json());
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function linkPreset(ruleId: string, presetId: string | null) {
-    setLinkingRuleId(ruleId);
-    const res = await fetch(`/api/admin/rules/${ruleId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ timer_preset_id: presetId }),
-    });
-    if (!res.ok) {
-      showToast("タイマーの設定に失敗しました");
-    }
-    await load();
-    setLinkingRuleId(null);
-    setSelectingRuleId(null);
-  }
-
-  async function add() {
+  const rd = useRulesData();
+  const add = async () => {
     if (!name.trim()) return;
     setAdding(true);
-    const res = await fetch("/api/admin/rules", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name.trim(),
-        name_reading: reading.trim() || null,
-        description: description.trim() || null,
-      }),
-    });
+    const res = await fetch("/api/admin/rules", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name.trim(), name_reading: reading.trim() || null, description: description.trim() || null }) });
     setAdding(false);
-    if (!res.ok) {
-      showToast("追加に失敗しました");
-      return;
-    }
-    setName("");
-    setReading("");
-    setDescription("");
-    void load();
-  }
-
-  async function updateReading(id: string, value: string) {
-    const res = await fetch(`/api/admin/rules/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name_reading: value.trim() || null }),
-    });
-    if (!res.ok) {
-      showToast("読み仮名の更新に失敗しました");
-      return;
-    }
-    void load();
-  }
-
-  async function updateDescription(id: string, value: string) {
-    const res = await fetch(`/api/admin/rules/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description: value.trim() || null }),
-    });
-    if (!res.ok) {
-      showToast("説明の更新に失敗しました");
-      return;
-    }
-    void load();
-  }
-
-  async function remove(id: string) {
-    if (!confirm("このルールを削除しますか？")) return;
-    setRemovingId(id);
-    const res = await fetch(`/api/admin/rules/${id}`, { method: "DELETE" });
-    setRemovingId(null);
-    if (!res.ok) {
-      showToast("削除に失敗しました");
-      return;
-    }
-    void load();
-  }
-
+    if (!res.ok) { showToast("追加に失敗しました"); return; }
+    setName(""); setReading(""); setDescription(""); void rd.load();
+  };
   return (
     <div>
       <p className="text-xs text-gray-400 mb-3">対戦表で選択できるルールを登録します（例: 組手3分・形・ワンマッチ）</p>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void add();
-        }}
-        className="space-y-2 mb-4"
-      >
-        <div className="flex gap-2">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="ルール名（例: 組手ポイント制・形）"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-          />
-          <input
-            value={reading}
-            onChange={(e) => setReading(e.target.value)}
-            placeholder="読み仮名（例: くみて3ぷんえんちょう1ぷん）"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500"
-          />
-          <button
-            type="submit"
-            disabled={adding}
-            className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50 flex items-center gap-1.5"
-          >
-            {adding && (
-              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-            )}
-            {adding ? "追加中..." : "追加"}
-          </button>
-        </div>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="装備や特殊ルール等を記載（例: 防具はメンホー・拳サポーター着用必須）※試合時間・延長有無はタイマーで設定"
-          rows={2}
-          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500 resize-none"
-        />
-      </form>
-      {loading ? (
-        <p className="text-sm text-gray-500">読み込み中...</p>
-      ) : (
-        <ul className="space-y-2">
-          {rules.map((r) => {
-            const linkedPreset = r.timer_preset_id ? presets.find((p) => p.id === r.timer_preset_id) : null;
-            const isLinking = linkingRuleId === r.id;
-            const isSelecting = selectingRuleId === r.id;
-            return (
-              <li key={r.id} className="bg-gray-800 rounded-lg px-4 py-3">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium">{r.name}</span>
-                    {linkedPreset ? (
-                      <span className="bg-orange-900 text-orange-300 text-xs px-2 py-0.5 rounded inline-flex items-center gap-1.5">
-                        タイマー: {linkedPreset.name}
-                        <button
-                          onClick={() => setSelectingRuleId(r.id)}
-                          disabled={isLinking}
-                          className="text-orange-400 hover:text-orange-200 text-xs disabled:opacity-50"
-                        >
-                          変更
-                        </button>
-                        <button
-                          onClick={() => void linkPreset(r.id, null)}
-                          disabled={isLinking}
-                          className="text-orange-400 hover:text-orange-200 text-xs disabled:opacity-50"
-                        >
-                          {isLinking ? "..." : "解除"}
-                        </button>
-                      </span>
-                    ) : !isSelecting ? (
-                      <button
-                        onClick={() => setSelectingRuleId(r.id)}
-                        disabled={isLinking}
-                        className="text-xs text-blue-400 hover:text-blue-300 bg-blue-900/30 hover:bg-blue-900/50 px-2 py-0.5 rounded transition disabled:opacity-50"
-                      >
-                        {isLinking ? "設定中..." : "タイマーを設定する"}
-                      </button>
-                    ) : null}
-                  </div>
-                  <button
-                    onClick={() => void remove(r.id)}
-                    disabled={removingId === r.id}
-                    className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50"
-                  >
-                    {removingId === r.id ? "削除中..." : "削除"}
-                  </button>
-                </div>
-                {isSelecting && (
-                  <div className="mb-1 flex items-center gap-2">
-                    {presets.length === 0 ? (
-                      <>
-                        <span className="text-xs text-gray-500">タイマーが未登録です。</span>
-                        <button
-                          onClick={() => {
-                            setSelectingRuleId(null);
-                            onNavigateToTimer();
-                          }}
-                          className="text-xs text-blue-400 hover:text-blue-300 underline"
-                        >
-                          タイマータブで作成
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <select
-                          value={r.timer_preset_id ?? ""}
-                          disabled={isLinking}
-                          onChange={(e) => {
-                            if (e.target.value === "__new__") {
-                              setSelectingRuleId(null);
-                              onNavigateToTimer();
-                              return;
-                            }
-                            if (e.target.value) {
-                              void linkPreset(r.id, e.target.value);
-                            } else {
-                              void linkPreset(r.id, null);
-                            }
-                          }}
-                          className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 disabled:opacity-50"
-                        >
-                          <option value="">-- タイマー未設定 --</option>
-                          {presets.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name}
-                            </option>
-                          ))}
-                          <option value="__new__">＋ 新規追加（タイマータブへ）</option>
-                        </select>
-                      </>
-                    )}
-                    <button
-                      onClick={() => setSelectingRuleId(null)}
-                      className="text-xs text-gray-500 hover:text-gray-300"
-                    >
-                      キャンセル
-                    </button>
-                  </div>
-                )}
-                <ReadingInput
-                  value={r.name_reading ?? ""}
-                  placeholder="読み仮名（例: くみて3ぷんえんちょう1ぷん）"
-                  onSave={(v) => updateReading(r.id, v)}
-                />
-                <DescriptionInput value={r.description ?? ""} onSave={(v) => updateDescription(r.id, v)} />
-              </li>
-            );
-          })}
-          {rules.length === 0 && <li className="text-gray-500 text-sm">ルールが登録されていません</li>}
-        </ul>
+      <RuleAddForm name={name} reading={reading} description={description} adding={adding}
+        onNameChange={setName} onReadingChange={setReading} onDescriptionChange={setDescription} onAdd={() => void add()} />
+      {rd.loading ? <p className="text-sm text-gray-500">読み込み中...</p> : (
+        <RulesList rules={rd.rules} presets={rd.presets} linkingRuleId={rd.linkingRuleId} selectingRuleId={rd.selectingRuleId} removingId={rd.removingId}
+          onSetSelectingRuleId={rd.setSelectingRuleId} onLinkPreset={(rId, pId) => void rd.linkPreset(rId, pId)}
+          onRemove={(id) => void rd.remove(id)} onUpdateReading={(id, v) => void rd.updateReading(id, v)}
+          onUpdateDescription={(id, v) => void rd.updateDescription(id, v)} onNavigateToTimer={onNavigateToTimer} />
       )}
+    </div>
+  );
+}
+
+function RuleAddForm({ name, reading, description, adding, onNameChange, onReadingChange, onDescriptionChange, onAdd }: {
+  name: string; reading: string; description: string; adding: boolean;
+  onNameChange: (v: string) => void; onReadingChange: (v: string) => void; onDescriptionChange: (v: string) => void; onAdd: () => void;
+}) {
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); onAdd(); }} className="space-y-2 mb-4">
+      <div className="flex gap-2">
+        <input value={name} onChange={(e) => onNameChange(e.target.value)} placeholder="ルール名（例: 組手ポイント制・形）" className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500" />
+        <input value={reading} onChange={(e) => onReadingChange(e.target.value)} placeholder="読み仮名（例: くみて3ぷんえんちょう1ぷん）" className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500" />
+        <button type="submit" disabled={adding} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50 flex items-center gap-1.5">
+          {adding && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
+          {adding ? "追加中..." : "追加"}
+        </button>
+      </div>
+      <textarea value={description} onChange={(e) => onDescriptionChange(e.target.value)} placeholder="装備や特殊ルール等を記載（例: 防具はメンホー・拳サポーター着用必須）※試合時間・延長有無はタイマーで設定" rows={2} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500 resize-none" />
+    </form>
+  );
+}
+
+function RulesList({ rules, presets, linkingRuleId, selectingRuleId, removingId, onSetSelectingRuleId, onLinkPreset, onRemove, onUpdateReading, onUpdateDescription, onNavigateToTimer }: {
+  rules: Rule[]; presets: { id: string; name: string }[];
+  linkingRuleId: string | null; selectingRuleId: string | null; removingId: string | null;
+  onSetSelectingRuleId: (id: string | null) => void; onLinkPreset: (ruleId: string, presetId: string | null) => void;
+  onRemove: (id: string) => void; onUpdateReading: (id: string, v: string) => void;
+  onUpdateDescription: (id: string, v: string) => void; onNavigateToTimer: () => void;
+}) {
+  return (
+    <ul className="space-y-2">
+      {rules.map((r) => (
+        <RuleItem key={r.id} rule={r} presets={presets} isLinking={linkingRuleId === r.id} isSelecting={selectingRuleId === r.id} removingId={removingId}
+          onSetSelectingRuleId={onSetSelectingRuleId} onLinkPreset={onLinkPreset}
+          onRemove={onRemove} onUpdateReading={onUpdateReading} onUpdateDescription={onUpdateDescription} onNavigateToTimer={onNavigateToTimer} />
+      ))}
+      {rules.length === 0 && <li className="text-gray-500 text-sm">ルールが登録されていません</li>}
+    </ul>
+  );
+}
+
+function RuleItem({ rule: r, presets, isLinking, isSelecting, removingId, onSetSelectingRuleId, onLinkPreset, onRemove, onUpdateReading, onUpdateDescription, onNavigateToTimer }: {
+  rule: Rule; presets: { id: string; name: string }[];
+  isLinking: boolean; isSelecting: boolean; removingId: string | null;
+  onSetSelectingRuleId: (id: string | null) => void; onLinkPreset: (ruleId: string, presetId: string | null) => void;
+  onRemove: (id: string) => void; onUpdateReading: (id: string, v: string) => void;
+  onUpdateDescription: (id: string, v: string) => void; onNavigateToTimer: () => void;
+}) {
+  const linkedPreset = r.timer_preset_id ? presets.find((p) => p.id === r.timer_preset_id) : null;
+  return (
+    <li className="bg-gray-800 rounded-lg px-4 py-3">
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-medium">{r.name}</span>
+          <RulePresetBadge rule={r} linkedPreset={linkedPreset} isLinking={isLinking} isSelecting={isSelecting} onSetSelectingRuleId={onSetSelectingRuleId} onLinkPreset={onLinkPreset} />
+        </div>
+        <button onClick={() => onRemove(r.id)} disabled={removingId === r.id} className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50">{removingId === r.id ? "削除中..." : "削除"}</button>
+      </div>
+      {isSelecting && <PresetSelector ruleId={r.id} currentPresetId={r.timer_preset_id} presets={presets} isLinking={isLinking} onLinkPreset={onLinkPreset} onCancel={() => onSetSelectingRuleId(null)} onNavigateToTimer={onNavigateToTimer} />}
+      <ReadingInput value={r.name_reading ?? ""} placeholder="読み仮名（例: くみて3ぷんえんちょう1ぷん）" onSave={(v) => onUpdateReading(r.id, v)} />
+      <DescriptionInput value={r.description ?? ""} onSave={(v) => onUpdateDescription(r.id, v)} />
+    </li>
+  );
+}
+
+function RulePresetBadge({ rule: r, linkedPreset, isLinking, isSelecting, onSetSelectingRuleId, onLinkPreset }: {
+  rule: Rule; linkedPreset: { id: string; name: string } | null | undefined; isLinking: boolean; isSelecting: boolean;
+  onSetSelectingRuleId: (id: string | null) => void; onLinkPreset: (ruleId: string, presetId: string | null) => void;
+}) {
+  if (linkedPreset) {
+    return (
+      <span className="bg-orange-900 text-orange-300 text-xs px-2 py-0.5 rounded inline-flex items-center gap-1.5">
+        タイマー: {linkedPreset.name}
+        <button onClick={() => onSetSelectingRuleId(r.id)} disabled={isLinking} className="text-orange-400 hover:text-orange-200 text-xs disabled:opacity-50">変更</button>
+        <button onClick={() => onLinkPreset(r.id, null)} disabled={isLinking} className="text-orange-400 hover:text-orange-200 text-xs disabled:opacity-50">{isLinking ? "..." : "解除"}</button>
+      </span>
+    );
+  }
+  if (!isSelecting) {
+    return <button onClick={() => onSetSelectingRuleId(r.id)} disabled={isLinking} className="text-xs text-blue-400 hover:text-blue-300 bg-blue-900/30 hover:bg-blue-900/50 px-2 py-0.5 rounded transition disabled:opacity-50">{isLinking ? "設定中..." : "タイマーを設定する"}</button>;
+  }
+  return null;
+}
+
+function PresetSelector({ ruleId, currentPresetId, presets, isLinking, onLinkPreset, onCancel, onNavigateToTimer }: {
+  ruleId: string; currentPresetId: string | null; presets: { id: string; name: string }[];
+  isLinking: boolean; onLinkPreset: (ruleId: string, presetId: string | null) => void;
+  onCancel: () => void; onNavigateToTimer: () => void;
+}) {
+  if (presets.length === 0) {
+    return (
+      <div className="mb-1 flex items-center gap-2">
+        <span className="text-xs text-gray-500">タイマーが未登録です。</span>
+        <button onClick={() => { onCancel(); onNavigateToTimer(); }} className="text-xs text-blue-400 hover:text-blue-300 underline">タイマータブで作成</button>
+      </div>
+    );
+  }
+  return (
+    <div className="mb-1 flex items-center gap-2">
+      <select value={currentPresetId ?? ""} disabled={isLinking} onChange={(e) => {
+        if (e.target.value === "__new__") { onCancel(); onNavigateToTimer(); return; }
+        onLinkPreset(ruleId, e.target.value || null);
+      }} className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 disabled:opacity-50">
+        <option value="">-- タイマー未設定 --</option>
+        {presets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        <option value="__new__">＋ 新規追加（タイマータブへ）</option>
+      </select>
+      <button onClick={onCancel} className="text-xs text-gray-500 hover:text-gray-300">キャンセル</button>
     </div>
   );
 }
@@ -623,100 +496,69 @@ function TemplateEditor() {
     <div className="bg-gray-800 rounded-xl p-5 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-sm text-gray-300">アナウンス文カスタマイズ</h2>
-        <button onClick={() => void resetToDefault()} className="text-xs text-gray-500 hover:text-gray-300 transition">
-          デフォルトに戻す
-        </button>
+        <button onClick={() => void resetToDefault()} className="text-xs text-gray-500 hover:text-gray-300 transition">デフォルトに戻す</button>
       </div>
-
-      {/* タブ */}
       <div className="grid grid-cols-2 gap-2">
         {(["matchStart", "winner"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`py-2 rounded-lg text-sm font-medium transition text-center ${
-              activeTab === tab ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-            }`}
-          >
+          <button key={tab} onClick={() => setActiveTab(tab)} className={`py-2 rounded-lg text-sm font-medium transition text-center ${activeTab === tab ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
             {tab === "matchStart" ? "試合開始" : "勝者発表"}
           </button>
         ))}
       </div>
-
-      {/* 変数チップ */}
-      <div className="space-y-1.5">
-        <p className="text-xs text-gray-500">クリックしてカーソル位置に挿入</p>
-        <div className="flex flex-wrap gap-1.5">
-          {vars.map(({ key, desc }) => (
-            <button
-              key={key}
-              onClick={() => insertVar(key)}
-              title={desc}
-              className="px-2 py-1 bg-gray-700 hover:bg-blue-700 text-xs text-blue-300 hover:text-white rounded transition font-mono"
-            >
-              {`{{${key}}}`}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* テンプレートテキストエリア */}
-      <textarea
-        ref={textareaRef}
-        value={currentTemplate}
-        onChange={(e) => updateTemplate(e.target.value)}
-        rows={4}
-        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500 resize-none font-mono leading-relaxed"
-      />
-
-      {/* プレビュー */}
-      <div className="space-y-1.5">
-        <p className="text-xs text-gray-500">プレビュー（サンプル値で展開）</p>
-        <div className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 leading-relaxed min-h-[3rem]">
-          {preview || <span className="text-gray-600">（空）</span>}
-        </div>
-      </div>
-
-      {/* ボタン */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => void playPreview()}
-          disabled={playing}
-          className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition"
-        >
-          {playing ? "再生中..." : "試し聞き"}
-        </button>
-        <button
-          onClick={() => void save()}
-          disabled={saving}
-          className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
-        >
-          {saving && (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-          )}
-          {saving ? "保存中..." : saved ? "保存しました" : "保存"}
-        </button>
-      </div>
-
-      {/* 変数一覧（説明＋サンプル値を統合） */}
-      <div className="border-t border-gray-700 pt-3 space-y-1">
-        <p className="text-xs text-gray-500 font-medium mb-2">使用できる変数</p>
-        {vars.map(({ key, desc, sample }) => (
-          <div key={key} className="flex items-baseline gap-2 text-xs py-0.5">
-            <span className="text-blue-400 font-mono shrink-0">{`{{${key}}}`}</span>
-            <span className="text-gray-600 shrink-0">—</span>
-            <span className="text-gray-500">{desc}</span>
-            {sample && (
-              <>
-                <span className="text-gray-700 shrink-0">例:</span>
-                <span className="text-gray-400 font-mono">{sample}</span>
-              </>
-            )}
-          </div>
-        ))}
-      </div>
-
+      <TemplateVarChips vars={vars} onInsertVar={insertVar} />
+      <textarea ref={textareaRef} value={currentTemplate} onChange={(e) => updateTemplate(e.target.value)} rows={4} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500 resize-none font-mono leading-relaxed" />
+      <TemplatePreviewBox preview={preview} />
+      <TemplateActionButtons playing={playing} saving={saving} saved={saved} onPlay={() => void playPreview()} onSave={() => void save()} />
+      <TemplateVarReference vars={vars} />
       <p className="text-xs text-gray-600">※ テンプレートはこのブラウザに保存されます</p>
+    </div>
+  );
+}
+
+function TemplateVarChips({ vars, onInsertVar }: { vars: { key: string; desc: string }[]; onInsertVar: (key: string) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs text-gray-500">クリックしてカーソル位置に挿入</p>
+      <div className="flex flex-wrap gap-1.5">
+        {vars.map(({ key, desc }) => <button key={key} onClick={() => onInsertVar(key)} title={desc} className="px-2 py-1 bg-gray-700 hover:bg-blue-700 text-xs text-blue-300 hover:text-white rounded transition font-mono">{`{{${key}}}`}</button>)}
+      </div>
+    </div>
+  );
+}
+
+function TemplatePreviewBox({ preview }: { preview: string }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs text-gray-500">プレビュー（サンプル値で展開）</p>
+      <div className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 leading-relaxed min-h-[3rem]">{preview || <span className="text-gray-600">（空）</span>}</div>
+    </div>
+  );
+}
+
+function TemplateActionButtons({ playing, saving, saved, onPlay, onSave }: { playing: boolean; saving: boolean; saved: boolean; onPlay: () => void; onSave: () => void }) {
+  return (
+    <div className="flex gap-2">
+      <button onClick={onPlay} disabled={playing} className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition">{playing ? "再生中..." : "試し聞き"}</button>
+      <button onClick={onSave} disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2">
+        {saving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
+        {saving ? "保存中..." : saved ? "保存しました" : "保存"}
+      </button>
+    </div>
+  );
+}
+
+function TemplateVarReference({ vars }: { vars: { key: string; desc: string; sample?: string }[] }) {
+  return (
+    <div className="border-t border-gray-700 pt-3 space-y-1">
+      <p className="text-xs text-gray-500 font-medium mb-2">使用できる変数</p>
+      {vars.map(({ key, desc, sample }) => (
+        <div key={key} className="flex items-baseline gap-2 text-xs py-0.5">
+          <span className="text-blue-400 font-mono shrink-0">{`{{${key}}}`}</span>
+          <span className="text-gray-600 shrink-0">—</span>
+          <span className="text-gray-500">{desc}</span>
+          {sample && <><span className="text-gray-700 shrink-0">例:</span><span className="text-gray-400 font-mono">{sample}</span></>}
+        </div>
+      ))}
     </div>
   );
 }

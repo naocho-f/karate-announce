@@ -446,25 +446,23 @@ describe("区切り線のデフォルト値", () => {
 // ── 勝利オーバーレイ（統合版）──
 
 // resultDisplayText を page.tsx から再実装（ユニットテスト用）
+function wazaariText(d: Record<string, number> | null) {
+  return `技${d?.red_wazaari ?? 0}-${d?.white_wazaari ?? 0}`;
+}
+
+function formatDetailResult(m: string, d: Record<string, number> | null): string | null {
+  if (m === "point") return `ポイント (${d?.red_points ?? 0}-${d?.white_points ?? 0} ${wazaariText(d)})`;
+  if (m === "wazaari") return `技あり優勢 (${wazaariText(d)})`;
+  if (m === "combined_ippon") return `合わせ一本 (技${Math.max(d?.red_wazaari ?? 0, d?.white_wazaari ?? 0)})`;
+  return null;
+}
+
 function resultDisplayText(state: {
   resultMethod: string | null;
   resultDetail: Record<string, number> | null;
 }): string {
-  const m = state.resultMethod;
-  const d = state.resultDetail;
-  if (!m) return "";
-  switch (m) {
-    case "point":
-      return `ポイント (${d?.red_points ?? 0}-${d?.white_points ?? 0} 技${d?.red_wazaari ?? 0}-${d?.white_wazaari ?? 0})`;
-    case "wazaari":
-      return `技あり優勢 (技${d?.red_wazaari ?? 0}-${d?.white_wazaari ?? 0})`;
-    case "combined_ippon": {
-      const n = Math.max(d?.red_wazaari ?? 0, d?.white_wazaari ?? 0);
-      return `合わせ一本 (技${n})`;
-    }
-    default:
-      return resultMethodLabel(m as ResultMethod);
-  }
+  if (!state.resultMethod) return "";
+  return formatDetailResult(state.resultMethod, state.resultDetail) ?? resultMethodLabel(state.resultMethod as ResultMethod);
 }
 
 describe("勝利オーバーレイの表示ロジック", () => {

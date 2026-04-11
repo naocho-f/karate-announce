@@ -23,37 +23,28 @@ type FilterState = {
  * 体重→年齢→年代→身長の優先順でソートし、デフォルトは年齢昇順。
  * 同値のフォールバックは氏名順。
  */
+type ExtractFn = (e: Entry) => number;
+
+function compareBy(a: Entry, b: Entry, extract: ExtractFn): number {
+  const aV = extract(a);
+  const bV = extract(b);
+  return aV !== bV ? aV - bV : 0;
+}
+
 export function buildFilterSortComparator(filters: FilterState): (a: Entry, b: Entry) => number {
+  const steps: ExtractFn[] = [];
+  if (filters.minWeight || filters.maxWeight) steps.push((e) => e.weight ?? 999);
+  if (filters.minAge || filters.maxAge) steps.push((e) => e.age ?? 999);
+  if (filters.minGrade || filters.maxGrade) steps.push((e) => gradeToNumber(e.grade ?? null) ?? 999);
+  if (filters.minHeight || filters.maxHeight) steps.push((e) => e.height ?? 999);
+  // デフォルト: 年齢昇順
+  steps.push((e) => e.age ?? 999);
+
   return (a: Entry, b: Entry) => {
-    // 体重フィルタ: 体重順（最優先）
-    if (filters.minWeight || filters.maxWeight) {
-      const aW = a.weight ?? 999;
-      const bW = b.weight ?? 999;
-      if (aW !== bW) return aW - bW;
+    for (const extract of steps) {
+      const diff = compareBy(a, b, extract);
+      if (diff !== 0) return diff;
     }
-    // 年齢フィルタ: 年齢順
-    if (filters.minAge || filters.maxAge) {
-      const aAge = a.age ?? 999;
-      const bAge = b.age ?? 999;
-      if (aAge !== bAge) return aAge - bAge;
-    }
-    // 年代フィルタ: 学年順
-    if (filters.minGrade || filters.maxGrade) {
-      const aNum = gradeToNumber(a.grade ?? null) ?? 999;
-      const bNum = gradeToNumber(b.grade ?? null) ?? 999;
-      if (aNum !== bNum) return aNum - bNum;
-    }
-    // 身長フィルタ: 身長順
-    if (filters.minHeight || filters.maxHeight) {
-      const aH = a.height ?? 999;
-      const bH = b.height ?? 999;
-      if (aH !== bH) return aH - bH;
-    }
-    // デフォルト: 年齢昇順
-    const aAge = a.age ?? 999;
-    const bAge = b.age ?? 999;
-    if (aAge !== bAge) return aAge - bAge;
-    // 同年齢: 氏名順
     return entryFullName(a).localeCompare(entryFullName(b), "ja");
   };
 }
@@ -88,6 +79,30 @@ export function matchCountFilterPredicate(
  * - 学年ベース同士: gradeToNumber() で数値化して範囲比較
  * - 混在（学年エントリーに年齢フィルタ等）: age があれば年齢で比較
  */
+function matchAgeCategoryFilter(
+  entry: Entry,
+  minCat: AgeCategory | null,
+  maxCat: AgeCategory | null,
+): boolean {
+  if (entry.age == null) return false;
+  if (minCat && entry.age < minCat.minAge) return false;
+  if (maxCat && maxCat.maxAge != null && entry.age > maxCat.maxAge) return false;
+  return true;
+}
+
+function matchGradeNumber(eNum: number, minNum: number | null, maxNum: number | null): boolean {
+  if (minNum != null && eNum < minNum) return false;
+  if (maxNum != null && eNum > maxNum) return false;
+  return true;
+}
+
+function matchApproxAge(entry: Entry, minNum: number | null, maxNum: number | null): boolean {
+  if (entry.age == null) return false;
+  if (minNum != null && entry.age < minNum + 5) return false;
+  if (maxNum != null && entry.age > maxNum + 6) return false;
+  return true;
+}
+
 export function gradeFilterPredicate(
   minGrade: string,
   maxGrade: string,
@@ -103,34 +118,15 @@ export function gradeFilterPredicate(
   const maxNum = maxGrade ? gradeToNumber(maxGrade) : null;
 
   return (entry: Entry) => {
+    if (hasAgeCategoryFilter) return matchAgeCategoryFilter(entry, minCat, maxCat);
+
     const eNum = gradeToNumber(entry.grade ?? null);
+    if (eNum != null) return matchGradeNumber(eNum, minNum, maxNum);
 
-    // 年齢ベース区分がフィルタに含まれる場合 → age で比較
-    if (hasAgeCategoryFilter) {
-      if (entry.age == null) return false;
-      if (minCat && entry.age < minCat.minAge) return false;
-      if (maxCat && maxCat.maxAge != null && entry.age > maxCat.maxAge) return false;
-      return true;
-    }
-
-    // 学年ベース同士
-    if (eNum != null) {
-      if (minNum != null && eNum < minNum) return false;
-      if (maxNum != null && eNum > maxNum) return false;
-      return true;
-    }
-
-    // エントリーが年齢ベース区分（一般・シニア等）→ 概算年齢で比較
     if (entry.grade && findAgeCategory(entry.grade, ageCategories)) {
-      if (entry.age == null) return false;
-      const approxMinAge = minNum != null ? minNum + 5 : null;
-      const approxMaxAge = maxNum != null ? maxNum + 6 : null;
-      if (approxMinAge != null && entry.age < approxMinAge) return false;
-      if (approxMaxAge != null && entry.age > approxMaxAge) return false;
-      return true;
+      return matchApproxAge(entry, minNum, maxNum);
     }
 
-    // どちらにも該当しない → 除外
     return false;
   };
 }

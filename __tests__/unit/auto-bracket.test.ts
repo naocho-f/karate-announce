@@ -4,7 +4,7 @@
  * 振り分けルールに基づくグループ分け・コート割り当てロジックを検証する
  */
 import { describe, it, expect } from "vitest";
-import { groupEntriesByRules, assignCourts, matchesRule, type AutoGroup } from "@/lib/auto-bracket";
+import { groupEntriesByRules, assignCourts, type AutoGroup } from "@/lib/auto-bracket";
 import type { Entry, BracketRule } from "@/lib/types";
 
 function makeEntry(id: string, overrides?: Partial<Entry>): Entry {
@@ -329,26 +329,29 @@ describe("groupEntriesByRules", () => {
   });
 });
 
-describe("matchesRule — 数値学年ルール vs 年齢区分エントリー", () => {
+describe("matchesRule — 数値学年ルール vs 年齢区分エントリー（groupEntriesByRules経由で検証）", () => {
   it("10歳・一般は小1-小6ルールにマッチする", () => {
-    const entry = makeEntry("e1", { grade: "一般", age: 10 });
-    const rule = makeRule("R1", { min_grade: "小1", max_grade: "小6" });
-    expect(matchesRule(entry, rule, { e1: new Set() })).toBe(true);
+    const entries = [makeEntry("e1", { grade: "一般", age: 10 })];
+    const rules = [makeRule("R1", { name: "小学生", min_grade: "小1", max_grade: "小6", sort_order: 0 })];
+    const groups = groupEntriesByRules(entries, rules, { e1: new Set() });
+    expect(groups.find((g) => g.name === "小学生")?.entries.some((e) => e.id === "e1")).toBe(true);
   });
 
   it("25歳・一般は小1-小6ルールにマッチしない", () => {
-    const entry = makeEntry("e2", { grade: "一般", age: 25 });
-    const rule = makeRule("R1", { min_grade: "小1", max_grade: "小6" });
-    expect(matchesRule(entry, rule, { e2: new Set() })).toBe(false);
+    const entries = [makeEntry("e2", { grade: "一般", age: 25 })];
+    const rules = [makeRule("R1", { name: "小学生", min_grade: "小1", max_grade: "小6", sort_order: 0 })];
+    const groups = groupEntriesByRules(entries, rules, { e2: new Set() });
+    expect(groups.find((g) => g.name === "小学生")?.entries.some((e) => e.id === "e2")).toBeFalsy();
   });
 
   it("5歳・一般は小1-小6ルールにマッチしない（下限未満）", () => {
-    const entry = makeEntry("e3", { grade: "一般", age: 5 });
-    const rule = makeRule("R1", { min_grade: "小1", max_grade: "小6" });
-    expect(matchesRule(entry, rule, { e3: new Set() })).toBe(false);
+    const entries = [makeEntry("e3", { grade: "一般", age: 5 })];
+    const rules = [makeRule("R1", { name: "小学生", min_grade: "小1", max_grade: "小6", sort_order: 0 })];
+    const groups = groupEntriesByRules(entries, rules, { e3: new Set() });
+    expect(groups.find((g) => g.name === "小学生")?.entries.some((e) => e.id === "e3")).toBeFalsy();
   });
 
-  it("groupEntriesByRules 経由でも正しく分類される", () => {
+  it("複数エントリーで正しく分類される", () => {
     const entries = [makeEntry("e1", { grade: "一般", age: 10 }), makeEntry("e2", { grade: "一般", age: 25 })];
     const rules = [makeRule("R1", { name: "小学生", min_grade: "小1", max_grade: "小6", sort_order: 0 })];
     const groups = groupEntriesByRules(entries, rules, { e1: new Set(), e2: new Set() });
