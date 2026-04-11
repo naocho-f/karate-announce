@@ -74,11 +74,12 @@ export default function EntryDetailPage({ params }: Props) {
     const trimmed = adminMemo.trim() || null;
     if (trimmed === (entry.admin_memo?.trim() || null)) return;
     setSaving(true);
-    await fetch(`/api/admin/entries/${entryId}`, {
+    const res = await fetch(`/api/admin/entries/${entryId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ admin_memo: trimmed }),
     });
+    if (!res.ok) { alert("メモの保存に失敗しました"); setSaving(false); return; }
     setEntry((prev) => (prev ? { ...prev, admin_memo: trimmed } : prev));
     setSaving(false);
   }

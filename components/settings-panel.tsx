@@ -165,7 +165,7 @@ function useRulesData() {
     setRules(data ?? []); setLoading(false);
     if (presetsRes.ok) setPresets(await presetsRes.json());
   };
-  useEffect(() => { let c = false; void (async () => { const [{ data }, pr] = await Promise.all([supabase.from("rules").select("*").order("name"), fetch("/api/admin/timer-presets")]); if (!c) { setRules(data ?? []); setLoading(false); if (pr.ok) setPresets(await pr.json()); } })(); return () => { c = true; }; }, []);
+  useEffect(() => { let c = false; void (async () => { try { const [{ data }, pr] = await Promise.all([supabase.from("rules").select("*").order("name"), fetch("/api/admin/timer-presets")]); if (!c) { setRules(data ?? []); setLoading(false); if (pr.ok) setPresets(await pr.json()); } } catch { if (!c) setLoading(false); } })(); return () => { c = true; }; }, []);
   const linkPreset = async (ruleId: string, presetId: string | null) => { setLinkingRuleId(ruleId); await patchRule(ruleId, { timer_preset_id: presetId }, "タイマーの設定に失敗しました"); await load(); setLinkingRuleId(null); setSelectingRuleId(null); };
   const updateReading = async (id: string, v: string) => { if (await patchRule(id, { name_reading: v.trim() || null }, "読み仮名の更新に失敗しました")) void load(); };
   const updateDescription = async (id: string, v: string) => { if (await patchRule(id, { description: v.trim() || null }, "説明の更新に失敗しました")) void load(); };

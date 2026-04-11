@@ -114,10 +114,11 @@ async function saveBracketRule(g: Group, defaultRuleId: string, eventId: string)
     if (existingRules.some((r) => r.name === g.name)) return;
   }
   if (!window.confirm(`この絞り込み条件を振り分けルールとして登録しますか？\n\n「${g.name}」`)) return;
-  await fetch("/api/admin/bracket-rules", {
+  const res = await fetch("/api/admin/bracket-rules", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify(buildBracketRulePayload(g, defaultRuleId, eventId)),
   });
+  if (!res.ok) showToast("振り分けルールの登録に失敗しました");
 }
 
 async function confirmGroups(input: ConfirmGroupsInput): Promise<{ ok: boolean; createdId?: string }> {
@@ -656,7 +657,10 @@ function swapSortOrder(
   void Promise.all([
     fetch(`/api/admin/tournaments/${t.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: swapIdx }) }),
     fetch(`/api/admin/tournaments/${other.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: idx }) }),
-  ]).then(() => { onSetReorderingId(null); onCreated(); });
+  ]).then((responses) => {
+    if (responses.some((r) => !r.ok)) showToast("並び順の更新に失敗しました");
+    onSetReorderingId(null); onCreated();
+  }).catch(() => { showToast("並び順の更新に失敗しました"); onSetReorderingId(null); });
 }
 
 type TournamentListProps = {
@@ -792,7 +796,8 @@ function useTournamentMatches(tournamentId: string, entries: Entry[]) {
           body: JSON.stringify({ winner_id: winnerId, status: "done" }),
         });
       }),
-    ).then(() => setReloadTrigger((n) => n + 1));
+    ).then(() => setReloadTrigger((n) => n + 1))
+      .catch(() => showToast("不戦勝の自動処理に失敗しました"));
   }, [affectedMatches, withdrawnFighterIds]);
 
   return { matches, fighterMap, affectedMatches, withdrawnFighterIds };
@@ -977,11 +982,12 @@ function ExistingTournamentHeader({
           value={tournament.court}
           onChange={(e) => {
             void (async () => {
-              await fetch(`/api/admin/tournaments/${tournament.id}`, {
+              const res = await fetch(`/api/admin/tournaments/${tournament.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ court: e.target.value }),
               });
+              if (!res.ok) { showToast("コート変更に失敗しました"); return; }
               onCourtChanged();
             })();
           }}

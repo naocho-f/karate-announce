@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { createHash, timingSafeEqual } from "crypto";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -31,7 +31,12 @@ export function verifyAdminAuth(request: NextRequest): boolean {
   const expected = createHash("sha256")
     .update(password + SALT)
     .digest("hex");
-  return cookie === expected;
+
+  // タイミング攻撃対策: 固定時間比較
+  const cookieBuf = Buffer.from(cookie, "utf8");
+  const expectedBuf = Buffer.from(expected, "utf8");
+  if (cookieBuf.length !== expectedBuf.length) return false;
+  return timingSafeEqual(cookieBuf, expectedBuf);
 }
 
 export function unauthorized() {

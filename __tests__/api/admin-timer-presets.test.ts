@@ -33,9 +33,16 @@ describe("/api/admin/timer-presets", () => {
   it("GET: event_id フィルタ付き", async () => {
     mockResult("timer_presets", "select", { data: [] });
     const { GET } = await import("@/app/api/admin/timer-presets/route");
-    const req = createAdminRequest("GET", "/api/admin/timer-presets?event_id=ev1");
+    const req = createAdminRequest("GET", "/api/admin/timer-presets?event_id=00000000-0000-0000-0000-000000000001");
     const res = await GET(req);
     expect(res.status).toBe(200);
+  });
+
+  it("GET: 不正な event_id は 400 を返す", async () => {
+    const { GET } = await import("@/app/api/admin/timer-presets/route");
+    const req = createAdminRequest("GET", "/api/admin/timer-presets?event_id=xxx),event_id.is.not.null,(1=1");
+    const res = await GET(req);
+    expect(res.status).toBe(400);
   });
 
   it("POST: プリセットを作成できる", async () => {

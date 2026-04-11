@@ -63,12 +63,8 @@ export async function getPendingCount(): Promise<number> {
 /** 全操作を sequenceNum 順で取得 */
 export async function getAll(): Promise<QueuedOperation[]> {
   const allKeys = await keys(queueStore);
-  const ops: QueuedOperation[] = [];
-  for (const key of allKeys) {
-    const op = await get<QueuedOperation>(key, queueStore);
-    if (op) ops.push(op);
-  }
-  return ops.sort((a, b) => a.sequenceNum - b.sequenceNum);
+  const results = await Promise.all(allKeys.map((key) => get<QueuedOperation>(key, queueStore)));
+  return results.filter((op): op is QueuedOperation => op != null).sort((a, b) => a.sequenceNum - b.sequenceNum);
 }
 
 /** 特定の操作を削除 */

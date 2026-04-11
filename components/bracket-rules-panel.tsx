@@ -123,7 +123,8 @@ function useBracketRulesData(eventId: string) {
     const idx = bracketRules.findIndex((r) => r.id === id); if (idx < 0) return;
     const swapIdx = direction === "up" ? idx - 1 : idx + 1; if (swapIdx < 0 || swapIdx >= bracketRules.length) return;
     setMovingId(id);
-    await Promise.all([fetch(`/api/admin/bracket-rules/${bracketRules[idx].id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: bracketRules[swapIdx].sort_order }) }), fetch(`/api/admin/bracket-rules/${bracketRules[swapIdx].id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: bracketRules[idx].sort_order }) })]);
+    const responses = await Promise.all([fetch(`/api/admin/bracket-rules/${bracketRules[idx].id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: bracketRules[swapIdx].sort_order }) }), fetch(`/api/admin/bracket-rules/${bracketRules[swapIdx].id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: bracketRules[idx].sort_order }) })]);
+    if (responses.some((r) => !r.ok)) showToast("並び順の更新に失敗しました");
     await load(); setMovingId(null);
   };
   return { bracketRules, loading, editingId, setEditingId, showForm, setShowForm, form, setForm, saving, movingId, deletingId, startCreate, startEdit, startDuplicate, handleSave, handleDelete, moveOrder };

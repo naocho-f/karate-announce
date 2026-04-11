@@ -228,34 +228,33 @@ async function checkOptimisticLock(configId: string, expectedVersion: number | n
 
 async function processDeletions(configId: string, deletedImageIds: string[] | undefined, noticeDeleteIds: string[] | undefined, customDeleteKeys: string[] | undefined) {
   if (deletedImageIds?.length) {
-    for (const imageId of deletedImageIds) await deleteImageById(imageId);
+    await Promise.all(deletedImageIds.map((imageId) => deleteImageById(imageId)));
   }
   if (noticeDeleteIds?.length) {
-    for (const noticeId of noticeDeleteIds) await deleteNoticeWithImages(noticeId);
+    await Promise.all(noticeDeleteIds.map((noticeId) => deleteNoticeWithImages(noticeId)));
   }
   if (customDeleteKeys?.length) {
-    for (const fieldKey of customDeleteKeys) {
+    await Promise.all(customDeleteKeys.map(async (fieldKey) => {
       await supabaseAdmin.from("custom_field_defs").delete().eq("form_config_id", configId).eq("field_key", fieldKey);
       await supabaseAdmin.from("form_field_configs").delete().eq("form_config_id", configId).eq("field_key", fieldKey);
-    }
+    }));
   }
 }
 
 // any型を避けるためのユーティリティ
 async function upsertNotices(configId: string, upsertList: Record<string, unknown>[]) {
-  for (const n of upsertList) {
+  await Promise.all(upsertList.map((n) => {
     const noticeData = {
       form_config_id: configId, anchor_type: n.anchor_type, anchor_field_key: n.anchor_field_key ?? null,
       sort_order: n.sort_order ?? 0, text_content: n.text_content ?? null, scrollable_text: n.scrollable_text ?? null,
       link_url: n.link_url ?? null, link_label: n.link_label ?? null,
       require_consent: n.require_consent ?? false, consent_label: n.consent_label ?? null,
     };
-    if (typeof n.id === "string" && (n.id as string).startsWith("temp_")) {
-      await supabaseAdmin.from("form_notices").insert(noticeData);
-    } else {
-      await supabaseAdmin.from("form_notices").update(noticeData).eq("id", n.id as string);
+    if (typeof n.id === "string" && n.id.startsWith("temp_")) {
+      return supabaseAdmin.from("form_notices").insert(noticeData);
     }
-  }
+    return supabaseAdmin.from("form_notices").update(noticeData).eq("id", n.id as string);
+  }));
 }
 
 function buildCustomFieldConfig(configId: string, cf: Record<string, unknown>, matchingField: Record<string, unknown> | undefined) {
@@ -276,22 +275,22 @@ function buildCustomFieldConfig(configId: string, cf: Record<string, unknown>, m
 }
 
 async function createCustomFields(configId: string, createList: Record<string, unknown>[], fields: Record<string, unknown>[]) {
-  for (const cf of createList) {
+  await Promise.all(createList.map(async (cf) => {
     const matchingField = fields.find((f) => f.field_key === cf.field_key);
     const { def, fieldConfig } = buildCustomFieldConfig(configId, cf, matchingField);
     await supabaseAdmin.from("custom_field_defs").insert(def);
     await supabaseAdmin.from("form_field_configs").insert(fieldConfig);
-  }
+  }));
 }
 
 async function updateFieldConfigs(fields: Record<string, unknown>[]) {
-  for (const f of fields) {
-    if (typeof f.id === "string" && (f.id as string).startsWith("temp_")) continue;
-    await supabaseAdmin.from("form_field_configs").update({
+  const updates = fields.filter((f) => !(typeof f.id === "string" && (f.id as string).startsWith("temp_")));
+  await Promise.all(updates.map((f) =>
+    supabaseAdmin.from("form_field_configs").update({
       visible: f.visible, required: f.required, sort_order: f.sort_order,
       has_other_option: f.has_other_option, custom_choices: f.custom_choices, custom_label: f.custom_label ?? null,
-    }).eq("id", f.id as string);
-  }
+    }).eq("id", f.id as string),
+  ));
 }
 
 async function incrementVersion(configId: string) {

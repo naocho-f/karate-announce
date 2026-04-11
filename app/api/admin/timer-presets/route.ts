@@ -11,6 +11,10 @@ export async function GET(request: NextRequest) {
   const eventId = request.nextUrl.searchParams.get("event_id");
   let query = supabaseAdmin.from("timer_presets").select("*").order("created_at", { ascending: true });
   if (eventId) {
+    // UUID形式のバリデーション（クエリインジェクション防止）
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId)) {
+      return NextResponse.json({ error: "Invalid event_id format" }, { status: 400 });
+    }
     query = query.or(`event_id.eq.${eventId},event_id.is.null`);
   }
   const { data, error } = await query;

@@ -27,6 +27,7 @@ function useCourtPageData() {
   const [announceTemplates, setAnnounceTemplates] = useState<AnnounceTemplates>(DEFAULT_TEMPLATES);
   const [rulesReadingMap, setRulesReadingMap] = useState<Record<string, string>>({});
   const [timerControlActive, setTimerControlActive] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const [processingMatchIds, setProcessingMatchIds] = useState<Set<string>>(new Set());
   const [mutedMatchIds, setMutedMatchIds] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
@@ -39,7 +40,7 @@ function useCourtPageData() {
     tournaments, setTournaments, matchesMap, setMatchesMap, fighters, setFighters,
     withdrawnFighterIds, setWithdrawnFighterIds, fighterEntryMap, setFighterEntryMap,
     announceTemplates, setAnnounceTemplates, rulesReadingMap, setRulesReadingMap,
-    timerControlActive, setTimerControlActive, processingMatchIds, mutedMatchIds, setMutedMatchIds,
+    timerControlActive, setTimerControlActive, fetchError, setFetchError, processingMatchIds, mutedMatchIds, setMutedMatchIds,
     startProcessing: startP, endProcessing: endP,
   };
 }
@@ -52,7 +53,8 @@ function useCourtPageLoader(court: string, d: ReturnType<typeof useCourtPageData
   const loadEvent = useCallback(async () => {
     const dc = dRef.current;
     const { data: ev, error } = await supabase.from("events").select("id, court_names, is_active").eq("is_active", true).maybeSingle();
-    if (error) return null;
+    if (error) { dc.setFetchError(true); return null; }
+    dc.setFetchError(false);
     if (!ev) { dc.setIsEventActive(false); dc.setTournaments([]); dc.setMatchesMap({}); return null; }
     dc.setIsEventActive(true);
     dc.setTimerControlActive(isTimerActive(ev.id, court));
@@ -128,13 +130,14 @@ export default function CourtPage({ params }: Props) {
         </div>
         <CourtPageLinks court={court} />
         <CourtPageBody
-          isEventActive={d.isEventActive} tournaments={d.tournaments} matchesMap={d.matchesMap}
+          isEventActive={d.isEventActive} fetchError={d.fetchError} tournaments={d.tournaments} matchesMap={d.matchesMap}
           fighters={d.fighters} withdrawnFighterIds={d.withdrawnFighterIds} fighterEntryMap={d.fighterEntryMap}
           processingMatchIds={d.processingMatchIds} mutedMatchIds={d.mutedMatchIds}
           timerControlActive={d.timerControlActive} announceTemplates={d.announceTemplates} rulesReadingMap={d.rulesReadingMap}
           startMatch={startMatch} setWinner={setWinner} correctWinner={correctWinner}
           reannounceStart={reannounceStart} reannounceWinner={reannounceWinner}
           toggleWithdrawal={toggleWithdrawal} swapWithNext={swapWithNext} toggleMute={toggleMute}
+          onReload={() => void load()}
         />
       </div>
     </main>
@@ -157,7 +160,7 @@ function CourtPageLinks({ court }: { court: string }) {
 }
 
 function CourtPageBody(props: {
-  isEventActive: boolean | null; tournaments: Tournament[]; matchesMap: Record<string, Match[]>;
+  isEventActive: boolean | null; fetchError: boolean; tournaments: Tournament[]; matchesMap: Record<string, Match[]>;
   fighters: Record<string, Fighter>; withdrawnFighterIds: Set<string>; fighterEntryMap: Record<string, string>;
   processingMatchIds: Set<string>; mutedMatchIds: Set<string>; timerControlActive: boolean;
   announceTemplates: AnnounceTemplates; rulesReadingMap: Record<string, string>;
@@ -166,7 +169,11 @@ function CourtPageBody(props: {
   reannounceStart: (tId: string, mId: string) => Promise<void>; reannounceWinner: (tId: string, mId: string) => Promise<void>;
   toggleWithdrawal: (mId: string, eId: string, w: boolean) => Promise<void>;
   swapWithNext: (tId: string, r: number, mId: string) => Promise<void>; toggleMute: (mId: string) => void;
+  onReload: () => void;
 }) {
+  if (props.fetchError) {
+    return <div className="text-center text-gray-500 mt-20"><p className="text-lg mb-2">情報の取得に失敗しました</p><button onClick={props.onReload} className="text-blue-400 hover:text-blue-300 text-sm underline">再読み込み</button></div>;
+  }
   if (props.isEventActive === null) {
     return <div className="flex flex-col items-center justify-center mt-32 gap-4 text-gray-500"><div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /><p className="text-sm">読み込み中...</p></div>;
   }

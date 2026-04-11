@@ -1131,11 +1131,8 @@ function InlineMemoEditor({
   async function save() {
     const trimmed = memo.trim() || null;
     if (trimmed === (initialValue?.trim() || null)) return;
-    await fetch(`/api/admin/entries/${entryId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ admin_memo: trimmed }),
-    });
+    const res = await fetch(`/api/admin/entries/${entryId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ admin_memo: trimmed }) });
+    if (!res.ok) { showToast("メモの保存に失敗しました"); return; }
     onSaved();
   }
 

@@ -335,6 +335,35 @@ describe("/api/court/matches/[id]", () => {
     expect(res.status).toBe(400);
   });
 
+  it("PATCH: action=set_winner RPC エラー時に 500", async () => {
+    const { supabaseAdmin } = await import("@/lib/supabase-admin");
+    vi.mocked(supabaseAdmin.rpc).mockResolvedValueOnce({ data: null, error: { message: "rpc failed", details: "", hint: "", code: "42000", name: "PostgrestError" }, count: null, status: 500, statusText: "Internal Server Error" });
+    const { PATCH } = await import("@/app/api/court/matches/[id]/route");
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
+      body: {
+        action: "set_winner",
+        winnerId: "f1",
+        tournamentId: "t1",
+        round: 3,
+        rounds: 3,
+        position: 0,
+      },
+    });
+    const res = await PATCH(req, createParams({ id: "m1" }));
+    expect(res.status).toBe(500);
+  });
+
+  it("PATCH: action=swap_with RPC エラー時に 500", async () => {
+    const { supabaseAdmin } = await import("@/lib/supabase-admin");
+    vi.mocked(supabaseAdmin.rpc).mockResolvedValueOnce({ data: null, error: { message: "rpc failed", details: "", hint: "", code: "42000", name: "PostgrestError" }, count: null, status: 500, statusText: "Internal Server Error" });
+    const { PATCH } = await import("@/app/api/court/matches/[id]/route");
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
+      body: { action: "swap_with", otherMatchId: "m2" },
+    });
+    const res = await PATCH(req, createParams({ id: "m1" }));
+    expect(res.status).toBe(500);
+  });
+
   it("PATCH: 不明な action で 400", async () => {
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
     const req = createAdminRequest("PATCH", "/api/court/matches/m1", {

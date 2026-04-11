@@ -66,7 +66,7 @@ export default function IdlePanel({
       {/* プリセット選択 */}
       {presets.length > 0 && (
         <div>
-          <label className="text-xs text-gray-500">ルール</label>
+          <label className="text-xs text-gray-400">ルール</label>
           <select
             value={selectedPresetId ?? ""}
             onChange={(e) => onSelectPresetId(e.target.value || null)}
@@ -162,7 +162,7 @@ function MatchCard({ candidate: c, isFirstReady, onRef, onSelectMatch }: {
       <div className="px-3 py-2">
         <FighterRow fighter={c.fighter1} sideColor={dimmed ? "bg-gray-700" : "bg-red-600"} nameColor={dimmed ? "text-gray-600" : "text-red-400"} showAff={!dimmed} />
         <div className="text-center text-gray-600 text-xs my-0.5">vs</div>
-        <FighterRow fighter={c.fighter2} sideColor={dimmed ? "bg-gray-700" : "bg-white/80"} nameColor={dimmed ? "text-gray-600" : "text-gray-200"} showAff={!dimmed} />
+        <FighterRow fighter={c.fighter2} sideColor={dimmed ? "bg-gray-700" : "bg-gray-300"} nameColor={dimmed ? "text-gray-600" : "text-gray-200"} showAff={!dimmed} />
         <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-gray-800/60">
           {rulesLabel && <span className={`text-[10px] px-1.5 py-0.5 rounded ${ms === "done" ? "bg-gray-800 text-gray-600" : "bg-gray-800 text-gray-400"}`}>{rulesLabel}</span>}
           <span className={`text-[10px] ml-auto ${ms === "done" ? "text-gray-700" : "text-gray-600"}`}>{c.tournament.name}</span>

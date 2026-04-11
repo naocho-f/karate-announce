@@ -38,7 +38,8 @@ type MatchBody = {
 export async function handleStart(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
-  await supabaseAdmin.from("matches").update({ status: "ongoing" }).eq("id", id);
+  const { error } = await supabaseAdmin.from("matches").update({ status: "ongoing" }).eq("id", id);
+  if (error) return NextResponse.json({ error: "試合の開始に失敗しました" }, { status: 500 });
   if (body.tournamentId) {
     await supabaseAdmin.from("tournaments").update({ status: "ongoing" }).eq("id", body.tournamentId);
   }
@@ -53,7 +54,7 @@ export async function handleSetWinner(
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
   const { winnerId, tournamentId, round, rounds, position } = body;
-  await supabaseAdmin.rpc("set_match_winner", {
+  const { error } = await supabaseAdmin.rpc("set_match_winner", {
     p_match_id: id,
     p_winner_id: winnerId,
     p_tournament_id: tournamentId,
@@ -61,6 +62,7 @@ export async function handleSetWinner(
     p_rounds: rounds,
     p_position: position,
   });
+  if (error) return NextResponse.json({ error: "勝者の設定に失敗しました" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
 
@@ -75,24 +77,26 @@ export async function handleReplace(id: string, body: MatchBody, supabaseAdmin: 
   const otherId = slot === "f1" ? match.fighter2_id : match.fighter1_id;
   const bothPresent = newFighterId && otherId;
 
-  await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from("matches")
     .update({
       [field]: newFighterId,
       status: bothPresent ? "ready" : "waiting",
     })
     .eq("id", id);
+  if (error) return NextResponse.json({ error: "選手の差し替えに失敗しました" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
 
 export async function handleEdit(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
-  await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from("matches")
     .update({
       match_label: body.matchLabel ?? null,
       rules: body.rules ?? null,
     })
     .eq("id", id);
+  if (error) return NextResponse.json({ error: "試合情報の編集に失敗しました" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
 
@@ -104,7 +108,8 @@ export async function handleCorrectWinner(
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
   const { winnerId, tournamentId, round, rounds, position } = body;
-  await supabaseAdmin.from("matches").update({ winner_id: winnerId }).eq("id", id);
+  const { error: updateErr } = await supabaseAdmin.from("matches").update({ winner_id: winnerId }).eq("id", id);
+  if (updateErr) return NextResponse.json({ error: "勝者訂正に失敗しました" }, { status: 500 });
 
   if (round != null && rounds != null && position != null && round < rounds) {
     const nextPosition = Math.floor(position / 2);
@@ -139,7 +144,7 @@ export async function handleFinishTimer(
 
   if (winnerId && round != null && rounds != null && position != null) {
     // 勝者あり → RPC でアトミック実行（match 更新 + 次ラウンド配置）
-    await supabaseAdmin.rpc("set_match_winner", {
+    const { error } = await supabaseAdmin.rpc("set_match_winner", {
       p_match_id: id,
       p_winner_id: winnerId,
       p_tournament_id: tournamentId,
@@ -149,9 +154,10 @@ export async function handleFinishTimer(
       p_result_method: resultMethod ?? null,
       p_result_detail: resultDetail ?? null,
     });
+    if (error) return NextResponse.json({ error: "試合結果の保存に失敗しました" }, { status: 500 });
   } else {
     // 勝者なし（引き分け等）→ match のステータスのみ更新
-    await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from("matches")
       .update({
         winner_id: winnerId ?? null,
@@ -161,6 +167,7 @@ export async function handleFinishTimer(
         updated_at: new Date().toISOString(),
       })
       .eq("id", id);
+    if (error) return NextResponse.json({ error: "試合結果の保存に失敗しました" }, { status: 500 });
   }
   return NextResponse.json({ ok: true });
 }
@@ -175,9 +182,10 @@ export async function handleSwapWith(
   const { otherMatchId } = body;
   if (!otherMatchId) return NextResponse.json({ error: "otherMatchId required" }, { status: 400 });
   // RPC でアトミックに position を交換（FOR UPDATE でロック取得）
-  await supabaseAdmin.rpc("swap_match_positions", {
+  const { error } = await supabaseAdmin.rpc("swap_match_positions", {
     match_a_id: id,
     match_b_id: otherMatchId,
   });
+  if (error) return NextResponse.json({ error: "試合位置の交換に失敗しました" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
