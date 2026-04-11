@@ -356,8 +356,13 @@ type EventActionDeps = {
 };
 
 function useEventActions(id: string, deps: EventActionDeps) {
-  const d = deps;
+  // deps はレンダーごとに新しいオブジェクトだが、中身の setState 関数は安定。
+  // event/entryRuleIds/entryCloseAtLocal は変わりうるので ref 経由で最新値を参照する。
+  const depsRef = useRef(deps);
+  useEffect(() => { depsRef.current = deps; });
+
   const toggleEntryClosed = useCallback(async () => {
+    const d = depsRef.current;
     d.setTogglingClosed(true);
     const newVal = !d.event?.entry_closed;
     const res = await fetch(`/api/admin/events/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ entry_closed: newVal }) });
@@ -365,27 +370,30 @@ function useEventActions(id: string, deps: EventActionDeps) {
     if (!res.ok) { showToast("受付状態の変更に失敗しました"); return; }
     d.setEvent((prev) => (prev ? { ...prev, entry_closed: newVal } : prev));
     if (newVal) d.setShowClosedGuide(true);
-  }, [id, d]);
+  }, [id]);
 
   const saveEntryCloseAt = useCallback(async () => {
+    const d = depsRef.current;
     d.setSavingCloseAt(true);
     const utc = d.entryCloseAtLocal ? new Date(d.entryCloseAtLocal + "+09:00").toISOString() : null;
     const res = await fetch(`/api/admin/events/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ entry_close_at: utc }) });
     d.setSavingCloseAt(false);
     if (!res.ok) { showToast("保存に失敗しました"); return; }
     d.setEvent((prev) => (prev ? { ...prev, entry_close_at: utc } : prev));
-  }, [id, d]);
+  }, [id]);
 
   const clearEntryCloseAt = useCallback(async () => {
+    const d = depsRef.current;
     d.setEntryCloseAtLocal("");
     d.setSavingCloseAt(true);
     const res = await fetch(`/api/admin/events/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ entry_close_at: null }) });
     d.setSavingCloseAt(false);
     if (!res.ok) { showToast("クリアに失敗しました"); return; }
     d.setEvent((prev) => (prev ? { ...prev, entry_close_at: null } : prev));
-  }, [id, d]);
+  }, [id]);
 
   const uploadEventImage = useCallback(async (e: React.ChangeEvent<HTMLInputElement>, type: "banner" | "ogp") => {
+    const d = depsRef.current;
     const file = e.target.files?.[0];
     if (!file) return;
     const setLoading = type === "banner" ? d.setUploadingBanner : d.setUploadingOgp;
@@ -399,18 +407,20 @@ function useEventActions(id: string, deps: EventActionDeps) {
     const key = type === "banner" ? "banner_image_path" : "ogp_image_path";
     d.setEvent((prev) => (prev ? { ...prev, [key]: data.path } : prev));
     e.target.value = "";
-  }, [id, d]);
+  }, [id]);
 
   const deleteEventImage = useCallback(async (type: "banner" | "ogp") => {
+    const d = depsRef.current;
     d.setDeletingImageType(type);
     const res = await fetch(`/api/admin/events/${id}/${type}`, { method: "DELETE" });
     d.setDeletingImageType(null);
     if (!res.ok) { showToast("削除に失敗しました"); return; }
     const key = type === "banner" ? "banner_image_path" : "ogp_image_path";
     d.setEvent((prev) => (prev ? { ...prev, [key]: null } : prev));
-  }, [id, d]);
+  }, [id]);
 
   const toggleEntryRule = useCallback(async (entryId: string, ruleId: string) => {
+    const d = depsRef.current;
     const key = `${entryId}:${ruleId}`;
     d.setProcessingRuleKeys((prev) => new Set(prev).add(key));
     const has = d.entryRuleIds[entryId]?.has(ruleId);
@@ -419,23 +429,25 @@ function useEventActions(id: string, deps: EventActionDeps) {
       d.setEntryRuleIds((prev) => { const next = { ...prev }; next[entryId] = new Set(prev[entryId] ?? []); has ? next[entryId].delete(ruleId) : next[entryId].add(ruleId); return next; });
     }
     d.setProcessingRuleKeys((prev) => { const next = new Set(prev); next.delete(key); return next; });
-  }, [d]);
+  }, []);
 
   const deleteEntry = useCallback(async (entryId: string) => {
+    const d = depsRef.current;
     if (!confirm("この参加者を削除しますか？")) return;
     d.setProcessingEntryIds((prev) => new Set(prev).add(entryId));
     const res = await fetch(`/api/admin/entries/${entryId}`, { method: "DELETE" });
     if (res.ok) d.setEntries((prev) => prev.filter((e) => e.id !== entryId));
     else showToast("削除に失敗しました");
     d.setProcessingEntryIds((prev) => { const next = new Set(prev); next.delete(entryId); return next; });
-  }, [d]);
+  }, []);
 
   const toggleWithdrawn = useCallback(async (entryId: string, withdrawn: boolean) => {
+    const d = depsRef.current;
     d.setProcessingEntryIds((prev) => new Set(prev).add(entryId));
     const res = await fetch(`/api/admin/entries/${entryId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_withdrawn: withdrawn }) });
     if (res.ok) d.setEntries((prev) => prev.map((e) => (e.id === entryId ? { ...e, is_withdrawn: withdrawn } : e)));
     d.setProcessingEntryIds((prev) => { const next = new Set(prev); next.delete(entryId); return next; });
-  }, [d]);
+  }, []);
 
   return { toggleEntryClosed, saveEntryCloseAt, clearEntryCloseAt, uploadEventImage, deleteEventImage, toggleEntryRule, deleteEntry, toggleWithdrawn };
 }
