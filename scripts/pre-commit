@@ -157,11 +157,14 @@ for libfile in lib/*.ts lib/*.tsx; do
   fi
 done
 
-# テスト存在チェック（components/）
+# テスト存在チェック（components/）— ユニットテストまたはE2Eテストで検証されていること
 for compfile in components/*.tsx; do
   [ -f "$compfile" ] || continue
   compname=$(basename "$compfile" .tsx)
-  if [ ! -f "__tests__/unit/${compname}.test.ts" ] && [ ! -f "__tests__/unit/${compname}.test.tsx" ]; then
+  has_test=false
+  [ -f "__tests__/unit/${compname}.test.ts" ] || [ -f "__tests__/unit/${compname}.test.tsx" ] && has_test=true
+  if [ "$has_test" = false ] && grep -rql "$compname" __tests__/e2e/ 2>/dev/null; then has_test=true; fi
+  if [ "$has_test" = false ]; then
     echo "COMP_NO_TEST: ${compfile}" >> "$WARN_FILE"
   fi
 done
