@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-11（管理画面の無限ループ修正 + ESLint厳格化完了）
+> 最終更新: 2026-04-11（レビュー問題先送り禁止ルール追加）
 
 ---
 
@@ -622,6 +622,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **オフライン対応 Phase 1d: resilient-fetch全画面適用（2026-04-07）**: court/court-index/timer操作の全fetch呼び出しをresilient-fetchに置き換え。リトライ+エラートースト追加
 - **オフライン対応 Phase 1c: 接続状態3段階化+Realtime再接続（2026-04-07）**: 接続状態を正常/不安定/オフラインの3段階に拡張。ポーリングの指数バックオフ、onReconnectコールバック、Supabase Realtime再接続対応を追加
 - **オフライン対応 Phase 1b: リトライ付きfetchラッパー（2026-04-07）**: lib/resilient-fetch.ts を追加。指数バックオフ+ジッター、AbortSignal対応、5xx/ネットワークエラーのみリトライ
+- **CLAUDE.md: レビュー問題先送り禁止ルール追加（2026-04-11）**: レビューで見つけた問題は全て修正してからコミットする。「後で」「影響軽微」で先送りしない
 - **管理画面の無限ループ+パフォーマンス修正（2026-04-11）**: useEventLoader/useEventActions の deps オブジェクト参照不安定による無限リクエストループ・毎レンダー callback 再生成を修正。ref パターンで安定化
 - **ESLint厳格化: 残13件リファクタリング完了（2026-04-11）**: entry/page.tsx・live/page.tsx・_group-section.tsx・_tournament-editor.tsxのmax-lines-per-function/complexity/set-state-in-effect警告をすべて解消。カスタムフック抽出・サブコンポーネント分割・lookup map化で0 warnings達成
 - **オフライン対応 Phase 1a: Service Worker + PWA + offlineページ（2026-04-07）**: Serwist によるApp Shellキャッシュ、PWAマニフェスト、オフラインフォールバックページを追加。画面一覧に /offline を追記
