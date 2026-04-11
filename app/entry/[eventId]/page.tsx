@@ -255,13 +255,21 @@ export default function EntryPage({ params }: Props) {
     }
     setSubmitting(true); setError("");
     const entry = buildEntryPayload({ eventId, visibleFields, values, multiValues, otherValues, formConfig: data.formConfig, event: data.event ?? null });
-    const ruleIds = resolveRuleIds(hasRuleField, visibleFields, values, multiValues, selectedRules);
+    const { ruleIds, isAny } = resolveRuleIds(hasRuleField, visibleFields, values, multiValues, selectedRules, data.eventRules);
+    if (isAny) {
+      const rpConfig = visibleFields.find((f) => f.def.key === "rule_preference")?.config;
+      const anyLabel = rpConfig?.custom_choices?.find((c) => c.value === "__any__")?.label ?? "どちらでも良い";
+      const ef = (entry["extra_fields"] ?? {}) as Record<string, unknown>;
+      ef["rule_any"] = true;
+      ef["rule_any_label"] = anyLabel;
+      entry["extra_fields"] = ef;
+    }
     const res = await fetch("/api/public/entry", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ entry, school_name: entry["school_name"] as string | null, rule_ids: ruleIds }) });
     if (!res.ok) { setError(res.status === 403 ? "参加受付は終了しました。" : "送信に失敗しました。もう一度お試しください。"); setSubmitting(false); return; }
     const resData = await res.json();
     setEmailSent(!!resData.email_sent); setSubmitting(false); setSubmitted(true);
     try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
-  }, [submitting, visibleFields, isFieldFilled, emailMismatch, emailConfirm, ageConflict, values, consents, notices, setFieldErrors, setSubmitting, setError, eventId, multiValues, otherValues, data.formConfig, data.event, hasRuleField, selectedRules, setEmailSent, setSubmitted, DRAFT_KEY]);
+  }, [submitting, visibleFields, isFieldFilled, emailMismatch, emailConfirm, ageConflict, values, consents, notices, setFieldErrors, setSubmitting, setError, eventId, multiValues, otherValues, data.formConfig, data.event, data.eventRules, hasRuleField, selectedRules, setEmailSent, setSubmitted, DRAFT_KEY]);
 
   // 早期リターン
   if (data.event === undefined || data.formLoading) return <LoadingScreen />;
@@ -290,11 +298,18 @@ function resolveRuleIds(
   hasRuleField: boolean,
   visibleFields: Array<{ config: FormFieldConfig; def: FieldPoolItem }>,
   values: Record<string, string>, multiValues: Record<string, Set<string>>, selectedRules: Set<string>,
-): string[] {
-  if (!hasRuleField) return [...selectedRules];
+  eventRules: { id: string; name: string }[],
+): { ruleIds: string[]; isAny: boolean } {
+  if (!hasRuleField) return { ruleIds: [...selectedRules], isAny: false };
   const rpConfig = visibleFields.find((f) => f.def.key === "rule_preference")?.config;
-  if (rpConfig && isSingleSelect(rpConfig)) { const v = values["rule_preference"]?.trim(); return v ? [v] : []; }
-  return [...(multiValues["rule_preference"] ?? [])];
+  if (rpConfig && isSingleSelect(rpConfig)) {
+    const v = values["rule_preference"]?.trim();
+    if (v === "__any__") return { ruleIds: eventRules.map((r) => r.id), isAny: true };
+    return { ruleIds: v ? [v] : [], isAny: false };
+  }
+  const selected = multiValues["rule_preference"];
+  if (selected?.has("__any__")) return { ruleIds: eventRules.map((r) => r.id), isAny: true };
+  return { ruleIds: [...(selected ?? [])], isAny: false };
 }
 
 function useAgeConflict(values: Record<string, string>, event: Event | null | undefined): string | null {

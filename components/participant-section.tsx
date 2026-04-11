@@ -17,7 +17,7 @@ function supabaseStorageUrl(path: string): string {
   return `${SUPABASE_URL}/storage/v1/object/public/form-notice-images/${path}`;
 }
 
-// ── エントリーフォーム URL ────────────────────────────────────────────────
+// ── エントリーフォーム URL ──
 
 function EntryFormUrl({ eventId }: { eventId: string }) {
   const [copied, setCopied] = useState(false);
@@ -84,7 +84,7 @@ function EntryFormUrl({ eventId }: { eventId: string }) {
   );
 }
 
-// ── デモデータ ──────────────────────────────────────────────────────────
+// ── デモデータ ──
 
 const DEMO_FAMILY_NAMES = [
   "山田",
@@ -439,7 +439,7 @@ type FormFieldConfig = {
   custom_choices: { label: string; value: string }[] | null;
 };
 
-// ── CSV helpers ──────────────────────────────────────────────────────────
+// ── CSV helpers ──
 
 const SPECIAL_FIELD_GETTERS: Record<string, (entry: Entry) => string> = {
   full_name: (e) => entryFullName(e),
@@ -450,6 +450,16 @@ const SPECIAL_FIELD_GETTERS: Record<string, (entry: Entry) => string> = {
   branch_kana: (e) => e.dojo_name_reading ?? "",
 };
 
+function entryRuleAnyLabel(e: Entry): string | null {
+  const ef = e.extra_fields as Record<string, unknown> | undefined;
+  return ef?.rule_any === true ? (ef.rule_any_label as string) || "どちらでも良い" : null;
+}
+
+
+function getRulePreferenceValue(entry: Entry, entryRuleIds: Record<string, Set<string>>, eventRules: Rule[]): string {
+  return entryRuleAnyLabel(entry) ?? (entryRuleIds[entry.id] ? eventRules.filter((r) => entryRuleIds[entry.id].has(r.id)).map((r) => r.name).join("\n") : "");
+}
+
 function getFieldValue(
   entry: Entry,
   key: string,
@@ -458,12 +468,7 @@ function getFieldValue(
 ): string {
   const specialGetter = SPECIAL_FIELD_GETTERS[key];
   if (specialGetter) return specialGetter(entry);
-
-  if (key === "rule_preference") {
-    const rids = entryRuleIds[entry.id];
-    return rids ? eventRules.filter((r) => rids.has(r.id)).map((r) => r.name).join("\n") : "";
-  }
-
+  if (key === "rule_preference") return getRulePreferenceValue(entry, entryRuleIds, eventRules);
   const def = getFieldDef(key);
   if (def?.dbColumn) {
     const val = (entry as Record<string, unknown>)[def.dbColumn];
@@ -652,7 +657,7 @@ async function downloadCsvData(
   URL.revokeObjectURL(url);
 }
 
-// ── エントリー管理セクション ──────────────────────────────────────────────
+// ── エントリー管理セクション ──
 
 function EntriesSectionHeader({
   entries,
@@ -815,18 +820,20 @@ function EntryActionsCell({
   );
 }
 
-function RuleButtonsCell({ entryId, eventRules, entryRuleIds, processingRuleKeys, onToggleRule }: {
-  entryId: string; eventRules: Rule[]; entryRuleIds: Record<string, Set<string>>; processingRuleKeys: Set<string>; onToggleRule: (entryId: string, ruleId: string) => void;
+function RuleButtonsCell({ entry, eventRules, entryRuleIds, processingRuleKeys, onToggleRule }: {
+  entry: Entry; eventRules: Rule[]; entryRuleIds: Record<string, Set<string>>; processingRuleKeys: Set<string>; onToggleRule: (entryId: string, ruleId: string) => void;
 }) {
   if (eventRules.length === 0) return null;
+  const anyLabel = entryRuleAnyLabel(entry);
+  if (anyLabel) return <td className="px-2 py-1.5"><span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded">{anyLabel}</span></td>;
   return (
     <td className="px-2 py-1.5">
       <div className="flex gap-1 flex-wrap">
         {eventRules.map((r) => {
-          const checked = entryRuleIds[entryId]?.has(r.id) ?? false;
-          const busy = processingRuleKeys.has(`${entryId}:${r.id}`);
+          const checked = entryRuleIds[entry.id]?.has(r.id) ?? false;
+          const busy = processingRuleKeys.has(`${entry.id}:${r.id}`);
           return (
-            <button key={r.id} onClick={() => onToggleRule(entryId, r.id)} disabled={busy} className={`text-xs px-1.5 py-0.5 rounded transition disabled:opacity-50 ${checked ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-500 hover:bg-gray-600"}`}>
+            <button key={r.id} onClick={() => onToggleRule(entry.id, r.id)} disabled={busy} className={`text-xs px-1.5 py-0.5 rounded transition disabled:opacity-50 ${checked ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-500 hover:bg-gray-600"}`}>
               {busy ? "…" : r.name}
             </button>
           );
@@ -899,7 +906,7 @@ function EntryTableRow({ entry, index, eventId, eventRules, entryRuleIds, proces
         <EntryNameCell entry={entry} eventId={eventId} currentFormVersion={currentFormVersion} />
         <td className="px-2 py-1.5 text-xs text-gray-400">{[entry.school_name, entry.dojo_name].filter(Boolean).join(" ")}</td>
         <td className="px-2 py-1.5 text-xs text-gray-500 whitespace-nowrap">{entryPhysicalInfo(entry)}</td>
-        <RuleButtonsCell entryId={entry.id} eventRules={eventRules} entryRuleIds={entryRuleIds} processingRuleKeys={processingRuleKeys} onToggleRule={onToggleRule} />
+        <RuleButtonsCell entry={entry} eventRules={eventRules} entryRuleIds={entryRuleIds} processingRuleKeys={processingRuleKeys} onToggleRule={onToggleRule} />
         <MemoButtonsCell entry={entry} memoOpen={memoOpen} appMemoOpen={appMemoOpen} onSetOpenMemoId={onSetOpenMemoId} onSetOpenAppMemoId={onSetOpenAppMemoId} />
         <EntryActionsCell entry={entry} processing={processingEntryIds.has(entry.id)} onToggleWithdrawn={onToggleWithdrawn} onDelete={onDelete} />
       </tr>
@@ -1145,7 +1152,7 @@ function InlineMemoEditor({
   );
 }
 
-// ── AddEntryForm ──────────────────────────────────────────────────────────
+// ── AddEntryForm ──
 
 function buildEntryPayload(fields: {
   eventId: string;
@@ -1340,8 +1347,6 @@ function AddEntryForm({
   );
 }
 
-// ── ステータスバッジ ───────────────────────────────────────────────────────
-
 function FormConfigStatusBadge({ eventId }: { eventId: string }) {
   const [status, setStatus] = useState<"loading" | "ready" | "draft" | "none">("loading");
   const [version, setVersion] = useState<number>(0);
@@ -1355,8 +1360,6 @@ function FormConfigStatusBadge({ eventId }: { eventId: string }) {
   const versionLabel = status !== "none" && version > 0 ? ` v${version}` : status !== "none" && version === 0 ? " 未公開" : "";
   return <span className={`text-xs px-2 py-0.5 rounded ${styles[status]}`}>{labels[status]}{versionLabel}</span>;
 }
-
-// ── メインの ParticipantSection コンポーネント ──────────────────────────────
 
 export type ParticipantSectionProps = {
   eventId: string;

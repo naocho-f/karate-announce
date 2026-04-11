@@ -186,6 +186,21 @@ function isSingleSelect(config: FormFieldConfig) {
   return config.custom_choices?.some((c) => c.value === "__single_select__") ?? false;
 }
 
+/** チェックボックスのトグル処理。rule_preference の __any__ 排他制御を含む */
+function toggleCheckboxValue(current: Set<string> | undefined, value: string, wasChecked: boolean, fieldKey: string): Set<string> {
+  const next = new Set(current ?? []);
+  if (wasChecked) { next.delete(value); return next; }
+  next.add(value);
+  if (fieldKey !== "rule_preference") return next;
+  // __any__ ⇔ 個別ルールの排他制御
+  if (value === "__any__") {
+    for (const v of next) { if (v !== "__any__") next.delete(v); }
+  } else {
+    next.delete("__any__");
+  }
+  return next;
+}
+
 /** フィールドごとの選択肢を取得 */
 function getChoices(
   config: FormFieldConfig,
@@ -194,7 +209,10 @@ function getChoices(
   ageCategories: AgeCategory[] | undefined,
 ) {
   if (def.key === "rule_preference") {
-    return eventRules.map((r) => ({ label: r.name, value: r.id }));
+    const ruleChoices = eventRules.map((r) => ({ label: r.name, value: r.id }));
+    const anyEntry = config.custom_choices?.find((c) => c.value === "__any__");
+    if (anyEntry) ruleChoices.push({ label: anyEntry.label, value: "__any__" });
+    return ruleChoices;
   }
   if (config.custom_choices && config.custom_choices.length > 0) {
     return config.custom_choices.filter((c) => c.value !== "__single_select__");
@@ -537,7 +555,10 @@ function CheckboxInput({ fieldKey, config, values, multiValues, otherValues, cho
         const checked = multiValues[fieldKey]?.has(c.value) ?? false;
         return (
           <label key={c.value} className="flex items-start gap-2 cursor-pointer py-1">
-            <input type="checkbox" checked={checked} onChange={() => { const next = new Set(multiValues[fieldKey] ?? []); checked ? next.delete(c.value) : next.add(c.value); onSetMultiValue(fieldKey, next); }} className="mt-0.5 accent-blue-500" />
+            <input type="checkbox" checked={checked} onChange={() => {
+              const next = toggleCheckboxValue(multiValues[fieldKey], c.value, checked, fieldKey);
+              onSetMultiValue(fieldKey, next);
+            }} className="mt-0.5 accent-blue-500" />
             <span className="text-sm text-gray-200">{c.label}</span>
           </label>
         );

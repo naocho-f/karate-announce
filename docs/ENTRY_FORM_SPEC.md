@@ -155,6 +155,11 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 
 - **描画**: イベントに紐づくルール（`event_rules` → `rules`）をチェックボックスまたはラジオボタンで表示
 - **モード切替**: `custom_choices` に `__single_select__` マーカーがある場合はラジオボタン（単一選択）、なければチェックボックス（複数選択）
+- **「どれでもOK」選択肢**: `custom_choices` に `{ value: "__any__", label: "どちらでも良い" }` マーカーがある場合、選択肢の末尾にそのラベルで追加表示。ラベルは管理者がカスタマイズ可能
+  - **チェックボックスモードの排他制御**: `__any__` を選択 → 個別ルールのチェックを全解除。個別ルールを選択 → `__any__` のチェックを解除
+  - **ラジオモード**: 選択肢の1つとして表示（排他は自然に動作）
+  - **送信時**: `__any__` 選択の場合、`rule_ids` にはイベントの全ルールIDを展開して送信。同時に `entry.extra_fields` に `{ rule_any: true, rule_any_label: "カスタムラベル" }` を付与
+  - **マッチング**: 全ルールIDが `entry_rules` に入るため、`auto-bracket.ts` の変更不要
 - **DB マッピング**: `entry_rules` テーブル（entry_id, rule_id の M:N）。entries テーブルには格納しない
 - **フォールバック**: フォーム設定にルールフィールドがない場合、フォーム下部にレガシーのボタングリッドUIで表示
 
@@ -401,7 +406,7 @@ entry_closed === true  OR  (entry_close_at != null AND entry_close_at <= now())
 6. `身長: {height}cm`
 7. `所属: {dojo_name}`（← branch の値。DB カラム名と表示ラベルの対応は下記注記参照）
 8. `支部: {school_name}`（← organization の値。同上）
-9. `参加ルール: {ルール名カンマ区切り}`
+9. `参加ルール: {ルール名カンマ区切り}`（`extra_fields.rule_any === true` の場合は `rule_any_label || "どちらでも良い"` を表示）
 10. extra_fields の各項目（email, email_confirm を除く）。キー名は fieldLabels でラベルに変換。選択肢の value は fieldChoices で label に変換（custom_choices → custom_field_defs.choices → FIELD_POOL.defaultChoices の優先順で検索）。配列値は各要素をラベル変換後改行+インデントで表示。文字列値に改行を含む場合も同様に `ラベル:\n  行1\n  行2` 形式で表示する（短い単一行の値は `ラベル: 値` で同一行）
 
 > **注記: DB カラム名と UI ラベルの歴史的な不一致**

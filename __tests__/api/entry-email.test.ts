@@ -116,4 +116,55 @@ describe("確認メール送信", () => {
     expect(eqCalls.some((c) => c.args[0] === "form_config_id")).toBe(true);
     expect(eqCalls.some((c) => c.args[0] === "event_id")).toBe(false);
   });
+
+  it("rule_any=true の場合、メール本文にカスタムラベルが含まれる", async () => {
+    mockResult("events", "select", {
+      data: { entry_closed: false, entry_close_at: null },
+    });
+    mockResult("entries", "insert", { data: { id: "new-entry" } });
+    mockResult("events", "select", {
+      data: {
+        name: "テスト大会",
+        event_date: "2026-04-10",
+        venue_info: "テスト会場",
+        email_subject_template: null,
+        email_body_template: null,
+        notification_emails: [],
+      },
+    });
+    // rule_any の場合、rule_ids は全ルールIDが入るが、fetchRuleNames でルール名に変換される
+    // entry-service.ts で rule_any を検出してカスタムラベルに置き換��る
+    mockResult("rules", "select", { data: [{ name: "フルコンタクト" }, { name: "寸止め" }] });
+    mockResult("form_field_configs", "select", { data: [] });
+    mockResult("custom_field_defs", "select", { data: [] });
+
+    const { POST } = await import("@/app/api/public/entry/route");
+    const req = createRequest("POST", "/api/public/entry", {
+      body: {
+        entry: {
+          event_id: "ev1",
+          family_name: "山田",
+          given_name: "花子",
+          extra_fields: {
+            email: "hanako@example.com",
+            rule_any: true,
+            rule_any_label: "どのルールでもOK",
+          },
+        },
+        school_name: null,
+        rule_ids: ["rule-1", "rule-2"],
+      },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    const sentText = mockSend.mock.calls[0][0].text;
+    expect(sentText).toContain("どのルールでもOK");
+    // 個別ルール名ではなくカスタムラベルが使用されること
+    expect(sentText).not.toContain("フルコンタクト");
+    expect(sentText).not.toContain("寸止め");
+  });
 });

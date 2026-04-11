@@ -158,6 +158,31 @@ describe("groupEntriesByRules", () => {
     expect(kumite?.entries.map((e) => e.id)).toEqual(["B"]);
   });
 
+  it("全ルールID保持（どれでもOK）のエントリーが最初のルールにマッチする", () => {
+    const entries = [makeEntry("A"), makeEntry("B"), makeEntry("C")];
+    // A: 形のみ、B: 全ルール保持（__any__相当）、C: 組手のみ
+    const entryRuleIds: Record<string, Set<string>> = {
+      A: new Set(["rule-kata"]),
+      B: new Set(["rule-kata", "rule-kumite"]),
+      C: new Set(["rule-kumite"]),
+    };
+    const rules = [
+      makeRule("R1", { name: "形", rule_id: "rule-kata", sort_order: 0 }),
+      makeRule("R2", { name: "組手", rule_id: "rule-kumite", sort_order: 1 }),
+    ];
+    const groups = groupEntriesByRules(entries, rules, entryRuleIds);
+
+    const kata = groups.find((g) => g.name === "形");
+    expect(kata).toBeDefined();
+    // A, B は形にマッチ（B は全ルール保持で sort_order=0 の形に先に入る）
+    expect(kata?.entries.map((e) => e.id).sort()).toEqual(["A", "B"]);
+
+    const kumite = groups.find((g) => g.name === "組手");
+    expect(kumite).toBeDefined();
+    // C のみ（B は形で割当済み）
+    expect(kumite?.entries.map((e) => e.id)).toEqual(["C"]);
+  });
+
   it("sort_order 順に処理される（先に処理されたルールが優先）", () => {
     const entries = [makeEntry("A", { age: 10, weight: 30 })];
     const rules = [

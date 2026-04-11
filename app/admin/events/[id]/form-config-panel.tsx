@@ -897,6 +897,23 @@ function CardHeaderRow2({
 }
 
 // ── ルール希望の選択タイプ切り替え ──
+
+/** custom_choices 配列から特定マーカーを除外して返す */
+function withoutMarker(choices: { label: string; value: string }[] | null, marker: string): { label: string; value: string }[] {
+  return (choices ?? []).filter((c) => c.value !== marker);
+}
+
+/** custom_choices 配列にマーカーを追加（既に存在する場合は更新）して返す。空配列なら null */
+function withMarker(choices: { label: string; value: string }[] | null, marker: string, label: string): { label: string; value: string }[] {
+  const filtered = withoutMarker(choices, marker);
+  return [...filtered, { label, value: marker }];
+}
+
+/** custom_choices が空配列なら null に正規化 */
+function normalizeChoices(choices: { label: string; value: string }[]): { label: string; value: string }[] | null {
+  return choices.length === 0 ? null : choices;
+}
+
 function RulePreferenceSelector({
   field,
   onUpdate,
@@ -904,21 +921,56 @@ function RulePreferenceSelector({
   field: FormFieldConfig;
   onUpdate: (id: string, patch: Partial<FormFieldConfig>) => void;
 }) {
+  const isSingle = field.custom_choices?.some((c) => c.value === "__single_select__") ?? false;
+  const anyEntry = field.custom_choices?.find((c) => c.value === "__any__");
+  const hasAny = !!anyEntry;
+  const anyLabel = anyEntry?.label ?? "どちらでも良い";
+
   return (
-    <select
-      value={field.custom_choices?.some((c) => c.value === "__single_select__") ? "single" : "multi"}
-      onChange={(e) => {
-        if (e.target.value === "single") {
-          onUpdate(field.id, { custom_choices: [{ label: "__meta__", value: "__single_select__" }] });
-        } else {
-          onUpdate(field.id, { custom_choices: null });
-        }
-      }}
-      className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
-    >
-      <option value="multi">複数選択</option>
-      <option value="single">単一選択</option>
-    </select>
+    <div className="flex items-center gap-2">
+      <select
+        value={isSingle ? "single" : "multi"}
+        onChange={(e) => {
+          const base = withoutMarker(field.custom_choices, "__single_select__");
+          if (e.target.value === "single") {
+            onUpdate(field.id, { custom_choices: withMarker(normalizeChoices(base) ?? null, "__single_select__", "__meta__") });
+          } else {
+            onUpdate(field.id, { custom_choices: normalizeChoices(base) });
+          }
+        }}
+        className="text-[10px] bg-transparent text-gray-400 border-none outline-none cursor-pointer"
+      >
+        <option value="multi">複数選択</option>
+        <option value="single">単一選択</option>
+      </select>
+      <label className="flex items-center gap-1 text-[10px] text-gray-400 cursor-pointer whitespace-nowrap">
+        <input
+          type="checkbox"
+          checked={hasAny}
+          onChange={(e) => {
+            if (e.target.checked) {
+              onUpdate(field.id, { custom_choices: withMarker(field.custom_choices, "__any__", "どちらでも良い") });
+            } else {
+              const removed = withoutMarker(field.custom_choices, "__any__");
+              onUpdate(field.id, { custom_choices: normalizeChoices(removed) });
+            }
+          }}
+          className="rounded w-3 h-3"
+        />
+        どれでもOK
+      </label>
+      {hasAny && (
+        <input
+          type="text"
+          value={anyLabel}
+          onChange={(e) => {
+            onUpdate(field.id, { custom_choices: withMarker(field.custom_choices, "__any__", e.target.value || "どちらでも良い") });
+          }}
+          placeholder="どちらでも良い"
+          className="text-[10px] bg-gray-700 text-gray-300 border border-gray-600 rounded px-1 py-0.5 w-28"
+        />
+      )}
+    </div>
   );
 }
 
@@ -967,6 +1019,12 @@ function RulePreferencePreview({ rules, field }: { rules?: { id: string; name: s
               {r.name}
             </label>
           ))}
+          {field.custom_choices?.find((c) => c.value === "__any__") && (
+            <label className="flex items-center gap-2 text-xs text-green-400">
+              <div className="w-3.5 h-3.5 rounded border border-green-500 shrink-0" />
+              {field.custom_choices.find((c) => c.value === "__any__")?.label ?? "どちらでも良い"}
+            </label>
+          )}
           {field.has_other_option && (
             <label className="flex items-center gap-2 text-xs text-gray-600">
               <div className="w-3.5 h-3.5 rounded border border-gray-600" />

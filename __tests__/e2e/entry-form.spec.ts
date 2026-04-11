@@ -136,4 +136,57 @@ test.describe("エントリーフォーム", () => {
     // 参加者名が表示される
     await expect(page.locator(`text=E2E送信テスト${ts}`)).toBeVisible({ timeout: 10_000 });
   });
+
+  test("「どれでもOK」選択肢でエントリーを送信できる", async ({ page }) => {
+    await adminLogin(page);
+    const eventId = await createEventWithForm(page);
+
+    // ルールを2つ作成
+    await page.request.post("/api/admin/events/rules", {
+      data: { event_id: eventId, name: "フルコンタクト" },
+    });
+
+    await page.request.post("/api/admin/events/rules", {
+      data: { event_id: eventId, name: "寸止め" },
+    });
+
+    // フォーム設定で rule_preference の custom_choices に __any__ を追加
+    const cfgRes = await page.request.get(`/api/admin/form-config?event_id=${eventId}`);
+    const { fields } = await cfgRes.json();
+    const rpField = fields.find((f: { field_key: string }) => f.field_key === "rule_preference");
+    if (rpField) {
+      await page.request.put("/api/admin/form-config", {
+        data: {
+          config_id: rpField.form_config_id,
+          fields: [{ ...rpField, custom_choices: [{ value: "__any__", label: "どちらでも良い" }] }],
+        },
+      });
+    }
+
+    // エントリーフォームで「どちらでも良い」を選択して送信
+    await page.goto(`/entry/${eventId}`);
+    await page.waitForLoadState("networkidle");
+
+    // 「どちらでも良い」選択肢が表示される
+    await expect(page.locator("text=どちらでも良い")).toBeVisible({ timeout: 10_000 });
+
+    // 必須項目を入力
+    const ts = Date.now();
+    await page.fill('input[name="family_name"]', `E2Eどれでも${ts}`);
+
+    // 「どちらでも良い」チェックボックスをクリック
+    await page.click("text=どちらでも良い");
+
+    // 送信
+    await page.click('button:has-text("送信")');
+    await page.waitForLoadState("networkidle");
+
+    // 管理画面でエントリー確認 → extra_fields.rule_any が true
+    await page.goto(`/admin/events/${eventId}?step=1`);
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator(`text=E2Eどれでも${ts}`)).toBeVisible({ timeout: 10_000 });
+
+    // クリーンアップ
+    await cleanupEvent(page, eventId);
+  });
 });

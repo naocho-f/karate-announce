@@ -447,6 +447,15 @@ type FieldPoolItem = {
 
 この `__single_select__` マーカーは表示時にフィルタされ、UIには表示されない。
 
+### 6.2.1 「どれでもOK」選択肢
+
+- `custom_choices` に `{ value: "__any__", label: "どちらでも良い" }` マーカーを追加すると、選択肢の末尾に「どれでもOK」選択肢が表示される
+- ラベルは管理者がカスタマイズ可能（デフォルト: 「どちらでも良い」）
+- `__single_select__` マーカーとの共存可能（配列に両方含まれる）
+- 管理画面の `RulePreferenceSelector` に「どれでもOK選択肢」のトグルとラベル入力を表示
+- 送信時: イベントの全ルールIDに展開し `entry_rules` に保存。区別用に `extra_fields.rule_any = true` + `rule_any_label` を付与
+- マッチング（`auto-bracket.ts`）は変更不要。全ルールIDが `entry_rules` に入るため既存ロジックでマッチ
+
 ### 6.3 DB 連携
 
 - フォーム設定画面: ルール選択肢の直接編集はできない。「ルール管理画面で設定してください」のリンクを表示

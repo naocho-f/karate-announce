@@ -84,6 +84,11 @@ export async function linkEntryRules(entryId: string, ruleIds: string[]): Promis
 
 // ── 確認メール送信 ──
 
+async function resolveRuleNamesForEmail(extra: Record<string, unknown>, ruleIds: string[] | undefined): Promise<string[]> {
+  if (extra.rule_any === true) return [(extra.rule_any_label as string) || "どちらでも良い"];
+  return fetchRuleNames(ruleIds);
+}
+
 async function fetchRuleNames(ruleIds: string[] | undefined): Promise<string[]> {
   if (!ruleIds || ruleIds.length === 0) return [];
   const { data: rules } = await supabaseAdmin.from("rules").select("name").in("id", ruleIds);
@@ -180,10 +185,9 @@ export async function sendConfirmationEmail(
   if (!applicantEmail) return;
 
   const [ruleNames, { fieldLabels, fieldChoices }] = await Promise.all([
-    fetchRuleNames(ruleIds),
+    resolveRuleNamesForEmail(extra, ruleIds),
     buildFieldMappings(eventId),
   ]);
-
   const variables = buildEmailVariables(entry, eventData, ruleNames, fieldLabels, fieldChoices);
   const subject = renderTemplate(eventData.email_subject_template || DEFAULT_SUBJECT, variables);
   const body = renderTemplate(eventData.email_body_template || DEFAULT_BODY, variables);

@@ -280,6 +280,7 @@ function EntryDetailContent({
         </p>
         <div className="mt-6 space-y-4">
           <EntryFieldList
+            entry={entry}
             displayFields={displayFields}
             entryRules={entryRules}
             fieldConfigs={fieldConfigs}
@@ -312,11 +313,13 @@ function EntryBreadcrumb({ eventId, eventName, entryName }: { eventId: string; e
 }
 
 function EntryFieldList({
+  entry,
   displayFields,
   entryRules,
   fieldConfigs,
   customFieldDefs,
 }: {
+  entry: Entry;
   displayFields: { key: string; label: string; value: string | null }[];
   entryRules: Rule[];
   fieldConfigs: FormFieldConfig[];
@@ -337,9 +340,15 @@ function EntryFieldList({
         <div className="space-y-1">
           <p className="text-xs text-gray-500">出場ルール</p>
           <div className="flex gap-1 flex-wrap">
-            {entryRules.map((r) => (
-              <span key={r.id} className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">{r.name}</span>
-            ))}
+            {(entry.extra_fields as Record<string, unknown>)?.rule_any === true ? (
+              <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded">
+                {((entry.extra_fields as Record<string, unknown>)?.rule_any_label as string) || "どちらでも良い"}
+              </span>
+            ) : (
+              entryRules.map((r) => (
+                <span key={r.id} className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">{r.name}</span>
+              ))
+            )}
           </div>
         </div>
       )}
