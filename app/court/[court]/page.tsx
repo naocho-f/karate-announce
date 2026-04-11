@@ -46,20 +46,25 @@ function useCourtPageData() {
 
 function useCourtPageLoader(court: string, d: ReturnType<typeof useCourtPageData>) {
   const prevDataRef = useRef("");
+  const dRef = useRef(d);
+  useEffect(() => { dRef.current = d; });
+
   const loadEvent = useCallback(async () => {
+    const dc = dRef.current;
     const { data: ev, error } = await supabase.from("events").select("id, court_names, is_active").eq("is_active", true).maybeSingle();
     if (error) return null;
-    if (!ev) { d.setIsEventActive(false); d.setTournaments([]); d.setMatchesMap({}); return null; }
-    d.setIsEventActive(true);
-    d.setTimerControlActive(isTimerActive(ev.id, court));
-    d.setCourtDisplayName(ev.court_names?.[parseInt(court, 10) - 1]?.trim() || `コート${court}`);
+    if (!ev) { dc.setIsEventActive(false); dc.setTournaments([]); dc.setMatchesMap({}); return null; }
+    dc.setIsEventActive(true);
+    dc.setTimerControlActive(isTimerActive(ev.id, court));
+    dc.setCourtDisplayName(ev.court_names?.[parseInt(court, 10) - 1]?.trim() || `コート${court}`);
     return ev;
-  }, [court, d]);
+  }, [court]);
 
   const loadMatchData = useCallback(async (eventId: string) => {
+    const dc = dRef.current;
     const { data: tourns } = await supabase.from("tournaments").select("*").eq("event_id", eventId).eq("court", court).neq("status", "finished").order("sort_order").order("created_at");
-    if (!tourns?.length) { d.setTournaments([]); d.setMatchesMap({}); return; }
-    d.setTournaments(tourns);
+    if (!tourns?.length) { dc.setTournaments([]); dc.setMatchesMap({}); return; }
+    dc.setTournaments(tourns);
     const tournIds = tourns.map((t) => t.id);
     const { data: allMatches } = await supabase.from("matches").select("*").in("tournament_id", tournIds).order("round").order("position");
     const fIds = new Set<string>();
@@ -74,12 +79,12 @@ function useCourtPageLoader(court: string, d: ReturnType<typeof useCourtPageData
     const byT: Record<string, Match[]> = {};
     tournIds.forEach((id) => { byT[id] = []; });
     (allMatches ?? []).forEach((m) => { byT[m.tournament_id]?.push(m); });
-    d.setMatchesMap(byT);
-    if (fIds.size > 0) { const { data: fs } = await supabase.from("fighters").select("*, dojo:dojos(*)").in("id", [...fIds]); const fm: Record<string, Fighter> = {}; (fs ?? []).forEach((f) => { fm[f.id] = f as Fighter; }); d.setFighters(fm); }
+    dc.setMatchesMap(byT);
+    if (fIds.size > 0) { const { data: fs } = await supabase.from("fighters").select("*, dojo:dojos(*)").in("id", [...fIds]); const fm: Record<string, Fighter> = {}; (fs ?? []).forEach((f) => { fm[f.id] = f as Fighter; }); dc.setFighters(fm); }
     const withdrawn = new Set<string>(); const entryMap: Record<string, string> = {};
     entries.forEach((e) => { if (e.fighter_id) { entryMap[e.fighter_id] = e.id; if (e.is_withdrawn) withdrawn.add(e.fighter_id); } });
-    d.setWithdrawnFighterIds(withdrawn); d.setFighterEntryMap(entryMap);
-  }, [court, d]);
+    dc.setWithdrawnFighterIds(withdrawn); dc.setFighterEntryMap(entryMap);
+  }, [court]);
 
   const load = useCallback(async () => { const ev = await loadEvent(); if (ev) await loadMatchData(ev.id); }, [loadEvent, loadMatchData]);
 
@@ -93,9 +98,10 @@ function useCourtPageLoader(court: string, d: ReturnType<typeof useCourtPageData
     document.addEventListener("visibilitychange", h); return () => document.removeEventListener("visibilitychange", h);
   }, [wrappedFetch]);
   useEffect(() => {
-    resilientFetch("/api/admin/settings", {}, { maxRetries: 2, timeout: 5000 }).then((r) => r.json()).then((dat) => { if (dat.announce_templates) d.setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...dat.announce_templates }); }).catch(() => {});
-    supabase.from("rules").select("name, name_reading").then(({ data }) => { if (data) { const m: Record<string, string> = {}; data.forEach((r) => { if (r.name_reading) m[r.name] = r.name_reading; }); d.setRulesReadingMap(m); } });
-  }, [d]);
+    const dc = dRef.current;
+    resilientFetch("/api/admin/settings", {}, { maxRetries: 2, timeout: 5000 }).then((r) => r.json()).then((dat) => { if (dat.announce_templates) dc.setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...dat.announce_templates }); }).catch(() => {});
+    supabase.from("rules").select("name, name_reading").then(({ data }) => { if (data) { const m: Record<string, string> = {}; data.forEach((r) => { if (r.name_reading) m[r.name] = r.name_reading; }); dc.setRulesReadingMap(m); } });
+  }, []);
 
   return { load, offlineMode, pendingCount, quality, showRecoveryPrompt, acceptRecovery, declineRecovery };
 }
