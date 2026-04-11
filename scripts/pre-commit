@@ -193,7 +193,7 @@ if [ -f "$WARN_FILE" ]; then
     echo "=== 新しい警告 ==="
     echo "$NEW_WARNINGS"
     echo "==================="
-    echo "(既知の警告を非表示にするには: cp ${WARN_FILE} ${BASELINE})"
+    echo "（これらの警告は解消するまで毎回表示されます）"
     echo ""
   fi
   rm -f "$WARN_FILE"
