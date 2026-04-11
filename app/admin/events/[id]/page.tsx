@@ -157,79 +157,99 @@ function useEventPageState(): { state: EventPageState; setters: EventPageSetters
   return { state, setters };
 }
 
-function useEventLoader(id: string, router: ReturnType<typeof useRouter>, s: EventPageSetters) {
+async function loadEventPageData(id: string, s: EventPageSetters, router: ReturnType<typeof useRouter>, initialStepSetRef: React.RefObject<boolean>) {
+  const [{ data: e }, { data: er }, { data: ents }, { data: ts }, { data: fc }] = await Promise.all([
+    supabase.from("events").select("*").eq("id", id).single(),
+    supabase.from("event_rules").select("rule_id").eq("event_id", id),
+    supabase.from("entries").select("*").eq("event_id", id).order("created_at"),
+    supabase.from("tournaments").select("*").eq("event_id", id).order("sort_order").order("created_at"),
+    supabase.from("form_configs").select("version").eq("event_id", id).maybeSingle(),
+  ]);
+  s.setCurrentFormVersion(fc?.version ?? null);
+  s.setEvent(e ?? null);
+  s.setEntryCloseAtLocal(utcToJstLocal(e?.entry_close_at ?? null));
+  const ruleIds = (er ?? []).map((r) => r.rule_id);
+  s.setEventRuleIds(new Set(ruleIds));
+  const entryList = (ents ?? []) as Entry[];
+  s.setEntries(entryList);
+  const tournamentList = ts ?? [];
+  s.setTournaments(tournamentList);
+  if (!initialStepSetRef.current) {
+    initialStepSetRef.current = true;
+    const step = resolveInitialStep(tournamentList.length);
+    s.setStep(step);
+    router.replace(`/admin/events/${id}?step=${step}`, { scroll: false });
+  }
+  await loadEventSecondaryData(id, s, ruleIds, entryList, tournamentList);
+}
+
+async function loadEventSecondaryData(id: string, s: EventPageSetters, ruleIds: string[], entryList: Entry[], tournamentList: Tournament[]) {
+  const entryIds = entryList.map((x) => x.id);
+  const tournamentIds = tournamentList.map((t) => t.id);
+  const [{ data: rs }, { data: erul }, { data: matchRows }, { data: tp }, { count: brCount }, { data: settingsRows }] = await Promise.all([
+    ruleIds.length > 0 ? supabase.from("rules").select("*").in("id", ruleIds).order("name") : Promise.resolve({ data: [] as Rule[] }),
+    entryIds.length > 0 ? supabase.from("entry_rules").select("entry_id, rule_id").in("entry_id", entryIds) : Promise.resolve({ data: [] as Array<{ entry_id: string; rule_id: string }> }),
+    tournamentIds.length > 0 ? supabase.from("matches").select("tournament_id, fighter1_id, fighter2_id, round, rules").in("tournament_id", tournamentIds) : Promise.resolve({ data: [] as MatchRow[] }),
+    supabase.from("timer_presets").select("*").order("created_at", { ascending: false }),
+    supabase.from("bracket_rules").select("id", { count: "exact", head: true }).eq("event_id", id),
+    supabase.from("settings").select("key, value").eq("key", "age_categories").maybeSingle(),
+  ]);
+  s.setRules(rs ?? []);
+  s.setTimerPresets((tp ?? []) as TimerPreset[]);
+  const { fidsMap, pairs, allMatchRows: amr } = processMatchRows((matchRows ?? []) as MatchRow[]);
+  s.setAllMatchRows(amr);
+  s.setEntryRuleIds(entryIds.length > 0 ? buildEntryRuleMap(erul ?? []) : {});
+  s.setTournamentMatchFighterIds(fidsMap);
+  s.setSavedMatchPairs(pairs);
+  s.setBracketRuleCount(brCount ?? 0);
+  if (settingsRows?.value && Array.isArray(settingsRows.value)) s.setAgeCategories(settingsRows.value as AgeCategory[]);
+}
+
+function useEventLoader(
+  id: string, router: ReturnType<typeof useRouter>,
+  setEvent: EventPageSetters["setEvent"], setEntries: EventPageSetters["setEntries"],
+  setEntryRuleIds: EventPageSetters["setEntryRuleIds"], setEventRuleIds: EventPageSetters["setEventRuleIds"],
+  setTournaments: EventPageSetters["setTournaments"], setRules: EventPageSetters["setRules"],
+  setTournamentMatchFighterIds: EventPageSetters["setTournamentMatchFighterIds"],
+  setSavedMatchPairs: EventPageSetters["setSavedMatchPairs"], setAllMatchRows: EventPageSetters["setAllMatchRows"],
+  setTimerPresets: EventPageSetters["setTimerPresets"], setStep: EventPageSetters["setStep"],
+  setEntryCloseAtLocal: EventPageSetters["setEntryCloseAtLocal"],
+  setCurrentFormVersion: EventPageSetters["setCurrentFormVersion"],
+  setBracketRuleCount: EventPageSetters["setBracketRuleCount"], setAgeCategories: EventPageSetters["setAgeCategories"],
+) {
   const initialStepSetRef = useRef(false);
-  const loadPrimary = useCallback(async () => {
-    const [{ data: e }, { data: er }, { data: ents }, { data: ts }, { data: fc }] = await Promise.all([
-      supabase.from("events").select("*").eq("id", id).single(),
-      supabase.from("event_rules").select("rule_id").eq("event_id", id),
-      supabase.from("entries").select("*").eq("event_id", id).order("created_at"),
-      supabase.from("tournaments").select("*").eq("event_id", id).order("sort_order").order("created_at"),
-      supabase.from("form_configs").select("version").eq("event_id", id).maybeSingle(),
-    ]);
-    s.setCurrentFormVersion(fc?.version ?? null);
-    s.setEvent(e ?? null);
-    s.setEntryCloseAtLocal(utcToJstLocal(e?.entry_close_at ?? null));
-    const ruleIds = (er ?? []).map((r) => r.rule_id);
-    s.setEventRuleIds(new Set(ruleIds));
-    const entryList = (ents ?? []) as Entry[];
-    s.setEntries(entryList);
-    const tournamentList = ts ?? [];
-    s.setTournaments(tournamentList);
-    if (!initialStepSetRef.current) {
-      initialStepSetRef.current = true;
-      const step = resolveInitialStep(tournamentList.length);
-      s.setStep(step);
-      router.replace(`/admin/events/${id}?step=${step}`, { scroll: false });
-    }
-    return { ruleIds, entryList, tournamentList };
-  }, [id, router, s]);
-
-  const loadSecondary = useCallback(async (ruleIds: string[], entryIds: string[], tournamentIds: string[]) => {
-    const [{ data: rs }, { data: erul }, { data: matchRows }, { data: tp }] = await Promise.all([
-      ruleIds.length > 0 ? supabase.from("rules").select("*").in("id", ruleIds).order("name") : Promise.resolve({ data: [] as Rule[] }),
-      entryIds.length > 0 ? supabase.from("entry_rules").select("entry_id, rule_id").in("entry_id", entryIds) : Promise.resolve({ data: [] as Array<{ entry_id: string; rule_id: string }> }),
-      tournamentIds.length > 0 ? supabase.from("matches").select("tournament_id, fighter1_id, fighter2_id, round, rules").in("tournament_id", tournamentIds) : Promise.resolve({ data: [] as MatchRow[] }),
-      supabase.from("timer_presets").select("*").order("created_at", { ascending: false }),
-    ]);
-    s.setRules(rs ?? []);
-    s.setTimerPresets((tp ?? []) as TimerPreset[]);
-    const { fidsMap, pairs, allMatchRows: amr } = processMatchRows((matchRows ?? []) as MatchRow[]);
-    s.setAllMatchRows(amr);
-    s.setEntryRuleIds(entryIds.length > 0 ? buildEntryRuleMap(erul ?? []) : {});
-    s.setTournamentMatchFighterIds(fidsMap);
-    s.setSavedMatchPairs(pairs);
-  }, [s]);
-
-  const loadMeta = useCallback(async () => {
-    const [{ count: brCount }, { data: settingsRows }] = await Promise.all([
-      supabase.from("bracket_rules").select("id", { count: "exact", head: true }).eq("event_id", id),
-      supabase.from("settings").select("key, value").eq("key", "age_categories").maybeSingle(),
-    ]);
-    s.setBracketRuleCount(brCount ?? 0);
-    if (settingsRows?.value && Array.isArray(settingsRows.value)) s.setAgeCategories(settingsRows.value as AgeCategory[]);
-  }, [id, s]);
-
-  const load = useCallback(async () => {
-    const { ruleIds, entryList, tournamentList } = await loadPrimary();
-    await Promise.all([loadSecondary(ruleIds, entryList.map((e) => e.id), tournamentList.map((t) => t.id)), loadMeta()]);
-  }, [loadPrimary, loadSecondary, loadMeta]);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
-    const doLoad = () => { if (!cancelled) void load(); };
-    doLoad();
-    return () => { cancelled = true; };
-  }, [load]);
+    const s: EventPageSetters = {
+      setEvent, setEntries, setEntryRuleIds, setEventRuleIds, setTournaments, setRules,
+      setTournamentMatchFighterIds, setSavedMatchPairs, setAllMatchRows, setTimerPresets,
+      setStep, setEntryCloseAtLocal, setCurrentFormVersion, setBracketRuleCount, setAgeCategories,
+      // 以下は load 内で使われないが型の要求で必要
+      setEntrySubTab: () => {}, setShowClosedGuide: () => {}, setShowAutoDialog: () => {},
+      setBracketSubTab: () => {}, setTogglingClosed: () => {}, setSavingCloseAt: () => {},
+      setUploadingBanner: () => {}, setUploadingOgp: () => {}, setDeletingImageType: () => {},
+      setProcessingEntryIds: () => {}, setProcessingRuleKeys: () => {}, setFormConfigVersion: () => {},
+    };
+    void loadEventPageData(id, s, router, initialStepSetRef);
+  }, [id, router, reloadTrigger, setEvent, setEntries, setEntryRuleIds, setEventRuleIds,
+    setTournaments, setRules, setTournamentMatchFighterIds, setSavedMatchPairs, setAllMatchRows,
+    setTimerPresets, setStep, setEntryCloseAtLocal, setCurrentFormVersion, setBracketRuleCount, setAgeCategories]);
 
-  return load;
+  return useCallback(() => setReloadTrigger((n) => n + 1), []);
 }
 
 export default function EventDetailPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
   const { state: st, setters } = useEventPageState();
-  const load = useEventLoader(id, router, setters);
+  const load = useEventLoader(id, router,
+    setters.setEvent, setters.setEntries, setters.setEntryRuleIds, setters.setEventRuleIds,
+    setters.setTournaments, setters.setRules, setters.setTournamentMatchFighterIds,
+    setters.setSavedMatchPairs, setters.setAllMatchRows, setters.setTimerPresets,
+    setters.setStep, setters.setEntryCloseAtLocal, setters.setCurrentFormVersion,
+    setters.setBracketRuleCount, setters.setAgeCategories,
+  );
   const actions = useEventActions(id, {
     event: st.event, entryRuleIds: st.entryRuleIds, entryCloseAtLocal: st.entryCloseAtLocal,
     setTogglingClosed: setters.setTogglingClosed, setShowClosedGuide: setters.setShowClosedGuide,
