@@ -121,7 +121,12 @@ export function loadState(eventId: string, courtId: string): TimerState | null {
   try {
     const raw = localStorage.getItem(stateKey(eventId, courtId));
     if (!raw) return null;
-    return JSON.parse(raw) as TimerState;
+    const state = JSON.parse(raw) as TimerState;
+    // exhausted フィールド追加前の保存データとの互換性
+    if (state.newaza && (state.newaza as unknown as Record<string, unknown>).exhausted === undefined) {
+      (state.newaza as unknown as Record<string, unknown>).exhausted = false;
+    }
+    return state;
   } catch {
     return null;
   }

@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-11（出場���望ルール「どれでもOK」選択肢追加）
+> 最終更新: 2026-04-12（寝技タイマー累積モード追加）
 
 ---
 
@@ -628,3 +628,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **ESLint厳格化: 残13件リファクタリング完了（2026-04-11）**: entry/page.tsx・live/page.tsx・_group-section.tsx・_tournament-editor.tsxのmax-lines-per-function/complexity/set-state-in-effect警告をすべて解消。カスタムフック抽出・サブコンポーネント分割・lookup map化で0 warnings達成
 - **オフライン対応 Phase 1a: Service Worker + PWA + offlineページ（2026-04-07）**: Serwist によるApp Shellキャッシュ、PWAマニフェスト、オフラインフォールバックページを追加。画面一覧に /offline を追記
 - **出場希望ルール「どれでもOK」選択肢（2026-04-11）**: custom_choicesに__any__マーカーを追加し、全ルールにマッチする「どちらでも良い」選択肢を実現。ラベルカスタマイズ可能。extra_fields.rule_anyで全選択との区別
+- **寝技タイマー累積モード（2026-04-12）**: 解除しても経過時間を保持し再開時は続きからカウントする累積モードを追加。タイムアップはブザー通知のみでメインは継続。回数制限との併用可能

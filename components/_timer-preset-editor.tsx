@@ -15,7 +15,7 @@ export const EMPTY_PRESET: EditablePreset = {
   has_extension: false, extension_duration: 60, extension_mode: "sudden_death",
   extension_timer_direction: "countdown", extension_show_timer: true, extension_max_count: 0,
   allow_draw: false, newaza_enabled: false, newaza_duration: 30, newaza_direction: "countup",
-  newaza_limit_type: "unlimited", newaza_max_count: 2, newaza_free_release: 10,
+  newaza_limit_type: "unlimited", newaza_max_count: 2, newaza_free_release: 10, newaza_accumulate: false,
   show_points: true, show_wazaari: true, wazaari_points: 0, show_ippon: true, ippon_wins: true,
   combined_ippon_wins: false, point_win_threshold: 0, show_fouls: true,
   foul_to_point_start: 0, foul_point_value: 1, foul_loss_count: 0, foul_vs_point_priority: "foul_priority",
@@ -278,6 +278,7 @@ function NewazaSection({ editing, F }: { editing: EditablePreset; F: (k: keyof E
         <div className="grid grid-cols-2 gap-3 pl-4">
           {F("newaza_duration", "寝技制限時間", "duration")}
           {F("newaza_direction", "寝技タイマー方向", "select", { options: [{ value: "countup", label: "カウントアップ" }, { value: "countdown", label: "カウントダウン" }] })}
+          {F("newaza_accumulate", "累積モード（解除しても時間を保持）", "checkbox")}
           {F("newaza_limit_type", "起動回数制限", "select", { options: [{ value: "unlimited", label: "無制限" }, { value: "limited", label: "回数制限あり" }] })}
           {editing.newaza_limit_type === "limited" && F("newaza_max_count", "最大起動回数", "number")}
           {F("newaza_free_release", "無消費解除時間", "duration")}

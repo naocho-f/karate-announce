@@ -258,6 +258,7 @@ create table timer_presets (
   newaza_limit_type text default 'unlimited'::text,
   newaza_max_count integer default 0,
   newaza_free_release integer default 0,
+  newaza_accumulate boolean default false,
   show_points boolean default true,
   show_wazaari boolean default true,
   wazaari_points integer default 0,

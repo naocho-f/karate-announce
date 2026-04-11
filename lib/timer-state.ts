@@ -34,6 +34,8 @@ export interface NewazaState {
   startedAt: number | null;
   /** 消費済み回数 */
   usedCount: number;
+  /** 累積モードで制限時間到達済み */
+  exhausted: boolean;
 }
 
 export type ResultMethod =
@@ -133,6 +135,7 @@ const EMPTY_NEWAZA: NewazaState = {
   elapsedMs: 0,
   startedAt: null,
   usedCount: 0,
+  exhausted: false,
 };
 
 export function createInitialState(): TimerState {
@@ -551,25 +554,31 @@ export function toggleNewaza(state: TimerState): TimerState {
 
   if (s.newaza.active) {
     // 解除
-    const elapsed = getNewazaElapsedMs(state);
+    const totalElapsed = getNewazaElapsedMs(state);
     const freeMs = p.newaza_free_release * 1000;
-    const consumed = elapsed > freeMs;
+    // 累積モード: 今回区間の経過時間で無消費判定。非累積: 累積合計で判定
+    const segmentElapsed = p.newaza_accumulate && state.newaza.startedAt
+      ? Date.now() - state.newaza.startedAt
+      : totalElapsed;
+    const consumed = segmentElapsed > freeMs;
     s.newaza = {
       active: false,
-      elapsedMs: 0,
+      elapsedMs: p.newaza_accumulate ? totalElapsed : 0,
       startedAt: null,
       usedCount: consumed ? s.newaza.usedCount + 1 : s.newaza.usedCount,
+      exhausted: false,
     };
-    log(s, "newaza_release", { elapsed, consumed });
+    log(s, "newaza_release", { elapsed: totalElapsed, consumed });
   } else {
-    // 開始（回数チェック）
+    // 開始チェック
+    if (p.newaza_accumulate && s.newaza.exhausted) return state;
     if (p.newaza_limit_type === "limited" && s.newaza.usedCount >= p.newaza_max_count) {
       return state; // 上限到達
     }
     s.newaza = {
       ...s.newaza,
       active: true,
-      elapsedMs: 0,
+      elapsedMs: p.newaza_accumulate ? s.newaza.elapsedMs : 0,
       startedAt: Date.now(),
     };
     log(s, "newaza_start");
@@ -581,11 +590,13 @@ export function toggleNewaza(state: TimerState): TimerState {
 export function newazaTimeUp(state: TimerState): TimerState {
   if (!state.newaza.active) return state;
   const s = { ...state };
+  const p = s.preset;
   s.newaza = {
     active: false,
-    elapsedMs: (s.preset?.newaza_duration ?? 30) * 1000,
+    elapsedMs: (p?.newaza_duration ?? 30) * 1000,
     startedAt: null,
     usedCount: s.newaza.usedCount + 1,
+    exhausted: !!p?.newaza_accumulate,
   };
   log(s, "newaza_time_up");
   return s;

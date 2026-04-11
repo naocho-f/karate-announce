@@ -148,7 +148,7 @@ export default function TimerDisplayPage() {
     function animateLoop() {
       const s = stateRef.current;
       setDisplayMs(getDisplayMs(s));
-      if (s.newaza.active) {
+      if (s.newaza.active || (s.preset?.newaza_accumulate && s.newaza.elapsedMs > 0)) {
         setNewazaMs(getNewazaElapsedMs(s));
         setNewazaDispMs(getNewazaDisplayMs(s));
       }

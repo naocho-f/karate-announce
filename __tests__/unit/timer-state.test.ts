@@ -74,6 +74,7 @@ function makePreset(overrides: Partial<TimerPreset> = {}): TimerPreset {
     newaza_limit_type: "unlimited",
     newaza_max_count: 0,
     newaza_free_release: 0,
+    newaza_accumulate: false,
     show_points: true,
     show_wazaari: true,
     wazaari_points: 0,
@@ -884,6 +885,145 @@ describe("timer-state", () => {
       // 30秒からカウントダウン、開始直後なので約30000ms
       expect(display).toBeGreaterThan(29000);
       expect(display).toBeLessThanOrEqual(30000);
+    });
+  });
+
+  // ── 16. 寝技タイマー累積モード ──
+
+  describe("寝技タイマー累積モード", () => {
+    const accumPreset = { newaza_enabled: true, newaza_duration: 120, newaza_accumulate: true, newaza_direction: "countdown" as const };
+
+    it("累積モード: 解除時に elapsedMs が保持される", () => {
+      const s = readyState(accumPreset);
+      let st = startTimer(s);
+      st = toggleNewaza(st); // 開始
+      // 500ms経過をシミュレート
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 500 } };
+      st = toggleNewaza(st); // 解除
+      expect(st.newaza.active).toBe(false);
+      expect(st.newaza.elapsedMs).toBeGreaterThanOrEqual(400); // 保持されている
+      expect(st.newaza.elapsedMs).toBeLessThanOrEqual(600);
+    });
+
+    it("累積モード: 再開始時に elapsedMs から再開", () => {
+      const s = readyState(accumPreset);
+      let st = startTimer(s);
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 1000 } };
+      st = toggleNewaza(st); // 解除 → elapsedMs ~1000
+      const savedElapsed = st.newaza.elapsedMs;
+      st = toggleNewaza(st); // 再開始
+      expect(st.newaza.active).toBe(true);
+      expect(st.newaza.elapsedMs).toBe(savedElapsed); // 保持されたまま
+      expect(st.newaza.startedAt).not.toBeNull();
+    });
+
+    it("累積モード: タイムアップ時に exhausted=true", () => {
+      const s = readyState(accumPreset);
+      let st = startTimer(s);
+      st = toggleNewaza(st);
+      st = newazaTimeUp(st);
+      expect(st.newaza.active).toBe(false);
+      expect(st.newaza.exhausted).toBe(true);
+      expect(st.newaza.elapsedMs).toBe(120 * 1000);
+      expect(st.newaza.usedCount).toBe(1);
+    });
+
+    it("累積モード: exhausted=true 時に toggleNewaza が無視される", () => {
+      const s = readyState(accumPreset);
+      let st = startTimer(s);
+      st = toggleNewaza(st);
+      st = newazaTimeUp(st); // exhausted=true
+      const before = { ...st.newaza };
+      st = toggleNewaza(st); // 開始不可
+      expect(st.newaza).toEqual(before);
+    });
+
+    it("累積モードでも回数制限が適用される", () => {
+      const s = readyState({ ...accumPreset, newaza_limit_type: "limited", newaza_max_count: 2 });
+      let st = startTimer(s);
+      // 1回目
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 5000 } };
+      st = toggleNewaza(st);
+      // 2回目
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 5000 } };
+      st = toggleNewaza(st);
+      expect(st.newaza.usedCount).toBe(2);
+      // 3回目は開始不可
+      const before = { ...st.newaza };
+      st = toggleNewaza(st);
+      expect(st.newaza).toEqual(before);
+    });
+
+    it("非累積モードで無消費解除時間が従来通り動作する", () => {
+      const s = readyState({ newaza_enabled: true, newaza_duration: 30, newaza_free_release: 10 });
+      let st = startTimer(s);
+      st = toggleNewaza(st);
+      // 3秒だけ経過（free_release=10秒以内）
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 3000 } };
+      st = toggleNewaza(st);
+      expect(st.newaza.usedCount).toBe(0); // 消費なし
+    });
+
+    it("非累積モードのリグレッション防止: elapsedMs がリセットされる", () => {
+      const s = readyState({ newaza_enabled: true, newaza_duration: 30 });
+      let st = startTimer(s);
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 5000 } };
+      st = toggleNewaza(st);
+      expect(st.newaza.elapsedMs).toBe(0); // リセット
+      expect(st.newaza.exhausted).toBe(false);
+    });
+
+    it("累積モードで無消費解除時間が今回区間で判定される", () => {
+      const s = readyState({ ...accumPreset, newaza_free_release: 10 });
+      let st = startTimer(s);
+      // 1回目: 30秒使用
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 30000 } };
+      st = toggleNewaza(st); // 解除 → usedCount=1, elapsedMs ~30000
+      expect(st.newaza.usedCount).toBe(1);
+      // 2回目: 3秒だけ使用（free_release=10秒以内）
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 3000 } };
+      st = toggleNewaza(st); // 解除 → 今回区間3秒 < 10秒なので消費なし
+      expect(st.newaza.usedCount).toBe(1); // 消費なし（今回区間で判定）
+    });
+
+    it("メインタイムアップ時に累積モードの寝技が正しく停止する", () => {
+      const s = readyState({ ...accumPreset, timer_direction: "countdown" });
+      let st = startTimer(s);
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 10000 } };
+      st = timeUp(st); // メインタイムアップ
+      expect(st.newaza.active).toBe(false);
+      expect(st.newaza.elapsedMs).toBeGreaterThanOrEqual(9000); // 累積値保持
+    });
+
+    it("pauseTimer/resumeTimer で累積の elapsedMs が正しく保持・再開される", () => {
+      const s = readyState(accumPreset);
+      let st = startTimer(s);
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 5000 } };
+      st = pauseTimer(st); // 一時停止
+      expect(st.newaza.active).toBe(true);
+      expect(st.newaza.startedAt).toBeNull();
+      expect(st.newaza.elapsedMs).toBeGreaterThanOrEqual(4000);
+      const pausedElapsed = st.newaza.elapsedMs;
+      st = resumeTimer(st); // 再開
+      expect(st.newaza.active).toBe(true);
+      expect(st.newaza.startedAt).not.toBeNull();
+      expect(st.newaza.elapsedMs).toBe(pausedElapsed); // 保持されたまま
+    });
+
+    it("非累積モードで newazaTimeUp 後に exhausted=false", () => {
+      const s = readyState({ newaza_enabled: true, newaza_duration: 30 });
+      let st = startTimer(s);
+      st = toggleNewaza(st);
+      st = newazaTimeUp(st);
+      expect(st.newaza.exhausted).toBe(false); // 非累積では false
     });
   });
 });

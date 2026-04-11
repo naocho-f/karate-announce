@@ -334,7 +334,7 @@ export function useTimerControl() {
   const animateLoop = useCallback(() => {
     const s = stateRef.current;
     setDisplayMs(getDisplayMs(s));
-    if (s.newaza.active) {
+    if (s.newaza.active || (s.preset?.newaza_accumulate && s.newaza.elapsedMs > 0)) {
       setNewazaDispMs(getNewazaDisplayMs(s));
     }
     if (s.phase === "running") {

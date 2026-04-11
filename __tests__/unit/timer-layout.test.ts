@@ -23,6 +23,7 @@ const BASE_PRESET = {
   newaza_limit_type: "unlimited" as const,
   newaza_max_count: 0,
   newaza_free_release: 0,
+  newaza_accumulate: false,
   show_points: true,
   show_wazaari: true,
   wazaari_points: 0,

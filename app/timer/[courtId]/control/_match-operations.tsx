@@ -111,17 +111,28 @@ function MainControls({ props: { state, phase, p, newazaDispMs, onUpdate } }: { 
         {phase === "running" && <button onClick={() => onUpdate(pauseTimer)} className="flex-1 py-6 rounded-lg bg-yellow-700 hover:bg-yellow-600 text-white font-bold text-xl transition">⏸ ストップ [Space]</button>}
         {phase === "paused" && <button onClick={() => onUpdate(resumeTimer)} className="flex-1 py-6 rounded-lg bg-green-700 hover:bg-green-600 text-white font-bold text-xl transition">▶ 再開 [Space]</button>}
       </div>
-      {p?.newaza_enabled && phase !== "finished" && (
-        <div className="flex flex-col items-center gap-1 mt-2">
-          <button onClick={() => onUpdate(toggleNewaza)} className={`w-1/2 py-3 rounded-lg font-bold text-lg transition ${state.newaza.active ? "bg-cyan-700 hover:bg-cyan-600 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}
-            disabled={!state.newaza.active && p.newaza_limit_type === "limited" && state.newaza.usedCount >= p.newaza_max_count}>
-            {state.newaza.active ? "寝技解除" : "寝技"} [G]
-          </button>
-          {p.newaza_limit_type === "limited" && <span className="text-xs text-gray-500">残り{p.newaza_max_count - state.newaza.usedCount}回</span>}
-        </div>
-      )}
-      {state.newaza.active && <div className="mt-2 text-center text-cyan-400 text-lg font-bold tabular-nums">寝技: {formatTime(newazaDispMs)}</div>}
+      {p?.newaza_enabled && phase !== "finished" && <NewazaControls state={state} p={p} newazaDispMs={newazaDispMs} onUpdate={onUpdate} />}
     </section>
+  );
+}
+
+function NewazaControls({ state, p, newazaDispMs, onUpdate }: { state: TimerState; p: TimerPreset; newazaDispMs: number; onUpdate: (fn: (s: TimerState) => TimerState) => void }) {
+  const isDisabled = !state.newaza.active && (
+    (p.newaza_limit_type === "limited" && state.newaza.usedCount >= p.newaza_max_count) ||
+    (p.newaza_accumulate && state.newaza.exhausted)
+  );
+  const label = state.newaza.exhausted ? "制限時間到達" : state.newaza.active ? "寝技解除" : "寝技";
+  const showTimer = state.newaza.active || (p.newaza_accumulate && state.newaza.elapsedMs > 0);
+  return (
+    <>
+      <div className="flex flex-col items-center gap-1 mt-2">
+        <button onClick={() => onUpdate(toggleNewaza)} className={`w-1/2 py-3 rounded-lg font-bold text-lg transition ${state.newaza.active ? "bg-cyan-700 hover:bg-cyan-600 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`} disabled={isDisabled}>
+          {label} [G]
+        </button>
+        {p.newaza_limit_type === "limited" && <span className="text-xs text-gray-500">残り{p.newaza_max_count - state.newaza.usedCount}回</span>}
+      </div>
+      {showTimer && <div className="mt-2 text-center text-cyan-400 text-lg font-bold tabular-nums">寝技: {formatTime(newazaDispMs)}</div>}
+    </>
   );
 }
 
