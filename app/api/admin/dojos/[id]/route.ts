@@ -20,7 +20,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 export async function DELETE(request: NextRequest, { params }: Params) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { id } = await params;
-  const { error } = await supabaseAdmin.from("dojos").delete().eq("id", id);
+  const { error } = await supabaseAdmin.from("dojos").update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) return dbError(error);
   return NextResponse.json({ ok: true });
 }

@@ -80,21 +80,19 @@ describe("/api/admin/tournaments/[id] PATCH", () => {
 describe("/api/admin/tournaments/[id] DELETE", () => {
   beforeEach(() => resetAll());
 
-  it("トーナメントと関連試合を削除できる", async () => {
-    mockResult("matches", "delete", { data: null });
-    mockResult("tournaments", "delete", { data: null });
+  it("トーナメントを論理削除できる", async () => {
+    mockResult("tournaments", "update", { data: null });
     const { DELETE } = await import("@/app/api/admin/tournaments/[id]/route");
     const req = createAdminRequest("DELETE", "/api/admin/tournaments/t1");
     const res = await DELETE(req, createParams({ id: "t1" }));
     expect(res.status).toBe(200);
-    // matches が先に削除されていることを確認
-    const matchDeletes = getCallsFor("matches", "delete");
-    expect(matchDeletes.length).toBeGreaterThan(0);
+    // updateが呼ばれていること（物理削除ではない）
+    const updates = getCallsFor("tournaments", "update");
+    expect(updates.length).toBeGreaterThan(0);
   });
 
   it("DB エラー時に 500 を返す", async () => {
-    mockResult("matches", "delete", { data: null });
-    mockResult("tournaments", "delete", { error: { message: "fk constraint" } });
+    mockResult("tournaments", "update", { error: { message: "fk constraint" } });
     const { DELETE } = await import("@/app/api/admin/tournaments/[id]/route");
     const req = createAdminRequest("DELETE", "/api/admin/tournaments/t1");
     const res = await DELETE(req, createParams({ id: "t1" }));

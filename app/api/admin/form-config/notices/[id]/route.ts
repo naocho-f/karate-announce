@@ -2,7 +2,6 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
-import { deleteNoticeWithImages } from "@/lib/form-config-utils";
 import { dbError } from "@/lib/api-utils";
 
 /** PATCH — 注意書き更新 */
@@ -37,11 +36,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   return NextResponse.json(data);
 }
 
-/** DELETE — 注意書き削除（画像もカスケード削除） */
+/** DELETE — 注意書き論理削除 */
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { id } = await params;
 
-  await deleteNoticeWithImages(id);
+  const { error } = await supabaseAdmin
+    .from("form_notices")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return dbError(error);
   return NextResponse.json({ ok: true });
 }

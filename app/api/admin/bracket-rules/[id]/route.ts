@@ -44,7 +44,10 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { id } = await params;
 
-  const { error } = await supabaseAdmin.from("bracket_rules").delete().eq("id", id);
+  const { error } = await supabaseAdmin
+    .from("bracket_rules")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
 
   if (error) return dbError(error);
   return NextResponse.json({ ok: true });

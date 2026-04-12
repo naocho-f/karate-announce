@@ -1,0 +1,31 @@
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { dbError } from "@/lib/api-utils";
+
+const RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000; // 24時間
+
+/**
+ * 論理削除されたレコードを復元する。
+ * deleted_at が24時間以内の場合のみ復元可能。
+ */
+export async function restoreRecord(table: string, id: string): Promise<NextResponse> {
+  const { data, error: selectError } = await supabaseAdmin
+    .from(table)
+    .select("id, deleted_at")
+    .eq("id", id)
+    .not("deleted_at", "is", null)
+    .maybeSingle();
+
+  if (selectError) return dbError(selectError);
+  if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const deletedAt = new Date(data.deleted_at).getTime();
+  if (Date.now() - deletedAt > RESTORE_WINDOW_MS) {
+    return NextResponse.json({ error: "Restore window expired" }, { status: 404 });
+  }
+
+  const { error } = await supabaseAdmin.from(table).update({ deleted_at: null }).eq("id", id);
+  if (error) return dbError(error);
+
+  return NextResponse.json({ ok: true });
+}

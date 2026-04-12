@@ -69,7 +69,7 @@ export async function DELETE(request: NextRequest) {
 
   await supabaseAdmin
     .from("custom_field_defs")
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq("form_config_id", form_config_id)
     .eq("field_key", field_key);
   await supabaseAdmin

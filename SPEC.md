@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-12（管理画面ハイドレーションエラー修正）
+> 最終更新: 2026-04-12（論理削除導入）
 
 ---
 
@@ -83,6 +83,7 @@ dojos (
   id UUID PK,
   name TEXT NOT NULL UNIQUE,
   name_reading TEXT,        -- TTS 読み仮名
+  deleted_at TIMESTAMPTZ,   -- 論理削除日時
   created_at TIMESTAMPTZ
 )
 
@@ -125,6 +126,7 @@ events (
   email_body_template TEXT,                    -- 確認メール本文テンプレート
   venue_info TEXT,                             -- 会場情報（メールテンプレート変数）
   notification_emails TEXT[],                  -- 管理者通知メールアドレス
+  deleted_at TIMESTAMPTZ,                      -- 論理削除日時（docs/SOFT_DELETE_SPEC.md参照）
   created_at TIMESTAMPTZ
 )
 
@@ -135,6 +137,7 @@ rules (
   name_reading TEXT,            -- TTS 読み仮名
   description TEXT,             -- ルールの説明・詳細（フォーム設定の注意書きにデフォルト挿入される）
   timer_preset_id UUID → timer_presets,  -- 紐付けタイマー（1タイマー:Nルール）
+  deleted_at TIMESTAMPTZ,                -- 論理削除日時
   created_at TIMESTAMPTZ
 )
 
@@ -161,6 +164,7 @@ tournaments (
   filter_max_grade TEXT,      -- 年代区分フィルタ上限
   filter_min_height NUMERIC,  -- 身長フィルタ下限
   filter_max_height NUMERIC,  -- 身長フィルタ上限
+  deleted_at TIMESTAMPTZ,     -- 論理削除日時
   created_at TIMESTAMPTZ
 )
 
@@ -195,6 +199,7 @@ timer_presets (
   combined_ippon_wins BOOLEAN DEFAULT false,  -- 技あり2回で合わせ一本勝ち
   -- 延長・寝技・ポイント・反則・表示・テーマ・ブザー（全46+カラム）
   -- 詳細は docs/TIMER_SPEC.md §9.1 参照
+  deleted_at TIMESTAMPTZ,     -- 論理削除日時
   created_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ
 )
@@ -229,6 +234,7 @@ bracket_rules (
   sex_filter TEXT,              -- "male" | "female" | NULL(両方)
   court_num INT,                -- 基本割り当てコート（NULL=自動）
   sort_order INT NOT NULL DEFAULT 0,
+  deleted_at TIMESTAMPTZ,     -- 論理削除日時
   created_at TIMESTAMPTZ
 )
 
@@ -258,6 +264,7 @@ entries (
   extra_fields JSONB DEFAULT '{}',  -- 項目プール拡張フィールド
   form_version INT,           -- 入力時のフォーム設定バージョン
   is_test BOOLEAN DEFAULT false,
+  deleted_at TIMESTAMPTZ,     -- 論理削除日時
   created_at TIMESTAMPTZ
 )
 
@@ -310,6 +317,7 @@ form_notices (
   link_label TEXT,
   require_consent BOOLEAN DEFAULT false,
   consent_label TEXT,
+  deleted_at TIMESTAMPTZ,     -- 論理削除日時
   created_at TIMESTAMPTZ
 )
 
@@ -322,6 +330,7 @@ custom_field_defs (
   field_type TEXT NOT NULL,         -- "text" | "number" | "select" | "checkbox" | "textarea"
   choices JSONB,                    -- select/checkbox用 [{label, value}]
   sort_order INT DEFAULT 0,
+  deleted_at TIMESTAMPTZ,     -- 論理削除日時
   created_at TIMESTAMPTZ,
   UNIQUE(form_config_id, field_key)
 )
@@ -382,6 +391,8 @@ settings (
 
 **Supabase Storage バケット**: `form-notice-images`（公開読み取り）
 
+**論理削除（ソフトデリート）**: 9テーブル（events, rules, tournaments, timer_presets, bracket_rules, entries, form_notices, custom_field_defs, dojos）に `deleted_at` カラムを追加。詳細は [SOFT_DELETE_SPEC.md](docs/SOFT_DELETE_SPEC.md) を参照。
+
 ### 4.2 体格相性レベル
 
 `lib/compatibility.ts` で定義。
@@ -433,6 +444,15 @@ settings (
 | PATCH/DELETE | `/api/admin/timer-presets/[id]`           | タイマー更新・削除                                                                             |
 | POST         | `/api/admin/timer-presets/[id]/duplicate` | タイマー複製                                                                                   |
 | POST/DELETE  | `/api/admin/timer-presets/[id]/buzzer`    | カスタムブザー音源アップロード/削除                                                            |
+| PATCH        | `/api/admin/events/[id]/restore`          | イベント削除取消（論理削除から復元、24時間以内）                                                |
+| PATCH        | `/api/admin/dojos/[id]/restore`           | 道場削除取消                                                                                   |
+| PATCH        | `/api/admin/rules/[id]/restore`           | ルール削除取消                                                                                 |
+| PATCH        | `/api/admin/entries/[id]/restore`         | エントリー削除取消                                                                             |
+| PATCH        | `/api/admin/tournaments/[id]/restore`     | トーナメント削除取消                                                                           |
+| PATCH        | `/api/admin/timer-presets/[id]/restore`   | タイマー削除取消                                                                               |
+| PATCH        | `/api/admin/bracket-rules/[id]/restore`   | 振り分けルール削除取消                                                                         |
+| PATCH        | `/api/admin/form-config/notices/[id]/restore` | 注意書き削除取消                                                                           |
+| PATCH        | `/api/admin/form-config/custom-fields/restore` | カスタムフィールド削除取消                                                                 |
 
 ### 5.2 コート用 API（認証必須）
 
@@ -683,3 +703,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **管理画面ハイドレーションエラー修正（2026-04-12）**: AdminPageとSettingsPanelのuseState初期値でwindow.location.searchを参照していたためSSR/クライアント間で不一致が発生。useSearchParamsに移行して修正
 - **コード整形・a11y・CLAUDE.md整理（2026-04-12）**: Prettier一括フォーマット反映、htmlFor/aria-label追加、CLAUDE.md簡潔化とCLAUDE_BAK.md分離
 - CLAUDE.md修正
+- **論理削除（ソフトデリート）導入（2026-04-12）**: 9テーブルにdeleted_atカラム追加。削除操作を物理削除から論理削除に変更。24時間以内は画面から削除取消可能、24時間経過で非表示

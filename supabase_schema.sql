@@ -46,12 +46,14 @@ create table custom_field_defs (
   field_type text not null,
   choices jsonb,
   sort_order integer not null default 0,
+  deleted_at timestamptz,
   created_at timestamptz not null default now()
 );
 
 create table dojos (
   id uuid not null default gen_random_uuid(),
   name text not null,
+  deleted_at timestamptz,
   created_at timestamptz default now(),
   name_reading text,
   tenant_id uuid not null references tenants(id)
@@ -70,6 +72,7 @@ create table entries (
   age_info text,
   experience text,
   fighter_id uuid,
+  deleted_at timestamptz,
   created_at timestamptz default now(),
   school_name text,
   birth_date date,
@@ -114,6 +117,7 @@ create table events (
   name text not null,
   court_count integer not null default 1,
   status text not null default 'preparing'::text,
+  deleted_at timestamptz,
   created_at timestamptz default now(),
   is_active boolean default false,
   max_weight_diff numeric,
@@ -193,6 +197,7 @@ create table form_notices (
   link_label text,
   require_consent boolean not null default false,
   consent_label text,
+  deleted_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -217,6 +222,7 @@ create table matches (
 create table rules (
   id uuid not null default gen_random_uuid(),
   name text not null,
+  deleted_at timestamptz,
   created_at timestamptz default now(),
   name_reading text,
   description text,
@@ -295,6 +301,7 @@ create table timer_presets (
   swap_sides boolean default false,
   newaza_direction text default 'countup',          -- 寝技カウント方向 ('countup' | 'countdown')
   combined_ippon_wins boolean default false,         -- 技あり2回で合わせ一本勝ち
+  deleted_at timestamptz,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   layout jsonb,
@@ -306,6 +313,7 @@ create table tournaments (
   name text not null,
   court text not null,
   status text not null default 'preparing'::text,
+  deleted_at timestamptz,
   created_at timestamptz default now(),
   event_id uuid,
   default_rules text,
@@ -346,6 +354,7 @@ create table bracket_rules (
   sex_filter text,
   court_num integer,
   sort_order integer not null default 0,
+  deleted_at timestamptz,
   created_at timestamptz default now(),
   tenant_id uuid not null references tenants(id)
 );

@@ -21,7 +21,10 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
 export async function DELETE(request: NextRequest, ctx: Ctx) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { id } = await ctx.params;
-  const { error } = await supabaseAdmin.from("timer_presets").delete().eq("id", id);
+  const { error } = await supabaseAdmin
+    .from("timer_presets")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
   if (error) return dbError(error);
   return NextResponse.json({ ok: true });
 }
