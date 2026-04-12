@@ -272,6 +272,16 @@
 - Semgrep false positive 抑制: `// nosemgrep: <rule-id>` コメントは semgrep 固有の抑制機構であり、eslint-disable とは別ツール。
 - 警告のベースライン: `.warnings-baseline`。新規追加分のみ表示し、既知の警告による疲れを防止。
 
+## Dependabot PR の対応
+
+Dependabot PR が作成されたら、ユーザーに確認せず自分で判断して対応する。
+
+- **パッチ/マイナー更新**: マージ（`gh pr merge --merge --admin`）
+- **メジャーバージョンアップ**: マージせずユーザーに報告（PR番号・変更内容・破壊的変更の有無・影響範囲）。判断はユーザーが行う
+- **react + react-dom**: 必ずセットで更新。片方ずつマージするとバージョン不一致になる
+- **コンフリクト発生時**: `@dependabot rebase` コメントで rebase させてからマージ
+- ローカルを `git pull` で同期して完了
+
 ## UX ポリシー（全ページ必須）
 
 レビューで繰り返し発見された UX 問題をポリシー化。新規ページ作成・既存ページ変更時に必ず確認する。
