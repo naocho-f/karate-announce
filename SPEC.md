@@ -629,6 +629,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **ESLint厳格化: 残13件リファクタリング完了（2026-04-11）**: entry/page.tsx・live/page.tsx・_group-section.tsx・_tournament-editor.tsxのmax-lines-per-function/complexity/set-state-in-effect警告をすべて解消。カスタムフック抽出・サブコンポーネント分割・lookup map化で0 warnings達成
 - **オフライン対応 Phase 1a: Service Worker + PWA + offlineページ（2026-04-07）**: Serwist によるApp Shellキャッシュ、PWAマニフェスト、オフラインフォールバックページを追加。画面一覧に /offline を追記
 - **出場希望ルール「どれでもOK」選択肢（2026-04-11）**: custom_choicesに__any__マーカーを追加し、全ルールにマッチする「どちらでも良い」選択肢を実現。ラベルカスタマイズ可能。extra_fields.rule_anyで全選択との区別
+- **package-lock.json再生成（2026-04-12）**: Dependabot PRマージで発生した@swc/helpers欠落を修正。CI npm ci失敗の原因
 - **Dependabot PR全件対応+メジャー依存更新（2026-04-12）**: @types/node 20→25、TypeScript 5→6のメジャー更新を検証・マージ。supabase-js型変更に伴うテストモック修正（toJSON, success追加）
 - **セキュリティチェック体制導入（2026-04-12）**: ESLintセキュリティプラグイン（eslint-plugin-security, eslint-plugin-no-unsanitized）、Semgrep、gitleaks、osv-scanner、CodeQLを導入。pre-commitとCIの両方で自動チェック。husky+lint-stagedでステージファイルのみlint。Dependabotによる依存更新自動化
 - **寝技タイマー累積モード（2026-04-12）**: 解除しても経過時間を保持し再開時は続きからカウントする累積モードを追加。タイムアップはブザー通知のみでメインは継続。回数制限との併用可能
