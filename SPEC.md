@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-12（イベント複製の完全化）
+> 最終更新: 2026-04-12（実装完了フロー改善）
 
 ---
 
@@ -629,6 +629,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **ESLint厳格化: 残13件リファクタリング完了（2026-04-11）**: entry/page.tsx・live/page.tsx・_group-section.tsx・_tournament-editor.tsxのmax-lines-per-function/complexity/set-state-in-effect警告をすべて解消。カスタムフック抽出・サブコンポーネント分割・lookup map化で0 warnings達成
 - **オフライン対応 Phase 1a: Service Worker + PWA + offlineページ（2026-04-07）**: Serwist によるApp Shellキャッシュ、PWAマニフェスト、オフラインフォールバックページを追加。画面一覧に /offline を追記
 - **出場希望ルール「どれでもOK」選択肢（2026-04-11）**: custom_choicesに__any__マーカーを追加し、全ルールにマッチする「どちらでも良い」選択肢を実現。ラベルカスタマイズ可能。extra_fields.rule_anyで全選択との区別
+- **実装完了フロー改善（2026-04-12）**: 8→7ステップに統合。Step 3にformat:check+ESLint+npm ci追加（hook手戻り防止）。Step 4+5をレビューに統合。壊れ方の検証6観点（異常系・波及・N+1・境界値・部分失敗・順序依存）を全回答必須で追加
 - **イベント複製の完全化（2026-04-12）**: バナー・OGP画像・メールテンプレート・会場情報・通知メール・締切日時・振り分けルールを常時コピー対象に追加。参加者コピー時はトーナメント・対戦者・試合もコピー（結果はリセット）
 - **package-lock.json再生成（2026-04-12）**: Dependabot PRマージで発生した@swc/helpers欠落を修正。CI npm ci失敗の原因
 - **Dependabot PR全件対応+メジャー依存更新（2026-04-12）**: @types/node 20→25、TypeScript 5→6のメジャー更新を検証・マージ。supabase-js型変更に伴うテストモック修正（toJSON, success追加）
