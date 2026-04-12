@@ -106,6 +106,100 @@ async function copyFormConfig(sourceId: string, newEventId: string) {
   }
 }
 
+// ── 複製: 振り分けルール ──
+
+async function copyBracketRules(sourceId: string, newEventId: string) {
+  const { data: sourceRules } = await supabaseAdmin.from("bracket_rules").select("*").eq("event_id", sourceId).order("sort_order");
+  if (!sourceRules?.length) return;
+  await insertOrThrow("bracket_rules", sourceRules.map((r) => ({
+    event_id: newEventId, name: r.name, rule_id: r.rule_id,
+    min_age: r.min_age, max_age: r.max_age, min_weight: r.min_weight, max_weight: r.max_weight,
+    min_height: r.min_height, max_height: r.max_height, min_grade: r.min_grade, max_grade: r.max_grade,
+    max_grade_diff: r.max_grade_diff, max_weight_diff: r.max_weight_diff, max_height_diff: r.max_height_diff,
+    sex_filter: r.sex_filter, court_num: r.court_num, sort_order: r.sort_order,
+  })), "振り分けルールのコピーに失敗しました");
+}
+
+// ── 複製: 対戦者（fighters） ──
+
+async function copyFighters(sourceId: string, newEventId: string): Promise<Map<string, string>> {
+  const fighterIdMap = new Map<string, string>();
+  const { data: sourceEventFighters } = await supabaseAdmin.from("event_fighters").select("fighter_id, seed_number").eq("event_id", sourceId);
+  if (!sourceEventFighters?.length) return fighterIdMap;
+
+  const sourceFighterIds = sourceEventFighters.map((ef) => ef.fighter_id);
+  const { data: sourceFighters } = await supabaseAdmin.from("fighters").select("*").in("id", sourceFighterIds);
+  if (!sourceFighters?.length) return fighterIdMap;
+
+  for (const f of sourceFighters) {
+    const { data: newFighter, error: fErr } = await supabaseAdmin.from("fighters")
+      .insert({
+        name: f.name, name_reading: f.name_reading, dojo_id: f.dojo_id,
+        weight: f.weight, height: f.height, age_info: f.age_info, experience: f.experience,
+        family_name: f.family_name, given_name: f.given_name,
+        family_name_reading: f.family_name_reading, given_name_reading: f.given_name_reading,
+        affiliation: f.affiliation, affiliation_reading: f.affiliation_reading,
+        extra_fields: f.extra_fields,
+      })
+      .select("id").single();
+    if (fErr || !newFighter) throw new Error("対戦者のコピーに失敗しました");
+    fighterIdMap.set(f.id, newFighter.id);
+  }
+
+  await insertOrThrow("event_fighters", sourceEventFighters.map((ef) => ({
+    event_id: newEventId, fighter_id: fighterIdMap.get(ef.fighter_id), seed_number: ef.seed_number,
+  })), "対戦者紐づけのコピーに失敗しました");
+
+  const { data: sourceEFRules } = await supabaseAdmin.from("event_fighter_rules").select("*").eq("event_id", sourceId);
+  if (sourceEFRules?.length) {
+    await insertOrThrow("event_fighter_rules", sourceEFRules.map((r) => ({
+      event_id: newEventId, fighter_id: fighterIdMap.get(r.fighter_id), rule_id: r.rule_id,
+    })), "対戦者ルールのコピーに失敗しました");
+  }
+
+  for (const [oldId, newId] of fighterIdMap) {
+    await supabaseAdmin.from("entries").update({ fighter_id: newId }).eq("event_id", newEventId).eq("fighter_id", oldId);
+  }
+
+  return fighterIdMap;
+}
+
+// ── 複製: トーナメント・試合 ──
+
+async function copyTournamentsAndMatches(sourceId: string, newEventId: string) {
+  const fighterIdMap = await copyFighters(sourceId, newEventId);
+
+  const { data: sourceTournaments } = await supabaseAdmin.from("tournaments").select("*").eq("event_id", sourceId).order("sort_order");
+  if (!sourceTournaments?.length) return;
+
+  for (const t of sourceTournaments) {
+    const { data: newTournament, error: tErr } = await supabaseAdmin.from("tournaments")
+      .insert({
+        event_id: newEventId, name: t.name, court: t.court, status: "preparing",
+        default_rules: t.default_rules, max_weight_diff: t.max_weight_diff, max_height_diff: t.max_height_diff,
+        sort_order: t.sort_order, type: t.type,
+        filter_min_weight: t.filter_min_weight, filter_max_weight: t.filter_max_weight,
+        filter_min_age: t.filter_min_age, filter_max_age: t.filter_max_age,
+        filter_sex: t.filter_sex, filter_experience: t.filter_experience, filter_grade: t.filter_grade,
+        filter_min_grade: t.filter_min_grade, filter_max_grade: t.filter_max_grade,
+        filter_min_height: t.filter_min_height, filter_max_height: t.filter_max_height,
+      })
+      .select("id").single();
+    if (tErr || !newTournament) throw new Error("トーナメントのコピーに失敗しました");
+
+    const { data: sourceMatches } = await supabaseAdmin.from("matches").select("*").eq("tournament_id", t.id);
+    if (sourceMatches?.length) {
+      await insertOrThrow("matches", sourceMatches.map((m) => ({
+        tournament_id: newTournament.id, round: m.round, position: m.position,
+        fighter1_id: m.fighter1_id ? fighterIdMap.get(m.fighter1_id) ?? null : null,
+        fighter2_id: m.fighter2_id ? fighterIdMap.get(m.fighter2_id) ?? null : null,
+        winner_id: null, status: "waiting", match_label: m.match_label, rules: m.rules,
+        result_method: null, result_detail: null,
+      })), "試合のコピーに失敗しました");
+    }
+  }
+}
+
 // ── 複製: エントリー ──
 
 async function copyEntries(sourceId: string, newEventId: string) {
@@ -157,11 +251,27 @@ async function cleanupNewEvent(newEventId: string) {
     await supabaseAdmin.from("form_field_configs").delete().in("form_config_id", configIds);
     await supabaseAdmin.from("form_configs").delete().eq("event_id", newEventId);
   }
+  // トーナメント・試合の削除
+  const { data: tournaments } = await supabaseAdmin.from("tournaments").select("id").eq("event_id", newEventId);
+  if (tournaments?.length) {
+    const tournamentIds = tournaments.map((t) => t.id);
+    await supabaseAdmin.from("matches").delete().in("tournament_id", tournamentIds);
+    await supabaseAdmin.from("tournaments").delete().eq("event_id", newEventId);
+  }
+  // 対戦者の削除
+  const { data: eventFighters } = await supabaseAdmin.from("event_fighters").select("fighter_id").eq("event_id", newEventId);
+  await supabaseAdmin.from("event_fighter_rules").delete().eq("event_id", newEventId);
+  await supabaseAdmin.from("event_fighters").delete().eq("event_id", newEventId);
+  if (eventFighters?.length) {
+    await supabaseAdmin.from("fighters").delete().in("id", eventFighters.map((ef) => ef.fighter_id));
+  }
+  // エントリーの削除
   const { data: entries } = await supabaseAdmin.from("entries").select("id").eq("event_id", newEventId);
   if (entries?.length) {
     await supabaseAdmin.from("entry_rules").delete().in("entry_id", entries.map((e) => e.id));
     await supabaseAdmin.from("entries").delete().eq("event_id", newEventId);
   }
+  await supabaseAdmin.from("bracket_rules").delete().eq("event_id", newEventId);
   await supabaseAdmin.from("event_rules").delete().eq("event_id", newEventId);
   await supabaseAdmin.from("events").delete().eq("id", newEventId);
 }
@@ -176,15 +286,24 @@ async function duplicateEvent(name: string, event_date: string | null, copy_from
     .insert({
       name: name || `${source.name}（コピー）`, event_date: event_date ?? null,
       court_count: source.court_count, court_names: source.court_names,
-      max_weight_diff: source.max_weight_diff, max_height_diff: source.max_height_diff, status: "preparing",
+      max_weight_diff: source.max_weight_diff, max_height_diff: source.max_height_diff,
+      banner_image_path: source.banner_image_path, ogp_image_path: source.ogp_image_path,
+      email_subject_template: source.email_subject_template, email_body_template: source.email_body_template,
+      venue_info: source.venue_info, notification_emails: source.notification_emails,
+      entry_close_at: source.entry_close_at,
+      status: "preparing",
     })
     .select().single();
   if (evErr || !newEvent) return dbError(evErr, "イベントの複製に失敗しました");
 
   try {
     await copyEventRules(source.id, newEvent.id);
+    await copyBracketRules(source.id, newEvent.id);
     await copyFormConfig(source.id, newEvent.id);
-    if (copy_entries) await copyEntries(source.id, newEvent.id);
+    if (copy_entries) {
+      await copyEntries(source.id, newEvent.id);
+      await copyTournamentsAndMatches(source.id, newEvent.id);
+    }
   } catch (err) {
     await cleanupNewEvent(newEvent.id);
     const message = err instanceof Error ? err.message : "複製中に予期しないエラーが発生しました";
