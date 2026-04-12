@@ -682,3 +682,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **Prettier全ファイル適用+ESLint上限調整（2026-04-12）**: Prettier未適用の61ファイルをフォーマット。max-lines-per-function 100→200、max-lines 1600→2100に引き上げ（Prettier展開後の実態に合わせる）。useFormConfig・EntryPageの関数分割リファクタリング。SPEC.md bug_reportsテーブル定義更新、supabase_schema.sqlにbracket_rules/idempotency_keys/event_fighters/event_fighter_rules追加
 - **管理画面ハイドレーションエラー修正（2026-04-12）**: AdminPageとSettingsPanelのuseState初期値でwindow.location.searchを参照していたためSSR/クライアント間で不一致が発生。useSearchParamsに移行して修正
 - **コード整形・a11y・CLAUDE.md整理（2026-04-12）**: Prettier一括フォーマット反映、htmlFor/aria-label追加、CLAUDE.md簡潔化とCLAUDE_BAK.md分離
+- CLAUDE.md修正
