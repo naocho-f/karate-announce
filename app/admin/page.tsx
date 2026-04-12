@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { isDev, getAppVersion } from "@/lib/app-mode";
 import { HomeDashboardPanel, type AdminTab } from "@/components/home-dashboard-panel";
@@ -20,18 +20,13 @@ const TAB_LABELS: Record<Tab, string> = {
   guide: "操作説明",
 };
 
-function getInitialTab(): Tab {
-  if (typeof window === "undefined") return "home";
-  const p = new URLSearchParams(window.location.search).get("tab") as Tab | null;
-  return p && p in TAB_LABELS ? p : "home";
-}
-
 export default function AdminPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>(getInitialTab);
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab") as Tab | null;
+  const tab = tabParam && tabParam in TAB_LABELS ? tabParam : "home";
 
   function navigateTab(t: Tab) {
-    setTab(t);
     router.replace(`/admin?tab=${t}`, { scroll: false });
   }
 

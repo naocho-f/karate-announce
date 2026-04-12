@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-12（テスト参加者の「どちらでもOK」対応）
+> 最終更新: 2026-04-12（管理画面ハイドレーションエラー修正）
 
 ---
 
@@ -63,6 +63,21 @@
 ### 4.1 テーブル定義
 
 ```sql
+-- テナント（マルチテナント Phase 1 準備）
+tenants (
+  id UUID PK,
+  slug TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  plan TEXT DEFAULT 'free',       -- 'free' | 'standard' | 'pro'
+  custom_domain TEXT UNIQUE,
+  settings JSONB DEFAULT '{}',
+  is_active BOOLEAN DEFAULT true,
+  tts_usage_count INT DEFAULT 0,
+  tts_usage_reset_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+)
+
 -- 流派マスタ
 dojos (
   id UUID PK,
@@ -322,13 +337,39 @@ form_notice_images (
 -- 不具合報告
 bug_reports (
   id UUID PK,
-  page_url TEXT,
-  description TEXT NOT NULL,
-  screenshot_path TEXT,
+  what_did TEXT NOT NULL,        -- 何をしていたか
+  what_happened TEXT NOT NULL,   -- 何が起きたか
+  what_expected TEXT,            -- 本来どうなるべきか
+  page_url TEXT NOT NULL,        -- 報告元ページURL
+  user_agent TEXT,               -- ブラウザ情報
+  viewport TEXT,                 -- 画面サイズ
+  app_version TEXT,              -- アプリバージョン
   status TEXT DEFAULT 'open',    -- 'open' | 'in_progress' | 'resolved' | 'wontfix'
   resolution TEXT,
   fixed_in_version TEXT,
   created_at TIMESTAMPTZ
+)
+
+-- 冪等性キー（重複リクエスト防止）
+idempotency_keys (
+  key TEXT PK,
+  response_status INT NOT NULL,
+  response_body JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+)
+
+-- イベント・選手紐付け（対戦表作成時）
+event_fighters (
+  event_id UUID → events NOT NULL,
+  fighter_id UUID → fighters NOT NULL,
+  seed_number INT
+)
+
+-- イベント・選手・ルール紐付け
+event_fighter_rules (
+  event_id UUID → events NOT NULL,
+  fighter_id UUID → fighters NOT NULL,
+  rule_id UUID → rules NOT NULL
 )
 
 -- 全体設定（キーバリュー）
@@ -629,7 +670,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **ESLint厳格化: 残13件リファクタリング完了（2026-04-11）**: entry/page.tsx・live/page.tsx・\_group-section.tsx・\_tournament-editor.tsxのmax-lines-per-function/complexity/set-state-in-effect警告をすべて解消。カスタムフック抽出・サブコンポーネント分割・lookup map化で0 warnings達成
 - **オフライン対応 Phase 1a: Service Worker + PWA + offlineページ（2026-04-07）**: Serwist によるApp Shellキャッシュ、PWAマニフェスト、オフラインフォールバックページを追加。画面一覧に /offline を追記
 - **出場希望ルール「どれでもOK」選択肢（2026-04-11）**: custom_choicesに**any**マーカーを追加し、全ルールにマッチする「どちらでも良い」選択肢を実現。ラベルカスタマイズ可能。extra_fields.rule_anyで全選択との区別
-- **テスト参加者の「どちらでもOK」対応（2026-04-12）**: テスト参加者生成で__any__選択肢が有効な場合、一定確率でrule_any=trueの参加者を生成するよう修正
+- **テスト参加者の「どちらでもOK」対応（2026-04-12）**: テスト参加者生成で**any**選択肢が有効な場合、一定確率でrule_any=trueの参加者を生成するよう修正
 - **メール設定プレースホルダー修正（2026-04-12）**: textarea placeholder の &#10; が JSX で改行として解釈されず文字列表示されていた問題を修正
 - **実装完了フロー改善（2026-04-12）**: 8→7ステップに統合。Step 3にformat:check+ESLint+npm ci追加（hook手戻り防止）。Step 4+5をレビューに統合。壊れ方の検証6観点（異常系・波及・N+1・境界値・部分失敗・順序依存）を全回答必須で追加
 - **イベント複製の完全化（2026-04-12）**: バナー・OGP画像・メールテンプレート・会場情報・通知メール・締切日時・振り分けルールを常時コピー対象に追加。参加者コピー時はトーナメント・対戦者・試合もコピー（結果はリセット）
@@ -638,3 +679,5 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **セキュリティチェック体制導入（2026-04-12）**: ESLintセキュリティプラグイン（eslint-plugin-security, eslint-plugin-no-unsanitized）、Semgrep、gitleaks、osv-scanner、CodeQLを導入。pre-commitとCIの両方で自動チェック。husky+lint-stagedでステージファイルのみlint。Dependabotによる依存更新自動化
 - **寝技タイマー累積モード（2026-04-12）**: 解除しても経過時間を保持し再開時は続きからカウントする累積モードを追加。タイムアップはブザー通知のみでメインは継続。回数制限との併用可能
 - **セキュリティ・品質レビュー修正（2026-04-12）**: 認証のタイミング攻撃対策(timingSafeEqual)、セッション有効期限8時間化、クエリインジェクション防止、全APIハンドラーのRPC/DBエラーチェック追加、fetch res.okチェック漏れ修正、sequential awaitのPromise.all化、UXポリシー準拠(テーマ統一・エラー区別)、テスト追加(tournaments PATCH/DELETE, RPCエラー, UUID検証)
+- **Prettier全ファイル適用+ESLint上限調整（2026-04-12）**: Prettier未適用の61ファイルをフォーマット。max-lines-per-function 100→200、max-lines 1600→2100に引き上げ（Prettier展開後の実態に合わせる）。useFormConfig・EntryPageの関数分割リファクタリング。SPEC.md bug_reportsテーブル定義更新、supabase_schema.sqlにbracket_rules/idempotency_keys/event_fighters/event_fighter_rules追加
+- **管理画面ハイドレーションエラー修正（2026-04-12）**: AdminPageとSettingsPanelのuseState初期値でwindow.location.searchを参照していたためSSR/クライアント間で不一致が発生。useEffectに移行して修正

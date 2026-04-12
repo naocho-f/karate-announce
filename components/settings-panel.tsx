@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { isDev } from "@/lib/app-mode";
 import type { Dojo, Rule } from "@/lib/types";
@@ -353,7 +353,7 @@ function AnnounceSettingsPanel() {
 
         {/* 声質 */}
         <div className="space-y-2">
-          <label className="text-xs text-gray-400">声質</label>
+          <span className="text-xs text-gray-400">声質</span>
           <div className="grid grid-cols-2 gap-2">
             {TTS_VOICES.map((v) => (
               <button
@@ -372,7 +372,7 @@ function AnnounceSettingsPanel() {
         {/* 速度 */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <label className="text-xs text-gray-400">速度</label>
+            <span className="text-xs text-gray-400">速度</span>
             <span className="text-sm font-mono text-white">{speed.toFixed(2)}x</span>
           </div>
           <input
@@ -713,14 +713,11 @@ const SETTINGS_SUBTAB_LABELS: Record<SettingsSubTab, string> = {
 
 export function SettingsPanel() {
   const router = useRouter();
-  const [subTab, setSubTab] = useState<SettingsSubTab>(() => {
-    if (typeof window === "undefined") return "rules";
-    const sub = new URLSearchParams(window.location.search).get("sub") as SettingsSubTab | null;
-    return sub && sub in SETTINGS_SUBTAB_LABELS ? sub : "rules";
-  });
+  const searchParams = useSearchParams();
+  const subParam = searchParams.get("sub") as SettingsSubTab | null;
+  const subTab = subParam && subParam in SETTINGS_SUBTAB_LABELS ? subParam : "rules";
 
   function handleSubTab(t: SettingsSubTab) {
-    setSubTab(t);
     router.replace(`/admin?tab=settings&sub=${t}`, { scroll: false });
   }
 
