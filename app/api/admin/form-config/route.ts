@@ -342,11 +342,13 @@ export async function GET(request: NextRequest) {
     .from("form_notices")
     .select("*, images:form_notice_images(*)")
     .eq("form_config_id", config.id)
+    .is("deleted_at", null)
     .order("sort_order");
   const { data: customFieldDefs } = await supabaseAdmin
     .from("custom_field_defs")
     .select("*")
     .eq("form_config_id", config.id)
+    .is("deleted_at", null)
     .order("sort_order");
 
   const finalDefs = await backfillCustomDefs(

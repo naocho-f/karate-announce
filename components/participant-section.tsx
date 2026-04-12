@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import type { Entry, Event, Rule, CustomFieldDef } from "@/lib/types";
 import { entryFullName } from "@/lib/types";
 import { getFieldDef, isCustomField } from "@/lib/form-fields";
+import { isDeleted } from "@/lib/soft-delete-shared";
 import { getGradeOptions, type AgeCategory } from "@/lib/grade-options";
 import { FormConfigPanel } from "@/app/admin/events/[id]/form-config-panel";
 import { showToast } from "@/components/toast";
@@ -816,16 +817,27 @@ function EntryActionsCell({
   processing,
   onToggleWithdrawn,
   onDelete,
+  onRestore,
 }: {
   entry: Entry;
   processing: boolean;
   onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void;
   onDelete: (id: string) => void;
+  onRestore: (id: string) => void;
 }) {
   if (processing) {
     return (
       <td className="px-2 py-1.5 text-right whitespace-nowrap">
         <span className="text-xs text-gray-500 mr-2">処理中...</span>
+      </td>
+    );
+  }
+  if (isDeleted(entry)) {
+    return (
+      <td className="px-2 py-1.5 text-right whitespace-nowrap">
+        <button onClick={() => onRestore(entry.id)} className="text-xs text-blue-400 hover:text-blue-300 transition">
+          削除取消
+        </button>
       </td>
     );
   }
@@ -987,6 +999,7 @@ function EntryTableRow({
   onToggleRule,
   onToggleWithdrawn,
   onDelete,
+  onRestore,
   onAdded,
 }: {
   entry: Entry;
@@ -1005,15 +1018,18 @@ function EntryTableRow({
   onToggleRule: (entryId: string, ruleId: string) => void;
   onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void;
   onDelete: (id: string) => void;
+  onRestore: (id: string) => void;
   onAdded: () => void;
 }) {
   const memoOpen = openMemoId === entry.id;
   const appMemoOpen = openAppMemoId === entry.id;
-  const rowBg = entry.is_withdrawn
+  const rowBg = isDeleted(entry)
     ? "opacity-50 bg-gray-900/40"
-    : memoOpen || appMemoOpen
-      ? "bg-gray-750"
-      : "hover:bg-gray-750";
+    : entry.is_withdrawn
+      ? "opacity-50 bg-gray-900/40"
+      : memoOpen || appMemoOpen
+        ? "bg-gray-750"
+        : "hover:bg-gray-750";
   return (
     <>
       <tr className={`border-b border-gray-700 ${rowBg}`}>
@@ -1042,6 +1058,7 @@ function EntryTableRow({
           processing={processingEntryIds.has(entry.id)}
           onToggleWithdrawn={onToggleWithdrawn}
           onDelete={onDelete}
+          onRestore={onRestore}
         />
       </tr>
       <EntryExpandedRows
@@ -1066,6 +1083,7 @@ function EntryTable({
   onToggleRule,
   onToggleWithdrawn,
   onDelete,
+  onRestore,
   onAdded,
 }: {
   entries: Entry[];
@@ -1078,6 +1096,7 @@ function EntryTable({
   onToggleRule: (entryId: string, ruleId: string) => void;
   onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void;
   onDelete: (id: string) => void;
+  onRestore: (id: string) => void;
   onAdded: () => void;
 }) {
   const [openMemoId, setOpenMemoId] = useState<string | null>(null);
@@ -1107,6 +1126,7 @@ function EntryTable({
               onToggleRule={onToggleRule}
               onToggleWithdrawn={onToggleWithdrawn}
               onDelete={onDelete}
+              onRestore={onRestore}
               onAdded={onAdded}
             />
           ))}
@@ -1129,6 +1149,7 @@ type EntriesSectionProps = {
   onToggleRule: (entryId: string, ruleId: string) => void;
   onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void;
   onDelete: (id: string) => void;
+  onRestore: (id: string) => void;
   onAdded: () => void;
 };
 
@@ -1169,6 +1190,7 @@ function EntriesSection({
   onToggleRule,
   onToggleWithdrawn,
   onDelete,
+  onRestore,
   onAdded,
 }: EntriesSectionProps) {
   const [open, setOpen] = useState(true);
@@ -1277,6 +1299,7 @@ function EntriesSection({
               onToggleRule={onToggleRule}
               onToggleWithdrawn={onToggleWithdrawn}
               onDelete={onDelete}
+              onRestore={onRestore}
               onAdded={onAdded}
             />
           )}
@@ -1776,6 +1799,7 @@ export type ParticipantSectionProps = {
   onToggleRule: (entryId: string, ruleId: string) => void;
   onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void;
   onDeleteEntry: (id: string) => void;
+  onRestoreEntry: (id: string) => void;
   onLoad: () => void;
   onNavigateStep: (s: 1 | 2 | 3) => void;
   onSetEvent: (fn: (prev: Event | null) => Event | null) => void;
@@ -2082,6 +2106,7 @@ export function ParticipantSection({
   onToggleRule,
   onToggleWithdrawn,
   onDeleteEntry,
+  onRestoreEntry,
   onLoad,
   onNavigateStep,
   onSetEvent,
@@ -2132,6 +2157,7 @@ export function ParticipantSection({
         onToggleRule={onToggleRule}
         onToggleWithdrawn={onToggleWithdrawn}
         onDelete={onDeleteEntry}
+        onRestore={onRestoreEntry}
         onAdded={onLoad}
       />
     </div>

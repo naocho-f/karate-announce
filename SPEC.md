@@ -705,3 +705,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - CLAUDE.md修正
 - **論理削除（ソフトデリート）導入（2026-04-12）**: 9テーブルにdeleted_atカラム追加。削除操作を物理削除から論理削除に変更。24時間以内は画面から削除取消可能、24時間経過で非表示
 - **論理削除UI対応 Phase 2（2026-04-12）**: 管理画面の全一覧でdeleted_atフィルタ追加、削除済みアイテムのグレーアウト表示と削除取消ボタン実装。公開画面では削除済みを完全非表示
+- **論理削除 子エンティティUI完了（2026-04-12）**: tournaments/entries/bracket_rulesのグレーアウト+削除取消。form_notices/custom_field_defsのAPIフィルタ。Supabase本番DBマイグレーション適用

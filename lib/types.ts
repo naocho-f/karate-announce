@@ -156,6 +156,7 @@ export type Tournament = {
   filter_max_grade: string | null;
   filter_min_height: number | null;
   filter_max_height: number | null;
+  deleted_at?: string | null;
   created_at: string;
 };
 
@@ -189,6 +190,7 @@ export type Entry = {
   fighter_id: string | null;
   extra_fields: Record<string, unknown>;
   form_version: number | null;
+  deleted_at?: string | null;
   created_at: string;
 };
 
@@ -358,6 +360,7 @@ export type FormNotice = {
   link_label: string | null;
   require_consent: boolean;
   consent_label: string | null;
+  deleted_at?: string | null;
   created_at: string;
   images?: FormNoticeImage[];
 };
@@ -393,6 +396,7 @@ export type BracketRule = {
   sex_filter: string | null; // "male" | "female" | null
   court_num: number | null;
   sort_order: number;
+  deleted_at?: string | null;
   created_at: string;
 };
 
@@ -404,6 +408,7 @@ export type CustomFieldDef = {
   field_type: "text" | "number" | "select" | "checkbox" | "textarea";
   choices: { label: string; value: string }[] | null;
   sort_order: number;
+  deleted_at?: string | null;
   created_at: string;
 };
 

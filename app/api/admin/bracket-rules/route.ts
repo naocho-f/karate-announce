@@ -3,16 +3,19 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 import { dbError } from "@/lib/api-utils";
+import { softDeleteCutoff } from "@/lib/soft-delete-shared";
 
 export async function GET(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const eventId = request.nextUrl.searchParams.get("event_id");
   if (!eventId) return NextResponse.json({ error: "event_id required" }, { status: 400 });
 
+  const cutoff = softDeleteCutoff();
   const { data, error } = await supabaseAdmin
     .from("bracket_rules")
     .select("*")
     .eq("event_id", eventId)
+    .or(`deleted_at.is.null,deleted_at.gt.${cutoff}`)
     .order("sort_order", { ascending: true });
   if (error) return dbError(error);
   return NextResponse.json(data);

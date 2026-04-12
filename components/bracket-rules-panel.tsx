@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { BracketRule, Rule } from "@/lib/types";
 import { getGradeOptions, type AgeCategory } from "@/lib/grade-options";
 import { showToast } from "@/components/toast";
+import { isDeleted } from "@/lib/soft-delete-shared";
 
 type Props = {
   eventId: string;
@@ -166,6 +167,18 @@ function useBracketRulesData(eventId: string) {
     await load();
     setDeletingId(null);
   };
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+  const handleRestore = async (id: string) => {
+    setRestoringId(id);
+    const res = await fetch(`/api/admin/bracket-rules/${id}/restore`, { method: "PATCH" });
+    if (!res.ok) {
+      showToast("削除取消に失敗しました");
+      setRestoringId(null);
+      return;
+    }
+    await load();
+    setRestoringId(null);
+  };
   const moveOrder = async (id: string, direction: "up" | "down") => {
     const idx = bracketRules.findIndex((r) => r.id === id);
     if (idx < 0) return;
@@ -200,11 +213,13 @@ function useBracketRulesData(eventId: string) {
     saving,
     movingId,
     deletingId,
+    restoringId,
     startCreate,
     startEdit,
     startDuplicate,
     handleSave,
     handleDelete,
+    handleRestore,
     moveOrder,
   };
 }
@@ -238,11 +253,13 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
           rules={rules}
           movingId={d.movingId}
           deletingId={d.deletingId}
+          restoringId={d.restoringId}
           getCourtLabel={getCourtLbl}
           onMoveOrder={(id, dir) => void d.moveOrder(id, dir)}
           onDuplicate={d.startDuplicate}
           onEdit={d.startEdit}
           onDelete={(id) => void d.handleDelete(id)}
+          onRestore={(id) => void d.handleRestore(id)}
         />
       ))}
       {d.showForm && (
@@ -304,11 +321,13 @@ function BracketRuleCard({
   rules,
   movingId,
   deletingId,
+  restoringId,
   getCourtLabel,
   onMoveOrder,
   onDuplicate,
   onEdit,
   onDelete,
+  onRestore,
 }: {
   rule: BracketRule;
   idx: number;
@@ -316,32 +335,37 @@ function BracketRuleCard({
   rules: Rule[];
   movingId: string | null;
   deletingId: string | null;
+  restoringId: string | null;
   getCourtLabel: (n: number) => string;
   onMoveOrder: (id: string, dir: "up" | "down") => void;
   onDuplicate: (r: BracketRule) => void;
   onEdit: (r: BracketRule) => void;
   onDelete: (id: string) => void;
+  onRestore: (id: string) => void;
 }) {
+  const deleted = isDeleted(rule);
   const summary = buildRuleSummary(rule, rules, getCourtLabel);
   return (
-    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 space-y-2">
+    <div className={`bg-gray-800/50 border border-gray-700 rounded-lg p-3 space-y-2 ${deleted ? "opacity-50" : ""}`}>
       <div className="flex items-center gap-2">
-        <div className="flex flex-col gap-0.5">
-          <button
-            onClick={() => onMoveOrder(rule.id, "up")}
-            disabled={idx === 0 || movingId === rule.id}
-            className="text-gray-400 hover:text-white disabled:opacity-50 text-xs leading-none"
-          >
-            ▲
-          </button>
-          <button
-            onClick={() => onMoveOrder(rule.id, "down")}
-            disabled={idx === total - 1 || movingId === rule.id}
-            className="text-gray-400 hover:text-white disabled:opacity-50 text-xs leading-none"
-          >
-            ▼
-          </button>
-        </div>
+        {!deleted && (
+          <div className="flex flex-col gap-0.5">
+            <button
+              onClick={() => onMoveOrder(rule.id, "up")}
+              disabled={idx === 0 || movingId === rule.id}
+              className="text-gray-400 hover:text-white disabled:opacity-50 text-xs leading-none"
+            >
+              ▲
+            </button>
+            <button
+              onClick={() => onMoveOrder(rule.id, "down")}
+              disabled={idx === total - 1 || movingId === rule.id}
+              className="text-gray-400 hover:text-white disabled:opacity-50 text-xs leading-none"
+            >
+              ▼
+            </button>
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <span className="text-sm font-medium text-white">{rule.name}</span>
           <div className="text-xs text-gray-400 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
@@ -350,19 +374,31 @@ function BracketRuleCard({
             ))}
           </div>
         </div>
-        <button onClick={() => onDuplicate(rule)} className="text-xs text-green-400 hover:text-green-300">
-          複製
-        </button>
-        <button onClick={() => onEdit(rule)} className="text-xs text-blue-400 hover:text-blue-300">
-          編集
-        </button>
-        <button
-          onClick={() => onDelete(rule.id)}
-          disabled={deletingId === rule.id}
-          className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
-        >
-          {deletingId === rule.id ? "削除中..." : "削除"}
-        </button>
+        {deleted ? (
+          <button
+            onClick={() => onRestore(rule.id)}
+            disabled={restoringId === rule.id}
+            className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50"
+          >
+            {restoringId === rule.id ? "取消中..." : "削除取消"}
+          </button>
+        ) : (
+          <>
+            <button onClick={() => onDuplicate(rule)} className="text-xs text-green-400 hover:text-green-300">
+              複製
+            </button>
+            <button onClick={() => onEdit(rule)} className="text-xs text-blue-400 hover:text-blue-300">
+              編集
+            </button>
+            <button
+              onClick={() => onDelete(rule.id)}
+              disabled={deletingId === rule.id}
+              className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
+            >
+              {deletingId === rule.id ? "削除中..." : "削除"}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

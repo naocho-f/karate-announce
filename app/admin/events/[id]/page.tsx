@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import type { Entry, Event, Tournament, Rule, TimerPreset } from "@/lib/types";
+import { softDeleteCutoff } from "@/lib/soft-delete-shared";
 import type { MismatchSettings } from "@/lib/compatibility";
 import type { AutoGroup } from "@/lib/auto-bracket";
 import type { AgeCategory } from "@/lib/grade-options";
@@ -235,8 +236,19 @@ async function loadEventPageData(
   const [{ data: e }, { data: er }, { data: ents }, { data: ts }, { data: fc }] = await Promise.all([
     supabase.from("events").select("*").eq("id", id).single(),
     supabase.from("event_rules").select("rule_id").eq("event_id", id),
-    supabase.from("entries").select("*").eq("event_id", id).order("created_at"),
-    supabase.from("tournaments").select("*").eq("event_id", id).order("sort_order").order("created_at"),
+    supabase
+      .from("entries")
+      .select("*")
+      .eq("event_id", id)
+      .or(`deleted_at.is.null,deleted_at.gt.${softDeleteCutoff()}`)
+      .order("created_at"),
+    supabase
+      .from("tournaments")
+      .select("*")
+      .eq("event_id", id)
+      .or(`deleted_at.is.null,deleted_at.gt.${softDeleteCutoff()}`)
+      .order("sort_order")
+      .order("created_at"),
     supabase.from("form_configs").select("version").eq("event_id", id).maybeSingle(),
   ]);
   s.setCurrentFormVersion(fc?.version ?? null);
@@ -490,6 +502,7 @@ export default function EventDetailPage({ params }: Props) {
       onToggleRule={(entryId, ruleId) => void actions.toggleEntryRule(entryId, ruleId)}
       onToggleWithdrawn={(entryId, withdrawn) => void actions.toggleWithdrawn(entryId, withdrawn)}
       onDeleteEntry={(entryId) => void actions.deleteEntry(entryId)}
+      onRestoreEntry={(entryId) => void actions.restoreEntry(entryId)}
       onLoad={() => void load()}
     />
   );
@@ -688,6 +701,19 @@ function useEventActions(id: string, deps: EventActionDeps) {
     });
   }, []);
 
+  const restoreEntry = useCallback(async (entryId: string) => {
+    const d = depsRef.current;
+    d.setProcessingEntryIds((prev) => new Set(prev).add(entryId));
+    const res = await fetch(`/api/admin/entries/${entryId}/restore`, { method: "PATCH" });
+    if (res.ok) d.setEntries((prev) => prev.map((e) => (e.id === entryId ? { ...e, deleted_at: null } : e)));
+    else showToast("削除取消に失敗しました");
+    d.setProcessingEntryIds((prev) => {
+      const next = new Set(prev);
+      next.delete(entryId);
+      return next;
+    });
+  }, []);
+
   const toggleWithdrawn = useCallback(async (entryId: string, withdrawn: boolean) => {
     const d = depsRef.current;
     d.setProcessingEntryIds((prev) => new Set(prev).add(entryId));
@@ -712,6 +738,7 @@ function useEventActions(id: string, deps: EventActionDeps) {
     deleteEventImage,
     toggleEntryRule,
     deleteEntry,
+    restoreEntry,
     toggleWithdrawn,
   };
 }
@@ -796,6 +823,7 @@ function EventPageContent(props: {
   onToggleRule: (entryId: string, ruleId: string) => void;
   onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void;
   onDeleteEntry: (entryId: string) => void;
+  onRestoreEntry: (entryId: string) => void;
   onLoad: () => void;
 }) {
   const p = props;
@@ -846,6 +874,7 @@ function EventPageContent(props: {
             onToggleRule={p.onToggleRule}
             onToggleWithdrawn={p.onToggleWithdrawn}
             onDeleteEntry={p.onDeleteEntry}
+            onRestoreEntry={p.onRestoreEntry}
             onLoad={p.onLoad}
             onNavigateStep={p.onNavigateStep}
             onSetEvent={p.onSetEvent}

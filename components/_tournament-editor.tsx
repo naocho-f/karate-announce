@@ -8,6 +8,7 @@ import type { MismatchSettings } from "@/lib/compatibility";
 import { pairsFromEntries } from "@/lib/pairing";
 import { BracketView } from "@/lib/bracket-view";
 import { showToast } from "@/components/toast";
+import { isDeleted } from "@/lib/soft-delete-shared";
 import { gradeToNumber, type AgeCategory } from "@/lib/grade-options";
 import { estimateMatchMinutes, formatTimeEstimate, countActualMatches, roundedNowHHMM } from "@/lib/time-estimate";
 import { GroupSection } from "@/components/_group-section";
@@ -1442,6 +1443,8 @@ function ExistingTournamentSection({
 }) {
   const [open, setOpen] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const deleted = isDeleted(tournament);
   const { matches, fighterMap, affectedMatches, withdrawnFighterIds } = useTournamentMatches(tournament.id, entries);
   const weightDiff = tournament.max_weight_diff;
   const heightDiff = tournament.max_height_diff;
@@ -1459,8 +1462,19 @@ function ExistingTournamentSection({
     onDeleted();
   }
 
+  async function handleRestore() {
+    setRestoring(true);
+    const res = await fetch(`/api/admin/tournaments/${tournament.id}/restore`, { method: "PATCH" });
+    if (!res.ok) {
+      showToast("削除取消に失敗しました");
+      setRestoring(false);
+      return;
+    }
+    onDeleted(); // reload
+  }
+
   return (
-    <div className="bg-gray-800 rounded-xl p-4 space-y-3">
+    <div className={`bg-gray-800 rounded-xl p-4 space-y-3 ${deleted ? "opacity-50" : ""}`}>
       <ExistingTournamentHeader
         tournament={tournament}
         weightDiff={weightDiff}
@@ -1476,6 +1490,9 @@ function ExistingTournamentSection({
         onCourtChanged={onCourtChanged}
         onEdit={onEdit}
         onDelete={() => void handleDelete()}
+        deleted={deleted}
+        restoring={restoring}
+        onRestore={() => void handleRestore()}
       />
       {affectedMatches.length > 0 && (
         <WithdrawnMatchesPanel
@@ -1671,6 +1688,8 @@ type ExistingTournamentHeaderProps = {
   courtNames: string[];
   open: boolean;
   deleting: boolean;
+  deleted: boolean;
+  restoring: boolean;
   matches: MatchRow[];
   entries: Entry[];
   rules: Rule[];
@@ -1678,6 +1697,7 @@ type ExistingTournamentHeaderProps = {
   onCourtChanged: () => void;
   onEdit: (id: string, initialGroups: Group[], initialDefaultRuleId?: string, sortOrder?: number) => void;
   onDelete: () => void;
+  onRestore: () => void;
 };
 
 function ExistingTournamentHeader({
@@ -1695,78 +1715,126 @@ function ExistingTournamentHeader({
   onCourtChanged,
   onEdit,
   onDelete,
+  deleted,
+  restoring,
+  onRestore,
 }: ExistingTournamentHeaderProps) {
   return (
     <div className="flex items-center justify-between flex-wrap gap-2">
       <div className="flex items-center gap-2 flex-wrap">
         {tournament.name && <span className="text-sm font-medium text-white">{tournament.name}</span>}
-        {tournament.type === "one_match" && (
-          <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">ワンマッチ</span>
-        )}
-        <span
-          className={`text-xs px-2 py-0.5 rounded ${tournament.status === "finished" ? "bg-green-900 text-green-300" : tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"}`}
-        >
-          {tournament.status === "preparing" ? "準備中" : tournament.status === "ongoing" ? "進行中" : "終了"}
-        </span>
-        <select
-          value={tournament.court}
-          onChange={(e) => {
-            void (async () => {
-              const res = await fetch(`/api/admin/tournaments/${tournament.id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ court: e.target.value }),
-              });
-              if (!res.ok) {
-                showToast("コート変更に失敗しました");
-                return;
-              }
-              onCourtChanged();
-            })();
-          }}
-          className="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs text-white"
-        >
-          <option value="">未割当</option>
-          {Array.from({ length: courtCount }, (_, i) => (
-            <option key={i + 1} value={String(i + 1)}>
-              {courtNames[i]?.trim() || `コート${i + 1}`}
-            </option>
-          ))}
-        </select>
-        {tournament.court === "" && (
-          <span className="text-xs bg-orange-900 text-orange-300 px-2 py-0.5 rounded">コート未割当</span>
-        )}
-        {tournament.court !== "" && (
-          <Link
-            href={`/court/${tournament.court}`}
-            target="_blank"
-            className="text-xs bg-blue-700 hover:bg-blue-600 text-blue-100 px-2 py-0.5 rounded transition"
-          >
-            アナウンス画面 ↗
-          </Link>
+        {!deleted && <TournamentHeaderBadges tournament={tournament} />}
+        {!deleted && (
+          <TournamentCourtSelect
+            tournament={tournament}
+            courtCount={courtCount}
+            courtNames={courtNames}
+            onCourtChanged={onCourtChanged}
+          />
         )}
         {tournament.default_rules && <span className="text-xs text-gray-500">{tournament.default_rules}</span>}
         {weightDiff != null && <span className="text-xs text-gray-500">体重差 {weightDiff}kg以内</span>}
         {heightDiff != null && <span className="text-xs text-gray-500">身長差 {heightDiff}cm以内</span>}
       </div>
       <div className="flex items-center gap-2">
-        <button onClick={() => onSetOpen(!open)} className="text-xs text-gray-400 hover:text-gray-200">
-          {open ? "▲ 折りたたむ" : "▼ 対戦一覧を表示"}
-        </button>
-        <button
-          onClick={() => restoreForEdit(tournament, matches, entries, rules, weightDiff, heightDiff, onEdit)}
-          className="text-xs text-blue-400 hover:text-blue-300 transition"
-        >
-          ← 登録前に戻る
-        </button>
-        <button
-          onClick={onDelete}
-          disabled={deleting}
-          className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 transition"
-        >
-          {deleting ? "削除中..." : "削除"}
-        </button>
+        {deleted ? (
+          <button
+            onClick={onRestore}
+            disabled={restoring}
+            className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 transition"
+          >
+            {restoring ? "取消中..." : "削除取消"}
+          </button>
+        ) : (
+          <>
+            <button onClick={() => onSetOpen(!open)} className="text-xs text-gray-400 hover:text-gray-200">
+              {open ? "▲ 折りたたむ" : "▼ 対戦一覧を表示"}
+            </button>
+            <button
+              onClick={() => restoreForEdit(tournament, matches, entries, rules, weightDiff, heightDiff, onEdit)}
+              className="text-xs text-blue-400 hover:text-blue-300 transition"
+            >
+              ← 登録前に戻る
+            </button>
+            <button
+              onClick={onDelete}
+              disabled={deleting}
+              className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 transition"
+            >
+              {deleting ? "削除中..." : "削除"}
+            </button>
+          </>
+        )}
       </div>
     </div>
+  );
+}
+
+function TournamentHeaderBadges({ tournament }: { tournament: Tournament }) {
+  return (
+    <>
+      {tournament.type === "one_match" && (
+        <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">ワンマッチ</span>
+      )}
+      <span
+        className={`text-xs px-2 py-0.5 rounded ${tournament.status === "finished" ? "bg-green-900 text-green-300" : tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"}`}
+      >
+        {tournament.status === "preparing" ? "準備中" : tournament.status === "ongoing" ? "進行中" : "終了"}
+      </span>
+    </>
+  );
+}
+
+function TournamentCourtSelect({
+  tournament,
+  courtCount,
+  courtNames,
+  onCourtChanged,
+}: {
+  tournament: Tournament;
+  courtCount: number;
+  courtNames: string[];
+  onCourtChanged: () => void;
+}) {
+  return (
+    <>
+      <select
+        value={tournament.court}
+        onChange={(e) => {
+          void (async () => {
+            const res = await fetch(`/api/admin/tournaments/${tournament.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ court: e.target.value }),
+            });
+            if (!res.ok) {
+              showToast("コート変更に失敗しました");
+              return;
+            }
+            onCourtChanged();
+          })();
+        }}
+        className="bg-gray-700 border border-gray-600 rounded px-2 py-0.5 text-xs text-white"
+      >
+        <option value="">未割当</option>
+        {Array.from({ length: courtCount }, (_, i) => (
+          <option key={i + 1} value={String(i + 1)}>
+            {courtNames[i]?.trim() || `コート${i + 1}`}
+          </option>
+        ))}
+      </select>
+      {tournament.court === "" && (
+        <span className="text-xs bg-orange-900 text-orange-300 px-2 py-0.5 rounded">コート未割当</span>
+      )}
+      {tournament.court !== "" && (
+        <Link
+          href={`/court/${tournament.court}`}
+          target="_blank"
+          className="text-xs bg-blue-700 hover:bg-blue-600 text-blue-100 px-2 py-0.5 rounded transition"
+        >
+          アナウンス画面 ↗
+        </Link>
+      )}
+    </>
   );
 }
