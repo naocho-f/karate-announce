@@ -376,6 +376,9 @@ function generateDemoEntries(
     rentalFields.map((key) => [key, getChoiceValues(key, ["own", "rental", "buy"])]),
   ) as Record<string, string[]>;
   const rulePool = buildDemoRulePool(count, ruleIds);
+  // __any__ 選択肢の検出（「どちらでもOK」対応）
+  const rpConfig = fieldConfigs?.find((f) => f.field_key === "rule_preference");
+  const anyChoice = rpConfig?.custom_choices?.find((c) => c.value === "__any__");
 
   return Array.from({ length: count }, (_, i) => {
     const fi = Math.floor(Math.random() * DEMO_FAMILY_NAMES.length);
@@ -391,9 +394,10 @@ function generateDemoEntries(
     const memo = r(DEMO_MEMOS) || null;
     const { baseWeight, weightRange, baseHeight, heightRange } = generateDemoPhysical(age);
     const grade = generateDemoGrade(age);
+    const useAny = anyChoice && Math.random() < 0.2;
 
     return {
-      rule_ids: rulePool[i],
+      rule_ids: useAny ? ruleIds : rulePool[i],
       entry: {
         event_id: eventId,
         family_name: DEMO_FAMILY_NAMES[fi],
@@ -414,16 +418,7 @@ function generateDemoEntries(
         memo,
         is_test: true,
         form_version: formVersion,
-        extra_fields: buildDemoExtraFields(
-          i,
-          age,
-          sexChoices,
-          matchExpChoices,
-          desiredMatchChoices,
-          headButtChoices,
-          equipmentChoices,
-          rentalChoicesMap,
-        ),
+        extra_fields: { ...buildDemoExtraFields(i, age, sexChoices, matchExpChoices, desiredMatchChoices, headButtChoices, equipmentChoices, rentalChoicesMap), ...(useAny ? { rule_any: true, rule_any_label: anyChoice.label } : {}) },
       },
     };
   });

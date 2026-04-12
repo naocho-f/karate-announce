@@ -150,7 +150,9 @@
 **4d. 壊れ方の検証（全項目に回答必須。該当なしも明記。完了時にユーザーに一覧を提示する）**
 
 - **異常系パス**: 変更した関数内の全 error/catch/throw パスを追跡。中間データが残存しないか。エラーレスポンスに DB 内部情報（テーブル名・カラム名・SQL）が漏洩しないか
-- **波及**: 変更した関数・型・カラムの全参照元を grep で列挙し、呼び出し元が新しいインターフェースに対応しているか確認
+- **波及（2層で確認）**:
+  - **参照元**: 変更した関数・型・カラムの全参照元を grep で列挙し、呼び出し元が新しいインターフェースに対応しているか確認
+  - **データパターン**: 新しいデータパターン（フラグ・ステータス値・選択肢・フィールド等）を追加した場合、そのデータを**生成（テストデータ含む）・表示・フィルタ・ソート・エクスポート（CSV等）・集計**する全コードが新パターンに対応しているか。grep でデータ構造名・フィールド名を検索して網羅的に確認する
 - **N+1・実行頻度**: ループ内 DB クエリがないか。useEffect の deps にオブジェクト/配列リテラルを入れていないか。ポーリング・購読の重複がないか
 - **境界値**: 空配列・null・undefined・空文字・存在しないID・型違い・大量データでコードパスを追跡
 - **部分失敗**: 複数テーブル操作で途中失敗時、クリーンアップが今回追加したテーブルも含め全対象になっているか
@@ -305,9 +307,12 @@ Dependabot PR が作成されたら、ユーザーに確認せず自分で判断
   3. 承認後、`PATCH /api/bug-reports/{id}` で `{"status":"in_progress"}` に変更し、**TaskCreate で Step 1〜7 のタスクリストを作成してから** TDD 駆動で修正を実施（実装完了フローに従う）
   4. **1件修正するごとに**コミット→ `PATCH /api/bug-reports/{id}` でステータス（resolved）・対応内容・修正バージョンを更新する。関連する複数報告をまとめて1コミットで修正してもよい
   5. 全件完了後、管理画面（設定 → 不具合報告）で確認できる状態にしてから、対応結果をまとめて報告する
-- API呼び出し方法: admin_auth クッキーの値は `/tmp/admin-auth-cookie` から読み取る。ファイルが存在しない場合（再起動後等）はユーザーに確認する。
+- API呼び出し方法: admin_auth クッキーの値は `/tmp/admin-auth-cookie` から読み取る。ファイルが存在しない場合は `.env.local` の `ADMIN_PASSWORD` からハッシュ計算して生成する（ユーザーに確認不要）。
 
   ```
+  # クッキー生成（/tmp/admin-auth-cookie が存在しない場合）
+  node -e "const crypto = require('crypto'); const pw = 'ADMIN_PASSWORDの値'; console.log(crypto.createHash('sha256').update(pw + 'karate-announce-v1').digest('hex'));" > /tmp/admin-auth-cookie
+
   # 取得（結果をファイルに保存してから処理）
   curl -s "https://karate.naocho.net/api/bug-reports" -H "Cookie: admin_auth=<COOKIE値>" -o /tmp/bug-reports.json
   # → 別コマンドで python3 -c "..." で /tmp/bug-reports.json を読む
