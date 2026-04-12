@@ -70,6 +70,20 @@ public/       静的ファイル
 supabase/     Supabase 関連設定
 ```
 
+## セキュリティ
+
+自動セキュリティチェックが pre-commit hook と GitHub Actions CI の両方で実行されます。
+
+```bash
+# ローカルツールのインストール（初回のみ）
+brew install semgrep gitleaks osv-scanner
+
+# 全セキュリティチェック実行
+npm run security:check
+```
+
+詳細は [docs/SECURITY.md](docs/SECURITY.md) を参照。
+
 ## デプロイ
 
 Vercel と GitHub の連携による自動デプロイ。

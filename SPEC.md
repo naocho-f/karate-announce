@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-12（セキュリティ・品質レビュー修正）
+> 最終更新: 2026-04-12（セキュリティチェック体制導入）
 
 ---
 
@@ -549,6 +549,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 | LocalStorage 利用 | TTS設定、アナウンステンプレート（試合順序は DB 管理に移行）                                                                                                                                                                                                                                                                                                                                 |
 | オフライン対応    | PWA（Serwist による Service Worker）。App Shell キャッシュ + API リクエストキューイング + 楽観的更新。詳細は [OFFLINE_SPEC.md](docs/OFFLINE_SPEC.md)                                                                                                                                                                                                                                        |
 | デプロイ          | Vercel（karate.naocho.net）                                                                                                                                                                                                                                                                                                                                                                 |
+| セキュリティ      | ESLint セキュリティプラグイン + Semgrep + gitleaks + osv-scanner + CodeQL。pre-commit と CI の両方で自動チェック。詳細は [SECURITY.md](docs/SECURITY.md)                                                                                                                                                                                                                                    |
 
 ---
 
@@ -628,5 +629,6 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **ESLint厳格化: 残13件リファクタリング完了（2026-04-11）**: entry/page.tsx・live/page.tsx・_group-section.tsx・_tournament-editor.tsxのmax-lines-per-function/complexity/set-state-in-effect警告をすべて解消。カスタムフック抽出・サブコンポーネント分割・lookup map化で0 warnings達成
 - **オフライン対応 Phase 1a: Service Worker + PWA + offlineページ（2026-04-07）**: Serwist によるApp Shellキャッシュ、PWAマニフェスト、オフラインフォールバックページを追加。画面一覧に /offline を追記
 - **出場希望ルール「どれでもOK」選択肢（2026-04-11）**: custom_choicesに__any__マーカーを追加し、全ルールにマッチする「どちらでも良い」選択肢を実現。ラベルカスタマイズ可能。extra_fields.rule_anyで全選択との区別
+- **セキュリティチェック体制導入（2026-04-12）**: ESLintセキュリティプラグイン（eslint-plugin-security, eslint-plugin-no-unsanitized）、Semgrep、gitleaks、osv-scanner、CodeQLを導入。pre-commitとCIの両方で自動チェック。husky+lint-stagedでステージファイルのみlint。Dependabotによる依存更新自動化
 - **寝技タイマー累積モード（2026-04-12）**: 解除しても経過時間を保持し再開時は続きからカウントする累積モードを追加。タイムアップはブザー通知のみでメインは継続。回数制限との併用可能
 - **セキュリティ・品質レビュー修正（2026-04-12）**: 認証のタイミング攻撃対策(timingSafeEqual)、セッション有効期限8時間化、クエリインジェクション防止、全APIハンドラーのRPC/DBエラーチェック追加、fetch res.okチェック漏れ修正、sequential awaitのPromise.all化、UXポリシー準拠(テーマ統一・エラー区別)、テスト追加(tournaments PATCH/DELETE, RPCエラー, UUID検証)

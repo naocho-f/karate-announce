@@ -260,14 +260,16 @@
 3層で役割を分けている。同じチェックを複数層で重複させない。
 | 層 | タイミング | 担当 | 所要時間 |
 |---|----------|------|---------|
-| **pre-commit hook** | コミット前（ローカル） | 静的チェック + tsc + vitest | ~10秒 |
-| **GitHub Actions CI** | プッシュ後（GitHub） | 静的チェック + tsc + vitest + build | ~70秒 |
+| **pre-commit hook** | コミット前（ローカル） | 静的チェック + ESLint(staged) + tsc + vitest + gitleaks(staged) + semgrep(staged) | ~15秒 |
+| **GitHub Actions CI (test.yml)** | プッシュ後（GitHub） | 静的チェック + ESLint + tsc + vitest + build | ~70秒 |
+| **GitHub Actions CI (security.yml)** | プッシュ後（GitHub） | ESLint + Semgrep + osv-scanner + gitleaks + npm audit + CodeQL | ~5分 |
 | **Vercel** | デプロイ時 | build | 自動 |
 
 - pre-commit は高速であること最優先。build は CI と Vercel に任せる。
 - CI は hook バイパス時の安全網。hook と同じ静的チェックに加え build も実行。
-- ソース: `scripts/pre-commit`（Git 管理）。`npm install` 時に `prepare` スクリプトで自動インストール。
-- hook を更新したら `scripts/pre-commit` も同期すること（hook 同期チェックでブロックされる）。
+- ソース: `scripts/pre-commit`（Git 管理）。`npm install` 時に `prepare` スクリプト（husky）で自動セットアップ。
+- `.husky/pre-commit` → `scripts/pre-commit` の呼び出しチェーン。hook 内容の変更は `scripts/pre-commit` のみ編集。
+- Semgrep false positive 抑制: `// nosemgrep: <rule-id>` コメントは semgrep 固有の抑制機構であり、eslint-disable とは別ツール。
 - 警告のベースライン: `.warnings-baseline`。新規追加分のみ表示し、既知の警告による疲れを防止。
 
 ## UX ポリシー（全ページ必須）

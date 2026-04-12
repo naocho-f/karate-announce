@@ -1,6 +1,8 @@
 import nextConfig from "eslint-config-next";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
+import pluginSecurity from "eslint-plugin-security";
+import noUnsanitized from "eslint-plugin-no-unsanitized";
 import prettierConfig from "eslint-config-prettier";
 
 const eslintConfig = [
@@ -77,12 +79,45 @@ const eslintConfig = [
       ],
     },
   },
-  // テストファイル・カスタムフックの関数行数制限を緩和
+  // セキュリティプラグイン
+  pluginSecurity.configs.recommended,
+  noUnsanitized.configs.recommended,
+  {
+    rules: {
+      // eslint-plugin-security: recommended は warn なので error に昇格
+      "security/detect-buffer-noassert": "error",
+      "security/detect-child-process": "error",
+      "security/detect-disable-mustache-escape": "error",
+      "security/detect-eval-with-expression": "error",
+      "security/detect-new-buffer": "error",
+      "security/detect-no-csrf-before-method-override": "error",
+      "security/detect-non-literal-fs-filename": "error",
+      "security/detect-non-literal-regexp": "error",
+      "security/detect-non-literal-require": "error",
+      "security/detect-possible-timing-attacks": "error",
+      "security/detect-pseudoRandomBytes": "error",
+      "security/detect-unsafe-regex": "error",
+      "security/detect-bidi-characters": "error",
+      // detect-object-injection: off
+      // 理由: Record<string,T>の動的キーアクセスが23箇所あり全て安全。
+      // このルールはデータフロー追跡せず構文のみで判定するため、
+      // 安全なパターンを区別不可能。eslint-community/eslint-plugin-security#21 参照。
+      // eslint.config.mjs でのルール設定であり、ソースコード内の eslint-disable ではない。
+      "security/detect-object-injection": "off",
+      // eslint-plugin-no-unsanitized: recommended が error でない場合に備え明示
+      "no-unsanitized/method": "error",
+      "no-unsanitized/property": "error",
+      // react: dangerouslySetInnerHTML 予防（現在使用0件、追加パッケージ不要）
+      "react/no-danger": "error",
+    },
+  },
+  // テストファイル・カスタムフックの関数行数制限・セキュリティルールを緩和
   {
     files: ["__tests__/**/*.ts", "__tests__/**/*.tsx", "**/_use-*.ts", "**/_use-*.tsx"],
     rules: {
       "max-lines-per-function": "off",
       "max-lines": "off",
+      "security/detect-non-literal-fs-filename": "off",
     },
   },
   // Prettier との競合回避（末尾に配置）

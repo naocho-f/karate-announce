@@ -53,6 +53,36 @@ describe("/api/admin/login", () => {
     expect(res.status).toBe(401);
   });
 
+  it("POST: パスワード長が異なる場合も 401（timingSafeEqual 長さチェック）", async () => {
+    const req = new Request("http://localhost:3000/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "admin", password: "x" }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+  });
+
+  it("POST: username が非文字列の場合 401", async () => {
+    const req = new Request("http://localhost:3000/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: 123, password: "test-password" }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+  });
+
+  it("POST: password が非文字列の場合 401", async () => {
+    const req = new Request("http://localhost:3000/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "admin", password: null }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+  });
+
   it("DELETE: ログアウトで Cookie 削除", async () => {
     const res = await DELETE();
     expect(res.status).toBe(200);

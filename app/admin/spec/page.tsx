@@ -1,11 +1,10 @@
 import fs from "fs";
-import path from "path";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Link from "next/link";
 
 export default function SpecPage() {
-  const content = fs.readFileSync(path.join(process.cwd(), "SPEC.md"), "utf-8");
+  const content = fs.readFileSync("./SPEC.md", "utf-8");
 
   return (
     <main className="min-h-screen bg-main-bg text-white">

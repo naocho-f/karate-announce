@@ -1,0 +1,14 @@
+[allowlist]
+  paths = [
+    '''__tests__/''',
+    '''\.env\.example''',
+    '''supabase/migrations/''',
+  ]
+  regexTarget = "line"
+  regexes = [
+    '''NEXT_PUBLIC_\w+''',
+    '''test-password''',
+    '''placeholder''',
+    '''https://mock\.supabase\.co''',
+    '''password\s*=\s*"dev"''',
+  ]
