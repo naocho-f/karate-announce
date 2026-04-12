@@ -425,7 +425,7 @@ function checkFoulAndPointFinish(state: TimerState): TimerState | null {
   const whiteFoulLoss = p.foul_loss_count > 0 && state.whiteScore.fouls >= p.foul_loss_count;
   const redPointWin = p.point_win_threshold > 0 && state.redScore.points >= p.point_win_threshold;
   const whitePointWin = p.point_win_threshold > 0 && state.whiteScore.points >= p.point_win_threshold;
-  const foulMethod = p.foul_vs_point_priority === "foul_priority" ? "foul" as const : "point" as const;
+  const foulMethod = p.foul_vs_point_priority === "foul_priority" ? ("foul" as const) : ("point" as const);
 
   if (redFoulLoss && whitePointWin) return finishAuto(state, "white", foulMethod);
   if (whiteFoulLoss && redPointWin) return finishAuto(state, "red", foulMethod);
@@ -557,9 +557,8 @@ export function toggleNewaza(state: TimerState): TimerState {
     const totalElapsed = getNewazaElapsedMs(state);
     const freeMs = p.newaza_free_release * 1000;
     // 累積モード: 今回区間の経過時間で無消費判定。非累積: 累積合計で判定
-    const segmentElapsed = p.newaza_accumulate && state.newaza.startedAt
-      ? Date.now() - state.newaza.startedAt
-      : totalElapsed;
+    const segmentElapsed =
+      p.newaza_accumulate && state.newaza.startedAt ? Date.now() - state.newaza.startedAt : totalElapsed;
     const consumed = segmentElapsed > freeMs;
     s.newaza = {
       active: false,

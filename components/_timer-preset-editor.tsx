@@ -11,23 +11,58 @@ import { showToast } from "@/components/toast";
 export type EditablePreset = Partial<TimerPreset> & { name: string };
 
 export const EMPTY_PRESET: EditablePreset = {
-  name: "", match_duration: 120, timer_direction: "countdown",
-  has_extension: false, extension_duration: 60, extension_mode: "sudden_death",
-  extension_timer_direction: "countdown", extension_show_timer: true, extension_max_count: 0,
-  allow_draw: false, newaza_enabled: false, newaza_duration: 30, newaza_direction: "countup",
-  newaza_limit_type: "unlimited", newaza_max_count: 2, newaza_free_release: 10, newaza_accumulate: false,
-  show_points: true, show_wazaari: true, wazaari_points: 0, show_ippon: true, ippon_wins: true,
-  combined_ippon_wins: false, point_win_threshold: 0, show_fouls: true,
-  foul_to_point_start: 0, foul_point_value: 1, foul_loss_count: 0, foul_vs_point_priority: "foul_priority",
-  show_player_names: true, show_match_number: true,
-  color_left: "#DC2626", color_right: "#FFFFFF", color_left_name: "赤", color_right_name: "白",
-  theme_bg_color: "#000000", theme_timer_color: "#00FF00", theme_timer_warn_color: "#FF0000",
-  theme_warn_threshold: 10, theme_show_decimals: false, theme_font_family: "digital",
+  name: "",
+  match_duration: 120,
+  timer_direction: "countdown",
+  has_extension: false,
+  extension_duration: 60,
+  extension_mode: "sudden_death",
+  extension_timer_direction: "countdown",
+  extension_show_timer: true,
+  extension_max_count: 0,
+  allow_draw: false,
+  newaza_enabled: false,
+  newaza_duration: 30,
+  newaza_direction: "countup",
+  newaza_limit_type: "unlimited",
+  newaza_max_count: 2,
+  newaza_free_release: 10,
+  newaza_accumulate: false,
+  show_points: true,
+  show_wazaari: true,
+  wazaari_points: 0,
+  show_ippon: true,
+  ippon_wins: true,
+  combined_ippon_wins: false,
+  point_win_threshold: 0,
+  show_fouls: true,
+  foul_to_point_start: 0,
+  foul_point_value: 1,
+  foul_loss_count: 0,
+  foul_vs_point_priority: "foul_priority",
+  show_player_names: true,
+  show_match_number: true,
+  color_left: "#DC2626",
+  color_right: "#FFFFFF",
+  color_left_name: "赤",
+  color_right_name: "白",
+  theme_bg_color: "#000000",
+  theme_timer_color: "#00FF00",
+  theme_timer_warn_color: "#FF0000",
+  theme_warn_threshold: 10,
+  theme_show_decimals: false,
+  theme_font_family: "digital",
   theme_divider_color: "#333333",
-  buzzer_on_time_up: "auto", buzzer_on_newaza: "auto",
-  buzzer_sound: "mid-square-single", buzzer_duration: 1.5, buzzer_repeat: 1,
-  buzzer_sound_newaza: "mid-square-single", buzzer_duration_newaza: 1.5, buzzer_repeat_newaza: 1,
-  swap_sides: false, layout: { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) },
+  buzzer_on_time_up: "auto",
+  buzzer_on_newaza: "auto",
+  buzzer_sound: "mid-square-single",
+  buzzer_duration: 1.5,
+  buzzer_repeat: 1,
+  buzzer_sound_newaza: "mid-square-single",
+  buzzer_duration_newaza: 1.5,
+  buzzer_repeat_newaza: 1,
+  swap_sides: false,
+  layout: { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) },
 };
 
 const FONT_FAMILY_MAP: Record<string, string> = {
@@ -61,9 +96,15 @@ function PreviewTimerDigits({ text, style }: { text: string; style: React.CSSPro
 
 // ── フィールドレンダラー ──
 function PresetField({
-  editKey, label, type, opts, editing, onChange,
+  editKey,
+  label,
+  type,
+  opts,
+  editing,
+  onChange,
 }: {
-  editKey: keyof EditablePreset; label: string;
+  editKey: keyof EditablePreset;
+  label: string;
   type: "text" | "number" | "checkbox" | "select" | "color" | "duration";
   opts?: { options?: { value: string; label: string }[] };
   editing: EditablePreset;
@@ -73,7 +114,12 @@ function PresetField({
   if (type === "checkbox") {
     return (
       <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={!!val} onChange={(e) => onChange({ [editKey]: e.target.checked })} className="rounded" />
+        <input
+          type="checkbox"
+          checked={!!val}
+          onChange={(e) => onChange({ [editKey]: e.target.checked })}
+          className="rounded"
+        />
         {label}
       </label>
     );
@@ -82,8 +128,16 @@ function PresetField({
     return (
       <label className="text-sm">
         <span className="text-gray-400">{label}</span>
-        <select value={String(val ?? "")} onChange={(e) => onChange({ [editKey]: e.target.value })} className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm">
-          {opts.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        <select
+          value={String(val ?? "")}
+          onChange={(e) => onChange({ [editKey]: e.target.value })}
+          className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm"
+        >
+          {opts.options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
         </select>
       </label>
     );
@@ -93,7 +147,12 @@ function PresetField({
       <label className="text-sm">
         <span className="text-gray-400">{label}</span>
         <div className="mt-1 flex items-center gap-2">
-          <input type="color" value={String(val ?? "#000000")} onChange={(e) => onChange({ [editKey]: e.target.value })} className="h-8 w-10 rounded border border-gray-700 bg-gray-800 cursor-pointer [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded" />
+          <input
+            type="color"
+            value={String(val ?? "#000000")}
+            onChange={(e) => onChange({ [editKey]: e.target.value })}
+            className="h-8 w-10 rounded border border-gray-700 bg-gray-800 cursor-pointer [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded"
+          />
           <span className="text-xs text-gray-500 font-mono">{String(val ?? "#000000")}</span>
         </div>
       </label>
@@ -105,12 +164,27 @@ function PresetField({
   return (
     <label className="text-sm">
       <span className="text-gray-400">{label}</span>
-      <input type={type} value={(val as string | number) ?? ""} onChange={(e) => onChange({ [editKey]: type === "number" ? Number(e.target.value) : e.target.value })} className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm" />
+      <input
+        type={type}
+        value={(val as string | number) ?? ""}
+        onChange={(e) => onChange({ [editKey]: type === "number" ? Number(e.target.value) : e.target.value })}
+        className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm"
+      />
     </label>
   );
 }
 
-function DurationField({ editKey, label, editing, onChange }: { editKey: keyof EditablePreset; label: string; editing: EditablePreset; onChange: (p: Partial<EditablePreset>) => void }) {
+function DurationField({
+  editKey,
+  label,
+  editing,
+  onChange,
+}: {
+  editKey: keyof EditablePreset;
+  label: string;
+  editing: EditablePreset;
+  onChange: (p: Partial<EditablePreset>) => void;
+}) {
   const totalSec = Number(editing[editKey] ?? 0);
   const min = Math.floor(totalSec / 60);
   const sec = totalSec % 60;
@@ -118,9 +192,22 @@ function DurationField({ editKey, label, editing, onChange }: { editKey: keyof E
     <label className="text-sm">
       <span className="text-gray-400">{label}</span>
       <div className="mt-1 flex items-center gap-1">
-        <input type="number" min={0} value={min} onChange={(e) => onChange({ [editKey]: Number(e.target.value) * 60 + sec })} className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-right" />
+        <input
+          type="number"
+          min={0}
+          value={min}
+          onChange={(e) => onChange({ [editKey]: Number(e.target.value) * 60 + sec })}
+          className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-right"
+        />
         <span className="text-gray-500 text-xs">分</span>
-        <input type="number" min={0} max={59} value={sec} onChange={(e) => onChange({ [editKey]: min * 60 + Math.min(59, Number(e.target.value)) })} className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-right" />
+        <input
+          type="number"
+          min={0}
+          max={59}
+          value={sec}
+          onChange={(e) => onChange({ [editKey]: min * 60 + Math.min(59, Number(e.target.value)) })}
+          className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-right"
+        />
         <span className="text-gray-500 text-xs">秒</span>
       </div>
     </label>
@@ -128,9 +215,23 @@ function DurationField({ editKey, label, editing, onChange }: { editKey: keyof E
 }
 
 // ── 整列ボタン ──
-function AlignButton({ current, value, label, onChange }: { current: string; value: string; label: string; onChange: (v: string) => void }) {
+function AlignButton({
+  current,
+  value,
+  label,
+  onChange,
+}: {
+  current: string;
+  value: string;
+  label: string;
+  onChange: (v: string) => void;
+}) {
   return (
-    <button type="button" onClick={() => onChange(value)} className={`px-2 py-1 text-xs rounded ${current === value ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}>
+    <button
+      type="button"
+      onClick={() => onChange(value)}
+      className={`px-2 py-1 text-xs rounded ${current === value ? "bg-blue-700 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+    >
       {label}
     </button>
   );
@@ -140,9 +241,16 @@ function AlignButton({ current, value, label, onChange }: { current: string; val
 // メインエディタ
 // ══════════════════════════════════════════════════════════════
 
-export function TimerPresetEditor({ editing, editId, onSave, onCancel }: {
-  editing: EditablePreset; editId: string | null;
-  onSave: (preset: EditablePreset) => Promise<void>; onCancel: () => void;
+export function TimerPresetEditor({
+  editing,
+  editId,
+  onSave,
+  onCancel,
+}: {
+  editing: EditablePreset;
+  editId: string | null;
+  onSave: (preset: EditablePreset) => Promise<void>;
+  onCancel: () => void;
 }) {
   const [localEditing, setLocalEditing] = useState<EditablePreset>(editing);
   const [saving, setSaving] = useState(false);
@@ -152,41 +260,90 @@ export function TimerPresetEditor({ editing, editId, onSave, onCancel }: {
   const previewRef = useRef<HTMLDivElement>(null);
   const [previewHeight, setPreviewHeight] = useState(0);
 
-  useEffect(() => { setLocalEditing(editing); }, [editing]);
+  useEffect(() => {
+    setLocalEditing(editing);
+  }, [editing]);
   useEffect(() => {
     if (!previewRef.current) return;
-    const obs = new ResizeObserver((entries) => { for (const entry of entries) setPreviewHeight(entry.contentRect.height); });
+    const obs = new ResizeObserver((entries) => {
+      for (const entry of entries) setPreviewHeight(entry.contentRect.height);
+    });
     obs.observe(previewRef.current);
     return () => obs.disconnect();
   }, [localEditing]);
 
-  const layout: LayoutConfig = localEditing.layout ?? { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) };
+  const layout: LayoutConfig = localEditing.layout ?? {
+    ...DEFAULT_LAYOUT,
+    rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })),
+  };
   const setLayout = (nl: LayoutConfig) => setLocalEditing({ ...localEditing, layout: nl });
   const update = (patch: Partial<EditablePreset>) => setLocalEditing({ ...localEditing, ...patch });
-  const updateRow = (idx: number, patch: Partial<LayoutRow>) => { const rows = [...layout.rows]; rows[idx] = { ...rows[idx], ...patch }; setLayout({ ...layout, rows }); };
-  const removeRow = (idx: number) => { setLayout({ ...layout, rows: layout.rows.filter((_, i) => i !== idx) }); if (expandedRow === idx) setExpandedRow(null); else if (expandedRow !== null && expandedRow > idx) setExpandedRow(expandedRow - 1); };
-  const addRow = (type: LayoutRowType) => { setLayout({ ...layout, rows: [...layout.rows, { ...ROW_DEFAULTS[type] }] }); setAddRowOpen(false); };
+  const updateRow = (idx: number, patch: Partial<LayoutRow>) => {
+    const rows = [...layout.rows];
+    rows[idx] = { ...rows[idx], ...patch };
+    setLayout({ ...layout, rows });
+  };
+  const removeRow = (idx: number) => {
+    setLayout({ ...layout, rows: layout.rows.filter((_, i) => i !== idx) });
+    if (expandedRow === idx) setExpandedRow(null);
+    else if (expandedRow !== null && expandedRow > idx) setExpandedRow(expandedRow - 1);
+  };
+  const addRow = (type: LayoutRowType) => {
+    setLayout({ ...layout, rows: [...layout.rows, { ...ROW_DEFAULTS[type] }] });
+    setAddRowOpen(false);
+  };
   const moveRow = (from: number, to: number) => {
     if (from === to) return;
-    const rows = [...layout.rows]; const [moved] = rows.splice(from, 1); rows.splice(to, 0, moved); setLayout({ ...layout, rows });
+    const rows = [...layout.rows];
+    const [moved] = rows.splice(from, 1);
+    rows.splice(to, 0, moved);
+    setLayout({ ...layout, rows });
     if (expandedRow === from) setExpandedRow(to);
-    else if (expandedRow !== null) { if (from < expandedRow && to >= expandedRow) setExpandedRow(expandedRow - 1); else if (from > expandedRow && to <= expandedRow) setExpandedRow(expandedRow + 1); }
+    else if (expandedRow !== null) {
+      if (from < expandedRow && to >= expandedRow) setExpandedRow(expandedRow - 1);
+      else if (from > expandedRow && to <= expandedRow) setExpandedRow(expandedRow + 1);
+    }
   };
-  const handleSave = async () => { if (!localEditing.name) return; setSaving(true); try { await onSave(localEditing); } finally { setSaving(false); } };
+  const handleSave = async () => {
+    if (!localEditing.name) return;
+    setSaving(true);
+    try {
+      await onSave(localEditing);
+    } finally {
+      setSaving(false);
+    }
+  };
   const vhToPx = (vh: number) => (vh / 100) * previewHeight;
-  const F = (k: keyof EditablePreset, l: string, t: "text" | "number" | "checkbox" | "select" | "color" | "duration", o?: { options?: { value: string; label: string }[] }) => (
-    <PresetField editKey={k} label={l} type={t} opts={o} editing={localEditing} onChange={update} />
-  );
+  const F = (
+    k: keyof EditablePreset,
+    l: string,
+    t: "text" | "number" | "checkbox" | "select" | "color" | "duration",
+    o?: { options?: { value: string; label: string }[] },
+  ) => <PresetField editKey={k} label={l} type={t} opts={o} editing={localEditing} onChange={update} />;
 
   return (
     <div className="mt-6 border border-gray-700 rounded-xl bg-gray-900 p-6">
       <h2 className="text-lg font-bold mb-4">{editId ? "タイマー編集" : "新規タイマー"}</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4 overflow-y-auto max-h-[80vh]">
-          <EditorFormSections editing={localEditing} F={F} layout={layout} setLayout={setLayout}
-            expandedRow={expandedRow} setExpandedRow={setExpandedRow} dragIdx={dragIdx} setDragIdx={setDragIdx}
-            updateRow={updateRow} removeRow={removeRow} moveRow={moveRow} addRowOpen={addRowOpen} setAddRowOpen={setAddRowOpen} addRow={addRow}
-            editId={editId} update={update} />
+          <EditorFormSections
+            editing={localEditing}
+            F={F}
+            layout={layout}
+            setLayout={setLayout}
+            expandedRow={expandedRow}
+            setExpandedRow={setExpandedRow}
+            dragIdx={dragIdx}
+            setDragIdx={setDragIdx}
+            updateRow={updateRow}
+            removeRow={removeRow}
+            moveRow={moveRow}
+            addRowOpen={addRowOpen}
+            setAddRowOpen={setAddRowOpen}
+            addRow={addRow}
+            editId={editId}
+            update={update}
+          />
         </div>
         <div className="lg:sticky lg:top-4 self-start">
           <div className="rounded-lg overflow-hidden border border-gray-700">
@@ -196,50 +353,117 @@ export function TimerPresetEditor({ editing, editId, onSave, onCancel }: {
         </div>
       </div>
       <div className="flex gap-2 mt-6">
-        <button onClick={() => void handleSave()} disabled={saving || !localEditing.name} className="flex-1 py-2 rounded bg-blue-700 hover:bg-blue-600 text-white font-bold transition disabled:opacity-50">{saving ? "保存中..." : "保存"}</button>
-        <button onClick={onCancel} className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition">キャンセル</button>
+        <button
+          onClick={() => void handleSave()}
+          disabled={saving || !localEditing.name}
+          className="flex-1 py-2 rounded bg-blue-700 hover:bg-blue-600 text-white font-bold transition disabled:opacity-50"
+        >
+          {saving ? "保存中..." : "保存"}
+        </button>
+        <button onClick={onCancel} className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition">
+          キャンセル
+        </button>
       </div>
     </div>
   );
 }
 
 // ── フォームセクション群 ──
-function EditorFormSections({ editing, F, layout, setLayout, expandedRow, setExpandedRow, dragIdx, setDragIdx, updateRow, removeRow, moveRow, addRowOpen, setAddRowOpen, addRow, editId, update }: {
+function EditorFormSections({
+  editing,
+  F,
+  layout,
+  setLayout,
+  expandedRow,
+  setExpandedRow,
+  dragIdx,
+  setDragIdx,
+  updateRow,
+  removeRow,
+  moveRow,
+  addRowOpen,
+  setAddRowOpen,
+  addRow,
+  editId,
+  update,
+}: {
   editing: EditablePreset;
-  F: (k: keyof EditablePreset, l: string, t: "text" | "number" | "checkbox" | "select" | "color" | "duration", o?: { options?: { value: string; label: string }[] }) => React.ReactNode;
-  layout: LayoutConfig; setLayout: (l: LayoutConfig) => void;
-  expandedRow: number | null; setExpandedRow: (v: number | null) => void;
-  dragIdx: number | null; setDragIdx: (v: number | null) => void;
-  updateRow: (i: number, p: Partial<LayoutRow>) => void; removeRow: (i: number) => void; moveRow: (f: number, t: number) => void;
-  addRowOpen: boolean; setAddRowOpen: (v: boolean) => void; addRow: (t: LayoutRowType) => void;
-  editId: string | null; update: (p: Partial<EditablePreset>) => void;
+  F: (
+    k: keyof EditablePreset,
+    l: string,
+    t: "text" | "number" | "checkbox" | "select" | "color" | "duration",
+    o?: { options?: { value: string; label: string }[] },
+  ) => React.ReactNode;
+  layout: LayoutConfig;
+  setLayout: (l: LayoutConfig) => void;
+  expandedRow: number | null;
+  setExpandedRow: (v: number | null) => void;
+  dragIdx: number | null;
+  setDragIdx: (v: number | null) => void;
+  updateRow: (i: number, p: Partial<LayoutRow>) => void;
+  removeRow: (i: number) => void;
+  moveRow: (f: number, t: number) => void;
+  addRowOpen: boolean;
+  setAddRowOpen: (v: boolean) => void;
+  addRow: (t: LayoutRowType) => void;
+  editId: string | null;
+  update: (p: Partial<EditablePreset>) => void;
 }) {
   return (
     <>
       {F("name", "タイマー名", "text")}
-      <p className="text-xs text-gray-600 mt-1">試合時間・延長有無などの設定名を入力（例: 3分カウントダウン・延長1分）</p>
+      <p className="text-xs text-gray-600 mt-1">
+        試合時間・延長有無などの設定名を入力（例: 3分カウントダウン・延長1分）
+      </p>
       <BasicSection editing={editing} F={F} />
       <NewazaSection editing={editing} F={F} />
       <PointsSection F={F} />
       <FoulsSection F={F} />
       <DisplaySection F={F} />
       <ThemeSection F={F} />
-      <LayoutSection layout={layout} setLayout={setLayout} expandedRow={expandedRow} setExpandedRow={setExpandedRow}
-        dragIdx={dragIdx} setDragIdx={setDragIdx} updateRow={updateRow} removeRow={removeRow} moveRow={moveRow}
-        addRowOpen={addRowOpen} setAddRowOpen={setAddRowOpen} addRow={addRow} />
+      <LayoutSection
+        layout={layout}
+        setLayout={setLayout}
+        expandedRow={expandedRow}
+        setExpandedRow={setExpandedRow}
+        dragIdx={dragIdx}
+        setDragIdx={setDragIdx}
+        updateRow={updateRow}
+        removeRow={removeRow}
+        moveRow={moveRow}
+        addRowOpen={addRowOpen}
+        setAddRowOpen={setAddRowOpen}
+        addRow={addRow}
+      />
       <BuzzerSection editing={editing} editId={editId} update={update} F={F} />
     </>
   );
 }
 
 // ── 基本設定 ──
-function BasicSection({ editing, F }: { editing: EditablePreset; F: (k: keyof EditablePreset, l: string, t: "text" | "number" | "checkbox" | "select" | "color" | "duration", o?: { options?: { value: string; label: string }[] }) => React.ReactNode }) {
+function BasicSection({
+  editing,
+  F,
+}: {
+  editing: EditablePreset;
+  F: (
+    k: keyof EditablePreset,
+    l: string,
+    t: "text" | "number" | "checkbox" | "select" | "color" | "duration",
+    o?: { options?: { value: string; label: string }[] },
+  ) => React.ReactNode;
+}) {
   return (
     <>
       <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">基本設定</h3>
       <div className="grid grid-cols-2 gap-3">
         {F("match_duration", "試合時間", "duration")}
-        {F("timer_direction", "タイマー方向", "select", { options: [{ value: "countdown", label: "カウントダウン" }, { value: "countup", label: "カウントアップ" }] })}
+        {F("timer_direction", "タイマー方向", "select", {
+          options: [
+            { value: "countdown", label: "カウントダウン" },
+            { value: "countup", label: "カウントアップ" },
+          ],
+        })}
       </div>
       <div className="space-y-2">
         {F("has_extension", "延長戦あり", "checkbox")}
@@ -250,26 +474,60 @@ function BasicSection({ editing, F }: { editing: EditablePreset; F: (k: keyof Ed
   );
 }
 
-function ExtensionFields({ editing, F }: { editing: EditablePreset; F: (k: keyof EditablePreset, l: string, t: "text" | "number" | "checkbox" | "select" | "color" | "duration", o?: { options?: { value: string; label: string }[] }) => React.ReactNode }) {
+function ExtensionFields({
+  editing,
+  F,
+}: {
+  editing: EditablePreset;
+  F: (
+    k: keyof EditablePreset,
+    l: string,
+    t: "text" | "number" | "checkbox" | "select" | "color" | "duration",
+    o?: { options?: { value: string; label: string }[] },
+  ) => React.ReactNode;
+}) {
   return (
     <div className="space-y-2 pl-4">
-      {F("extension_mode", "延長タイプ", "select", { options: [{ value: "timed", label: "時間延長" }, { value: "sudden_death", label: "先取延長" }] })}
+      {F("extension_mode", "延長タイプ", "select", {
+        options: [
+          { value: "timed", label: "時間延長" },
+          { value: "sudden_death", label: "先取延長" },
+        ],
+      })}
       {editing.extension_mode === "timed" && (
         <div className="grid grid-cols-2 gap-3">
           {F("extension_duration", "延長時間", "duration")}
-          {F("extension_timer_direction", "カウント方向", "select", { options: [{ value: "countdown", label: "カウントダウン" }, { value: "countup", label: "カウントアップ" }] })}
+          {F("extension_timer_direction", "カウント方向", "select", {
+            options: [
+              { value: "countdown", label: "カウントダウン" },
+              { value: "countup", label: "カウントアップ" },
+            ],
+          })}
           {F("extension_max_count", "最大延長回数（0=無制限）", "number")}
         </div>
       )}
       {editing.extension_mode === "sudden_death" && (
-        <div className="grid grid-cols-2 gap-3">{F("extension_show_timer", "タイマー表示（カウントアップ）", "checkbox")}</div>
+        <div className="grid grid-cols-2 gap-3">
+          {F("extension_show_timer", "タイマー表示（カウントアップ）", "checkbox")}
+        </div>
       )}
     </div>
   );
 }
 
 // ── 寝技 ──
-function NewazaSection({ editing, F }: { editing: EditablePreset; F: (k: keyof EditablePreset, l: string, t: "text" | "number" | "checkbox" | "select" | "color" | "duration", o?: { options?: { value: string; label: string }[] }) => React.ReactNode }) {
+function NewazaSection({
+  editing,
+  F,
+}: {
+  editing: EditablePreset;
+  F: (
+    k: keyof EditablePreset,
+    l: string,
+    t: "text" | "number" | "checkbox" | "select" | "color" | "duration",
+    o?: { options?: { value: string; label: string }[] },
+  ) => React.ReactNode;
+}) {
   return (
     <>
       <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">寝技タイマー</h3>
@@ -277,9 +535,19 @@ function NewazaSection({ editing, F }: { editing: EditablePreset; F: (k: keyof E
       {editing.newaza_enabled && (
         <div className="grid grid-cols-2 gap-3 pl-4">
           {F("newaza_duration", "寝技制限時間", "duration")}
-          {F("newaza_direction", "寝技タイマー方向", "select", { options: [{ value: "countup", label: "カウントアップ" }, { value: "countdown", label: "カウントダウン" }] })}
+          {F("newaza_direction", "寝技タイマー方向", "select", {
+            options: [
+              { value: "countup", label: "カウントアップ" },
+              { value: "countdown", label: "カウントダウン" },
+            ],
+          })}
           {F("newaza_accumulate", "累積モード（解除しても時間を保持）", "checkbox")}
-          {F("newaza_limit_type", "起動回数制限", "select", { options: [{ value: "unlimited", label: "無制限" }, { value: "limited", label: "回数制限あり" }] })}
+          {F("newaza_limit_type", "起動回数制限", "select", {
+            options: [
+              { value: "unlimited", label: "無制限" },
+              { value: "limited", label: "回数制限あり" },
+            ],
+          })}
           {editing.newaza_limit_type === "limited" && F("newaza_max_count", "最大起動回数", "number")}
           {F("newaza_free_release", "無消費解除時間", "duration")}
         </div>
@@ -289,7 +557,16 @@ function NewazaSection({ editing, F }: { editing: EditablePreset; F: (k: keyof E
 }
 
 // ── ポイント ──
-function PointsSection({ F }: { F: (k: keyof EditablePreset, l: string, t: "text" | "number" | "checkbox" | "select" | "color" | "duration", o?: { options?: { value: string; label: string }[] }) => React.ReactNode }) {
+function PointsSection({
+  F,
+}: {
+  F: (
+    k: keyof EditablePreset,
+    l: string,
+    t: "text" | "number" | "checkbox" | "select" | "color" | "duration",
+    o?: { options?: { value: string; label: string }[] },
+  ) => React.ReactNode;
+}) {
   return (
     <>
       <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">ポイント・判定</h3>
@@ -307,7 +584,16 @@ function PointsSection({ F }: { F: (k: keyof EditablePreset, l: string, t: "text
 }
 
 // ── 反則 ──
-function FoulsSection({ F }: { F: (k: keyof EditablePreset, l: string, t: "text" | "number" | "checkbox" | "select" | "color" | "duration", o?: { options?: { value: string; label: string }[] }) => React.ReactNode }) {
+function FoulsSection({
+  F,
+}: {
+  F: (
+    k: keyof EditablePreset,
+    l: string,
+    t: "text" | "number" | "checkbox" | "select" | "color" | "duration",
+    o?: { options?: { value: string; label: string }[] },
+  ) => React.ReactNode;
+}) {
   return (
     <>
       <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">反則</h3>
@@ -316,14 +602,28 @@ function FoulsSection({ F }: { F: (k: keyof EditablePreset, l: string, t: "text"
         {F("foul_to_point_start", "反則→相手ポイント開始回数（0=なし）", "number")}
         {F("foul_point_value", "反則1回あたりの付与ポイント", "number")}
         {F("foul_loss_count", "反則負け回数（0=なし）", "number")}
-        {F("foul_vs_point_priority", "反則負けvsポイント先取り", "select", { options: [{ value: "foul_priority", label: "反則負け優先" }, { value: "point_priority", label: "ポイント先取り優先" }] })}
+        {F("foul_vs_point_priority", "反則負けvsポイント先取り", "select", {
+          options: [
+            { value: "foul_priority", label: "反則負け優先" },
+            { value: "point_priority", label: "ポイント先取り優先" },
+          ],
+        })}
       </div>
     </>
   );
 }
 
 // ── 表示 ──
-function DisplaySection({ F }: { F: (k: keyof EditablePreset, l: string, t: "text" | "number" | "checkbox" | "select" | "color" | "duration", o?: { options?: { value: string; label: string }[] }) => React.ReactNode }) {
+function DisplaySection({
+  F,
+}: {
+  F: (
+    k: keyof EditablePreset,
+    l: string,
+    t: "text" | "number" | "checkbox" | "select" | "color" | "duration",
+    o?: { options?: { value: string; label: string }[] },
+  ) => React.ReactNode;
+}) {
   return (
     <>
       <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">表示設定</h3>
@@ -342,7 +642,16 @@ function DisplaySection({ F }: { F: (k: keyof EditablePreset, l: string, t: "tex
 }
 
 // ── テーマ ──
-function ThemeSection({ F }: { F: (k: keyof EditablePreset, l: string, t: "text" | "number" | "checkbox" | "select" | "color" | "duration", o?: { options?: { value: string; label: string }[] }) => React.ReactNode }) {
+function ThemeSection({
+  F,
+}: {
+  F: (
+    k: keyof EditablePreset,
+    l: string,
+    t: "text" | "number" | "checkbox" | "select" | "color" | "duration",
+    o?: { options?: { value: string; label: string }[] },
+  ) => React.ReactNode;
+}) {
   return (
     <>
       <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">カラー・フォント</h3>
@@ -354,7 +663,13 @@ function ThemeSection({ F }: { F: (k: keyof EditablePreset, l: string, t: "text"
         {F("theme_divider_color", "区切り線色", "color")}
       </div>
       <div className="grid grid-cols-2 gap-3">
-        {F("theme_font_family", "フォント", "select", { options: [{ value: "digital", label: "デジタル" }, { value: "sans", label: "ゴシック" }, { value: "mono", label: "等幅" }] })}
+        {F("theme_font_family", "フォント", "select", {
+          options: [
+            { value: "digital", label: "デジタル" },
+            { value: "sans", label: "ゴシック" },
+            { value: "mono", label: "等幅" },
+          ],
+        })}
       </div>
       {F("theme_show_decimals", "0.1秒表示", "checkbox")}
     </>
@@ -362,19 +677,46 @@ function ThemeSection({ F }: { F: (k: keyof EditablePreset, l: string, t: "text"
 }
 
 // ── レイアウト ──
-function LayoutSection({ layout, setLayout, expandedRow, setExpandedRow, dragIdx, setDragIdx, updateRow, removeRow, moveRow, addRowOpen, setAddRowOpen, addRow }: {
-  layout: LayoutConfig; setLayout: (l: LayoutConfig) => void;
-  expandedRow: number | null; setExpandedRow: (v: number | null) => void;
-  dragIdx: number | null; setDragIdx: (v: number | null) => void;
-  updateRow: (i: number, p: Partial<LayoutRow>) => void; removeRow: (i: number) => void; moveRow: (f: number, t: number) => void;
-  addRowOpen: boolean; setAddRowOpen: (v: boolean) => void; addRow: (t: LayoutRowType) => void;
+function LayoutSection({
+  layout,
+  setLayout,
+  expandedRow,
+  setExpandedRow,
+  dragIdx,
+  setDragIdx,
+  updateRow,
+  removeRow,
+  moveRow,
+  addRowOpen,
+  setAddRowOpen,
+  addRow,
+}: {
+  layout: LayoutConfig;
+  setLayout: (l: LayoutConfig) => void;
+  expandedRow: number | null;
+  setExpandedRow: (v: number | null) => void;
+  dragIdx: number | null;
+  setDragIdx: (v: number | null) => void;
+  updateRow: (i: number, p: Partial<LayoutRow>) => void;
+  removeRow: (i: number) => void;
+  moveRow: (f: number, t: number) => void;
+  addRowOpen: boolean;
+  setAddRowOpen: (v: boolean) => void;
+  addRow: (t: LayoutRowType) => void;
 }) {
   return (
     <>
       <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">レイアウトエディタ</h3>
-      <LayoutRowList layout={layout} expandedRow={expandedRow} dragIdx={dragIdx}
-        onSetExpandedRow={setExpandedRow} onSetDragIdx={setDragIdx}
-        onUpdateRow={updateRow} onRemoveRow={removeRow} onMoveRow={moveRow} />
+      <LayoutRowList
+        layout={layout}
+        expandedRow={expandedRow}
+        dragIdx={dragIdx}
+        onSetExpandedRow={setExpandedRow}
+        onSetDragIdx={setDragIdx}
+        onUpdateRow={updateRow}
+        onRemoveRow={removeRow}
+        onMoveRow={moveRow}
+      />
       <LayoutLabelSettings layout={layout} setLayout={setLayout} />
       <AddRowButton addRowOpen={addRowOpen} setAddRowOpen={setAddRowOpen} addRow={addRow} />
     </>
@@ -382,10 +724,22 @@ function LayoutSection({ layout, setLayout, expandedRow, setExpandedRow, dragIdx
 }
 
 function LayoutLabelSettings({ layout, setLayout }: { layout: LayoutConfig; setLayout: (l: LayoutConfig) => void }) {
-  const labelField = (label: string, value: string | undefined, placeholder: string, key: keyof LayoutConfig, hint: string) => (
+  const labelField = (
+    label: string,
+    value: string | undefined,
+    placeholder: string,
+    key: keyof LayoutConfig,
+    hint: string,
+  ) => (
     <label className="text-xs">
       <span className="text-gray-400">{label}</span>
-      <input type="text" value={value ?? placeholder} onChange={(e) => setLayout({ ...layout, [key]: e.target.value })} placeholder={placeholder} className="mt-0.5 block w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs" />
+      <input
+        type="text"
+        value={value ?? placeholder}
+        onChange={(e) => setLayout({ ...layout, [key]: e.target.value })}
+        placeholder={placeholder}
+        className="mt-0.5 block w-full bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs"
+      />
       <span className="text-gray-600 text-[10px]">{hint}</span>
     </label>
   );
@@ -402,14 +756,35 @@ function LayoutLabelSettings({ layout, setLayout }: { layout: LayoutConfig; setL
   );
 }
 
-function AddRowButton({ addRowOpen, setAddRowOpen, addRow }: { addRowOpen: boolean; setAddRowOpen: (v: boolean) => void; addRow: (t: LayoutRowType) => void }) {
+function AddRowButton({
+  addRowOpen,
+  setAddRowOpen,
+  addRow,
+}: {
+  addRowOpen: boolean;
+  setAddRowOpen: (v: boolean) => void;
+  addRow: (t: LayoutRowType) => void;
+}) {
   return (
     <div className="relative mt-2">
-      <button type="button" onClick={() => setAddRowOpen(!addRowOpen)} className="w-full px-3 py-2 rounded-lg border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-950/30 text-sm text-gray-400 hover:text-blue-400 transition font-medium">+ 行を追加</button>
+      <button
+        type="button"
+        onClick={() => setAddRowOpen(!addRowOpen)}
+        className="w-full px-3 py-2 rounded-lg border-2 border-dashed border-gray-600 hover:border-blue-500 hover:bg-blue-950/30 text-sm text-gray-400 hover:text-blue-400 transition font-medium"
+      >
+        + 行を追加
+      </button>
       {addRowOpen && (
         <div className="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 py-1 min-w-48">
           {ALL_ROW_TYPES.map((type) => (
-            <button key={type} type="button" onClick={() => addRow(type)} className="block w-full text-left px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-700 transition">{rowTypeLabel(type)}</button>
+            <button
+              key={type}
+              type="button"
+              onClick={() => addRow(type)}
+              className="block w-full text-left px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-700 transition"
+            >
+              {rowTypeLabel(type)}
+            </button>
           ))}
         </div>
       )}
@@ -418,12 +793,27 @@ function AddRowButton({ addRowOpen, setAddRowOpen, addRow }: { addRowOpen: boole
 }
 
 // ── ブザー ──
-function BuzzerSection({ editing, editId, update, F }: {
-  editing: EditablePreset; editId: string | null;
+function BuzzerSection({
+  editing,
+  editId,
+  update,
+  F,
+}: {
+  editing: EditablePreset;
+  editId: string | null;
   update: (p: Partial<EditablePreset>) => void;
-  F: (k: keyof EditablePreset, l: string, t: "text" | "number" | "checkbox" | "select" | "color" | "duration", o?: { options?: { value: string; label: string }[] }) => React.ReactNode;
+  F: (
+    k: keyof EditablePreset,
+    l: string,
+    t: "text" | "number" | "checkbox" | "select" | "color" | "duration",
+    o?: { options?: { value: string; label: string }[] },
+  ) => React.ReactNode;
 }) {
-  const buzzerOpts = [{ value: "auto", label: "自動" }, { value: "manual", label: "手動" }, { value: "off", label: "なし" }];
+  const buzzerOpts = [
+    { value: "auto", label: "自動" },
+    { value: "manual", label: "手動" },
+    { value: "off", label: "なし" },
+  ];
   return (
     <>
       <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">ブザー</h3>
@@ -433,16 +823,28 @@ function BuzzerSection({ editing, editId, update, F }: {
       </div>
       <p className="text-xs text-gray-500 mt-2 mb-1">試合終了ブザー音源</p>
       <BuzzerSoundSelector
-        soundId={editing.buzzer_sound ?? "mid-square-single"} duration={editing.buzzer_duration ?? 1.5} repeat={editing.buzzer_repeat ?? 1}
-        customPath={editing.buzzer_custom_path ?? null} presetId={editId}
-        onSoundChange={(v) => update({ buzzer_sound: v })} onDurationChange={(v) => update({ buzzer_duration: v })} onRepeatChange={(v) => update({ buzzer_repeat: v })}
-        onCustomPathChange={(v) => update({ buzzer_custom_path: v, buzzer_sound: v ? "custom" : "mid-square-single" })} />
+        soundId={editing.buzzer_sound ?? "mid-square-single"}
+        duration={editing.buzzer_duration ?? 1.5}
+        repeat={editing.buzzer_repeat ?? 1}
+        customPath={editing.buzzer_custom_path ?? null}
+        presetId={editId}
+        onSoundChange={(v) => update({ buzzer_sound: v })}
+        onDurationChange={(v) => update({ buzzer_duration: v })}
+        onRepeatChange={(v) => update({ buzzer_repeat: v })}
+        onCustomPathChange={(v) => update({ buzzer_custom_path: v, buzzer_sound: v ? "custom" : "mid-square-single" })}
+      />
       <p className="text-xs text-gray-500 mt-3 mb-1">寝技タイムアップブザー音源</p>
       <BuzzerSoundSelector
-        soundId={editing.buzzer_sound_newaza ?? "mid-square-single"} duration={editing.buzzer_duration_newaza ?? 1.5} repeat={editing.buzzer_repeat_newaza ?? 1}
-        customPath={null} presetId={null}
-        onSoundChange={(v) => update({ buzzer_sound_newaza: v })} onDurationChange={(v) => update({ buzzer_duration_newaza: v })} onRepeatChange={(v) => update({ buzzer_repeat_newaza: v })}
-        onCustomPathChange={() => {}} />
+        soundId={editing.buzzer_sound_newaza ?? "mid-square-single"}
+        duration={editing.buzzer_duration_newaza ?? 1.5}
+        repeat={editing.buzzer_repeat_newaza ?? 1}
+        customPath={null}
+        presetId={null}
+        onSoundChange={(v) => update({ buzzer_sound_newaza: v })}
+        onDurationChange={(v) => update({ buzzer_duration_newaza: v })}
+        onRepeatChange={(v) => update({ buzzer_repeat_newaza: v })}
+        onCustomPathChange={() => {}}
+      />
     </>
   );
 }
@@ -451,63 +853,187 @@ function BuzzerSection({ editing, editId, update, F }: {
 // LayoutRowList
 // ══════════════════════════════════════════════════════════════
 
-function LayoutRowList({ layout, expandedRow, dragIdx, onSetExpandedRow, onSetDragIdx, onUpdateRow, onRemoveRow, onMoveRow }: {
-  layout: LayoutConfig; expandedRow: number | null; dragIdx: number | null;
-  onSetExpandedRow: (idx: number | null) => void; onSetDragIdx: (idx: number | null) => void;
-  onUpdateRow: (idx: number, patch: Partial<LayoutRow>) => void; onRemoveRow: (idx: number) => void; onMoveRow: (from: number, to: number) => void;
+function LayoutRowList({
+  layout,
+  expandedRow,
+  dragIdx,
+  onSetExpandedRow,
+  onSetDragIdx,
+  onUpdateRow,
+  onRemoveRow,
+  onMoveRow,
+}: {
+  layout: LayoutConfig;
+  expandedRow: number | null;
+  dragIdx: number | null;
+  onSetExpandedRow: (idx: number | null) => void;
+  onSetDragIdx: (idx: number | null) => void;
+  onUpdateRow: (idx: number, patch: Partial<LayoutRow>) => void;
+  onRemoveRow: (idx: number) => void;
+  onMoveRow: (from: number, to: number) => void;
 }) {
   return (
     <div className="space-y-2">
       {layout.rows.map((row, idx) => (
-        <LayoutRowItem key={idx} row={row} idx={idx} expandedRow={expandedRow} dragIdx={dragIdx}
-          onSetExpandedRow={onSetExpandedRow} onSetDragIdx={onSetDragIdx} onUpdateRow={onUpdateRow} onRemoveRow={onRemoveRow} onMoveRow={onMoveRow} />
+        <LayoutRowItem
+          key={idx}
+          row={row}
+          idx={idx}
+          expandedRow={expandedRow}
+          dragIdx={dragIdx}
+          onSetExpandedRow={onSetExpandedRow}
+          onSetDragIdx={onSetDragIdx}
+          onUpdateRow={onUpdateRow}
+          onRemoveRow={onRemoveRow}
+          onMoveRow={onMoveRow}
+        />
       ))}
     </div>
   );
 }
 
-function LayoutRowItem({ row, idx, expandedRow, dragIdx, onSetExpandedRow, onSetDragIdx, onUpdateRow, onRemoveRow, onMoveRow }: {
-  row: LayoutRow; idx: number; expandedRow: number | null; dragIdx: number | null;
-  onSetExpandedRow: (idx: number | null) => void; onSetDragIdx: (idx: number | null) => void;
-  onUpdateRow: (idx: number, patch: Partial<LayoutRow>) => void; onRemoveRow: (idx: number) => void; onMoveRow: (from: number, to: number) => void;
+function LayoutRowItem({
+  row,
+  idx,
+  expandedRow,
+  dragIdx,
+  onSetExpandedRow,
+  onSetDragIdx,
+  onUpdateRow,
+  onRemoveRow,
+  onMoveRow,
+}: {
+  row: LayoutRow;
+  idx: number;
+  expandedRow: number | null;
+  dragIdx: number | null;
+  onSetExpandedRow: (idx: number | null) => void;
+  onSetDragIdx: (idx: number | null) => void;
+  onUpdateRow: (idx: number, patch: Partial<LayoutRow>) => void;
+  onRemoveRow: (idx: number) => void;
+  onMoveRow: (from: number, to: number) => void;
 }) {
   return (
-    <div className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden" draggable
-      onDragStart={(e) => { onSetDragIdx(idx); e.dataTransfer.effectAllowed = "move"; }}
-      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
-      onDrop={(e) => { e.preventDefault(); if (dragIdx !== null) { onMoveRow(dragIdx, idx); onSetDragIdx(null); } }}
-      onDragEnd={() => onSetDragIdx(null)}>
-      <div className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-700/30" onClick={() => onSetExpandedRow(expandedRow === idx ? null : idx)}>
-        <span className="cursor-grab text-gray-500 hover:text-gray-300 text-lg select-none" title="ドラッグで並べ替え">⠿</span>
+    <div
+      className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden"
+      draggable
+      onDragStart={(e) => {
+        onSetDragIdx(idx);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        if (dragIdx !== null) {
+          onMoveRow(dragIdx, idx);
+          onSetDragIdx(null);
+        }
+      }}
+      onDragEnd={() => onSetDragIdx(null)}
+    >
+      <div
+        className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-700/30"
+        onClick={() => onSetExpandedRow(expandedRow === idx ? null : idx)}
+      >
+        <span className="cursor-grab text-gray-500 hover:text-gray-300 text-lg select-none" title="ドラッグで並べ替え">
+          ⠿
+        </span>
         <span className="flex-1 text-sm font-medium">{rowTypeLabel(row.type)}</span>
         <span className="text-xs text-gray-500 mr-1">{expandedRow === idx ? "▼" : "▶"}</span>
-        <span className="text-xs text-gray-500">{row.height > 0 ? `${row.height}vh` : "自動"} / {row.fontSize}vh</span>
-        <button type="button" onClick={(e) => { e.stopPropagation(); onRemoveRow(idx); }} className="text-gray-500 hover:text-red-400 text-sm px-1" title="削除">×</button>
+        <span className="text-xs text-gray-500">
+          {row.height > 0 ? `${row.height}vh` : "自動"} / {row.fontSize}vh
+        </span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemoveRow(idx);
+          }}
+          className="text-gray-500 hover:text-red-400 text-sm px-1"
+          title="削除"
+        >
+          ×
+        </button>
       </div>
       {expandedRow === idx && <RowDetailPanel row={row} idx={idx} onUpdateRow={onUpdateRow} />}
     </div>
   );
 }
 
-function RowDetailPanel({ row, idx, onUpdateRow }: { row: LayoutRow; idx: number; onUpdateRow: (idx: number, patch: Partial<LayoutRow>) => void }) {
+function RowDetailPanel({
+  row,
+  idx,
+  onUpdateRow,
+}: {
+  row: LayoutRow;
+  idx: number;
+  onUpdateRow: (idx: number, patch: Partial<LayoutRow>) => void;
+}) {
   return (
     <div className="px-3 pb-3 pt-1 border-t border-gray-700 space-y-3">
-      <SliderField label="高さ" value={row.height} max={80} unit="vh" extra={row.height === 0 ? "(自動)" : undefined} onChange={(v) => onUpdateRow(idx, { height: v })} />
-      <SliderField label="フォント" value={row.fontSize} max={100} step={0.5} unit="vh" onChange={(v) => onUpdateRow(idx, { fontSize: v })} />
+      <SliderField
+        label="高さ"
+        value={row.height}
+        max={80}
+        unit="vh"
+        extra={row.height === 0 ? "(自動)" : undefined}
+        onChange={(v) => onUpdateRow(idx, { height: v })}
+      />
+      <SliderField
+        label="フォント"
+        value={row.fontSize}
+        max={100}
+        step={0.5}
+        unit="vh"
+        onChange={(v) => onUpdateRow(idx, { fontSize: v })}
+      />
       <div className="flex items-center gap-2">
         <span className="text-xs text-gray-400 w-20 shrink-0">水平揃え</span>
         <div className="grid grid-cols-3 gap-1">
-          <AlignButton current={row.align} value="left" label="左" onChange={(v) => onUpdateRow(idx, { align: v as LayoutAlignment })} />
-          <AlignButton current={row.align} value="center" label="中" onChange={(v) => onUpdateRow(idx, { align: v as LayoutAlignment })} />
-          <AlignButton current={row.align} value="right" label="右" onChange={(v) => onUpdateRow(idx, { align: v as LayoutAlignment })} />
+          <AlignButton
+            current={row.align}
+            value="left"
+            label="左"
+            onChange={(v) => onUpdateRow(idx, { align: v as LayoutAlignment })}
+          />
+          <AlignButton
+            current={row.align}
+            value="center"
+            label="中"
+            onChange={(v) => onUpdateRow(idx, { align: v as LayoutAlignment })}
+          />
+          <AlignButton
+            current={row.align}
+            value="right"
+            label="右"
+            onChange={(v) => onUpdateRow(idx, { align: v as LayoutAlignment })}
+          />
         </div>
       </div>
       <div className="flex items-center gap-2">
         <span className="text-xs text-gray-400 w-20 shrink-0">垂直揃え</span>
         <div className="grid grid-cols-3 gap-1">
-          <AlignButton current={row.verticalAlign} value="top" label="上" onChange={(v) => onUpdateRow(idx, { verticalAlign: v as LayoutVerticalAlign })} />
-          <AlignButton current={row.verticalAlign} value="middle" label="中" onChange={(v) => onUpdateRow(idx, { verticalAlign: v as LayoutVerticalAlign })} />
-          <AlignButton current={row.verticalAlign} value="bottom" label="下" onChange={(v) => onUpdateRow(idx, { verticalAlign: v as LayoutVerticalAlign })} />
+          <AlignButton
+            current={row.verticalAlign}
+            value="top"
+            label="上"
+            onChange={(v) => onUpdateRow(idx, { verticalAlign: v as LayoutVerticalAlign })}
+          />
+          <AlignButton
+            current={row.verticalAlign}
+            value="middle"
+            label="中"
+            onChange={(v) => onUpdateRow(idx, { verticalAlign: v as LayoutVerticalAlign })}
+          />
+          <AlignButton
+            current={row.verticalAlign}
+            value="bottom"
+            label="下"
+            onChange={(v) => onUpdateRow(idx, { verticalAlign: v as LayoutVerticalAlign })}
+          />
         </div>
       </div>
       {row.type === "scores" && <ScoresRowExtra row={row} idx={idx} onUpdateRow={onUpdateRow} />}
@@ -515,28 +1041,90 @@ function RowDetailPanel({ row, idx, onUpdateRow }: { row: LayoutRow; idx: number
   );
 }
 
-function SliderField({ label, value, max, step, unit, extra, onChange }: { label: string; value: number; max: number; step?: number; unit: string; extra?: string; onChange: (v: number) => void }) {
+function SliderField({
+  label,
+  value,
+  max,
+  step,
+  unit,
+  extra,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  step?: number;
+  unit: string;
+  extra?: string;
+  onChange: (v: number) => void;
+}) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-xs text-gray-400 w-20 shrink-0">{label}</span>
-      <input type="range" min={0} max={max} step={step ?? 1} value={value} onChange={(e) => onChange(Number(e.target.value))} className="flex-1 accent-blue-500" />
-      <input type="number" min={0} max={max} step={step ?? 1} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right" />
+      <input
+        type="range"
+        min={0}
+        max={max}
+        step={step ?? 1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="flex-1 accent-blue-500"
+      />
+      <input
+        type="number"
+        min={0}
+        max={max}
+        step={step ?? 1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-16 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-right"
+      />
       <span className="text-xs text-gray-500">{unit}</span>
       {extra && <span className="text-xs text-blue-400">{extra}</span>}
     </div>
   );
 }
 
-function ScoresRowExtra({ row, idx, onUpdateRow }: { row: LayoutRow; idx: number; onUpdateRow: (idx: number, patch: Partial<LayoutRow>) => void }) {
+function ScoresRowExtra({
+  row,
+  idx,
+  onUpdateRow,
+}: {
+  row: LayoutRow;
+  idx: number;
+  onUpdateRow: (idx: number, patch: Partial<LayoutRow>) => void;
+}) {
   return (
     <>
-      <SliderField label="副フォント" value={row.subFontSize ?? 6} max={100} step={0.5} unit="vh" onChange={(v) => onUpdateRow(idx, { subFontSize: v })} />
+      <SliderField
+        label="副フォント"
+        value={row.subFontSize ?? 6}
+        max={100}
+        step={0.5}
+        unit="vh"
+        onChange={(v) => onUpdateRow(idx, { subFontSize: v })}
+      />
       <div className="flex items-center gap-2">
         <span className="text-xs text-gray-400 w-20 shrink-0">副揃え</span>
         <div className="grid grid-cols-3 gap-1">
-          <AlignButton current={row.subAlign ?? "center"} value="left" label="左" onChange={(v) => onUpdateRow(idx, { subAlign: v as LayoutAlignment })} />
-          <AlignButton current={row.subAlign ?? "center"} value="center" label="中" onChange={(v) => onUpdateRow(idx, { subAlign: v as LayoutAlignment })} />
-          <AlignButton current={row.subAlign ?? "center"} value="right" label="右" onChange={(v) => onUpdateRow(idx, { subAlign: v as LayoutAlignment })} />
+          <AlignButton
+            current={row.subAlign ?? "center"}
+            value="left"
+            label="左"
+            onChange={(v) => onUpdateRow(idx, { subAlign: v as LayoutAlignment })}
+          />
+          <AlignButton
+            current={row.subAlign ?? "center"}
+            value="center"
+            label="中"
+            onChange={(v) => onUpdateRow(idx, { subAlign: v as LayoutAlignment })}
+          />
+          <AlignButton
+            current={row.subAlign ?? "center"}
+            value="right"
+            label="右"
+            onChange={(v) => onUpdateRow(idx, { subAlign: v as LayoutAlignment })}
+          />
         </div>
       </div>
     </>
@@ -547,8 +1135,16 @@ function ScoresRowExtra({ row, idx, onUpdateRow }: { row: LayoutRow; idx: number
 // TimerPreview
 // ══════════════════════════════════════════════════════════════
 
-function TimerPreview({ editing, layout, previewRef, vhToPx }: {
-  editing: EditablePreset; layout: LayoutConfig; previewRef: React.RefObject<HTMLDivElement | null>; vhToPx: (vh: number) => number;
+function TimerPreview({
+  editing,
+  layout,
+  previewRef,
+  vhToPx,
+}: {
+  editing: EditablePreset;
+  layout: LayoutConfig;
+  previewRef: React.RefObject<HTMLDivElement | null>;
+  vhToPx: (vh: number) => number;
 }) {
   const bgColor = editing.theme_bg_color ?? "#000000";
   const timerColor = editing.theme_timer_color ?? "#00FF00";
@@ -559,60 +1155,177 @@ function TimerPreview({ editing, layout, previewRef, vhToPx }: {
   const totalFixedVh = layout.rows.reduce((s, r) => s + r.height, 0);
   const flexCount = layout.rows.filter((r) => r.height === 0).length;
   const flexVh = flexCount > 0 ? Math.max(0, 100 - totalFixedVh) / flexCount : 0;
-  const alignStyle = (a: LayoutAlignment): React.CSSProperties => ({ justifyContent: a === "left" ? "flex-start" : a === "right" ? "flex-end" : "center" });
-  const vAlignStyle = (v: LayoutVerticalAlign): React.CSSProperties => ({ alignItems: v === "top" ? "flex-start" : v === "bottom" ? "flex-end" : "center" });
+  const alignStyle = (a: LayoutAlignment): React.CSSProperties => ({
+    justifyContent: a === "left" ? "flex-start" : a === "right" ? "flex-end" : "center",
+  });
+  const vAlignStyle = (v: LayoutVerticalAlign): React.CSSProperties => ({
+    alignItems: v === "top" ? "flex-start" : v === "bottom" ? "flex-end" : "center",
+  });
 
   return (
-    <div ref={previewRef} className="relative aspect-video overflow-hidden rounded" style={{ background: bgColor, fontFamily }}>
+    <div
+      ref={previewRef}
+      className="relative aspect-video overflow-hidden rounded"
+      style={{ background: bgColor, fontFamily }}
+    >
       <div className="absolute inset-0 flex flex-col" style={{ height: "100%" }}>
         {layout.rows.map((row, idx) => (
-          <PreviewRow key={idx} row={row} idx={idx} rowVh={row.height === 0 ? flexVh : row.height}
-            fsPx={vhToPx(row.fontSize)} borderTop={idx > 0 ? `${layout.dividerThickness}px solid ${dividerColor}` : "none"}
-            timerColor={timerColor} colorLeft={colorLeft} colorRight={colorRight} dividerColor={dividerColor}
-            dividerThickness={layout.dividerThickness} editing={editing} layout={layout}
-            alignStyle={alignStyle} vAlignStyle={vAlignStyle} scoreGap={layout.scoreGap} />
+          <PreviewRow
+            key={idx}
+            row={row}
+            idx={idx}
+            rowVh={row.height === 0 ? flexVh : row.height}
+            fsPx={vhToPx(row.fontSize)}
+            borderTop={idx > 0 ? `${layout.dividerThickness}px solid ${dividerColor}` : "none"}
+            timerColor={timerColor}
+            colorLeft={colorLeft}
+            colorRight={colorRight}
+            dividerColor={dividerColor}
+            dividerThickness={layout.dividerThickness}
+            editing={editing}
+            layout={layout}
+            alignStyle={alignStyle}
+            vAlignStyle={vAlignStyle}
+            scoreGap={layout.scoreGap}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function PreviewRow({ row, idx, rowVh, fsPx, borderTop, timerColor, colorLeft, colorRight, dividerColor, dividerThickness, editing, layout, alignStyle, vAlignStyle, scoreGap }: {
-  row: LayoutRow; idx: number; rowVh: number; fsPx: number; borderTop: string;
-  timerColor: string; colorLeft: string; colorRight: string; dividerColor: string; dividerThickness: number;
-  editing: EditablePreset; layout: LayoutConfig;
-  alignStyle: (a: LayoutAlignment) => React.CSSProperties; vAlignStyle: (v: LayoutVerticalAlign) => React.CSSProperties; scoreGap: number;
+function PreviewRow({
+  row,
+  idx,
+  rowVh,
+  fsPx,
+  borderTop,
+  timerColor,
+  colorLeft,
+  colorRight,
+  dividerColor,
+  dividerThickness,
+  editing,
+  layout,
+  alignStyle,
+  vAlignStyle,
+  scoreGap,
+}: {
+  row: LayoutRow;
+  idx: number;
+  rowVh: number;
+  fsPx: number;
+  borderTop: string;
+  timerColor: string;
+  colorLeft: string;
+  colorRight: string;
+  dividerColor: string;
+  dividerThickness: number;
+  editing: EditablePreset;
+  layout: LayoutConfig;
+  alignStyle: (a: LayoutAlignment) => React.CSSProperties;
+  vAlignStyle: (v: LayoutVerticalAlign) => React.CSSProperties;
+  scoreGap: number;
 }) {
-  const baseStyle = { height: `${rowVh}%`, borderTop, ...alignStyle(row.align), ...vAlignStyle(row.verticalAlign), padding: "0 4px" };
+  const baseStyle = {
+    height: `${rowVh}%`,
+    borderTop,
+    ...alignStyle(row.align),
+    ...vAlignStyle(row.verticalAlign),
+    padding: "0 4px",
+  };
 
   if (row.type === "timer") {
-    return <div key={idx} className="flex" style={baseStyle}><PreviewTimerDigits text={editing.theme_show_decimals ? "1:23.4" : "1:23"} style={{ color: timerColor, fontSize: `${fsPx}px` }} /></div>;
+    return (
+      <div key={idx} className="flex" style={baseStyle}>
+        <PreviewTimerDigits
+          text={editing.theme_show_decimals ? "1:23.4" : "1:23"}
+          style={{ color: timerColor, fontSize: `${fsPx}px` }}
+        />
+      </div>
+    );
   }
   if (row.type === "newaza") {
-    return <div key={idx} className="flex gap-1" style={baseStyle}><span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.5}px` }}>{layout.labelNewaza || "寝技"}</span><PreviewTimerDigits text="0:12" style={{ color: "rgb(34 211 238)", fontSize: `${fsPx}px` }} /></div>;
+    return (
+      <div key={idx} className="flex gap-1" style={baseStyle}>
+        <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.5}px` }}>
+          {layout.labelNewaza || "寝技"}
+        </span>
+        <PreviewTimerDigits text="0:12" style={{ color: "rgb(34 211 238)", fontSize: `${fsPx}px` }} />
+      </div>
+    );
   }
   if (row.type === "match_info") {
-    return <div key={idx} className="flex" style={baseStyle}><span className="text-gray-400" style={{ fontSize: `${fsPx}px` }}>A-1 第1試合</span></div>;
+    return (
+      <div key={idx} className="flex" style={baseStyle}>
+        <span className="text-gray-400" style={{ fontSize: `${fsPx}px` }}>
+          A-1 第1試合
+        </span>
+      </div>
+    );
   }
   if (row.type === "player_names") {
     return (
       <div key={idx} className="flex" style={{ ...baseStyle, gap: `${scoreGap}px` }}>
-        <div className="flex-1 flex" style={alignStyle(row.align)}><span className="font-bold" style={{ color: colorLeft, fontSize: `${fsPx}px` }}>山田 太郎</span></div>
-        <div className="flex-1 flex" style={alignStyle(row.align)}><span className="font-bold" style={{ color: colorRight, fontSize: `${fsPx}px` }}>鈴木 一郎</span></div>
+        <div className="flex-1 flex" style={alignStyle(row.align)}>
+          <span className="font-bold" style={{ color: colorLeft, fontSize: `${fsPx}px` }}>
+            山田 太郎
+          </span>
+        </div>
+        <div className="flex-1 flex" style={alignStyle(row.align)}>
+          <span className="font-bold" style={{ color: colorRight, fontSize: `${fsPx}px` }}>
+            鈴木 一郎
+          </span>
+        </div>
       </div>
     );
   }
   if (row.type === "scores") {
-    return <ScoresPreviewRow row={row} rowVh={rowVh} fsPx={fsPx} borderTop={borderTop} colorLeft={colorLeft} colorRight={colorRight} dividerColor={dividerColor} dividerThickness={dividerThickness} labelNewaza={layout.labelNewaza} showPoints={editing.show_points ?? true} showWazaari={editing.show_wazaari ?? false} />;
+    return (
+      <ScoresPreviewRow
+        row={row}
+        rowVh={rowVh}
+        fsPx={fsPx}
+        borderTop={borderTop}
+        colorLeft={colorLeft}
+        colorRight={colorRight}
+        dividerColor={dividerColor}
+        dividerThickness={dividerThickness}
+        labelNewaza={layout.labelNewaza}
+        showPoints={editing.show_points ?? true}
+        showWazaari={editing.show_wazaari ?? false}
+      />
+    );
   }
   return <div key={idx} style={{ height: `${rowVh}%`, borderTop }} />;
 }
 
 // ── ScoresPreviewRow ──
 
-function ScoresPreviewRow({ row: _row, rowVh, fsPx, borderTop, colorLeft, colorRight, dividerColor, dividerThickness, labelNewaza, showPoints, showWazaari }: {
-  row: LayoutRow; rowVh: number; fsPx: number; borderTop: string; colorLeft: string; colorRight: string;
-  dividerColor: string; dividerThickness: number; labelNewaza?: string; showPoints: boolean; showWazaari: boolean;
+function ScoresPreviewRow({
+  row: _row,
+  rowVh,
+  fsPx,
+  borderTop,
+  colorLeft,
+  colorRight,
+  dividerColor,
+  dividerThickness,
+  labelNewaza,
+  showPoints,
+  showWazaari,
+}: {
+  row: LayoutRow;
+  rowVh: number;
+  fsPx: number;
+  borderTop: string;
+  colorLeft: string;
+  colorRight: string;
+  dividerColor: string;
+  dividerThickness: number;
+  labelNewaza?: string;
+  showPoints: boolean;
+  showWazaari: boolean;
 }) {
   const bothVisible = showPoints && showWazaari;
   const mainFsPx = bothVisible ? fsPx * 0.67 : fsPx;
@@ -621,14 +1334,41 @@ function ScoresPreviewRow({ row: _row, rowVh, fsPx, borderTop, colorLeft, colorR
     <div className="flex" style={{ height: `${rowVh}%`, borderTop }}>
       <div className="flex-1 flex">
         <FoulColumn fsPx={fsPx} color={colorLeft} filledIndex={1} />
-        <ScoreColumn color={colorLeft} mainFsPx={mainFsPx} wazaariFsPx={wazaariFsPx} showPoints={showPoints} showWazaari={showWazaari} fsPx={fsPx} pointVal="3" wazaariVal="1" />
+        <ScoreColumn
+          color={colorLeft}
+          mainFsPx={mainFsPx}
+          wazaariFsPx={wazaariFsPx}
+          showPoints={showPoints}
+          showWazaari={showWazaari}
+          fsPx={fsPx}
+          pointVal="3"
+          wazaariVal="1"
+        />
       </div>
-      <div className="flex flex-col items-center justify-center" style={{ minWidth: `${fsPx * 1.2}px`, borderLeft: `${dividerThickness}px solid ${dividerColor}`, borderRight: `${dividerThickness}px solid ${dividerColor}` }}>
-        <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.2}px` }}>{labelNewaza || "寝技"}</span>
+      <div
+        className="flex flex-col items-center justify-center"
+        style={{
+          minWidth: `${fsPx * 1.2}px`,
+          borderLeft: `${dividerThickness}px solid ${dividerColor}`,
+          borderRight: `${dividerThickness}px solid ${dividerColor}`,
+        }}
+      >
+        <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.2}px` }}>
+          {labelNewaza || "寝技"}
+        </span>
         <PreviewTimerDigits text="0:12" style={{ color: "rgb(34 211 238)", fontSize: `${fsPx * 0.45}px` }} />
       </div>
       <div className="flex-1 flex">
-        <ScoreColumn color={colorRight} mainFsPx={mainFsPx} wazaariFsPx={wazaariFsPx} showPoints={showPoints} showWazaari={showWazaari} fsPx={fsPx} pointVal="1" wazaariVal="0" />
+        <ScoreColumn
+          color={colorRight}
+          mainFsPx={mainFsPx}
+          wazaariFsPx={wazaariFsPx}
+          showPoints={showPoints}
+          showWazaari={showWazaari}
+          fsPx={fsPx}
+          pointVal="1"
+          wazaariVal="0"
+        />
         <FoulColumn fsPx={fsPx} color="#1a1a2e" filledIndex={0} />
       </div>
     </div>
@@ -641,24 +1381,66 @@ function FoulColumn({ fsPx, color, filledIndex }: { fsPx: number; color: string;
   const foulFs = Math.max(fsPx * 0.13, 3);
   return (
     <div className="flex flex-col items-center justify-center" style={{ padding: `0 ${fsPx * 0.05}px` }}>
-      <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.1}px` }}>反則</span>
+      <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.1}px` }}>
+        反則
+      </span>
       {[4, 3, 2, 1].map((n) => (
-        <div key={n} style={{ width: `${cellW}px`, height: `${cellH}px`, backgroundColor: n === filledIndex ? color : "#1a1a2e", border: "1px solid #333", display: "flex", alignItems: "center", justifyContent: "center", fontSize: `${foulFs}px`, color: n === filledIndex ? "#000" : "#555" }} />
+        <div
+          key={n}
+          style={{
+            width: `${cellW}px`,
+            height: `${cellH}px`,
+            backgroundColor: n === filledIndex ? color : "#1a1a2e",
+            border: "1px solid #333",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: `${foulFs}px`,
+            color: n === filledIndex ? "#000" : "#555",
+          }}
+        />
       ))}
     </div>
   );
 }
 
-function ScoreColumn({ color, mainFsPx, wazaariFsPx, showPoints, showWazaari, fsPx, pointVal, wazaariVal }: {
-  color: string; mainFsPx: number; wazaariFsPx: number; showPoints: boolean; showWazaari: boolean; fsPx: number; pointVal: string; wazaariVal: string;
+function ScoreColumn({
+  color,
+  mainFsPx,
+  wazaariFsPx,
+  showPoints,
+  showWazaari,
+  fsPx,
+  pointVal,
+  wazaariVal,
+}: {
+  color: string;
+  mainFsPx: number;
+  wazaariFsPx: number;
+  showPoints: boolean;
+  showWazaari: boolean;
+  fsPx: number;
+  pointVal: string;
+  wazaariVal: string;
 }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center">
-      {showPoints && <span className="font-bold tabular-nums leading-none" style={{ color, fontSize: `${mainFsPx}px` }}>{pointVal}</span>}
+      {showPoints && (
+        <span className="font-bold tabular-nums leading-none" style={{ color, fontSize: `${mainFsPx}px` }}>
+          {pointVal}
+        </span>
+      )}
       {showWazaari && (
-        <div className="flex items-baseline justify-center gap-0.5" style={{ marginTop: showPoints ? `${fsPx * 0.05}px` : undefined }}>
-          <span className="text-gray-500 font-bold" style={{ fontSize: `${wazaariFsPx * 0.35}px` }}>技</span>
-          <span className="font-bold tabular-nums leading-none" style={{ color, fontSize: `${wazaariFsPx}px` }}>{wazaariVal}</span>
+        <div
+          className="flex items-baseline justify-center gap-0.5"
+          style={{ marginTop: showPoints ? `${fsPx * 0.05}px` : undefined }}
+        >
+          <span className="text-gray-500 font-bold" style={{ fontSize: `${wazaariFsPx * 0.35}px` }}>
+            技
+          </span>
+          <span className="font-bold tabular-nums leading-none" style={{ color, fontSize: `${wazaariFsPx}px` }}>
+            {wazaariVal}
+          </span>
         </div>
       )}
     </div>
@@ -669,9 +1451,26 @@ function ScoreColumn({ color, mainFsPx, wazaariFsPx, showPoints, showWazaari, fs
 // BuzzerSoundSelector
 // ══════════════════════════════════════════════════════════════
 
-function BuzzerSoundSelector({ soundId, duration, repeat, customPath, presetId, onSoundChange, onDurationChange, onRepeatChange, onCustomPathChange }: {
-  soundId: string; duration: number; repeat: number; customPath: string | null; presetId: string | null;
-  onSoundChange: (id: string) => void; onDurationChange: (d: number) => void; onRepeatChange: (r: number) => void; onCustomPathChange: (path: string | null) => void;
+function BuzzerSoundSelector({
+  soundId,
+  duration,
+  repeat,
+  customPath,
+  presetId,
+  onSoundChange,
+  onDurationChange,
+  onRepeatChange,
+  onCustomPathChange,
+}: {
+  soundId: string;
+  duration: number;
+  repeat: number;
+  customPath: string | null;
+  presetId: string | null;
+  onSoundChange: (id: string) => void;
+  onDurationChange: (d: number) => void;
+  onRepeatChange: (r: number) => void;
+  onCustomPathChange: (path: string | null) => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -679,7 +1478,10 @@ function BuzzerSoundSelector({ soundId, duration, repeat, customPath, presetId, 
   async function handlePreview() {
     if (playing) return;
     setPlaying(true);
-    if (soundId === "custom" && customPath) { preloadCustomBuzzer(customPath); await new Promise((r) => setTimeout(r, 300)); }
+    if (soundId === "custom" && customPath) {
+      preloadCustomBuzzer(customPath);
+      await new Promise((r) => setTimeout(r, 300));
+    }
     await testBuzzer(soundId, duration, repeat);
     setTimeout(() => setPlaying(false), Math.max(duration * 1000 * repeat + 300 * (repeat - 1), 500));
   }
@@ -687,65 +1489,158 @@ function BuzzerSoundSelector({ soundId, duration, repeat, customPath, presetId, 
     const file = e.target.files?.[0];
     if (!file || !presetId) return;
     setUploading(true);
-    const formData = new FormData(); formData.append("file", file);
+    const formData = new FormData();
+    formData.append("file", file);
     const res = await fetch(`/api/admin/timer-presets/${presetId}/buzzer`, { method: "POST", body: formData });
-    if (res.ok) { const { url } = await res.json(); onCustomPathChange(url); } else { showToast("アップロードに失敗しました"); }
-    setUploading(false); e.target.value = "";
+    if (res.ok) {
+      const { url } = await res.json();
+      onCustomPathChange(url);
+    } else {
+      showToast("アップロードに失敗しました");
+    }
+    setUploading(false);
+    e.target.value = "";
   }
   async function handleDelete() {
     if (!presetId) return;
-    await fetch(`/api/admin/timer-presets/${presetId}/buzzer`, { method: "DELETE" }); onCustomPathChange(null);
+    await fetch(`/api/admin/timer-presets/${presetId}/buzzer`, { method: "DELETE" });
+    onCustomPathChange(null);
   }
 
   return (
     <div className="space-y-2">
-      <BuzzerControls soundId={soundId} duration={duration} repeat={repeat} playing={playing}
-        onSoundChange={onSoundChange} onDurationChange={onDurationChange} onRepeatChange={onRepeatChange} onPreview={() => void handlePreview()} />
+      <BuzzerControls
+        soundId={soundId}
+        duration={duration}
+        repeat={repeat}
+        playing={playing}
+        onSoundChange={onSoundChange}
+        onDurationChange={onDurationChange}
+        onRepeatChange={onRepeatChange}
+        onPreview={() => void handlePreview()}
+      />
       {soundId === "custom" && (
-        <BuzzerCustomSection customPath={customPath} presetId={presetId} uploading={uploading} playing={playing}
-          onPreview={() => void handlePreview()} onDelete={() => void handleDelete()} onUpload={(e) => void handleUpload(e)} />
+        <BuzzerCustomSection
+          customPath={customPath}
+          presetId={presetId}
+          uploading={uploading}
+          playing={playing}
+          onPreview={() => void handlePreview()}
+          onDelete={() => void handleDelete()}
+          onUpload={(e) => void handleUpload(e)}
+        />
       )}
     </div>
   );
 }
 
-function BuzzerControls({ soundId, duration, repeat, playing, onSoundChange, onDurationChange, onRepeatChange, onPreview }: {
-  soundId: string; duration: number; repeat: number; playing: boolean;
-  onSoundChange: (id: string) => void; onDurationChange: (d: number) => void; onRepeatChange: (r: number) => void; onPreview: () => void;
+function BuzzerControls({
+  soundId,
+  duration,
+  repeat,
+  playing,
+  onSoundChange,
+  onDurationChange,
+  onRepeatChange,
+  onPreview,
+}: {
+  soundId: string;
+  duration: number;
+  repeat: number;
+  playing: boolean;
+  onSoundChange: (id: string) => void;
+  onDurationChange: (d: number) => void;
+  onRepeatChange: (r: number) => void;
+  onPreview: () => void;
 }) {
   return (
     <div className="grid gap-2" style={{ gridTemplateColumns: "2fr 1fr 1fr" }}>
       <div className="min-w-0">
-        <label className="block text-xs text-gray-400 mb-1">ブザー音源</label>
+        <label htmlFor={`buzzer-sound-${soundId}`} className="block text-xs text-gray-400 mb-1">
+          ブザー音源
+        </label>
         <div className="flex gap-1">
-          <select value={soundId} onChange={(e) => onSoundChange(e.target.value)} className="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500">
+          <select
+            id={`buzzer-sound-${soundId}`}
+            value={soundId}
+            onChange={(e) => onSoundChange(e.target.value)}
+            className="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500"
+          >
             {SOUND_CATEGORIES.map((cat) => (
-              <optgroup key={cat} label={cat}>{BUILTIN_SOUNDS.filter((s) => s.category === cat).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</optgroup>
+              <optgroup key={cat} label={cat}>
+                {BUILTIN_SOUNDS.filter((s) => s.category === cat).map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
-            <optgroup label="その他"><option value="custom">カスタム音源</option></optgroup>
+            <optgroup label="その他">
+              <option value="custom">カスタム音源</option>
+            </optgroup>
           </select>
-          <button onClick={onPreview} disabled={playing} className="bg-gray-600 hover:bg-gray-500 disabled:opacity-50 text-white px-2 py-1 rounded text-sm transition shrink-0">{playing ? "..." : "▶"}</button>
+          <button
+            onClick={onPreview}
+            disabled={playing}
+            className="bg-gray-600 hover:bg-gray-500 disabled:opacity-50 text-white px-2 py-1 rounded text-sm transition shrink-0"
+          >
+            {playing ? "..." : "▶"}
+          </button>
         </div>
       </div>
       <div>
-        <label className="block text-xs text-gray-400 mb-1">鳴動秒数</label>
-        <select value={duration} onChange={(e) => onDurationChange(Number(e.target.value))} disabled={soundId === "custom" || soundId.endsWith("-double") || soundId.endsWith("-triple")} className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500 disabled:opacity-50">
-          {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0].map((v) => <option key={v} value={v}>{v}秒</option>)}
+        <label htmlFor={`buzzer-duration-${soundId}`} className="block text-xs text-gray-400 mb-1">
+          鳴動秒数
+        </label>
+        <select
+          id={`buzzer-duration-${soundId}`}
+          value={duration}
+          onChange={(e) => onDurationChange(Number(e.target.value))}
+          disabled={soundId === "custom" || soundId.endsWith("-double") || soundId.endsWith("-triple")}
+          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500 disabled:opacity-50"
+        >
+          {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0].map((v) => (
+            <option key={v} value={v}>
+              {v}秒
+            </option>
+          ))}
         </select>
       </div>
       <div>
-        <label className="block text-xs text-gray-400 mb-1">連続回数</label>
-        <select value={repeat} onChange={(e) => onRepeatChange(Number(e.target.value))} className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500">
-          <option value={1}>1回</option><option value={2}>2回</option><option value={3}>3回</option>
+        <label htmlFor={`buzzer-repeat-${soundId}`} className="block text-xs text-gray-400 mb-1">
+          連続回数
+        </label>
+        <select
+          id={`buzzer-repeat-${soundId}`}
+          value={repeat}
+          onChange={(e) => onRepeatChange(Number(e.target.value))}
+          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500"
+        >
+          <option value={1}>1回</option>
+          <option value={2}>2回</option>
+          <option value={3}>3回</option>
         </select>
       </div>
     </div>
   );
 }
 
-function BuzzerCustomSection({ customPath, presetId, uploading, playing, onPreview, onDelete, onUpload }: {
-  customPath: string | null; presetId: string | null; uploading: boolean; playing: boolean;
-  onPreview: () => void; onDelete: () => void; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+function BuzzerCustomSection({
+  customPath,
+  presetId,
+  uploading,
+  playing,
+  onPreview,
+  onDelete,
+  onUpload,
+}: {
+  customPath: string | null;
+  presetId: string | null;
+  uploading: boolean;
+  playing: boolean;
+  onPreview: () => void;
+  onDelete: () => void;
+  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
     <div className="bg-gray-900 rounded px-3 py-2 space-y-2">
@@ -753,14 +1648,27 @@ function BuzzerCustomSection({ customPath, presetId, uploading, playing, onPrevi
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-300 truncate flex-1">アップロード済み</span>
           <div className="flex gap-2 shrink-0">
-            <button onClick={onPreview} disabled={playing} className="text-xs text-blue-400 hover:text-blue-300">{playing ? "再生中..." : "試聴"}</button>
-            <button onClick={onDelete} className="text-xs text-red-400 hover:text-red-300">削除</button>
+            <button onClick={onPreview} disabled={playing} className="text-xs text-blue-400 hover:text-blue-300">
+              {playing ? "再生中..." : "試聴"}
+            </button>
+            <button onClick={onDelete} className="text-xs text-red-400 hover:text-red-300">
+              削除
+            </button>
           </div>
         </div>
       ) : presetId ? (
         <div>
-          <label className="block text-xs text-gray-400 mb-1">音源ファイル（MP3/WAV/OGG、2MB以内）</label>
-          <input type="file" accept="audio/mpeg,audio/wav,audio/ogg" onChange={onUpload} disabled={uploading} className="text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-700 file:text-gray-300 hover:file:bg-gray-600" />
+          <label htmlFor="buzzer-custom-upload" className="block text-xs text-gray-400 mb-1">
+            音源ファイル（MP3/WAV/OGG、2MB以内）
+          </label>
+          <input
+            id="buzzer-custom-upload"
+            type="file"
+            accept="audio/mpeg,audio/wav,audio/ogg"
+            onChange={onUpload}
+            disabled={uploading}
+            className="text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-700 file:text-gray-300 hover:file:bg-gray-600"
+          />
           {uploading && <p className="text-xs text-blue-400 mt-1">アップロード中...</p>}
         </div>
       ) : (

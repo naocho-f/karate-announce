@@ -420,17 +420,3 @@ export type Tenant = {
   created_at: string;
   updated_at: string;
 };
-
-export type TenantMember = {
-  tenant_id: string;
-  user_id: string;
-  role: "owner" | "admin";
-};
-
-export type AppUser = {
-  id: string;
-  email: string;
-  name: string;
-  is_platform_admin: boolean;
-  created_at: string;
-};

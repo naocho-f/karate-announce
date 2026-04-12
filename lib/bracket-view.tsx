@@ -116,9 +116,22 @@ function fighterNameClass(isWinner: boolean, isWithdrawn: boolean, fighterId: st
 }
 
 function fighterSlotClickHandler(props: FighterSlotProps): (() => void) | undefined {
-  const { fighterId, isWithdrawn, matchId, matchStatus, isCorrecting, timerControlActive, onSetWinner, onCorrectWinner, onCorrectionDone } = props;
+  const {
+    fighterId,
+    isWithdrawn,
+    matchId,
+    matchStatus,
+    isCorrecting,
+    timerControlActive,
+    onSetWinner,
+    onCorrectWinner,
+    onCorrectionDone,
+  } = props;
   if (isCorrecting && onCorrectWinner && fighterId && !isWithdrawn) {
-    return () => { onCorrectWinner(matchId, fighterId); onCorrectionDone(); };
+    return () => {
+      onCorrectWinner(matchId, fighterId);
+      onCorrectionDone();
+    };
   }
   if (matchStatus === "ongoing" && onSetWinner && fighterId && !isWithdrawn && !timerControlActive) {
     return () => onSetWinner(matchId, fighterId);
@@ -134,7 +147,10 @@ function WithdrawnToggleButton({ props }: { props: FighterSlotProps }) {
   return (
     <button
       className={`absolute right-1 top-1/2 -translate-y-1/2 text-[8px] px-1 py-0.5 rounded border transition ${isWithdrawn ? "border-red-600 bg-red-900/60 text-red-400 hover:bg-red-900" : "border-gray-600 text-gray-600 hover:border-red-500 hover:text-red-400"}`}
-      onClick={(e) => { e.stopPropagation(); onWithdrawnToggle(matchId, fighterId, entryId, !isWithdrawn); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onWithdrawnToggle(matchId, fighterId, entryId, !isWithdrawn);
+      }}
     >
       棄
     </button>
@@ -142,7 +158,8 @@ function WithdrawnToggleButton({ props }: { props: FighterSlotProps }) {
 }
 
 function FighterSlot(props: FighterSlotProps) {
-  const { name, aff, fighterId, isWinner, isWithdrawn, borderBottom, isRed, showResult, resultText, isCorrected } = props;
+  const { name, aff, fighterId, isWinner, isWithdrawn, borderBottom, isRed, showResult, resultText, isCorrected } =
+    props;
 
   return (
     <div
@@ -151,7 +168,9 @@ function FighterSlot(props: FighterSlotProps) {
       onClick={fighterSlotClickHandler(props)}
     >
       <div className="flex items-center gap-1 min-w-0 pr-7">
-        <span className={`shrink-0 text-[7px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center ${isRed ? "bg-red-700/80 text-red-100" : "bg-gray-500/60 text-gray-100"}`}>
+        <span
+          className={`shrink-0 text-[7px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center ${isRed ? "bg-red-700/80 text-red-100" : "bg-gray-500/60 text-gray-100"}`}
+        >
           {isRed ? "赤" : "白"}
         </span>
         {isWinner && <span className="text-green-400 text-[9px] shrink-0">▶</span>}
@@ -161,7 +180,8 @@ function FighterSlot(props: FighterSlotProps) {
       {aff && !isWithdrawn && <p className="truncate text-[9px] text-gray-500 leading-tight pl-4 pr-7">{aff}</p>}
       {showResult && resultText && (
         <p className="truncate text-[8px] text-green-400 leading-tight pl-4 pr-7">
-          {resultText}{isCorrected && <span className="text-yellow-400 ml-0.5">(訂正)</span>}
+          {resultText}
+          {isCorrected && <span className="text-yellow-400 ml-0.5">(訂正)</span>}
         </p>
       )}
       <WithdrawnToggleButton props={props} />
@@ -171,21 +191,62 @@ function FighterSlot(props: FighterSlotProps) {
 
 const FOOTER_BTN = "shrink-0 text-[9px] bg-gray-700 hover:bg-gray-600 px-1.5 py-0.5 rounded transition";
 
-function SwapButtons({ m, isDone, isOngoing, canSwap, onSwapWithNext, onSwapFighters }: {
-  m: BracketMatch; isDone: boolean; isOngoing: boolean; canSwap: boolean;
+function SwapButtons({
+  m,
+  isDone,
+  isOngoing,
+  canSwap,
+  onSwapWithNext,
+  onSwapFighters,
+}: {
+  m: BracketMatch;
+  isDone: boolean;
+  isOngoing: boolean;
+  canSwap: boolean;
   onSwapWithNext?: (round: number, matchId: string) => void;
   onSwapFighters?: (matchId: string) => void;
 }) {
   return (
     <>
-      {canSwap && <button onClick={(e) => { e.stopPropagation(); onSwapWithNext?.(m.round, m.id); }} className={`${FOOTER_BTN} ml-auto text-gray-500 hover:text-blue-400`}>↕次</button>}
-      {!isDone && !isOngoing && onSwapFighters && <button onClick={(e) => { e.stopPropagation(); onSwapFighters(m.id); }} title="赤・白（上下）を入れ替え" className={`${FOOTER_BTN} text-gray-500 hover:text-yellow-400`}>⇅赤白</button>}
+      {canSwap && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onSwapWithNext?.(m.round, m.id);
+          }}
+          className={`${FOOTER_BTN} ml-auto text-gray-500 hover:text-blue-400`}
+        >
+          ↕次
+        </button>
+      )}
+      {!isDone && !isOngoing && onSwapFighters && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onSwapFighters(m.id);
+          }}
+          title="赤・白（上下）を入れ替え"
+          className={`${FOOTER_BTN} text-gray-500 hover:text-yellow-400`}
+        >
+          ⇅赤白
+        </button>
+      )}
     </>
   );
 }
 
-function AnnounceButtons({ m, isDone, isOngoing, onReannounceStart, onReannounceWinner, onCorrectWinner, setCorrectionMatchId }: {
-  m: BracketMatch; isDone: boolean; isOngoing: boolean;
+function AnnounceButtons({
+  m,
+  isDone,
+  isOngoing,
+  onReannounceStart,
+  onReannounceWinner,
+  onCorrectWinner,
+  setCorrectionMatchId,
+}: {
+  m: BracketMatch;
+  isDone: boolean;
+  isOngoing: boolean;
   onReannounceStart?: (matchId: string) => void;
   onReannounceWinner?: (matchId: string) => void;
   onCorrectWinner?: (matchId: string, fighterId: string) => void;
@@ -193,15 +254,56 @@ function AnnounceButtons({ m, isDone, isOngoing, onReannounceStart, onReannounce
 }) {
   return (
     <>
-      {isOngoing && onReannounceStart && <button onClick={() => onReannounceStart(m.id)} title="試合開始アナウンスを再読み上げ" className={`${FOOTER_BTN} ml-auto text-gray-500 hover:text-blue-300`}>📢</button>}
-      {isDone && onReannounceWinner && <button onClick={() => onReannounceWinner(m.id)} title="勝者アナウンスを再読み上げ" className={`${FOOTER_BTN} text-gray-500 hover:text-blue-300`}>📢</button>}
-      {isDone && onCorrectWinner && <button onClick={() => setCorrectionMatchId(m.id)} title="勝者を訂正する" className={`${FOOTER_BTN} text-gray-500 hover:text-orange-400`}>訂正</button>}
+      {isOngoing && onReannounceStart && (
+        <button
+          onClick={() => onReannounceStart(m.id)}
+          title="試合開始アナウンスを再読み上げ"
+          className={`${FOOTER_BTN} ml-auto text-gray-500 hover:text-blue-300`}
+        >
+          📢
+        </button>
+      )}
+      {isDone && onReannounceWinner && (
+        <button
+          onClick={() => onReannounceWinner(m.id)}
+          title="勝者アナウンスを再読み上げ"
+          className={`${FOOTER_BTN} text-gray-500 hover:text-blue-300`}
+        >
+          📢
+        </button>
+      )}
+      {isDone && onCorrectWinner && (
+        <button
+          onClick={() => setCorrectionMatchId(m.id)}
+          title="勝者を訂正する"
+          className={`${FOOTER_BTN} text-gray-500 hover:text-orange-400`}
+        >
+          訂正
+        </button>
+      )}
     </>
   );
 }
 
-function MatchFooterButtons({ m, isOngoing, isDone, canSwap, isMuted, onSwapWithNext, onSwapFighters, onReannounceStart, onReannounceWinner, onCorrectWinner, onToggleMute, setCorrectionMatchId }: {
-  m: BracketMatch; isOngoing: boolean; isDone: boolean; canSwap: boolean; isMuted: boolean;
+function MatchFooterButtons({
+  m,
+  isOngoing,
+  isDone,
+  canSwap,
+  isMuted,
+  onSwapWithNext,
+  onSwapFighters,
+  onReannounceStart,
+  onReannounceWinner,
+  onCorrectWinner,
+  onToggleMute,
+  setCorrectionMatchId,
+}: {
+  m: BracketMatch;
+  isOngoing: boolean;
+  isDone: boolean;
+  canSwap: boolean;
+  isMuted: boolean;
   onSwapWithNext?: (round: number, matchId: string) => void;
   onSwapFighters?: (matchId: string) => void;
   onReannounceStart?: (matchId: string) => void;
@@ -213,10 +315,32 @@ function MatchFooterButtons({ m, isOngoing, isDone, canSwap, isMuted, onSwapWith
   return (
     <>
       {isOngoing && <span className="text-[9px] text-yellow-400 font-medium shrink-0">試合中</span>}
-      <SwapButtons m={m} isDone={isDone} isOngoing={isOngoing} canSwap={canSwap} onSwapWithNext={onSwapWithNext} onSwapFighters={onSwapFighters} />
-      <AnnounceButtons m={m} isDone={isDone} isOngoing={isOngoing} onReannounceStart={onReannounceStart} onReannounceWinner={onReannounceWinner} onCorrectWinner={onCorrectWinner} setCorrectionMatchId={setCorrectionMatchId} />
+      <SwapButtons
+        m={m}
+        isDone={isDone}
+        isOngoing={isOngoing}
+        canSwap={canSwap}
+        onSwapWithNext={onSwapWithNext}
+        onSwapFighters={onSwapFighters}
+      />
+      <AnnounceButtons
+        m={m}
+        isDone={isDone}
+        isOngoing={isOngoing}
+        onReannounceStart={onReannounceStart}
+        onReannounceWinner={onReannounceWinner}
+        onCorrectWinner={onCorrectWinner}
+        setCorrectionMatchId={setCorrectionMatchId}
+      />
       {!isDone && onToggleMute && (
-        <button onClick={(e) => { e.stopPropagation(); onToggleMute(m.id); }} title={isMuted ? "アナウンス OFF（クリックで ON）" : "アナウンス ON（クリックで OFF）"} className={`shrink-0 ml-auto text-[11px] leading-none px-1 py-0.5 rounded transition ${isMuted ? "text-gray-600 hover:text-gray-400" : "text-gray-400 hover:text-gray-200"}`}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleMute(m.id);
+          }}
+          title={isMuted ? "アナウンス OFF（クリックで ON）" : "アナウンス ON（クリックで OFF）"}
+          className={`shrink-0 ml-auto text-[11px] leading-none px-1 py-0.5 rounded transition ${isMuted ? "text-gray-600 hover:text-gray-400" : "text-gray-400 hover:text-gray-200"}`}
+        >
           {isMuted ? "🔇" : "🔊"}
         </button>
       )}
@@ -224,9 +348,19 @@ function MatchFooterButtons({ m, isOngoing, isDone, canSwap, isMuted, onSwapWith
   );
 }
 
-function matchCardBorder(m: BracketMatch, isCorrectingThis: boolean, isNextMatch: boolean, isDimmed: boolean, isNumberingMode: boolean, isByeMatch: boolean, assignedNum: number | undefined): string {
+function matchCardBorder(
+  m: BracketMatch,
+  isCorrectingThis: boolean,
+  isNextMatch: boolean,
+  isDimmed: boolean,
+  isNumberingMode: boolean,
+  isByeMatch: boolean,
+  assignedNum: number | undefined,
+): string {
   if (isNumberingMode && !isByeMatch) {
-    return assignedNum != null ? "border-blue-500 cursor-pointer" : "border-gray-500 hover:border-blue-400 cursor-pointer";
+    return assignedNum != null
+      ? "border-blue-500 cursor-pointer"
+      : "border-gray-500 hover:border-blue-400 cursor-pointer";
   }
   if (isCorrectingThis) return "border-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]";
   if (m.status === "done") return "border-green-800/70";
@@ -250,7 +384,19 @@ function matchLabelBadgeClass(isNextMatch: boolean, isOngoing: boolean, isDone: 
   return "bg-gray-700 text-gray-300";
 }
 
-function MatchCard({ m, cardLeft, cardTop, isCorrectingThis, isNextMatch, isDimmed, isNumberingMode, isByeMatch, assignedNum, onNumberClick, children }: {
+function MatchCard({
+  m,
+  cardLeft,
+  cardTop,
+  isCorrectingThis,
+  isNextMatch,
+  isDimmed,
+  isNumberingMode,
+  isByeMatch,
+  assignedNum,
+  onNumberClick,
+  children,
+}: {
   m: BracketMatch;
   cardLeft: (round: number) => number;
   cardTop: (round: number, pos: number) => number;
@@ -268,28 +414,59 @@ function MatchCard({ m, cardLeft, cardTop, isCorrectingThis, isNextMatch, isDimm
       id={`match-${m.id}`}
       className={`absolute border rounded-lg overflow-hidden transition-opacity ${matchCardBorder(m, isCorrectingThis, isNextMatch, isDimmed, isNumberingMode, isByeMatch, assignedNum)}`}
       onClick={isNumberingMode && !isByeMatch ? () => onNumberClick?.(m.id) : undefined}
-      style={{ left: cardLeft(m.round), top: cardTop(m.round, m.position), width: BRACKET_CARD_W, height: BRACKET_CARD_H }}
+      style={{
+        left: cardLeft(m.round),
+        top: cardTop(m.round, m.position),
+        width: BRACKET_CARD_W,
+        height: BRACKET_CARD_H,
+      }}
     >
       {children}
     </div>
   );
 }
 
-function NumberingOverlay({ isNumberingMode, isByeMatch, assignedNum }: { isNumberingMode: boolean; isByeMatch: boolean; assignedNum?: number }) {
+function NumberingOverlay({
+  isNumberingMode,
+  isByeMatch,
+  assignedNum,
+}: {
+  isNumberingMode: boolean;
+  isByeMatch: boolean;
+  assignedNum?: number;
+}) {
   if (!isNumberingMode || isByeMatch) return null;
   return (
     <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
       {assignedNum != null ? (
-        <span className="w-9 h-9 rounded-full bg-blue-600 text-white text-base font-bold flex items-center justify-center shadow-lg">{assignedNum}</span>
+        <span className="w-9 h-9 rounded-full bg-blue-600 text-white text-base font-bold flex items-center justify-center shadow-lg">
+          {assignedNum}
+        </span>
       ) : (
-        <span className="w-8 h-8 rounded-full border-2 border-dashed border-gray-500 text-gray-500 text-lg flex items-center justify-center">+</span>
+        <span className="w-8 h-8 rounded-full border-2 border-dashed border-gray-500 text-gray-500 text-lg flex items-center justify-center">
+          +
+        </span>
       )}
     </div>
   );
 }
 
-function StartOverlay({ isReady, isProcessing, isNextMatch, hasOngoingMatch, timerControlActive, matchId, onMatchClick }: {
-  isReady: boolean; isProcessing: boolean; isNextMatch: boolean; hasOngoingMatch: boolean; timerControlActive: boolean; matchId: string; onMatchClick?: (matchId: string) => void;
+function StartOverlay({
+  isReady,
+  isProcessing,
+  isNextMatch,
+  hasOngoingMatch,
+  timerControlActive,
+  matchId,
+  onMatchClick,
+}: {
+  isReady: boolean;
+  isProcessing: boolean;
+  isNextMatch: boolean;
+  hasOngoingMatch: boolean;
+  timerControlActive: boolean;
+  matchId: string;
+  onMatchClick?: (matchId: string) => void;
 }) {
   if (!isReady || !onMatchClick || isProcessing || timerControlActive) return null;
   if (!isNextMatch && hasOngoingMatch) return null;
@@ -306,17 +483,26 @@ function StartOverlay({ isReady, isProcessing, isNextMatch, hasOngoingMatch, tim
 }
 
 type BracketMatchCardProps = {
-  m: BracketMatch; maxRound: number;
-  nameMap: Record<string, string>; affiliationMap: Record<string, string>;
-  withdrawnIds?: Set<string>; fighterEntryMap?: Record<string, string>;
-  processingMatchIds?: Set<string>; mutedMatchIds?: Set<string>;
-  assignedNumbers?: Record<string, number>; nextMatchId?: string | null;
-  hasOngoingMatch: boolean; timerControlActive: boolean;
-  correctionMatchId: string | null; setCorrectionMatchId: (id: string | null) => void;
+  m: BracketMatch;
+  maxRound: number;
+  nameMap: Record<string, string>;
+  affiliationMap: Record<string, string>;
+  withdrawnIds?: Set<string>;
+  fighterEntryMap?: Record<string, string>;
+  processingMatchIds?: Set<string>;
+  mutedMatchIds?: Set<string>;
+  assignedNumbers?: Record<string, number>;
+  nextMatchId?: string | null;
+  hasOngoingMatch: boolean;
+  timerControlActive: boolean;
+  correctionMatchId: string | null;
+  setCorrectionMatchId: (id: string | null) => void;
   roundMatchIds: Record<number, string[]>;
   isBye: (m: BracketMatch) => boolean;
-  cardLeft: (round: number) => number; cardTop: (round: number, pos: number) => number;
-  onNumberClick?: (matchId: string) => void; onMatchClick?: (matchId: string) => void;
+  cardLeft: (round: number) => number;
+  cardTop: (round: number, pos: number) => number;
+  onNumberClick?: (matchId: string) => void;
+  onMatchClick?: (matchId: string) => void;
   onSetWinner?: (matchId: string, fighterId: string) => void;
   onCorrectWinner?: (matchId: string, fighterId: string) => void;
   onWithdrawnToggle?: (matchId: string, fighterId: string, entryId: string, withdrawn: boolean) => void;
@@ -327,24 +513,87 @@ type BracketMatchCardProps = {
   onToggleMute?: (matchId: string) => void;
 };
 
-function fighterName(fighterId: string | null, nameMap: Record<string, string>, round: number, position: number, slot: 0 | 1, maxRound: number): string {
+function fighterName(
+  fighterId: string | null,
+  nameMap: Record<string, string>,
+  round: number,
+  position: number,
+  slot: 0 | 1,
+  maxRound: number,
+): string {
   return fighterId ? (nameMap[fighterId] ?? "?") : pendingSlotLabel(round, position, slot, maxRound);
 }
 
-function BracketMatchCardFooter({ m, isCorrectingThis, isOngoing, isDone, isNextMatch, isNumberingMode, canSwap, isMuted, setCorrectionMatchId, onSwapWithNext, onSwapFighters, onReannounceStart, onReannounceWinner, onCorrectWinner, onToggleMute }: {
-  m: BracketMatch; isCorrectingThis: boolean; isOngoing: boolean; isDone: boolean; isNextMatch: boolean; isNumberingMode: boolean; canSwap: boolean; isMuted: boolean;
+function BracketMatchCardFooter({
+  m,
+  isCorrectingThis,
+  isOngoing,
+  isDone,
+  isNextMatch,
+  isNumberingMode,
+  canSwap,
+  isMuted,
+  setCorrectionMatchId,
+  onSwapWithNext,
+  onSwapFighters,
+  onReannounceStart,
+  onReannounceWinner,
+  onCorrectWinner,
+  onToggleMute,
+}: {
+  m: BracketMatch;
+  isCorrectingThis: boolean;
+  isOngoing: boolean;
+  isDone: boolean;
+  isNextMatch: boolean;
+  isNumberingMode: boolean;
+  canSwap: boolean;
+  isMuted: boolean;
   setCorrectionMatchId: (id: string | null) => void;
-  onSwapWithNext?: (round: number, matchId: string) => void; onSwapFighters?: (matchId: string) => void;
-  onReannounceStart?: (matchId: string) => void; onReannounceWinner?: (matchId: string) => void;
-  onCorrectWinner?: (matchId: string, fighterId: string) => void; onToggleMute?: (matchId: string) => void;
+  onSwapWithNext?: (round: number, matchId: string) => void;
+  onSwapFighters?: (matchId: string) => void;
+  onReannounceStart?: (matchId: string) => void;
+  onReannounceWinner?: (matchId: string) => void;
+  onCorrectWinner?: (matchId: string, fighterId: string) => void;
+  onToggleMute?: (matchId: string) => void;
 }) {
   return (
-    <div className={`flex items-center px-1.5 gap-1 border-t border-gray-600/50 ${footerBg(isCorrectingThis, isOngoing, isNextMatch)}`} style={{ height: BRACKET_FOOTER_H }}>
-      {m.match_label && !isCorrectingThis && !isNumberingMode && <span className={`shrink-0 text-[8px] font-bold px-1 py-0.5 rounded leading-none ${matchLabelBadgeClass(isNextMatch, isOngoing, isDone)}`}>{m.match_label}</span>}
+    <div
+      className={`flex items-center px-1.5 gap-1 border-t border-gray-600/50 ${footerBg(isCorrectingThis, isOngoing, isNextMatch)}`}
+      style={{ height: BRACKET_FOOTER_H }}
+    >
+      {m.match_label && !isCorrectingThis && !isNumberingMode && (
+        <span
+          className={`shrink-0 text-[8px] font-bold px-1 py-0.5 rounded leading-none ${matchLabelBadgeClass(isNextMatch, isOngoing, isDone)}`}
+        >
+          {m.match_label}
+        </span>
+      )}
       {isCorrectingThis ? (
-        <><span className="text-[9px] text-orange-400 font-medium truncate">タップで勝者を訂正</span><button onClick={() => setCorrectionMatchId(null)} className={`ml-auto ${FOOTER_BTN} text-gray-500 hover:text-gray-300`}>キャンセル</button></>
+        <>
+          <span className="text-[9px] text-orange-400 font-medium truncate">タップで勝者を訂正</span>
+          <button
+            onClick={() => setCorrectionMatchId(null)}
+            className={`ml-auto ${FOOTER_BTN} text-gray-500 hover:text-gray-300`}
+          >
+            キャンセル
+          </button>
+        </>
       ) : (
-        <MatchFooterButtons m={m} isOngoing={isOngoing} isDone={isDone} canSwap={canSwap} isMuted={isMuted} onSwapWithNext={onSwapWithNext} onSwapFighters={onSwapFighters} onReannounceStart={onReannounceStart} onReannounceWinner={onReannounceWinner} onCorrectWinner={onCorrectWinner} onToggleMute={onToggleMute} setCorrectionMatchId={setCorrectionMatchId} />
+        <MatchFooterButtons
+          m={m}
+          isOngoing={isOngoing}
+          isDone={isDone}
+          canSwap={canSwap}
+          isMuted={isMuted}
+          onSwapWithNext={onSwapWithNext}
+          onSwapFighters={onSwapFighters}
+          onReannounceStart={onReannounceStart}
+          onReannounceWinner={onReannounceWinner}
+          onCorrectWinner={onCorrectWinner}
+          onToggleMute={onToggleMute}
+          setCorrectionMatchId={setCorrectionMatchId}
+        />
       )}
     </div>
   );
@@ -373,39 +622,143 @@ function resolveMatchStatusFlags(m: BracketMatch) {
 }
 
 function resolveMatchFlags(m: BracketMatch, props: BracketMatchCardProps) {
-  const { processingMatchIds, mutedMatchIds, assignedNumbers, nextMatchId, hasOngoingMatch, onNumberClick, roundMatchIds, isBye: isByeFn, correctionMatchId, onSwapWithNext } = props;
+  const {
+    processingMatchIds,
+    mutedMatchIds,
+    assignedNumbers,
+    nextMatchId,
+    hasOngoingMatch,
+    onNumberClick,
+    roundMatchIds,
+    isBye: isByeFn,
+    correctionMatchId,
+    onSwapWithNext,
+  } = props;
   const status = resolveMatchStatusFlags(m);
   const isNumberingMode = !!onNumberClick;
   const isNextMatch = nextMatchId != null && m.id === nextMatchId;
   const roundList = roundMatchIds[m.round] ?? [];
   return {
     ...status,
-    isNumberingMode, isNextMatch,
+    isNumberingMode,
+    isNextMatch,
     isCorrectingThis: correctionMatchId === m.id,
     isProcessing: !!processingMatchIds?.has(m.id),
     isMuted: mutedMatchIds?.has(m.id) ?? false,
     isByeMatch: isByeFn(m),
     assignedNum: assignedNumbers?.[m.id],
-    isDimmed: status.isReady && !isNextMatch && !status.isOngoing && !status.isDone && !isNumberingMode && hasOngoingMatch,
+    isDimmed:
+      status.isReady && !isNextMatch && !status.isOngoing && !status.isDone && !isNumberingMode && hasOngoingMatch,
     canSwap: !status.isDone && !status.isOngoing && roundList.indexOf(m.id) < roundList.length - 1 && !!onSwapWithNext,
   };
 }
 
 function BracketMatchCard(props: BracketMatchCardProps) {
-  const { m, timerControlActive, setCorrectionMatchId, cardLeft, cardTop, onNumberClick, onMatchClick, onSetWinner, onCorrectWinner, onWithdrawnToggle, onSwapWithNext, onSwapFighters, onReannounceStart, onReannounceWinner, onToggleMute } = props;
+  const {
+    m,
+    timerControlActive,
+    setCorrectionMatchId,
+    cardLeft,
+    cardTop,
+    onNumberClick,
+    onMatchClick,
+    onSetWinner,
+    onCorrectWinner,
+    onWithdrawnToggle,
+    onSwapWithNext,
+    onSwapFighters,
+    onReannounceStart,
+    onReannounceWinner,
+    onToggleMute,
+  } = props;
   const flags = resolveMatchFlags(m, props);
   const f1 = resolveFighterData(m.fighter1_id, 0, m, props);
   const f2 = resolveFighterData(m.fighter2_id, 1, m, props);
-  const fighterBase = { matchId: m.id, matchStatus: m.status, timerControlActive, isCorrecting: flags.isCorrectingThis, resultText: flags.resultText, isCorrected: flags.isCorrected, onSetWinner, onCorrectWinner, onWithdrawnToggle, onCorrectionDone: () => setCorrectionMatchId(null) };
+  const fighterBase = {
+    matchId: m.id,
+    matchStatus: m.status,
+    timerControlActive,
+    isCorrecting: flags.isCorrectingThis,
+    resultText: flags.resultText,
+    isCorrected: flags.isCorrected,
+    onSetWinner,
+    onCorrectWinner,
+    onWithdrawnToggle,
+    onCorrectionDone: () => setCorrectionMatchId(null),
+  };
 
   return (
-    <MatchCard m={m} cardLeft={cardLeft} cardTop={cardTop} isCorrectingThis={flags.isCorrectingThis} isNextMatch={flags.isNextMatch} isDimmed={flags.isDimmed} isNumberingMode={flags.isNumberingMode} isByeMatch={flags.isByeMatch} assignedNum={flags.assignedNum} onNumberClick={onNumberClick}>
-      <FighterSlot {...fighterBase} name={f1.name} aff={f1.aff} fighterId={m.fighter1_id} isWinner={f1.isWinner} isWithdrawn={f1.isWithdrawn} entryId={f1.entryId} borderBottom isRed showResult={flags.isDone && !flags.isDraw && f1.isWinner} />
-      <FighterSlot {...fighterBase} name={f2.name} aff={f2.aff} fighterId={m.fighter2_id} isWinner={f2.isWinner} isWithdrawn={f2.isWithdrawn} entryId={f2.entryId} isRed={false} showResult={flags.isDone && !flags.isDraw && f2.isWinner} />
-      <NumberingOverlay isNumberingMode={flags.isNumberingMode} isByeMatch={flags.isByeMatch} assignedNum={flags.assignedNum} />
-      <StartOverlay isReady={flags.isReady} isProcessing={flags.isProcessing} isNextMatch={flags.isNextMatch} hasOngoingMatch={props.hasOngoingMatch} timerControlActive={timerControlActive} matchId={m.id} onMatchClick={onMatchClick} />
-      {flags.isProcessing && <div className="absolute inset-0 bg-gray-900/70 flex items-center justify-center z-10"><div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>}
-      <BracketMatchCardFooter m={m} isCorrectingThis={flags.isCorrectingThis} isOngoing={flags.isOngoing} isDone={flags.isDone} isNextMatch={flags.isNextMatch} isNumberingMode={flags.isNumberingMode} canSwap={flags.canSwap} isMuted={flags.isMuted} setCorrectionMatchId={setCorrectionMatchId} onSwapWithNext={onSwapWithNext} onSwapFighters={onSwapFighters} onReannounceStart={onReannounceStart} onReannounceWinner={onReannounceWinner} onCorrectWinner={onCorrectWinner} onToggleMute={onToggleMute} />
+    <MatchCard
+      m={m}
+      cardLeft={cardLeft}
+      cardTop={cardTop}
+      isCorrectingThis={flags.isCorrectingThis}
+      isNextMatch={flags.isNextMatch}
+      isDimmed={flags.isDimmed}
+      isNumberingMode={flags.isNumberingMode}
+      isByeMatch={flags.isByeMatch}
+      assignedNum={flags.assignedNum}
+      onNumberClick={onNumberClick}
+    >
+      <FighterSlot
+        {...fighterBase}
+        name={f1.name}
+        aff={f1.aff}
+        fighterId={m.fighter1_id}
+        isWinner={f1.isWinner}
+        isWithdrawn={f1.isWithdrawn}
+        entryId={f1.entryId}
+        borderBottom
+        isRed
+        showResult={flags.isDone && !flags.isDraw && f1.isWinner}
+      />
+      <FighterSlot
+        {...fighterBase}
+        name={f2.name}
+        aff={f2.aff}
+        fighterId={m.fighter2_id}
+        isWinner={f2.isWinner}
+        isWithdrawn={f2.isWithdrawn}
+        entryId={f2.entryId}
+        isRed={false}
+        showResult={flags.isDone && !flags.isDraw && f2.isWinner}
+      />
+      <NumberingOverlay
+        isNumberingMode={flags.isNumberingMode}
+        isByeMatch={flags.isByeMatch}
+        assignedNum={flags.assignedNum}
+      />
+      <StartOverlay
+        isReady={flags.isReady}
+        isProcessing={flags.isProcessing}
+        isNextMatch={flags.isNextMatch}
+        hasOngoingMatch={props.hasOngoingMatch}
+        timerControlActive={timerControlActive}
+        matchId={m.id}
+        onMatchClick={onMatchClick}
+      />
+      {flags.isProcessing && (
+        <div className="absolute inset-0 bg-gray-900/70 flex items-center justify-center z-10">
+          <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+      <BracketMatchCardFooter
+        m={m}
+        isCorrectingThis={flags.isCorrectingThis}
+        isOngoing={flags.isOngoing}
+        isDone={flags.isDone}
+        isNextMatch={flags.isNextMatch}
+        isNumberingMode={flags.isNumberingMode}
+        canSwap={flags.canSwap}
+        isMuted={flags.isMuted}
+        setCorrectionMatchId={setCorrectionMatchId}
+        onSwapWithNext={onSwapWithNext}
+        onSwapFighters={onSwapFighters}
+        onReannounceStart={onReannounceStart}
+        onReannounceWinner={onReannounceWinner}
+        onCorrectWinner={onCorrectWinner}
+        onToggleMute={onToggleMute}
+      />
     </MatchCard>
   );
 }
@@ -414,11 +767,15 @@ function BracketLegend() {
   return (
     <div className="flex items-center gap-3 mb-2 text-[10px] text-gray-500">
       <span className="flex items-center gap-1">
-        <span className="w-3.5 h-3.5 rounded-full bg-red-700/80 text-red-100 text-[7px] font-bold flex items-center justify-center">赤</span>
+        <span className="w-3.5 h-3.5 rounded-full bg-red-700/80 text-red-100 text-[7px] font-bold flex items-center justify-center">
+          赤
+        </span>
         上の選手（赤）
       </span>
       <span className="flex items-center gap-1">
-        <span className="w-3.5 h-3.5 rounded-full bg-gray-500/60 text-gray-100 text-[7px] font-bold flex items-center justify-center">白</span>
+        <span className="w-3.5 h-3.5 rounded-full bg-gray-500/60 text-gray-100 text-[7px] font-bold flex items-center justify-center">
+          白
+        </span>
         下の選手（白）
       </span>
     </div>
@@ -429,7 +786,11 @@ function RoundHeaders({ maxRound, totalWidth }: { maxRound: number; totalWidth: 
   return (
     <div className="flex mb-2" style={{ width: totalWidth }}>
       {Array.from({ length: maxRound }, (_, i) => i + 1).map((round) => (
-        <div key={round} className="text-xs text-gray-400 text-center shrink-0" style={{ width: round === maxRound ? BRACKET_CARD_W : BRACKET_COL_W }}>
+        <div
+          key={round}
+          className="text-xs text-gray-400 text-center shrink-0"
+          style={{ width: round === maxRound ? BRACKET_CARD_W : BRACKET_COL_W }}
+        >
           {roundLabel(round, maxRound)}
         </div>
       ))}
@@ -437,11 +798,30 @@ function RoundHeaders({ maxRound, totalWidth }: { maxRound: number; totalWidth: 
   );
 }
 
-function ConnectorLines({ connectors, totalWidth, totalHeight }: { connectors: { x1: number; y1: number; x2: number; y2: number; xMid: number; key: string }[]; totalWidth: number; totalHeight: number }) {
+function ConnectorLines({
+  connectors,
+  totalWidth,
+  totalHeight,
+}: {
+  connectors: { x1: number; y1: number; x2: number; y2: number; xMid: number; key: string }[];
+  totalWidth: number;
+  totalHeight: number;
+}) {
   return (
-    <svg className="absolute inset-0 pointer-events-none" width={totalWidth} height={totalHeight} style={{ overflow: "visible" }}>
+    <svg
+      className="absolute inset-0 pointer-events-none"
+      width={totalWidth}
+      height={totalHeight}
+      style={{ overflow: "visible" }}
+    >
       {connectors.map((c) => (
-        <path key={c.key} d={`M ${c.x1} ${c.y1} H ${c.xMid} V ${c.y2} H ${c.x2}`} fill="none" stroke="#4b5563" strokeWidth={1.5} />
+        <path
+          key={c.key}
+          d={`M ${c.x1} ${c.y1} H ${c.xMid} V ${c.y2} H ${c.x2}`}
+          fill="none"
+          stroke="#4b5563"
+          strokeWidth={1.5}
+        />
       ))}
     </svg>
   );
@@ -550,7 +930,37 @@ export function BracketView({
       <div className="relative" style={{ width: totalWidth, height: totalHeight }}>
         <ConnectorLines connectors={connectors} totalWidth={totalWidth} totalHeight={totalHeight} />
         {matches.map((m) => (
-          <BracketMatchCard key={m.id} m={m} maxRound={maxRound} nameMap={nameMap} affiliationMap={affiliationMap} withdrawnIds={withdrawnIds} fighterEntryMap={fighterEntryMap} processingMatchIds={processingMatchIds} mutedMatchIds={mutedMatchIds} assignedNumbers={assignedNumbers} nextMatchId={nextMatchId} hasOngoingMatch={hasOngoingMatch} timerControlActive={timerControlActive} correctionMatchId={correctionMatchId} setCorrectionMatchId={setCorrectionMatchId} roundMatchIds={roundMatchIds} isBye={isBye} cardLeft={cardLeft} cardTop={cardTop} onNumberClick={onNumberClick} onMatchClick={onMatchClick} onSetWinner={onSetWinner} onCorrectWinner={onCorrectWinner} onWithdrawnToggle={onWithdrawnToggle} onSwapWithNext={onSwapWithNext} onSwapFighters={onSwapFighters} onReannounceStart={onReannounceStart} onReannounceWinner={onReannounceWinner} onToggleMute={onToggleMute} />
+          <BracketMatchCard
+            key={m.id}
+            m={m}
+            maxRound={maxRound}
+            nameMap={nameMap}
+            affiliationMap={affiliationMap}
+            withdrawnIds={withdrawnIds}
+            fighterEntryMap={fighterEntryMap}
+            processingMatchIds={processingMatchIds}
+            mutedMatchIds={mutedMatchIds}
+            assignedNumbers={assignedNumbers}
+            nextMatchId={nextMatchId}
+            hasOngoingMatch={hasOngoingMatch}
+            timerControlActive={timerControlActive}
+            correctionMatchId={correctionMatchId}
+            setCorrectionMatchId={setCorrectionMatchId}
+            roundMatchIds={roundMatchIds}
+            isBye={isBye}
+            cardLeft={cardLeft}
+            cardTop={cardTop}
+            onNumberClick={onNumberClick}
+            onMatchClick={onMatchClick}
+            onSetWinner={onSetWinner}
+            onCorrectWinner={onCorrectWinner}
+            onWithdrawnToggle={onWithdrawnToggle}
+            onSwapWithNext={onSwapWithNext}
+            onSwapFighters={onSwapFighters}
+            onReannounceStart={onReannounceStart}
+            onReannounceWinner={onReannounceWinner}
+            onToggleMute={onToggleMute}
+          />
         ))}
       </div>
     </div>

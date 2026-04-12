@@ -79,11 +79,7 @@ export function matchCountFilterPredicate(
  * - 学年ベース同士: gradeToNumber() で数値化して範囲比較
  * - 混在（学年エントリーに年齢フィルタ等）: age があれば年齢で比較
  */
-function matchAgeCategoryFilter(
-  entry: Entry,
-  minCat: AgeCategory | null,
-  maxCat: AgeCategory | null,
-): boolean {
+function matchAgeCategoryFilter(entry: Entry, minCat: AgeCategory | null, maxCat: AgeCategory | null): boolean {
   if (entry.age == null) return false;
   if (minCat && entry.age < minCat.minAge) return false;
   if (maxCat && maxCat.maxAge != null && entry.age > maxCat.maxAge) return false;

@@ -2,12 +2,7 @@
  * email-template.ts 単体テスト
  */
 import { describe, it, expect } from "vitest";
-import {
-  renderTemplate,
-  DEFAULT_SUBJECT,
-  DEFAULT_BODY,
-  buildEntryDetails,
-} from "@/lib/email-template";
+import { renderTemplate, DEFAULT_SUBJECT, DEFAULT_BODY, buildEntryDetails } from "@/lib/email-template";
 
 describe("email-template", () => {
   describe("renderTemplate", () => {

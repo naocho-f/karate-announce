@@ -41,8 +41,10 @@ function makeEntry(id: string, overrides?: Partial<Entry>): Entry {
 describe("computeBalance（computeSuggestions経由で検証）", () => {
   it("均等な分割は◎を返す", () => {
     const entries = [
-      makeEntry("1", { sex: "male" }), makeEntry("2", { sex: "male" }),
-      makeEntry("3", { sex: "female" }), makeEntry("4", { sex: "female" }),
+      makeEntry("1", { sex: "male" }),
+      makeEntry("2", { sex: "male" }),
+      makeEntry("3", { sex: "female" }),
+      makeEntry("4", { sex: "female" }),
     ];
     const result = computeSuggestions(entries);
     const sexSuggestion = result.find((s) => s.axis === "sex");

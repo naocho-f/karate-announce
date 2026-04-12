@@ -73,8 +73,11 @@ export function EmailSettingsPanel({ event, onUpdate }: { event: Event; onUpdate
         申込完了時に申込者へ確認メールを送信します。RESEND_API_KEY が未設定の場合、メールは送信されません。
       </p>
       <div className="space-y-1">
-        <label className="text-sm text-gray-400">管理者通知メールアドレス（BCC、1行1アドレス）</label>
+        <label htmlFor="email-notification-addrs" className="text-sm text-gray-400">
+          管理者通知メールアドレス（BCC、1行1アドレス）
+        </label>
         <textarea
+          id="email-notification-addrs"
           rows={3}
           className="w-full bg-gray-700 text-white text-sm rounded px-3 py-2 border border-gray-600"
           value={notificationEmails}
@@ -83,8 +86,11 @@ export function EmailSettingsPanel({ event, onUpdate }: { event: Event; onUpdate
         />
       </div>
       <div className="space-y-1">
-        <label className="text-sm text-gray-400">件名テンプレート</label>
+        <label htmlFor="email-subject-template" className="text-sm text-gray-400">
+          件名テンプレート
+        </label>
         <input
+          id="email-subject-template"
           type="text"
           className="w-full bg-gray-700 text-white text-sm rounded px-3 py-2 border border-gray-600"
           value={subjectTemplate}
@@ -93,8 +99,11 @@ export function EmailSettingsPanel({ event, onUpdate }: { event: Event; onUpdate
         />
       </div>
       <div className="space-y-1">
-        <label className="text-sm text-gray-400">会場情報</label>
+        <label htmlFor="email-venue-info" className="text-sm text-gray-400">
+          会場情報
+        </label>
         <textarea
+          id="email-venue-info"
           rows={3}
           className="w-full bg-gray-700 text-white text-sm rounded px-3 py-2 border border-gray-600"
           value={venueInfo}
@@ -103,8 +112,11 @@ export function EmailSettingsPanel({ event, onUpdate }: { event: Event; onUpdate
         />
       </div>
       <div className="space-y-1">
-        <label className="text-sm text-gray-400">本文テンプレート</label>
+        <label htmlFor="email-body-template" className="text-sm text-gray-400">
+          本文テンプレート
+        </label>
         <textarea
+          id="email-body-template"
           rows={12}
           className="w-full bg-gray-700 text-white text-sm rounded px-3 py-2 border border-gray-600 font-mono"
           value={bodyTemplate}

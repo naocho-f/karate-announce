@@ -9,24 +9,62 @@ function FixedGrades() {
     <div>
       <h3 className="text-sm font-medium text-gray-300 mb-2">固定区分（幼稚園〜中学）</h3>
       <div className="flex flex-wrap gap-2">
-        {FIXED_GRADE_OPTIONS.map((opt) => <span key={opt.value} className="px-2 py-1 bg-gray-700 rounded text-xs text-gray-300">{opt.label}</span>)}
+        {FIXED_GRADE_OPTIONS.map((opt) => (
+          <span key={opt.value} className="px-2 py-1 bg-gray-700 rounded text-xs text-gray-300">
+            {opt.label}
+          </span>
+        ))}
       </div>
-      <p className="text-xs text-gray-500 mt-1">これらの区分は固定です。エントリーフォームと対戦表フィルタで使用されます。</p>
+      <p className="text-xs text-gray-500 mt-1">
+        これらの区分は固定です。エントリーフォームと対戦表フィルタで使用されます。
+      </p>
     </div>
   );
 }
 
-const INP_CLASS = "bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500";
+const INP_CLASS =
+  "bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500";
 
-function CategoryRow({ cat, idx, onUpdate, onRemove }: { cat: AgeCategory; idx: number; onUpdate: (idx: number, field: keyof AgeCategory, value: string) => void; onRemove: (idx: number) => void }) {
+function CategoryRow({
+  cat,
+  idx,
+  onUpdate,
+  onRemove,
+}: {
+  cat: AgeCategory;
+  idx: number;
+  onUpdate: (idx: number, field: keyof AgeCategory, value: string) => void;
+  onRemove: (idx: number) => void;
+}) {
   return (
     <div className="flex items-center gap-2">
-      <input value={cat.label} onChange={(e) => onUpdate(idx, "label", e.target.value)} placeholder="ラベル（例: 一般）" className={`w-32 ${INP_CLASS}`} />
-      <input type="number" value={cat.minAge} onChange={(e) => onUpdate(idx, "minAge", e.target.value)} placeholder="最小年齢" min="0" className={`w-20 ${INP_CLASS}`} />
+      <input
+        value={cat.label}
+        onChange={(e) => onUpdate(idx, "label", e.target.value)}
+        placeholder="ラベル（例: 一般）"
+        className={`w-32 ${INP_CLASS}`}
+      />
+      <input
+        type="number"
+        value={cat.minAge}
+        onChange={(e) => onUpdate(idx, "minAge", e.target.value)}
+        placeholder="最小年齢"
+        min="0"
+        className={`w-20 ${INP_CLASS}`}
+      />
       <span className="text-xs text-gray-500">〜</span>
-      <input type="number" value={cat.maxAge ?? ""} onChange={(e) => onUpdate(idx, "maxAge", e.target.value)} placeholder="上限なし" min="0" className={`w-20 ${INP_CLASS}`} />
+      <input
+        type="number"
+        value={cat.maxAge ?? ""}
+        onChange={(e) => onUpdate(idx, "maxAge", e.target.value)}
+        placeholder="上限なし"
+        min="0"
+        className={`w-20 ${INP_CLASS}`}
+      />
       <span className="text-xs text-gray-500">歳</span>
-      <button onClick={() => onRemove(idx)} className="text-red-400 hover:text-red-300 text-sm px-1" title="削除">✕</button>
+      <button onClick={() => onRemove(idx)} className="text-red-400 hover:text-red-300 text-sm px-1" title="削除">
+        ✕
+      </button>
     </div>
   );
 }
@@ -109,16 +147,28 @@ export default function AgeCategoriesPanel() {
       <FixedGrades />
       <div>
         <h3 className="text-sm font-medium text-gray-300 mb-2">年齢ベース区分</h3>
-        <p className="text-xs text-gray-500 mb-3">高校生以上の年齢区分を設定します。ラベル・最小年齢・最大年齢を指定してください。</p>
+        <p className="text-xs text-gray-500 mb-3">
+          高校生以上の年齢区分を設定します。ラベル・最小年齢・最大年齢を指定してください。
+        </p>
         <div className="space-y-2">
-          {categories.map((cat, idx) => <CategoryRow key={idx} cat={cat} idx={idx} onUpdate={updateCategory} onRemove={removeCategory} />)}
+          {categories.map((cat, idx) => (
+            <CategoryRow key={idx} cat={cat} idx={idx} onUpdate={updateCategory} onRemove={removeCategory} />
+          ))}
         </div>
         <div className="flex gap-2 mt-3">
-          <button onClick={addCategory} className="text-sm text-blue-400 hover:text-blue-300">+ 区分を追加</button>
-          <button onClick={resetToDefaults} className="text-sm text-gray-400 hover:text-gray-300">デフォルトに戻す</button>
+          <button onClick={addCategory} className="text-sm text-blue-400 hover:text-blue-300">
+            + 区分を追加
+          </button>
+          <button onClick={resetToDefaults} className="text-sm text-gray-400 hover:text-gray-300">
+            デフォルトに戻す
+          </button>
         </div>
       </div>
-      <button onClick={() => void save()} disabled={saving} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-4 py-2 rounded text-sm font-medium transition">
+      <button
+        onClick={() => void save()}
+        disabled={saving}
+        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-4 py-2 rounded text-sm font-medium transition"
+      >
         {saving ? "保存中..." : saved ? "保存しました" : "保存"}
       </button>
     </div>

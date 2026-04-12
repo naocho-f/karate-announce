@@ -16,7 +16,15 @@ function OfflineBanner({ offlineMode }: { offlineMode: string }) {
   return (
     <div className="bg-blue-600 text-white text-center px-3 py-1 text-xs font-medium flex items-center justify-center gap-2">
       <span>オフラインモード</span>
-      <button onClick={() => { setMode("online"); flush().catch(() => {}); }} className="bg-blue-800 hover:bg-blue-900 px-2 py-0.5 rounded text-xs">オンラインに切り替え</button>
+      <button
+        onClick={() => {
+          setMode("online");
+          flush().catch(() => {});
+        }}
+        className="bg-blue-800 hover:bg-blue-900 px-2 py-0.5 rounded text-xs"
+      >
+        オンラインに切り替え
+      </button>
     </div>
   );
 }

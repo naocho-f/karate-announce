@@ -84,7 +84,10 @@ export async function linkEntryRules(entryId: string, ruleIds: string[]): Promis
 
 // ── 確認メール送信 ──
 
-async function resolveRuleNamesForEmail(extra: Record<string, unknown>, ruleIds: string[] | undefined): Promise<string[]> {
+async function resolveRuleNamesForEmail(
+  extra: Record<string, unknown>,
+  ruleIds: string[] | undefined,
+): Promise<string[]> {
   if (extra.rule_any === true) return [(extra.rule_any_label as string) || "どちらでも良い"];
   return fetchRuleNames(ruleIds);
 }
@@ -101,7 +104,11 @@ type FieldMapping = {
 };
 
 function applyFieldConfigs(
-  fieldConfigs: { field_key: string; custom_label: string | null; custom_choices: { value: string; label: string }[] | null }[],
+  fieldConfigs: {
+    field_key: string;
+    custom_label: string | null;
+    custom_choices: { value: string; label: string }[] | null;
+  }[],
   mapping: FieldMapping,
 ): void {
   for (const fc of fieldConfigs) {
@@ -130,7 +137,10 @@ async function buildFieldMappings(eventId: string): Promise<FieldMapping> {
   if (!formConfigId) return mapping;
 
   const [{ data: fieldConfigs }, { data: customDefs }] = await Promise.all([
-    supabaseAdmin.from("form_field_configs").select("field_key, custom_label, custom_choices").eq("form_config_id", formConfigId),
+    supabaseAdmin
+      .from("form_field_configs")
+      .select("field_key, custom_label, custom_choices")
+      .eq("form_config_id", formConfigId),
     supabaseAdmin.from("custom_field_defs").select("field_key, label, choices").eq("form_config_id", formConfigId),
   ]);
 

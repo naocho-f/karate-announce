@@ -107,4 +107,3 @@ export function buildEntryDetails(
   const lines = [...buildBasicLines(entry, ruleNames), ...buildExtraLines(entry, fieldLabels, fieldChoices)];
   return lines.join("\n");
 }
-

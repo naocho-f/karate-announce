@@ -22,7 +22,11 @@ function validateKana(values: Record<string, string>, errors: Record<string, str
   }
 }
 
-function validateConsents(notices: NoticeWithImages[], consents: Record<string, boolean>, errors: Record<string, string>) {
+function validateConsents(
+  notices: NoticeWithImages[],
+  consents: Record<string, boolean>,
+  errors: Record<string, string>,
+) {
   for (const n of notices) {
     if (n.require_consent && !consents[n.id]) {
       errors[`consent_${n.id}`] = `「${n.consent_label || "上記に同意します"}」にチェックしてください`;
@@ -30,7 +34,12 @@ function validateConsents(notices: NoticeWithImages[], consents: Record<string, 
   }
 }
 
-function validateEmail(visibleFields: VisibleField[], emailMismatch: boolean, emailConfirm: string, errors: Record<string, string>) {
+function validateEmail(
+  visibleFields: VisibleField[],
+  emailMismatch: boolean,
+  emailConfirm: string,
+  errors: Record<string, string>,
+) {
   if (emailMismatch) errors["email"] = "メールアドレスが一致しません";
   const emailField = visibleFields.find((f) => f.def.key === "email");
   if (emailField && emailField.config.required && emailField.def.hasConfirmInput && !emailConfirm.trim()) {
@@ -38,10 +47,24 @@ function validateEmail(visibleFields: VisibleField[], emailMismatch: boolean, em
   }
 }
 
-export function validateEntry({ visibleFields, isFieldFilled, emailMismatch, emailConfirm, ageConflict, values, consents, notices }: {
-  visibleFields: VisibleField[]; isFieldFilled: (config: FormFieldConfig, def: FieldPoolItem) => boolean;
-  emailMismatch: boolean; emailConfirm: string; ageConflict: string | null;
-  values: Record<string, string>; consents: Record<string, boolean>; notices: NoticeWithImages[];
+export function validateEntry({
+  visibleFields,
+  isFieldFilled,
+  emailMismatch,
+  emailConfirm,
+  ageConflict,
+  values,
+  consents,
+  notices,
+}: {
+  visibleFields: VisibleField[];
+  isFieldFilled: (config: FormFieldConfig, def: FieldPoolItem) => boolean;
+  emailMismatch: boolean;
+  emailConfirm: string;
+  ageConflict: string | null;
+  values: Record<string, string>;
+  consents: Record<string, boolean>;
+  notices: NoticeWithImages[];
 }): Record<string, string> {
   const errors: Record<string, string> = {};
   for (const { config, def } of visibleFields) {
@@ -55,9 +78,18 @@ export function validateEntry({ visibleFields, isFieldFilled, emailMismatch, ema
 }
 
 const COMPOSITE_MAPPINGS: Record<string, [string, string][]> = {
-  full_name: [["family_name", "family_name"], ["given_name", "given_name"]],
-  kana: [["family_name_reading", "family_name_reading"], ["given_name_reading", "given_name_reading"]],
-  organization: [["school_name", "organization"], ["school_name_reading", "organization_kana"]],
+  full_name: [
+    ["family_name", "family_name"],
+    ["given_name", "given_name"],
+  ],
+  kana: [
+    ["family_name_reading", "family_name_reading"],
+    ["given_name_reading", "given_name_reading"],
+  ],
+  organization: [
+    ["school_name", "organization"],
+    ["school_name_reading", "organization_kana"],
+  ],
 };
 const SKIP_KEYS = new Set(["organization_kana", "rule_preference"]);
 
@@ -71,8 +103,12 @@ function handleCompositeField(key: string, values: Record<string, string>, entry
 }
 
 function resolveFieldValue(
-  key: string, config: FormFieldConfig, def: FieldPoolItem,
-  values: Record<string, string>, multiValues: Record<string, Set<string>>, otherValues: Record<string, string>,
+  key: string,
+  config: FormFieldConfig,
+  def: FieldPoolItem,
+  values: Record<string, string>,
+  multiValues: Record<string, Set<string>>,
+  otherValues: Record<string, string>,
 ): unknown {
   if (def.type === "checkbox" && isSingleSelect(config)) return values[key]?.trim() || null;
   if (def.type === "checkbox") {
@@ -90,14 +126,29 @@ function computeAgeFromBirth(birthDate: string, eventDate: string | null): numbe
   const refDate = eventDate ? new Date(eventDate) : new Date();
   const birth = new Date(birthDate);
   let age = refDate.getFullYear() - birth.getFullYear();
-  const hasBday = refDate.getMonth() > birth.getMonth() || (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
+  const hasBday =
+    refDate.getMonth() > birth.getMonth() ||
+    (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
   if (!hasBday) age--;
   return age;
 }
 
-export function buildEntryPayload({ eventId, visibleFields, values, multiValues, otherValues, formConfig, event }: {
-  eventId: string; visibleFields: VisibleField[]; values: Record<string, string>; multiValues: Record<string, Set<string>>; otherValues: Record<string, string>;
-  formConfig: { version?: number } | null; event: { event_date: string | null } | null;
+export function buildEntryPayload({
+  eventId,
+  visibleFields,
+  values,
+  multiValues,
+  otherValues,
+  formConfig,
+  event,
+}: {
+  eventId: string;
+  visibleFields: VisibleField[];
+  values: Record<string, string>;
+  multiValues: Record<string, Set<string>>;
+  otherValues: Record<string, string>;
+  formConfig: { version?: number } | null;
+  event: { event_date: string | null } | null;
 }): Record<string, unknown> {
   const entry: Record<string, unknown> = { event_id: eventId };
   const extraFields: Record<string, unknown> = {};

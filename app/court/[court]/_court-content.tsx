@@ -25,31 +25,58 @@ function resolveMatchContext(match: Match, tournaments: Tournament[], matchesMap
 }
 
 function buildPrefetchText(
-  match: Match, fighters: Record<string, Fighter>, tournaments: Tournament[],
-  matchesMap: Record<string, Match[]>, announceTemplates: AnnounceTemplates, rulesReadingMap: Record<string, string>,
+  match: Match,
+  fighters: Record<string, Fighter>,
+  tournaments: Tournament[],
+  matchesMap: Record<string, Match[]>,
+  announceTemplates: AnnounceTemplates,
+  rulesReadingMap: Record<string, string>,
 ): string | null {
   const f1 = match.fighter1_id ? fighters[match.fighter1_id] : null;
   const f2 = match.fighter2_id ? fighters[match.fighter2_id] : null;
   if (!f1 || !f2) return null;
   const { rounds, rulesText } = resolveMatchContext(match, tournaments, matchesMap);
   return buildMatchStartText(
-    fighterFullName(f1), fighterAffiliation(f1), fighterFullName(f2), fighterAffiliation(f2),
-    roundName(match.round, rounds), fighterFullReading(f1), fighterAffReading(f1),
-    fighterFullReading(f2), fighterAffReading(f2),
-    match.match_label, rulesText, announceTemplates, rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
+    fighterFullName(f1),
+    fighterAffiliation(f1),
+    fighterFullName(f2),
+    fighterAffiliation(f2),
+    roundName(match.round, rounds),
+    fighterFullReading(f1),
+    fighterAffReading(f1),
+    fighterFullReading(f2),
+    fighterAffReading(f2),
+    match.match_label,
+    rulesText,
+    announceTemplates,
+    rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
   );
 }
 
 function usePrefetchNextMatchTts(
-  courtNextMatch: Match | null, fighters: Record<string, Fighter>, tournaments: Tournament[],
-  matchesMap: Record<string, Match[]>, announceTemplates: AnnounceTemplates, rulesReadingMap: Record<string, string>,
+  courtNextMatch: Match | null,
+  fighters: Record<string, Fighter>,
+  tournaments: Tournament[],
+  matchesMap: Record<string, Match[]>,
+  announceTemplates: AnnounceTemplates,
+  rulesReadingMap: Record<string, string>,
 ) {
   const prefetchedRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!courtNextMatch) { prefetchedRef.current = null; return; }
+    if (!courtNextMatch) {
+      prefetchedRef.current = null;
+      return;
+    }
     if (prefetchedRef.current === courtNextMatch.id) return;
     prefetchedRef.current = courtNextMatch.id;
-    const text = buildPrefetchText(courtNextMatch, fighters, tournaments, matchesMap, announceTemplates, rulesReadingMap);
+    const text = buildPrefetchText(
+      courtNextMatch,
+      fighters,
+      tournaments,
+      matchesMap,
+      announceTemplates,
+      rulesReadingMap,
+    );
     if (text) void prefetchTts(text);
   }, [courtNextMatch, fighters, tournaments, matchesMap, announceTemplates, rulesReadingMap]);
 }
@@ -131,22 +158,36 @@ export default function CourtContent({
   return (
     <div className="space-y-8">
       <CourtStatusBanner
-        timerControlActive={timerControlActive} courtAllDone={courtAllDone}
-        courtOngoing={courtOngoing} courtNextMatch={courtNextMatch} nameMap={nameMap}
+        timerControlActive={timerControlActive}
+        courtAllDone={courtAllDone}
+        courtOngoing={courtOngoing}
+        courtNextMatch={courtNextMatch}
+        nameMap={nameMap}
       />
       {tournaments.map((tournament) => {
         const matches = matchesMap[tournament.id] ?? [];
         return (
           <CourtTournamentSection
-            key={tournament.id} tournament={tournament} matches={matches}
-            nameMap={nameMap} affiliationMap={affiliationMap}
-            withdrawnFighterIds={withdrawnFighterIds} fighterEntryMap={fighterEntryMap}
-            processingMatchIds={processingMatchIds} mutedMatchIds={mutedMatchIds}
-            courtNextMatchId={courtNextMatch?.id ?? null} hasOngoingMatch={!!courtOngoing}
+            key={tournament.id}
+            tournament={tournament}
+            matches={matches}
+            nameMap={nameMap}
+            affiliationMap={affiliationMap}
+            withdrawnFighterIds={withdrawnFighterIds}
+            fighterEntryMap={fighterEntryMap}
+            processingMatchIds={processingMatchIds}
+            mutedMatchIds={mutedMatchIds}
+            courtNextMatchId={courtNextMatch?.id ?? null}
+            hasOngoingMatch={!!courtOngoing}
             timerControlActive={timerControlActive}
-            onStartMatch={onStartMatch} onSetWinner={onSetWinner} onCorrectWinner={onCorrectWinner}
-            onReannounceStart={onReannounceStart} onReannounceWinner={onReannounceWinner}
-            onToggleWithdrawal={onToggleWithdrawal} onSwapWithNext={onSwapWithNext} onToggleMute={onToggleMute}
+            onStartMatch={onStartMatch}
+            onSetWinner={onSetWinner}
+            onCorrectWinner={onCorrectWinner}
+            onReannounceStart={onReannounceStart}
+            onReannounceWinner={onReannounceWinner}
+            onToggleWithdrawal={onToggleWithdrawal}
+            onSwapWithNext={onSwapWithNext}
+            onToggleMute={onToggleMute}
           />
         );
       })}
@@ -154,8 +195,18 @@ export default function CourtContent({
   );
 }
 
-function CourtStatusBanner({ timerControlActive, courtAllDone, courtOngoing, courtNextMatch, nameMap }: {
-  timerControlActive: boolean; courtAllDone: boolean; courtOngoing: Match | null; courtNextMatch: Match | null; nameMap: Record<string, string>;
+function CourtStatusBanner({
+  timerControlActive,
+  courtAllDone,
+  courtOngoing,
+  courtNextMatch,
+  nameMap,
+}: {
+  timerControlActive: boolean;
+  courtAllDone: boolean;
+  courtOngoing: Match | null;
+  courtNextMatch: Match | null;
+  nameMap: Record<string, string>;
 }) {
   return (
     <>
@@ -182,48 +233,82 @@ function CourtStatusBanner({ timerControlActive, courtAllDone, courtOngoing, cou
   );
 }
 
-function MatchStatusBar({ match, nameMap, variant }: { match: Match; nameMap: Record<string, string>; variant: "ongoing" | "next" }) {
+function MatchStatusBar({
+  match,
+  nameMap,
+  variant,
+}: {
+  match: Match;
+  nameMap: Record<string, string>;
+  variant: "ongoing" | "next";
+}) {
   const isOngoing = variant === "ongoing";
   const bgClass = isOngoing ? "bg-yellow-950 border-yellow-700" : "bg-blue-950 border-blue-700";
-  const icon = isOngoing ? <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse shrink-0" /> : <span className="shrink-0 text-blue-400">▶</span>;
-  const label = isOngoing ? (match.match_label ? `${match.match_label} 試合中` : "試合中") : `次の試合${match.match_label ? `：${match.match_label}` : ""}`;
+  const icon = isOngoing ? (
+    <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse shrink-0" />
+  ) : (
+    <span className="shrink-0 text-blue-400">▶</span>
+  );
+  const label = isOngoing
+    ? match.match_label
+      ? `${match.match_label} 試合中`
+      : "試合中"
+    : `次の試合${match.match_label ? `：${match.match_label}` : ""}`;
   const labelColor = isOngoing ? "text-yellow-300" : "text-blue-200";
   const hintColor = isOngoing ? "text-yellow-600" : "text-blue-600";
   const nameColor = isOngoing ? "text-yellow-400" : "text-blue-300";
   const vsColor = isOngoing ? "text-yellow-700" : "text-blue-700";
   return (
-    <div className={`sticky top-0 z-20 ${bgClass} border rounded-xl px-4 py-3 cursor-pointer active:opacity-80 transition-opacity`}
-      onClick={() => { const el = document.getElementById(`match-${match.id}`); el?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>
+    <div
+      className={`sticky top-0 z-20 ${bgClass} border rounded-xl px-4 py-3 cursor-pointer active:opacity-80 transition-opacity`}
+      onClick={() => {
+        const el = document.getElementById(`match-${match.id}`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }}
+    >
       <div className="flex items-center gap-2 mb-1">
         {icon}
         <span className={`text-sm ${labelColor} font-medium`}>{label}</span>
         <span className={`ml-auto text-xs ${hintColor} shrink-0`}>タップで試合にジャンプ</span>
       </div>
       <p className={`text-xs ${nameColor} ${isOngoing ? "pl-4" : "pl-5"} truncate`}>
-        {match.fighter1_id ? nameMap[match.fighter1_id] : ""}<span className={`${vsColor} mx-1`}>vs</span>{match.fighter2_id ? nameMap[match.fighter2_id] : ""}
+        {match.fighter1_id ? nameMap[match.fighter1_id] : ""}
+        <span className={`${vsColor} mx-1`}>vs</span>
+        {match.fighter2_id ? nameMap[match.fighter2_id] : ""}
       </p>
     </div>
   );
 }
 
 function CourtTournamentSection(props: {
-  tournament: Tournament; matches: Match[];
-  nameMap: Record<string, string>; affiliationMap: Record<string, string>;
-  withdrawnFighterIds: Set<string>; fighterEntryMap: Record<string, string>;
-  processingMatchIds: Set<string>; mutedMatchIds: Set<string>;
-  courtNextMatchId: string | null; hasOngoingMatch: boolean; timerControlActive: boolean;
-  onStartMatch: (tId: string, mId: string) => void; onSetWinner: (tId: string, mId: string, wId: string) => void;
+  tournament: Tournament;
+  matches: Match[];
+  nameMap: Record<string, string>;
+  affiliationMap: Record<string, string>;
+  withdrawnFighterIds: Set<string>;
+  fighterEntryMap: Record<string, string>;
+  processingMatchIds: Set<string>;
+  mutedMatchIds: Set<string>;
+  courtNextMatchId: string | null;
+  hasOngoingMatch: boolean;
+  timerControlActive: boolean;
+  onStartMatch: (tId: string, mId: string) => void;
+  onSetWinner: (tId: string, mId: string, wId: string) => void;
   onCorrectWinner: (tId: string, mId: string, wId: string) => void;
-  onReannounceStart: (tId: string, mId: string) => void; onReannounceWinner: (tId: string, mId: string) => void;
+  onReannounceStart: (tId: string, mId: string) => void;
+  onReannounceWinner: (tId: string, mId: string) => void;
   onToggleWithdrawal: (mId: string, eId: string, w: boolean) => void;
-  onSwapWithNext: (tId: string, round: number, mId: string) => void; onToggleMute: (mId: string) => void;
+  onSwapWithNext: (tId: string, round: number, mId: string) => void;
+  onToggleMute: (mId: string) => void;
 }) {
   const { tournament: t, matches } = props;
   return (
     <div>
       <div className="flex items-center gap-3 mb-3">
         <h2 className="font-semibold text-lg">{t.name}</h2>
-        <span className={`text-xs px-2 py-0.5 rounded ${t.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"}`}>
+        <span
+          className={`text-xs px-2 py-0.5 rounded ${t.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"}`}
+        >
           {t.status === "ongoing" ? "進行中" : "準備中"}
         </span>
       </div>
@@ -232,10 +317,15 @@ function CourtTournamentSection(props: {
           <p className="text-sm text-gray-500">試合データなし</p>
         ) : (
           <BracketView
-            matches={matches} nameMap={props.nameMap} affiliationMap={props.affiliationMap}
-            withdrawnIds={props.withdrawnFighterIds} fighterEntryMap={props.fighterEntryMap}
-            processingMatchIds={props.processingMatchIds} mutedMatchIds={props.mutedMatchIds}
-            nextMatchId={props.courtNextMatchId} hasOngoingMatch={props.hasOngoingMatch}
+            matches={matches}
+            nameMap={props.nameMap}
+            affiliationMap={props.affiliationMap}
+            withdrawnIds={props.withdrawnFighterIds}
+            fighterEntryMap={props.fighterEntryMap}
+            processingMatchIds={props.processingMatchIds}
+            mutedMatchIds={props.mutedMatchIds}
+            nextMatchId={props.courtNextMatchId}
+            hasOngoingMatch={props.hasOngoingMatch}
             timerControlActive={props.timerControlActive}
             onMatchClick={(mId) => props.onStartMatch(t.id, mId)}
             onSetWinner={(mId, fId) => props.onSetWinner(t.id, mId, fId)}

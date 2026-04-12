@@ -101,33 +101,112 @@ function useBracketRulesData(eventId: string) {
   const [saving, setSaving] = useState(false);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const load = useCallback(async () => { setLoading(true); const res = await fetch(`/api/admin/bracket-rules?event_id=${eventId}`); if (res.ok) setBracketRules(await res.json()); setLoading(false); }, [eventId]);
-  useEffect(() => { void load(); }, [load]);
-  const startCreate = () => { setEditingId(null); setForm(emptyForm); setShowForm(true); };
-  const startEdit = (rule: BracketRule) => { setEditingId(rule.id); setForm(toFormState(rule)); setShowForm(true); };
-  const startDuplicate = (rule: BracketRule) => { setEditingId(null); setForm({ ...toFormState(rule), name: rule.name + "（コピー）" }); setShowForm(true); };
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch(`/api/admin/bracket-rules?event_id=${eventId}`);
+    if (res.ok) setBracketRules(await res.json());
+    setLoading(false);
+  }, [eventId]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  const startCreate = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setShowForm(true);
+  };
+  const startEdit = (rule: BracketRule) => {
+    setEditingId(rule.id);
+    setForm(toFormState(rule));
+    setShowForm(true);
+  };
+  const startDuplicate = (rule: BracketRule) => {
+    setEditingId(null);
+    setForm({ ...toFormState(rule), name: rule.name + "（コピー）" });
+    setShowForm(true);
+  };
   const handleSave = async () => {
-    if (!form.name.trim()) { showToast("名前を入力してください"); return; }
+    if (!form.name.trim()) {
+      showToast("名前を入力してください");
+      return;
+    }
     setSaving(true);
     try {
       const url = editingId ? `/api/admin/bracket-rules/${editingId}` : "/api/admin/bracket-rules";
       const method = editingId ? "PUT" : "POST";
-      const sortOrder = editingId ? (bracketRules.find((r) => r.id === editingId)?.sort_order ?? 0) : bracketRules.length;
-      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(toPayload(form, eventId, sortOrder)) });
-      if (!res.ok) { const err = await res.json(); showToast(err.error || "保存に失敗しました"); return; }
-      setShowForm(false); setEditingId(null); await load();
-    } finally { setSaving(false); }
+      const sortOrder = editingId
+        ? (bracketRules.find((r) => r.id === editingId)?.sort_order ?? 0)
+        : bracketRules.length;
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(toPayload(form, eventId, sortOrder)),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        showToast(err.error || "保存に失敗しました");
+        return;
+      }
+      setShowForm(false);
+      setEditingId(null);
+      await load();
+    } finally {
+      setSaving(false);
+    }
   };
-  const handleDelete = async (id: string) => { if (!confirm("この振り分けルールを削除しますか？")) return; setDeletingId(id); const res = await fetch(`/api/admin/bracket-rules/${id}`, { method: "DELETE" }); if (!res.ok) { showToast("削除に失敗しました"); setDeletingId(null); return; } await load(); setDeletingId(null); };
+  const handleDelete = async (id: string) => {
+    if (!confirm("この振り分けルールを削除しますか？")) return;
+    setDeletingId(id);
+    const res = await fetch(`/api/admin/bracket-rules/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      showToast("削除に失敗しました");
+      setDeletingId(null);
+      return;
+    }
+    await load();
+    setDeletingId(null);
+  };
   const moveOrder = async (id: string, direction: "up" | "down") => {
-    const idx = bracketRules.findIndex((r) => r.id === id); if (idx < 0) return;
-    const swapIdx = direction === "up" ? idx - 1 : idx + 1; if (swapIdx < 0 || swapIdx >= bracketRules.length) return;
+    const idx = bracketRules.findIndex((r) => r.id === id);
+    if (idx < 0) return;
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= bracketRules.length) return;
     setMovingId(id);
-    const responses = await Promise.all([fetch(`/api/admin/bracket-rules/${bracketRules[idx].id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: bracketRules[swapIdx].sort_order }) }), fetch(`/api/admin/bracket-rules/${bracketRules[swapIdx].id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sort_order: bracketRules[idx].sort_order }) })]);
+    const responses = await Promise.all([
+      fetch(`/api/admin/bracket-rules/${bracketRules[idx].id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sort_order: bracketRules[swapIdx].sort_order }),
+      }),
+      fetch(`/api/admin/bracket-rules/${bracketRules[swapIdx].id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sort_order: bracketRules[idx].sort_order }),
+      }),
+    ]);
     if (responses.some((r) => !r.ok)) showToast("並び順の更新に失敗しました");
-    await load(); setMovingId(null);
+    await load();
+    setMovingId(null);
   };
-  return { bracketRules, loading, editingId, setEditingId, showForm, setShowForm, form, setForm, saving, movingId, deletingId, startCreate, startEdit, startDuplicate, handleSave, handleDelete, moveOrder };
+  return {
+    bracketRules,
+    loading,
+    editingId,
+    setEditingId,
+    showForm,
+    setShowForm,
+    form,
+    setForm,
+    saving,
+    movingId,
+    deletingId,
+    startCreate,
+    startEdit,
+    startDuplicate,
+    handleSave,
+    handleDelete,
+    moveOrder,
+  };
 }
 
 export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageCategories }: Props) {
@@ -137,15 +216,52 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-gray-300">振り分けルール</h3>
-        <button onClick={d.startCreate} className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded transition">＋ 新規作成</button>
+        <button
+          onClick={d.startCreate}
+          className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded transition"
+        >
+          ＋ 新規作成
+        </button>
       </div>
       {d.loading && <p className="text-sm text-gray-500">読み込み中...</p>}
-      {!d.loading && d.bracketRules.length === 0 && !d.showForm && <p className="text-sm text-gray-500">振り分けルールが未設定です。作成すると全自動対戦表作成時に年齢・体格に応じたグループ分けが行われます。</p>}
+      {!d.loading && d.bracketRules.length === 0 && !d.showForm && (
+        <p className="text-sm text-gray-500">
+          振り分けルールが未設定です。作成すると全自動対戦表作成時に年齢・体格に応じたグループ分けが行われます。
+        </p>
+      )}
       {d.bracketRules.map((rule, idx) => (
-        <BracketRuleCard key={rule.id} rule={rule} idx={idx} total={d.bracketRules.length} rules={rules} movingId={d.movingId} deletingId={d.deletingId} getCourtLabel={getCourtLbl}
-          onMoveOrder={(id, dir) => void d.moveOrder(id, dir)} onDuplicate={d.startDuplicate} onEdit={d.startEdit} onDelete={(id) => void d.handleDelete(id)} />
+        <BracketRuleCard
+          key={rule.id}
+          rule={rule}
+          idx={idx}
+          total={d.bracketRules.length}
+          rules={rules}
+          movingId={d.movingId}
+          deletingId={d.deletingId}
+          getCourtLabel={getCourtLbl}
+          onMoveOrder={(id, dir) => void d.moveOrder(id, dir)}
+          onDuplicate={d.startDuplicate}
+          onEdit={d.startEdit}
+          onDelete={(id) => void d.handleDelete(id)}
+        />
       ))}
-      {d.showForm && <BracketRuleForm form={d.form} setForm={d.setForm} editingId={d.editingId} saving={d.saving} rules={rules} courtCount={courtCount} getCourtLabel={getCourtLbl} ageCategories={ageCategories} onSave={() => void d.handleSave()} onCancel={() => { d.setShowForm(false); d.setEditingId(null); }} />}
+      {d.showForm && (
+        <BracketRuleForm
+          form={d.form}
+          setForm={d.setForm}
+          editingId={d.editingId}
+          saving={d.saving}
+          rules={rules}
+          courtCount={courtCount}
+          getCourtLabel={getCourtLbl}
+          ageCategories={ageCategories}
+          onSave={() => void d.handleSave()}
+          onCancel={() => {
+            d.setShowForm(false);
+            d.setEditingId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -168,34 +284,85 @@ function buildRuleSummary(rule: BracketRule, rules: Rule[], getCourtLabel: (n: n
   const parts: string[] = [];
   if (rule.rule_id) parts.push(`ルール: ${rules.find((r) => r.id === rule.rule_id)?.name ?? "不明"}`);
   for (const f of RANGE_FIELDS) {
-    const lo = rule[f.min]; const hi = rule[f.max];
+    const lo = rule[f.min];
+    const hi = rule[f.max];
     if (lo != null || hi != null) parts.push(`${f.label}: ${lo ?? ""}〜${hi ?? ""}${f.unit ?? ""}`);
   }
   if (rule.sex_filter) parts.push(`性別: ${rule.sex_filter === "male" ? "男" : "女"}`);
-  for (const f of DIFF_FIELDS) { const v = rule[f.key]; if (v != null) parts.push(`${f.label}: ${v}以内`); }
+  for (const f of DIFF_FIELDS) {
+    const v = rule[f.key];
+    if (v != null) parts.push(`${f.label}: ${v}以内`);
+  }
   if (rule.court_num != null) parts.push(`コート: ${getCourtLabel(rule.court_num)}`);
   return parts;
 }
 
-function BracketRuleCard({ rule, idx, total, rules, movingId, deletingId, getCourtLabel, onMoveOrder, onDuplicate, onEdit, onDelete }: {
-  rule: BracketRule; idx: number; total: number; rules: Rule[]; movingId: string | null; deletingId: string | null; getCourtLabel: (n: number) => string;
-  onMoveOrder: (id: string, dir: "up" | "down") => void; onDuplicate: (r: BracketRule) => void; onEdit: (r: BracketRule) => void; onDelete: (id: string) => void;
+function BracketRuleCard({
+  rule,
+  idx,
+  total,
+  rules,
+  movingId,
+  deletingId,
+  getCourtLabel,
+  onMoveOrder,
+  onDuplicate,
+  onEdit,
+  onDelete,
+}: {
+  rule: BracketRule;
+  idx: number;
+  total: number;
+  rules: Rule[];
+  movingId: string | null;
+  deletingId: string | null;
+  getCourtLabel: (n: number) => string;
+  onMoveOrder: (id: string, dir: "up" | "down") => void;
+  onDuplicate: (r: BracketRule) => void;
+  onEdit: (r: BracketRule) => void;
+  onDelete: (id: string) => void;
 }) {
   const summary = buildRuleSummary(rule, rules, getCourtLabel);
   return (
     <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 space-y-2">
       <div className="flex items-center gap-2">
         <div className="flex flex-col gap-0.5">
-          <button onClick={() => onMoveOrder(rule.id, "up")} disabled={idx === 0 || movingId === rule.id} className="text-gray-400 hover:text-white disabled:opacity-50 text-xs leading-none">▲</button>
-          <button onClick={() => onMoveOrder(rule.id, "down")} disabled={idx === total - 1 || movingId === rule.id} className="text-gray-400 hover:text-white disabled:opacity-50 text-xs leading-none">▼</button>
+          <button
+            onClick={() => onMoveOrder(rule.id, "up")}
+            disabled={idx === 0 || movingId === rule.id}
+            className="text-gray-400 hover:text-white disabled:opacity-50 text-xs leading-none"
+          >
+            ▲
+          </button>
+          <button
+            onClick={() => onMoveOrder(rule.id, "down")}
+            disabled={idx === total - 1 || movingId === rule.id}
+            className="text-gray-400 hover:text-white disabled:opacity-50 text-xs leading-none"
+          >
+            ▼
+          </button>
         </div>
         <div className="flex-1 min-w-0">
           <span className="text-sm font-medium text-white">{rule.name}</span>
-          <div className="text-xs text-gray-400 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">{summary.map((s, i) => <span key={i}>{s}</span>)}</div>
+          <div className="text-xs text-gray-400 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+            {summary.map((s, i) => (
+              <span key={i}>{s}</span>
+            ))}
+          </div>
         </div>
-        <button onClick={() => onDuplicate(rule)} className="text-xs text-green-400 hover:text-green-300">複製</button>
-        <button onClick={() => onEdit(rule)} className="text-xs text-blue-400 hover:text-blue-300">編集</button>
-        <button onClick={() => onDelete(rule.id)} disabled={deletingId === rule.id} className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50">{deletingId === rule.id ? "削除中..." : "削除"}</button>
+        <button onClick={() => onDuplicate(rule)} className="text-xs text-green-400 hover:text-green-300">
+          複製
+        </button>
+        <button onClick={() => onEdit(rule)} className="text-xs text-blue-400 hover:text-blue-300">
+          編集
+        </button>
+        <button
+          onClick={() => onDelete(rule.id)}
+          disabled={deletingId === rule.id}
+          className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
+        >
+          {deletingId === rule.id ? "削除中..." : "削除"}
+        </button>
       </div>
     </div>
   );
@@ -205,47 +372,171 @@ const inputCls = "w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 te
 const labelCls = "text-xs text-gray-400 mb-1";
 
 function FormField({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className={labelCls}>{label}</label>{children}</div>;
+  return (
+    <div>
+      <label className={labelCls}>{label}</label>
+      {children}
+    </div>
+  );
 }
 
-function BracketRuleForm({ form, setForm, editingId, saving, rules, courtCount, getCourtLabel, ageCategories, onSave, onCancel }: {
-  form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>>; editingId: string | null; saving: boolean;
-  rules: Rule[]; courtCount: number; getCourtLabel: (n: number) => string; ageCategories?: AgeCategory[];
-  onSave: () => void; onCancel: () => void;
+function BracketRuleForm({
+  form,
+  setForm,
+  editingId,
+  saving,
+  rules,
+  courtCount,
+  getCourtLabel,
+  ageCategories,
+  onSave,
+  onCancel,
+}: {
+  form: FormState;
+  setForm: React.Dispatch<React.SetStateAction<FormState>>;
+  editingId: string | null;
+  saving: boolean;
+  rules: Rule[];
+  courtCount: number;
+  getCourtLabel: (n: number) => string;
+  ageCategories?: AgeCategory[];
+  onSave: () => void;
+  onCancel: () => void;
 }) {
-  const upd = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const upd = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, [key]: e.target.value }));
   const gradeOpts = getGradeOptions(ageCategories);
   return (
     <div className="bg-gray-800 border border-gray-600 rounded-lg p-4 space-y-3">
       <h4 className="text-sm font-medium text-white">{editingId ? "振り分けルールを編集" : "新しい振り分けルール"}</h4>
-      <FormField label="名前 *"><input className={inputCls} value={form.name} onChange={upd("name")} placeholder="例: 小学生軽量級" /></FormField>
-      <FormField label="対象ルール"><select className={inputCls} value={form.rule_id} onChange={upd("rule_id")}><option value="">全ルール</option>{rules.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></FormField>
+      <FormField label="名前 *">
+        <input className={inputCls} value={form.name} onChange={upd("name")} placeholder="例: 小学生軽量級" />
+      </FormField>
+      <FormField label="対象ルール">
+        <select className={inputCls} value={form.rule_id} onChange={upd("rule_id")}>
+          <option value="">全ルール</option>
+          {rules.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name}
+            </option>
+          ))}
+        </select>
+      </FormField>
       <div className="grid grid-cols-2 gap-3">
-        <FormField label="年代下限"><select className={inputCls} value={form.min_grade} onChange={upd("min_grade")}><option value="">指定なし</option>{gradeOpts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></FormField>
-        <FormField label="年代上限"><select className={inputCls} value={form.max_grade} onChange={upd("max_grade")}><option value="">指定なし</option>{gradeOpts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></FormField>
+        <FormField label="年代下限">
+          <select className={inputCls} value={form.min_grade} onChange={upd("min_grade")}>
+            <option value="">指定なし</option>
+            {gradeOpts.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        <FormField label="年代上限">
+          <select className={inputCls} value={form.max_grade} onChange={upd("max_grade")}>
+            <option value="">指定なし</option>
+            {gradeOpts.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </FormField>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <FormField label="年齢下限"><input type="number" className={inputCls} value={form.min_age} onChange={upd("min_age")} placeholder="例: 6" /></FormField>
-        <FormField label="年齢上限"><input type="number" className={inputCls} value={form.max_age} onChange={upd("max_age")} placeholder="例: 12" /></FormField>
+        <FormField label="年齢下限">
+          <input
+            type="number"
+            className={inputCls}
+            value={form.min_age}
+            onChange={upd("min_age")}
+            placeholder="例: 6"
+          />
+        </FormField>
+        <FormField label="年齢上限">
+          <input
+            type="number"
+            className={inputCls}
+            value={form.max_age}
+            onChange={upd("max_age")}
+            placeholder="例: 12"
+          />
+        </FormField>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <FormField label="体重下限 (kg)"><input type="number" className={inputCls} value={form.min_weight} onChange={upd("min_weight")} /></FormField>
-        <FormField label="体重上限 (kg)"><input type="number" className={inputCls} value={form.max_weight} onChange={upd("max_weight")} /></FormField>
+        <FormField label="体重下限 (kg)">
+          <input type="number" className={inputCls} value={form.min_weight} onChange={upd("min_weight")} />
+        </FormField>
+        <FormField label="体重上限 (kg)">
+          <input type="number" className={inputCls} value={form.max_weight} onChange={upd("max_weight")} />
+        </FormField>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <FormField label="身長下限 (cm)"><input type="number" className={inputCls} value={form.min_height} onChange={upd("min_height")} /></FormField>
-        <FormField label="身長上限 (cm)"><input type="number" className={inputCls} value={form.max_height} onChange={upd("max_height")} /></FormField>
+        <FormField label="身長下限 (cm)">
+          <input type="number" className={inputCls} value={form.min_height} onChange={upd("min_height")} />
+        </FormField>
+        <FormField label="身長上限 (cm)">
+          <input type="number" className={inputCls} value={form.max_height} onChange={upd("max_height")} />
+        </FormField>
       </div>
-      <FormField label="性別"><select className={inputCls} value={form.sex_filter} onChange={upd("sex_filter")}><option value="">指定なし</option><option value="male">男</option><option value="female">女</option></select></FormField>
+      <FormField label="性別">
+        <select className={inputCls} value={form.sex_filter} onChange={upd("sex_filter")}>
+          <option value="">指定なし</option>
+          <option value="male">男</option>
+          <option value="female">女</option>
+        </select>
+      </FormField>
       <div className="grid grid-cols-3 gap-3">
-        <FormField label="最大学年差"><input type="number" className={inputCls} value={form.max_grade_diff} onChange={upd("max_grade_diff")} placeholder="例: 1" /></FormField>
-        <FormField label="最大体重差 (kg)"><input type="number" className={inputCls} value={form.max_weight_diff} onChange={upd("max_weight_diff")} placeholder="例: 10" /></FormField>
-        <FormField label="最大身長差 (cm)"><input type="number" className={inputCls} value={form.max_height_diff} onChange={upd("max_height_diff")} placeholder="例: 15" /></FormField>
+        <FormField label="最大学年差">
+          <input
+            type="number"
+            className={inputCls}
+            value={form.max_grade_diff}
+            onChange={upd("max_grade_diff")}
+            placeholder="例: 1"
+          />
+        </FormField>
+        <FormField label="最大体重差 (kg)">
+          <input
+            type="number"
+            className={inputCls}
+            value={form.max_weight_diff}
+            onChange={upd("max_weight_diff")}
+            placeholder="例: 10"
+          />
+        </FormField>
+        <FormField label="最大身長差 (cm)">
+          <input
+            type="number"
+            className={inputCls}
+            value={form.max_height_diff}
+            onChange={upd("max_height_diff")}
+            placeholder="例: 15"
+          />
+        </FormField>
       </div>
-      <FormField label="割り当てコート"><select className={inputCls} value={form.court_num} onChange={upd("court_num")}><option value="">自動</option>{Array.from({ length: courtCount }, (_, i) => i + 1).map((n) => <option key={n} value={String(n)}>{getCourtLabel(n)}</option>)}</select></FormField>
+      <FormField label="割り当てコート">
+        <select className={inputCls} value={form.court_num} onChange={upd("court_num")}>
+          <option value="">自動</option>
+          {Array.from({ length: courtCount }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={String(n)}>
+              {getCourtLabel(n)}
+            </option>
+          ))}
+        </select>
+      </FormField>
       <div className="flex gap-2 pt-1">
-        <button onClick={onSave} disabled={saving} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded transition">{saving ? "保存中..." : editingId ? "更新" : "作成"}</button>
-        <button onClick={onCancel} className="text-sm text-gray-400 hover:text-gray-300 px-3 py-1.5">キャンセル</button>
+        <button
+          onClick={onSave}
+          disabled={saving}
+          className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded transition"
+        >
+          {saving ? "保存中..." : editingId ? "更新" : "作成"}
+        </button>
+        <button onClick={onCancel} className="text-sm text-gray-400 hover:text-gray-300 px-3 py-1.5">
+          キャンセル
+        </button>
       </div>
     </div>
   );

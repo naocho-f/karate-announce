@@ -43,27 +43,31 @@ export default function AdminLoginPage() {
 
         <form onSubmit={handleSubmit} className="bg-gray-800 rounded-2xl p-6 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm text-gray-400">ID</label>
+            <label htmlFor="login-username" className="text-sm text-gray-400">
+              ID
+            </label>
             <input
+              id="login-username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoFocus
               autoComplete="username"
               placeholder="ID"
-              aria-label="ユーザーID"
               className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm text-gray-400">パスワード</label>
+            <label htmlFor="login-password" className="text-sm text-gray-400">
+              パスワード
+            </label>
             <input
+              id="login-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               placeholder="••••••••"
-              aria-label="パスワード"
               className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition"
             />
           </div>

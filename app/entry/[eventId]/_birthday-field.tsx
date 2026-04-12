@@ -8,14 +8,19 @@ function computeAgeFromBirthDate(birthDateStr: string, eventDate: string | null 
   const refDate = eventDate ? new Date(eventDate) : new Date();
   const birth = new Date(birthDateStr);
   let age = refDate.getFullYear() - birth.getFullYear();
-  const hasBday = refDate.getMonth() > birth.getMonth() || (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
+  const hasBday =
+    refDate.getMonth() > birth.getMonth() ||
+    (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
   if (!hasBday) age--;
   return age;
 }
 
 function handleBirthDateChange(
-  val: string, ageFieldConfig: boolean, eventDate: string | null | undefined,
-  ageCategories: AgeCategory[] | undefined, onSetValue: (key: string, val: string) => void,
+  val: string,
+  ageFieldConfig: boolean,
+  eventDate: string | null | undefined,
+  ageCategories: AgeCategory[] | undefined,
+  onSetValue: (key: string, val: string) => void,
 ) {
   if (!val || !/^\d{4}-\d{2}-\d{2}$/.test(val)) return;
   if (ageFieldConfig) onSetValue("age", String(computeAgeFromBirthDate(val, eventDate)));
@@ -48,24 +53,67 @@ function AgeDisplay({ computedAge, eventDate }: { computedAge: number | null; ev
   );
 }
 
-function BirthdayInput({ fieldKey, value, inp, hasError, isReq, showAgeLabel, onSetValue, onDateChange }: {
-  fieldKey: string; value: string; inp: string; hasError: boolean; isReq: boolean; showAgeLabel: boolean;
-  onSetValue: (key: string, val: string) => void; onDateChange: (val: string) => void;
+function BirthdayInput({
+  fieldKey,
+  value,
+  inp,
+  hasError,
+  isReq,
+  showAgeLabel,
+  onSetValue,
+  onDateChange,
+}: {
+  fieldKey: string;
+  value: string;
+  inp: string;
+  hasError: boolean;
+  isReq: boolean;
+  showAgeLabel: boolean;
+  onSetValue: (key: string, val: string) => void;
+  onDateChange: (val: string) => void;
 }) {
   return (
     <div className="space-y-1">
-      {showAgeLabel && <label htmlFor="field-birth_date" className="text-xs text-gray-400">生年月日</label>}
-      <input id="field-birth_date" type="date" value={value} onChange={(e) => { onSetValue(fieldKey, e.target.value); onDateChange(e.target.value); }} onBlur={(e) => onDateChange(e.target.value)} className={`${inp} ${hasError ? "border-red-500" : ""}`} required={isReq} />
+      {showAgeLabel && (
+        <label htmlFor="field-birth_date" className="text-xs text-gray-400">
+          生年月日
+        </label>
+      )}
+      <input
+        id="field-birth_date"
+        type="date"
+        value={value}
+        onChange={(e) => {
+          onSetValue(fieldKey, e.target.value);
+          onDateChange(e.target.value);
+        }}
+        onBlur={(e) => onDateChange(e.target.value)}
+        className={`${inp} ${hasError ? "border-red-500" : ""}`}
+        required={isReq}
+      />
     </div>
   );
 }
 
-export default function BirthdayField({ config, def, formConfig, values, fieldErrors, ageConflict, event, ageCategories, inp, onSetValue, renderFieldNotices }: BirthdayFieldProps) {
+export default function BirthdayField({
+  config,
+  def,
+  formConfig,
+  values,
+  fieldErrors,
+  ageConflict,
+  event,
+  ageCategories,
+  inp,
+  onSetValue,
+  renderFieldNotices,
+}: BirthdayFieldProps) {
   const key = def.key;
   const label = config.custom_label || def.label;
   const showAge = !!formConfig?.fields?.find((f) => f.field_key === "age" && f.visible);
   const computedAge = values["birthday"] ? computeAgeFromBirthDate(values["birthday"], event?.event_date) : null;
-  const onDateChange = (val: string) => handleBirthDateChange(val, showAge, event?.event_date, ageCategories, onSetValue);
+  const onDateChange = (val: string) =>
+    handleBirthDateChange(val, showAge, event?.event_date, ageCategories, onSetValue);
 
   return (
     <div id={`field-${key}`} className="space-y-2">
@@ -75,7 +123,16 @@ export default function BirthdayField({ config, def, formConfig, values, fieldEr
         {showAge && <span className="text-gray-500 ml-1">+ 年齢自動計算</span>}
       </p>
       <div className={`grid ${showAge ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-2 items-end`}>
-        <BirthdayInput fieldKey={key} value={values[key] ?? ""} inp={inp} hasError={!!fieldErrors[key]} isReq={config.required} showAgeLabel={showAge} onSetValue={onSetValue} onDateChange={onDateChange} />
+        <BirthdayInput
+          fieldKey={key}
+          value={values[key] ?? ""}
+          inp={inp}
+          hasError={!!fieldErrors[key]}
+          isReq={config.required}
+          showAgeLabel={showAge}
+          onSetValue={onSetValue}
+          onDateChange={onDateChange}
+        />
         {showAge && <AgeDisplay computedAge={computedAge} eventDate={event?.event_date} />}
       </div>
       {ageConflict && <p className="text-xs text-red-400">{ageConflict}</p>}

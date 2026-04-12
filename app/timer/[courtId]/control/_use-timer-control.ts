@@ -85,14 +85,24 @@ function buildKeyActionMap(
     ArrowRight: (e) => ({ update: (st) => adjustTime(st, e.shiftKey ? 1000 : 10000), preventDefault: true }),
     KeyB: () => {
       const s = stateRef.current;
-      void playBuzzer(s.preset?.buzzer_sound ?? "mid-square-single", s.preset?.buzzer_duration ?? 1.5, s.preset?.buzzer_repeat ?? 1).then((r) => { if (r === "fallback") setBuzzerWarning(true); });
+      void playBuzzer(
+        s.preset?.buzzer_sound ?? "mid-square-single",
+        s.preset?.buzzer_duration ?? 1.5,
+        s.preset?.buzzer_repeat ?? 1,
+      ).then((r) => {
+        if (r === "fallback") setBuzzerWarning(true);
+      });
       return {};
     },
     Escape: () => ({ update: undo }),
   };
 }
 
-function buildMatchCandidates(tourns: Array<{ id: string } & Record<string, unknown>>, allMatches: Array<Record<string, unknown>>, fighterMap: Record<string, Fighter>): MatchCandidate[] {
+function buildMatchCandidates(
+  tourns: Array<{ id: string } & Record<string, unknown>>,
+  allMatches: Array<Record<string, unknown>>,
+  fighterMap: Record<string, Fighter>,
+): MatchCandidate[] {
   const visibleStatuses = new Set(["ongoing", "ready", "waiting", "done"]);
   const candidates: MatchCandidate[] = [];
   for (const tourn of tourns) {
@@ -102,7 +112,13 @@ function buildMatchCandidates(tourns: Array<{ id: string } & Record<string, unkn
       if (!visibleStatuses.has(m.status as string)) continue;
       const f1 = m.fighter1_id ? (fighterMap[m.fighter1_id as string] ?? null) : null;
       const f2 = m.fighter2_id ? (fighterMap[m.fighter2_id as string] ?? null) : null;
-      candidates.push({ match: m as MatchCandidate["match"], tournament: tourn as MatchCandidate["tournament"], fighter1: f1, fighter2: f2, totalRounds: maxRound });
+      candidates.push({
+        match: m as MatchCandidate["match"],
+        tournament: tourn as MatchCandidate["tournament"],
+        fighter1: f1,
+        fighter2: f2,
+        totalRounds: maxRound,
+      });
     }
   }
   candidates.sort((a, b) => {
@@ -481,22 +497,46 @@ export function useTimerControl() {
     const whiteInfo = buildFighterInfo(f2);
     update((s) => {
       const next = setMatch(s, {
-        matchId: candidate.match.id, tournamentId: candidate.tournament.id, preset,
-        red: redInfo, white: whiteInfo, matchLabel: candidate.match.match_label ?? "",
+        matchId: candidate.match.id,
+        tournamentId: candidate.tournament.id,
+        preset,
+        red: redInfo,
+        white: whiteInfo,
+        matchLabel: candidate.match.match_label ?? "",
         rules: candidate.match.rules ?? candidate.tournament.default_rules ?? null,
-        rulesReading: null, matchNumber: 0, totalMatches: 0,
+        rulesReading: null,
+        matchNumber: 0,
+        totalMatches: 0,
       });
       if (swapSides && next.preset) return { ...next, preset: { ...next.preset, swap_sides: true } };
       return next;
     });
-    resilientFetch(`/api/court/matches/${candidate.match.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "start", tournamentId: candidate.tournament.id }) }, { maxRetries: 3, timeout: 5000 }).catch(() => showToast("試合開始の通知に失敗しました"));
+    resilientFetch(
+      `/api/court/matches/${candidate.match.id}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start", tournamentId: candidate.tournament.id }),
+      },
+      { maxRetries: 3, timeout: 5000 },
+    ).catch(() => showToast("試合開始の通知に失敗しました"));
     setShowAnnounceSelection(true);
     const rLabel = roundName(candidate.match.round, candidate.totalRounds);
     const rulesText = candidate.match.rules ?? candidate.tournament.default_rules ?? null;
     const ttsText = buildMatchStartText(
-      redInfo.name, redInfo.affiliation, whiteInfo.name, whiteInfo.affiliation, rLabel,
-      redInfo.nameReading, redInfo.affiliationReading, whiteInfo.nameReading, whiteInfo.affiliationReading,
-      candidate.match.match_label, rulesText, announceTemplates, rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
+      redInfo.name,
+      redInfo.affiliation,
+      whiteInfo.name,
+      whiteInfo.affiliation,
+      rLabel,
+      redInfo.nameReading,
+      redInfo.affiliationReading,
+      whiteInfo.nameReading,
+      whiteInfo.affiliationReading,
+      candidate.match.match_label,
+      rulesText,
+      announceTemplates,
+      rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
     );
     void prefetchTts(ttsText);
   };

@@ -55,7 +55,17 @@ function sexSplits(entries: Entry[]): SplitSuggestion[] {
   const males = sexEntries.filter((e) => e.sex === "male").length;
   const females = sexEntries.length - males;
   if (males === 0 || females === 0) return [];
-  return [{ axis: "sex", threshold: "sex", belowLabel: "男子", aboveLabel: "女子", belowCount: males, aboveCount: females, balance: computeBalance(males, females) }];
+  return [
+    {
+      axis: "sex",
+      threshold: "sex",
+      belowLabel: "男子",
+      aboveLabel: "女子",
+      belowCount: males,
+      aboveCount: females,
+      balance: computeBalance(males, females),
+    },
+  ];
 }
 
 function experienceSplits(entries: Entry[]): SplitSuggestion[] {
@@ -73,7 +83,15 @@ function experienceSplits(entries: Entry[]): SplitSuggestion[] {
     const below = withYears.filter((x) => x.years < t).length;
     const above = withYears.length - below;
     if (below === 0 || above === 0) continue;
-    results.push({ axis: "experience", threshold: t, belowLabel: `${t}年未満`, aboveLabel: `${t}年以上`, belowCount: below, aboveCount: above, balance: computeBalance(below, above) });
+    results.push({
+      axis: "experience",
+      threshold: t,
+      belowLabel: `${t}年未満`,
+      aboveLabel: `${t}年以上`,
+      belowCount: below,
+      aboveCount: above,
+      balance: computeBalance(below, above),
+    });
   }
   return results;
 }

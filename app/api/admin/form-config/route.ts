@@ -96,15 +96,90 @@ const EQUIPMENT_NOTICE_TEXT =
 const RENTAL_SHORT = "※ないものは当日レンタルもしくは事前購入となります。";
 
 const DEFAULT_NOTICE_TEMPLATES: NoticeTemplate[] = [
-  { anchorType: "field", anchorFieldKey: "email", sortOrder: 0, textContent: null, scrollableText: CONSENT_SCROLLABLE_TEXT, requireConsent: true, consentLabel: "上記内容に表明・承諾いたします" },
-  { anchorType: "form_start", anchorFieldKey: null, sortOrder: 1, textContent: "※ダブルエントリー大歓迎です。\n※一つしかチェックがない場合、参加される選手の偏りにより、試合が組めない場合もありますので、対応できるルールがあれば複数チェックにご協力下さい。", scrollableText: null, requireConsent: false, consentLabel: null },
-  { anchorType: "field", anchorFieldKey: "weight", sortOrder: 0, textContent: WEIGHT_NOTICE_TEXT, scrollableText: null, requireConsent: false, consentLabel: null },
-  { anchorType: "field", anchorFieldKey: "equipment_owned", sortOrder: 0, textContent: EQUIPMENT_NOTICE_TEXT, scrollableText: null, requireConsent: false, consentLabel: null },
-  { anchorType: "field", anchorFieldKey: "shield_mask", sortOrder: 0, textContent: RENTAL_SHORT, scrollableText: null, requireConsent: false, consentLabel: null },
-  { anchorType: "field", anchorFieldKey: "fist_guard", sortOrder: 0, textContent: RENTAL_SHORT + "\n手首より上まであるアームガードも可とします。", scrollableText: null, requireConsent: false, consentLabel: null },
-  { anchorType: "field", anchorFieldKey: "leg_guard", sortOrder: 0, textContent: "※今回は交流試合なのですべてのルール階級において着用とします。\n" + RENTAL_SHORT, scrollableText: null, requireConsent: false, consentLabel: null },
-  { anchorType: "field", anchorFieldKey: "groin_guard", sortOrder: 0, textContent: RENTAL_SHORT, scrollableText: null, requireConsent: false, consentLabel: null },
-  { anchorType: "field", anchorFieldKey: "gi", sortOrder: 0, textContent: RENTAL_SHORT + "\n袖がない道着は不可。できれば肘が隠れている方が望ましい。\n破れた場合に当日急なレンタル品はありませんので、破れる恐れがある場合はレンタルがおすすめ。", scrollableText: null, requireConsent: false, consentLabel: null },
+  {
+    anchorType: "field",
+    anchorFieldKey: "email",
+    sortOrder: 0,
+    textContent: null,
+    scrollableText: CONSENT_SCROLLABLE_TEXT,
+    requireConsent: true,
+    consentLabel: "上記内容に表明・承諾いたします",
+  },
+  {
+    anchorType: "form_start",
+    anchorFieldKey: null,
+    sortOrder: 1,
+    textContent:
+      "※ダブルエントリー大歓迎です。\n※一つしかチェックがない場合、参加される選手の偏りにより、試合が組めない場合もありますので、対応できるルールがあれば複数チェックにご協力下さい。",
+    scrollableText: null,
+    requireConsent: false,
+    consentLabel: null,
+  },
+  {
+    anchorType: "field",
+    anchorFieldKey: "weight",
+    sortOrder: 0,
+    textContent: WEIGHT_NOTICE_TEXT,
+    scrollableText: null,
+    requireConsent: false,
+    consentLabel: null,
+  },
+  {
+    anchorType: "field",
+    anchorFieldKey: "equipment_owned",
+    sortOrder: 0,
+    textContent: EQUIPMENT_NOTICE_TEXT,
+    scrollableText: null,
+    requireConsent: false,
+    consentLabel: null,
+  },
+  {
+    anchorType: "field",
+    anchorFieldKey: "shield_mask",
+    sortOrder: 0,
+    textContent: RENTAL_SHORT,
+    scrollableText: null,
+    requireConsent: false,
+    consentLabel: null,
+  },
+  {
+    anchorType: "field",
+    anchorFieldKey: "fist_guard",
+    sortOrder: 0,
+    textContent: RENTAL_SHORT + "\n手首より上まであるアームガードも可とします。",
+    scrollableText: null,
+    requireConsent: false,
+    consentLabel: null,
+  },
+  {
+    anchorType: "field",
+    anchorFieldKey: "leg_guard",
+    sortOrder: 0,
+    textContent: "※今回は交流試合なのですべてのルール階級において着用とします。\n" + RENTAL_SHORT,
+    scrollableText: null,
+    requireConsent: false,
+    consentLabel: null,
+  },
+  {
+    anchorType: "field",
+    anchorFieldKey: "groin_guard",
+    sortOrder: 0,
+    textContent: RENTAL_SHORT,
+    scrollableText: null,
+    requireConsent: false,
+    consentLabel: null,
+  },
+  {
+    anchorType: "field",
+    anchorFieldKey: "gi",
+    sortOrder: 0,
+    textContent:
+      RENTAL_SHORT +
+      "\n袖がない道着は不可。できれば肘が隠れている方が望ましい。\n破れた場合に当日急なレンタル品はありませんので、破れる恐れがある場合はレンタルがおすすめ。",
+    scrollableText: null,
+    requireConsent: false,
+    consentLabel: null,
+  },
 ];
 
 function templateToNotice(configId: string, t: NoticeTemplate) {
@@ -130,9 +205,14 @@ async function initializeDefaultFields(configId: string) {
   const fieldConfigs = FIELD_POOL.map((f) => {
     const def = DEFAULT_SORT_MAP.get(f.key);
     return {
-      form_config_id: configId, field_key: f.key, visible: def?.visible ?? false,
-      required: f.defaultRequired, sort_order: def?.sort ?? 99,
-      has_other_option: f.defaultHasOther ?? false, custom_choices: f.defaultChoices ?? null, custom_label: null,
+      form_config_id: configId,
+      field_key: f.key,
+      visible: def?.visible ?? false,
+      required: f.defaultRequired,
+      sort_order: def?.sort ?? 99,
+      has_other_option: f.defaultHasOther ?? false,
+      custom_choices: f.defaultChoices ?? null,
+      custom_label: null,
     };
   });
   await supabaseAdmin.from("form_field_configs").insert(fieldConfigs);
@@ -141,17 +221,26 @@ async function initializeDefaultFields(configId: string) {
 
 async function initializeCustomFields(configId: string, baseSortOrder: number) {
   const customDefs = DEFAULT_CUSTOM_FIELDS.map((cf) => ({
-    form_config_id: configId, field_key: cf.field_key, label: cf.label,
-    field_type: cf.field_type, choices: cf.choices, sort_order: cf.sort_order,
+    form_config_id: configId,
+    field_key: cf.field_key,
+    label: cf.label,
+    field_type: cf.field_type,
+    choices: cf.choices,
+    sort_order: cf.sort_order,
   }));
   await supabaseAdmin.from("custom_field_defs").insert(customDefs);
 
   const customFieldConfigs = DEFAULT_CUSTOM_FIELDS.map((cf, i) => {
     const order = DEFAULT_CUSTOM_FIELD_ORDER.find((o) => o.key === cf.field_key);
     return {
-      form_config_id: configId, field_key: cf.field_key, visible: order?.visible ?? true,
-      required: order?.required ?? false, sort_order: baseSortOrder + i,
-      has_other_option: cf.field_key === "match_experience", custom_choices: cf.choices, custom_label: null,
+      form_config_id: configId,
+      field_key: cf.field_key,
+      visible: order?.visible ?? true,
+      required: order?.required ?? false,
+      sort_order: baseSortOrder + i,
+      has_other_option: cf.field_key === "match_experience",
+      custom_choices: cf.choices,
+      custom_label: null,
     };
   });
   await supabaseAdmin.from("form_field_configs").insert(customFieldConfigs);
@@ -162,12 +251,28 @@ async function initializeNotices(configId: string, eventId: string) {
 
   const { data: eventRules } = await supabaseAdmin.from("event_rules").select("rule_id").eq("event_id", eventId);
   if (eventRules?.length) {
-    const { data: rules } = await supabaseAdmin.from("rules").select("name, description")
-      .in("id", eventRules.map((er) => er.rule_id)).order("name");
+    const { data: rules } = await supabaseAdmin
+      .from("rules")
+      .select("name, description")
+      .in(
+        "id",
+        eventRules.map((er) => er.rule_id),
+      )
+      .order("name");
     const rulesWithDesc = rules?.filter((r) => r.description) ?? [];
     if (rulesWithDesc.length > 0) {
       const ruleNoticeText = rulesWithDesc.map((r) => `【${r.name}】\n${r.description}`).join("\n\n");
-      defaultNotices.push(templateToNotice(configId, { anchorType: "field", anchorFieldKey: "rule_preference", sortOrder: 0, textContent: ruleNoticeText, scrollableText: null, requireConsent: false, consentLabel: null }));
+      defaultNotices.push(
+        templateToNotice(configId, {
+          anchorType: "field",
+          anchorFieldKey: "rule_preference",
+          sortOrder: 0,
+          textContent: ruleNoticeText,
+          scrollableText: null,
+          requireConsent: false,
+          consentLabel: null,
+        }),
+      );
     }
   }
   await supabaseAdmin.from("form_notices").insert(defaultNotices);
@@ -177,7 +282,11 @@ async function ensureFormConfig(eventId: string) {
   const { data: existing } = await supabaseAdmin.from("form_configs").select("*").eq("event_id", eventId).maybeSingle();
   if (existing) return existing;
 
-  const { data: created, error } = await supabaseAdmin.from("form_configs").insert({ event_id: eventId }).select().single();
+  const { data: created, error } = await supabaseAdmin
+    .from("form_configs")
+    .insert({ event_id: eventId })
+    .select()
+    .single();
   if (error) return null;
 
   const baseSortOrder = await initializeDefaultFields(created.id);
@@ -186,16 +295,32 @@ async function ensureFormConfig(eventId: string) {
   return created;
 }
 
-async function backfillCustomDefs(configId: string, fieldKeys: string[], currentDefs: Record<string, unknown>[] | null) {
+async function backfillCustomDefs(
+  configId: string,
+  fieldKeys: string[],
+  currentDefs: Record<string, unknown>[] | null,
+) {
   const existingDefKeys = new Set((currentDefs ?? []).map((d: Record<string, unknown>) => d.field_key as string));
-  const missingDefs = DEFAULT_CUSTOM_FIELDS.filter((cf) => fieldKeys.includes(cf.field_key) && !existingDefKeys.has(cf.field_key));
+  const missingDefs = DEFAULT_CUSTOM_FIELDS.filter(
+    (cf) => fieldKeys.includes(cf.field_key) && !existingDefKeys.has(cf.field_key),
+  );
   if (missingDefs.length === 0) return currentDefs;
 
-  await supabaseAdmin.from("custom_field_defs").insert(missingDefs.map((cf) => ({
-    form_config_id: configId, field_key: cf.field_key, label: cf.label,
-    field_type: cf.field_type, choices: cf.choices, sort_order: cf.sort_order,
-  })));
-  const { data: refreshed } = await supabaseAdmin.from("custom_field_defs").select("*").eq("form_config_id", configId).order("sort_order");
+  await supabaseAdmin.from("custom_field_defs").insert(
+    missingDefs.map((cf) => ({
+      form_config_id: configId,
+      field_key: cf.field_key,
+      label: cf.label,
+      field_type: cf.field_type,
+      choices: cf.choices,
+      sort_order: cf.sort_order,
+    })),
+  );
+  const { data: refreshed } = await supabaseAdmin
+    .from("custom_field_defs")
+    .select("*")
+    .eq("form_config_id", configId)
+    .order("sort_order");
   return refreshed;
 }
 
@@ -208,11 +333,27 @@ export async function GET(request: NextRequest) {
   const config = await ensureFormConfig(eventId);
   if (!config) return dbError(null, "フォーム設定の作成に失敗しました");
 
-  const { data: fields } = await supabaseAdmin.from("form_field_configs").select("*").eq("form_config_id", config.id).order("sort_order");
-  const { data: notices } = await supabaseAdmin.from("form_notices").select("*, images:form_notice_images(*)").eq("form_config_id", config.id).order("sort_order");
-  const { data: customFieldDefs } = await supabaseAdmin.from("custom_field_defs").select("*").eq("form_config_id", config.id).order("sort_order");
+  const { data: fields } = await supabaseAdmin
+    .from("form_field_configs")
+    .select("*")
+    .eq("form_config_id", config.id)
+    .order("sort_order");
+  const { data: notices } = await supabaseAdmin
+    .from("form_notices")
+    .select("*, images:form_notice_images(*)")
+    .eq("form_config_id", config.id)
+    .order("sort_order");
+  const { data: customFieldDefs } = await supabaseAdmin
+    .from("custom_field_defs")
+    .select("*")
+    .eq("form_config_id", config.id)
+    .order("sort_order");
 
-  const finalDefs = await backfillCustomDefs(config.id, (fields ?? []).map((f) => f.field_key), customFieldDefs);
+  const finalDefs = await backfillCustomDefs(
+    config.id,
+    (fields ?? []).map((f) => f.field_key),
+    customFieldDefs,
+  );
 
   return NextResponse.json({ config, fields: fields ?? [], notices: notices ?? [], customFieldDefs: finalDefs ?? [] });
 }
@@ -221,12 +362,20 @@ async function checkOptimisticLock(configId: string, expectedVersion: number | n
   if (expectedVersion == null) return null;
   const { data: current } = await supabaseAdmin.from("form_configs").select("version").eq("id", configId).single();
   if (current && current.version !== expectedVersion) {
-    return NextResponse.json({ error: "フォーム設定が他のユーザーによって更新されています。画面を再読み込みしてください。" }, { status: 409 });
+    return NextResponse.json(
+      { error: "フォーム設定が他のユーザーによって更新されています。画面を再読み込みしてください。" },
+      { status: 409 },
+    );
   }
   return null;
 }
 
-async function processDeletions(configId: string, deletedImageIds: string[] | undefined, noticeDeleteIds: string[] | undefined, customDeleteKeys: string[] | undefined) {
+async function processDeletions(
+  configId: string,
+  deletedImageIds: string[] | undefined,
+  noticeDeleteIds: string[] | undefined,
+  customDeleteKeys: string[] | undefined,
+) {
   if (deletedImageIds?.length) {
     await Promise.all(deletedImageIds.map((imageId) => deleteImageById(imageId)));
   }
@@ -234,39 +383,67 @@ async function processDeletions(configId: string, deletedImageIds: string[] | un
     await Promise.all(noticeDeleteIds.map((noticeId) => deleteNoticeWithImages(noticeId)));
   }
   if (customDeleteKeys?.length) {
-    await Promise.all(customDeleteKeys.map(async (fieldKey) => {
-      await supabaseAdmin.from("custom_field_defs").delete().eq("form_config_id", configId).eq("field_key", fieldKey);
-      await supabaseAdmin.from("form_field_configs").delete().eq("form_config_id", configId).eq("field_key", fieldKey);
-    }));
+    await Promise.all(
+      customDeleteKeys.map(async (fieldKey) => {
+        await supabaseAdmin.from("custom_field_defs").delete().eq("form_config_id", configId).eq("field_key", fieldKey);
+        await supabaseAdmin
+          .from("form_field_configs")
+          .delete()
+          .eq("form_config_id", configId)
+          .eq("field_key", fieldKey);
+      }),
+    );
   }
 }
 
 // any型を避けるためのユーティリティ
 async function upsertNotices(configId: string, upsertList: Record<string, unknown>[]) {
-  await Promise.all(upsertList.map((n) => {
-    const noticeData = {
-      form_config_id: configId, anchor_type: n.anchor_type, anchor_field_key: n.anchor_field_key ?? null,
-      sort_order: n.sort_order ?? 0, text_content: n.text_content ?? null, scrollable_text: n.scrollable_text ?? null,
-      link_url: n.link_url ?? null, link_label: n.link_label ?? null,
-      require_consent: n.require_consent ?? false, consent_label: n.consent_label ?? null,
-    };
-    if (typeof n.id === "string" && n.id.startsWith("temp_")) {
-      return supabaseAdmin.from("form_notices").insert(noticeData);
-    }
-    return supabaseAdmin.from("form_notices").update(noticeData).eq("id", n.id as string);
-  }));
+  await Promise.all(
+    upsertList.map((n) => {
+      const noticeData = {
+        form_config_id: configId,
+        anchor_type: n.anchor_type,
+        anchor_field_key: n.anchor_field_key ?? null,
+        sort_order: n.sort_order ?? 0,
+        text_content: n.text_content ?? null,
+        scrollable_text: n.scrollable_text ?? null,
+        link_url: n.link_url ?? null,
+        link_label: n.link_label ?? null,
+        require_consent: n.require_consent ?? false,
+        consent_label: n.consent_label ?? null,
+      };
+      if (typeof n.id === "string" && n.id.startsWith("temp_")) {
+        return supabaseAdmin.from("form_notices").insert(noticeData);
+      }
+      return supabaseAdmin
+        .from("form_notices")
+        .update(noticeData)
+        .eq("id", n.id as string);
+    }),
+  );
 }
 
-function buildCustomFieldConfig(configId: string, cf: Record<string, unknown>, matchingField: Record<string, unknown> | undefined) {
+function buildCustomFieldConfig(
+  configId: string,
+  cf: Record<string, unknown>,
+  matchingField: Record<string, unknown> | undefined,
+) {
   const sortOrder = (matchingField?.sort_order as number) ?? 0;
   return {
     def: {
-      form_config_id: configId, field_key: cf.field_key, label: cf.label,
-      field_type: cf.field_type, choices: cf.choices ?? null, sort_order: sortOrder,
+      form_config_id: configId,
+      field_key: cf.field_key,
+      label: cf.label,
+      field_type: cf.field_type,
+      choices: cf.choices ?? null,
+      sort_order: sortOrder,
     },
     fieldConfig: {
-      form_config_id: configId, field_key: cf.field_key, visible: matchingField?.visible ?? true,
-      required: matchingField?.required ?? false, sort_order: sortOrder,
+      form_config_id: configId,
+      field_key: cf.field_key,
+      visible: matchingField?.visible ?? true,
+      required: matchingField?.required ?? false,
+      sort_order: sortOrder,
       has_other_option: matchingField?.has_other_option ?? false,
       custom_choices: matchingField?.custom_choices ?? cf.choices ?? null,
       custom_label: matchingField?.custom_label ?? cf.label,
@@ -274,29 +451,47 @@ function buildCustomFieldConfig(configId: string, cf: Record<string, unknown>, m
   };
 }
 
-async function createCustomFields(configId: string, createList: Record<string, unknown>[], fields: Record<string, unknown>[]) {
-  await Promise.all(createList.map(async (cf) => {
-    const matchingField = fields.find((f) => f.field_key === cf.field_key);
-    const { def, fieldConfig } = buildCustomFieldConfig(configId, cf, matchingField);
-    await supabaseAdmin.from("custom_field_defs").insert(def);
-    await supabaseAdmin.from("form_field_configs").insert(fieldConfig);
-  }));
+async function createCustomFields(
+  configId: string,
+  createList: Record<string, unknown>[],
+  fields: Record<string, unknown>[],
+) {
+  await Promise.all(
+    createList.map(async (cf) => {
+      const matchingField = fields.find((f) => f.field_key === cf.field_key);
+      const { def, fieldConfig } = buildCustomFieldConfig(configId, cf, matchingField);
+      await supabaseAdmin.from("custom_field_defs").insert(def);
+      await supabaseAdmin.from("form_field_configs").insert(fieldConfig);
+    }),
+  );
 }
 
 async function updateFieldConfigs(fields: Record<string, unknown>[]) {
   const updates = fields.filter((f) => !(typeof f.id === "string" && (f.id as string).startsWith("temp_")));
-  await Promise.all(updates.map((f) =>
-    supabaseAdmin.from("form_field_configs").update({
-      visible: f.visible, required: f.required, sort_order: f.sort_order,
-      has_other_option: f.has_other_option, custom_choices: f.custom_choices, custom_label: f.custom_label ?? null,
-    }).eq("id", f.id as string),
-  ));
+  await Promise.all(
+    updates.map((f) =>
+      supabaseAdmin
+        .from("form_field_configs")
+        .update({
+          visible: f.visible,
+          required: f.required,
+          sort_order: f.sort_order,
+          has_other_option: f.has_other_option,
+          custom_choices: f.custom_choices,
+          custom_label: f.custom_label ?? null,
+        })
+        .eq("id", f.id as string),
+    ),
+  );
 }
 
 async function incrementVersion(configId: string) {
   const { data: current } = await supabaseAdmin.from("form_configs").select("version").eq("id", configId).single();
   const newVersion = (current?.version ?? 0) + 1;
-  await supabaseAdmin.from("form_configs").update({ version: newVersion, updated_at: new Date().toISOString() }).eq("id", configId);
+  await supabaseAdmin
+    .from("form_configs")
+    .update({ version: newVersion, updated_at: new Date().toISOString() })
+    .eq("id", configId);
   return newVersion;
 }
 

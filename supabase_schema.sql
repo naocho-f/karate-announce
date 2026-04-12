@@ -327,3 +327,33 @@ create table tournaments (
   tenant_id uuid not null references tenants(id)
 );
 
+create table bracket_rules (
+  id uuid not null default gen_random_uuid(),
+  event_id uuid not null references events(id) on delete cascade,
+  name text not null,
+  rule_id uuid references rules(id),
+  min_age integer,
+  max_age integer,
+  min_weight numeric,
+  max_weight numeric,
+  min_height real,
+  max_height real,
+  min_grade text,
+  max_grade text,
+  max_grade_diff integer,
+  max_weight_diff numeric,
+  max_height_diff numeric,
+  sex_filter text,
+  court_num integer,
+  sort_order integer not null default 0,
+  created_at timestamptz default now(),
+  tenant_id uuid not null references tenants(id)
+);
+
+create table idempotency_keys (
+  key text not null primary key,
+  response_status integer not null,
+  response_body jsonb,
+  created_at timestamptz default now()
+);
+

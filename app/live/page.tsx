@@ -25,7 +25,9 @@ function useWatchList(courts: CourtData[]) {
     try {
       const saved = typeof window !== "undefined" ? localStorage.getItem("karate_watch_list") : null;
       return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   });
   const [showWatch, setShowWatch] = useState(false);
   const [watchSearch, setWatchSearch] = useState("");
@@ -42,7 +44,9 @@ function useWatchList(courts: CourtData[]) {
       courtLabel: c.courtName,
       matches: c.tournaments.flatMap(({ matches }) =>
         matches.map((m) => ({
-          id: m.id, status: m.status, match_label: m.match_label,
+          id: m.id,
+          status: m.status,
+          match_label: m.match_label,
           fighter1_name: (m.fighter1 as FighterInfo | null)?.name ?? null,
           fighter2_name: (m.fighter2 as FighterInfo | null)?.name ?? null,
           courtLabel: c.courtName,
@@ -78,8 +82,15 @@ function useWatchList(courts: CourtData[]) {
   }, [courts]);
 
   return {
-    watchList, setWatchList, showWatch, setShowWatch, watchSearch, setWatchSearch,
-    watchNotifications, setWatchNotifications, allFighterNames,
+    watchList,
+    setWatchList,
+    showWatch,
+    setShowWatch,
+    watchSearch,
+    setWatchSearch,
+    watchNotifications,
+    setWatchNotifications,
+    allFighterNames,
   };
 }
 
@@ -95,14 +106,25 @@ function useLiveData() {
     const { data: ae } = await supabase.from("events").select("*").eq("is_active", true).maybeSingle();
     setActiveEvent(ae ?? null);
     if (!ae) return;
-    const { data: allTourns } = await supabase.from("tournaments").select("*")
-      .eq("event_id", ae.id).neq("status", "finished").order("sort_order").order("created_at");
+    const { data: allTourns } = await supabase
+      .from("tournaments")
+      .select("*")
+      .eq("event_id", ae.id)
+      .neq("status", "finished")
+      .order("sort_order")
+      .order("created_at");
     const tournIds = (allTourns ?? []).map((t) => t.id);
-    const { data: allMatches } = tournIds.length > 0
-      ? await supabase.from("matches")
-          .select("*, fighter1:fighters!fighter1_id(id,name), fighter2:fighters!fighter2_id(id,name), winner:fighters!winner_id(id,name)")
-          .in("tournament_id", tournIds).order("round").order("position")
-      : { data: [] };
+    const { data: allMatches } =
+      tournIds.length > 0
+        ? await supabase
+            .from("matches")
+            .select(
+              "*, fighter1:fighters!fighter1_id(id,name), fighter2:fighters!fighter2_id(id,name), winner:fighters!winner_id(id,name)",
+            )
+            .in("tournament_id", tournIds)
+            .order("round")
+            .order("position")
+        : { data: [] };
     const matchesByTourn = new Map<string, Match[]>();
     for (const m of (allMatches ?? []) as Match[]) {
       const list = matchesByTourn.get(m.tournament_id) ?? [];
@@ -113,7 +135,11 @@ function useLiveData() {
     for (let c = 1; c <= ae.court_count; c++) {
       const courtName = ae.court_names?.[c - 1]?.trim() || `コート${c}`;
       const courtTourns = (allTourns ?? []).filter((t) => t.court === String(c));
-      courtData.push({ courtNum: c, courtName, tournaments: courtTourns.map((t) => ({ tournament: t, matches: matchesByTourn.get(t.id) ?? [] })) });
+      courtData.push({
+        courtNum: c,
+        courtName,
+        tournaments: courtTourns.map((t) => ({ tournament: t, matches: matchesByTourn.get(t.id) ?? [] })),
+      });
     }
     const serialized = JSON.stringify(courtData);
     if (serialized !== prevCourtsRef.current) {
@@ -136,24 +162,41 @@ export default function LivePage() {
   const { mode: offlineMode } = useOfflineMode();
   const pendingCount = usePendingCount();
   const { showRecoveryPrompt, acceptRecovery, declineRecovery } = useAutoRecovery(offlineMode);
-  const { isOffline: _isOffline, quality, wrappedFetch } = useConnectionStatus(load, {
-    baseInterval: 5000, enabled: offlineMode === "online",
-    onReconnect: () => { flush().catch(() => {}); },
+  const {
+    isOffline: _isOffline,
+    quality,
+    wrappedFetch,
+  } = useConnectionStatus(load, {
+    baseInterval: 5000,
+    enabled: offlineMode === "online",
+    onReconnect: () => {
+      flush().catch(() => {});
+    },
   });
 
-  useEffect(() => { void wrappedFetch(); }, [wrappedFetch]);
+  useEffect(() => {
+    void wrappedFetch();
+  }, [wrappedFetch]);
 
   useEffect(() => {
     if (offlineMode === "offline") return;
-    const channel = supabase.channel("live-matches")
-      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => { void wrappedFetch(); })
+    const channel = supabase
+      .channel("live-matches")
+      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => {
+        void wrappedFetch();
+      })
       .subscribe((status, err) => {
         if (status === "SUBSCRIBED") void wrappedFetch();
         if (status === "CLOSED" || status === "TIMED_OUT") console.warn(`Realtime ${status}`, err);
       });
-    function handleVisibility() { if (document.visibilityState === "visible") void wrappedFetch(); }
+    function handleVisibility() {
+      if (document.visibilityState === "visible") void wrappedFetch();
+    }
     document.addEventListener("visibilitychange", handleVisibility);
-    return () => { void supabase.removeChannel(channel); document.removeEventListener("visibilitychange", handleVisibility); };
+    return () => {
+      void supabase.removeChannel(channel);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [wrappedFetch, offlineMode]);
 
   if (activeEvent === undefined) {
@@ -182,23 +225,37 @@ export default function LivePage() {
 
   return (
     <main className="min-h-screen bg-main-bg text-white">
-      <UnifiedStatusBar quality={quality} mode={offlineMode} pendingCount={pendingCount}
+      <UnifiedStatusBar
+        quality={quality}
+        mode={offlineMode}
+        pendingCount={pendingCount}
         onToggleOfflineMode={() => {
           const next = offlineMode === "online" ? "offline" : "online";
           setMode(next);
           if (next === "online") flush().catch(() => {});
         }}
-        showRecoveryPrompt={showRecoveryPrompt} onAcceptRecovery={acceptRecovery} onDeclineRecovery={declineRecovery} />
-      <LiveHeader activeEvent={activeEvent} courts={courts} selectedCourt={selectedCourt}
-        lastUpdated={lastUpdated} activeOngoing={activeOngoing} watch={watch}
-        onSetSelectedCourt={setSelectedCourt} />
+        showRecoveryPrompt={showRecoveryPrompt}
+        onAcceptRecovery={acceptRecovery}
+        onDeclineRecovery={declineRecovery}
+      />
+      <LiveHeader
+        activeEvent={activeEvent}
+        courts={courts}
+        selectedCourt={selectedCourt}
+        lastUpdated={lastUpdated}
+        activeOngoing={activeOngoing}
+        watch={watch}
+        onSetSelectedCourt={setSelectedCourt}
+      />
 
       {watch.watchNotifications.length > 0 && (
         <div className="fixed top-0 left-0 right-0 z-50 space-y-1 p-2">
           {watch.watchNotifications.map((n) => (
-            <button key={n.id}
+            <button
+              key={n.id}
               onClick={() => watch.setWatchNotifications((prev) => prev.filter((x) => x.id !== n.id))}
-              className="w-full bg-orange-600 text-white rounded-xl px-5 py-4 text-base font-bold shadow-2xl animate-pulse text-left">
+              className="w-full bg-orange-600 text-white rounded-xl px-5 py-4 text-base font-bold shadow-2xl animate-pulse text-left"
+            >
               🔔 {n.message}
             </button>
           ))}
@@ -214,16 +271,30 @@ export default function LivePage() {
 
 type WatchState = ReturnType<typeof useWatchList>;
 
-function LiveHeader({ activeEvent, courts, selectedCourt, lastUpdated, activeOngoing, watch, onSetSelectedCourt }: {
-  activeEvent: Event; courts: CourtData[]; selectedCourt: number;
-  lastUpdated: Date | null; activeOngoing: Match | null; watch: WatchState;
+function LiveHeader({
+  activeEvent,
+  courts,
+  selectedCourt,
+  lastUpdated,
+  activeOngoing,
+  watch,
+  onSetSelectedCourt,
+}: {
+  activeEvent: Event;
+  courts: CourtData[];
+  selectedCourt: number;
+  lastUpdated: Date | null;
+  activeOngoing: Match | null;
+  watch: WatchState;
   onSetSelectedCourt: (idx: number) => void;
 }) {
   return (
     <div className="sticky top-0 z-10 bg-gray-900 backdrop-blur border-b border-gray-700/60">
       <div className="max-w-lg mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="shrink-0 text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded-full font-medium">LIVE</span>
+          <span className="shrink-0 text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded-full font-medium">
+            LIVE
+          </span>
           <span className="font-bold text-sm truncate">{activeEvent.name}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -232,8 +303,10 @@ function LiveHeader({ activeEvent, courts, selectedCourt, lastUpdated, activeOng
               {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
             </span>
           )}
-          <button onClick={() => watch.setShowWatch(!watch.showWatch)}
-            className={`relative text-xs px-2 py-1 rounded-lg transition ${watch.showWatch ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}>
+          <button
+            onClick={() => watch.setShowWatch(!watch.showWatch)}
+            className={`relative text-xs px-2 py-1 rounded-lg transition ${watch.showWatch ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"}`}
+          >
             ⭐ ウォッチ
             {watch.watchList.length > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
@@ -243,29 +316,44 @@ function LiveHeader({ activeEvent, courts, selectedCourt, lastUpdated, activeOng
           </button>
         </div>
       </div>
-      {courts.length > 1 && (
-        <CourtTabs courts={courts} selectedCourt={selectedCourt} onSelect={onSetSelectedCourt} />
-      )}
+      {courts.length > 1 && <CourtTabs courts={courts} selectedCourt={selectedCourt} onSelect={onSetSelectedCourt} />}
       {activeOngoing && <OngoingBanner match={activeOngoing} />}
       {watch.showWatch && <WatchPanel watch={watch} />}
     </div>
   );
 }
 
-function CourtTabs({ courts, selectedCourt, onSelect }: { courts: CourtData[]; selectedCourt: number; onSelect: (idx: number) => void }) {
+function CourtTabs({
+  courts,
+  selectedCourt,
+  onSelect,
+}: {
+  courts: CourtData[];
+  selectedCourt: number;
+  onSelect: (idx: number) => void;
+}) {
   return (
-    <div className="max-w-lg mx-auto grid px-3 pb-2 gap-1.5" style={{ gridTemplateColumns: `repeat(${courts.length}, 1fr)` }}>
+    <div
+      className="max-w-lg mx-auto grid px-3 pb-2 gap-1.5"
+      style={{ gridTemplateColumns: `repeat(${courts.length}, 1fr)` }}
+    >
       {courts.map((court, idx) => {
         const hasOngoing = court.tournaments.some(({ matches }) => matches.some((m) => m.status === "ongoing"));
         const isActive = idx === selectedCourt;
         return (
-          <button key={court.courtNum} onClick={() => onSelect(idx)}
+          <button
+            key={court.courtNum}
+            onClick={() => onSelect(idx)}
             className={`relative py-2.5 text-sm font-bold text-center transition-colors rounded-lg ${
-              isActive ? "bg-blue-600/30 text-blue-200 border border-blue-500/40"
+              isActive
+                ? "bg-blue-600/30 text-blue-200 border border-blue-500/40"
                 : "text-gray-400 bg-gray-800/60 border border-gray-700/40 active:bg-gray-700/60"
-            }`}>
+            }`}
+          >
             {court.courtName}
-            {hasOngoing && <span className="absolute top-1 right-2 w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse" />}
+            {hasOngoing && (
+              <span className="absolute top-1 right-2 w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse" />
+            )}
           </button>
         );
       })}
@@ -278,19 +366,33 @@ function WatchPanel({ watch }: { watch: WatchState }) {
   return (
     <div className="bg-gray-800 border-t border-gray-700/60 px-3 py-3">
       <div className="max-w-lg mx-auto space-y-2">
-        <input type="text" value={watchSearch} onChange={(e) => setWatchSearch(e.target.value)}
+        <input
+          type="text"
+          value={watchSearch}
+          onChange={(e) => setWatchSearch(e.target.value)}
           placeholder="選手名で検索..."
-          className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500" />
+          className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500"
+        />
         {watchSearch.length > 0 && (
           <div className="max-h-32 overflow-y-auto space-y-0.5">
-            {allFighterNames.filter((n) => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n)).slice(0, 10)
+            {allFighterNames
+              .filter((n) => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n))
+              .slice(0, 10)
               .map((name) => (
-                <button key={name} onClick={() => { setWatchList((prev) => [...prev, name]); setWatchSearch(""); }}
-                  className="w-full text-left text-sm text-gray-200 bg-gray-700/50 hover:bg-gray-600 rounded px-3 py-1.5 transition">+ {name}</button>
+                <button
+                  key={name}
+                  onClick={() => {
+                    setWatchList((prev) => [...prev, name]);
+                    setWatchSearch("");
+                  }}
+                  className="w-full text-left text-sm text-gray-200 bg-gray-700/50 hover:bg-gray-600 rounded px-3 py-1.5 transition"
+                >
+                  + {name}
+                </button>
               ))}
-            {allFighterNames.filter((n) => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n)).length === 0 && (
-              <p className="text-xs text-gray-500 py-1">該当する選手がいません</p>
-            )}
+            {allFighterNames.filter(
+              (n) => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n),
+            ).length === 0 && <p className="text-xs text-gray-500 py-1">該当する選手がいません</p>}
           </div>
         )}
         {watchList.length > 0 && (
@@ -299,8 +401,12 @@ function WatchPanel({ watch }: { watch: WatchState }) {
             {watchList.map((name) => (
               <div key={name} className="flex items-center justify-between bg-gray-700/50 rounded px-3 py-1.5">
                 <span className="text-sm text-gray-200">⭐ {name}</span>
-                <button onClick={() => setWatchList((prev) => prev.filter((n) => n !== name))}
-                  className="text-xs text-red-400 hover:text-red-300">解除</button>
+                <button
+                  onClick={() => setWatchList((prev) => prev.filter((n) => n !== name))}
+                  className="text-xs text-red-400 hover:text-red-300"
+                >
+                  解除
+                </button>
               </div>
             ))}
           </div>
@@ -397,30 +503,58 @@ function getMatchLabelColor(isOngoing: boolean, isDone: boolean): string {
   return "text-gray-400";
 }
 
-function MatchStatusBadge({ isOngoing, isNext, isDone, hasWinner, hasFighter2 }: {
-  isOngoing: boolean; isNext: boolean; isDone: boolean; hasWinner: boolean; hasFighter2: boolean;
+function MatchStatusBadge({
+  isOngoing,
+  isNext,
+  isDone,
+  hasWinner,
+  hasFighter2,
+}: {
+  isOngoing: boolean;
+  isNext: boolean;
+  isDone: boolean;
+  hasWinner: boolean;
+  hasFighter2: boolean;
 }) {
   if (isDone && hasWinner) return <span className="text-[10px] text-green-400 font-medium">終了</span>;
-  if (isOngoing) return (
-    <span className="flex items-center gap-1">
-      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-      <span className="text-[10px] text-blue-300 font-medium">試合中</span>
-    </span>
-  );
-  if (isNext) return (
-    <span className="flex items-center gap-1">
-      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-      <span className="text-[10px] text-amber-300 font-medium">次の試合</span>
-    </span>
-  );
+  if (isOngoing)
+    return (
+      <span className="flex items-center gap-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+        <span className="text-[10px] text-blue-300 font-medium">試合中</span>
+      </span>
+    );
+  if (isNext)
+    return (
+      <span className="flex items-center gap-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+        <span className="text-[10px] text-amber-300 font-medium">次の試合</span>
+      </span>
+    );
   if (!hasFighter2) return <span className="text-[10px] text-gray-500">未定</span>;
   return null;
 }
 
-function FighterName({ fighter, isWinner, isDone, isRight, hasFighter }: {
-  fighter: FighterInfo | null; isWinner: boolean; isDone: boolean; isRight?: boolean; hasFighter?: boolean;
+function FighterName({
+  fighter,
+  isWinner,
+  isDone,
+  isRight,
+  hasFighter,
+}: {
+  fighter: FighterInfo | null;
+  isWinner: boolean;
+  isDone: boolean;
+  isRight?: boolean;
+  hasFighter?: boolean;
 }) {
-  const textClass = isWinner ? "font-bold text-white" : isDone ? "text-gray-400" : (hasFighter !== false ? "text-gray-100" : "text-gray-500");
+  const textClass = isWinner
+    ? "font-bold text-white"
+    : isDone
+      ? "text-gray-400"
+      : hasFighter !== false
+        ? "text-gray-100"
+        : "text-gray-500";
   return (
     <span className={`flex-1 min-w-0 flex items-center ${isRight ? "justify-end" : ""} gap-1 text-sm ${textClass}`}>
       <span className={`truncate ${isRight ? "text-right" : ""}`}>{fighter?.name ?? "未定"}</span>
@@ -451,8 +585,13 @@ function MatchRow({ match, isOngoing, isNext }: { match: Match; isOngoing: boole
         {match.match_label && (
           <span className={`text-xs font-semibold ${getMatchLabelColor(isOngoing, isDone)}`}>{match.match_label}</span>
         )}
-        <MatchStatusBadge isOngoing={isOngoing} isNext={isNext} isDone={isDone}
-          hasWinner={!!winner} hasFighter2={!!f2} />
+        <MatchStatusBadge
+          isOngoing={isOngoing}
+          isNext={isNext}
+          isDone={isDone}
+          hasWinner={!!winner}
+          hasFighter2={!!f2}
+        />
       </div>
       <div className="flex items-center gap-2">
         <FighterName fighter={f1} isWinner={winner?.id === f1?.id} isDone={isDone} />

@@ -66,20 +66,26 @@ function DashboardPanel({
 
   const tournamentCountByRuleName = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const t of tournaments) { const k = t.default_rules ?? "__none__"; map[k] = (map[k] ?? 0) + 1; }
+    for (const t of tournaments) {
+      const k = t.default_rules ?? "__none__";
+      map[k] = (map[k] ?? 0) + 1;
+    }
     return map;
   }, [tournaments]);
   const tournamentTypeCount = tournaments.filter((t) => t.type !== "one_match").length;
   const oneMatchTypeCount = tournaments.filter((t) => t.type === "one_match").length;
 
   const s = matchCountSummary;
-  const matchCountInfo = s.totalDesired > s.totalAssigned ? (
-    <div className="bg-gray-800 rounded-xl p-3 flex items-center gap-3 flex-wrap">
-      <span className="text-xs text-gray-400">希望試合数:</span>
-      <span className="text-sm text-white">合計 {s.totalDesired}試合 / 設定済 {s.totalAssigned}試合</span>
-      {s.unsatisfied > 0 && <span className="text-xs text-orange-400">希望未充足 {s.unsatisfied}名</span>}
-    </div>
-  ) : null;
+  const matchCountInfo =
+    s.totalDesired > s.totalAssigned ? (
+      <div className="bg-gray-800 rounded-xl p-3 flex items-center gap-3 flex-wrap">
+        <span className="text-xs text-gray-400">希望試合数:</span>
+        <span className="text-sm text-white">
+          合計 {s.totalDesired}試合 / 設定済 {s.totalAssigned}試合
+        </span>
+        {s.unsatisfied > 0 && <span className="text-xs text-orange-400">希望未充足 {s.unsatisfied}名</span>}
+      </div>
+    ) : null;
 
   if (eventRules.length === 0) {
     const stats = buildStats();
@@ -100,7 +106,13 @@ function DashboardPanel({
 
   const cards = eventRules.map((rule) => {
     const stats = buildStats(rule.id);
-    return { key: rule.id, label: rule.name, total: stats.total, unassigned: stats.unassigned, tournamentCount: tournamentCountByRuleName[rule.name] ?? 0 };
+    return {
+      key: rule.id,
+      label: rule.name,
+      total: stats.total,
+      unassigned: stats.unassigned,
+      tournamentCount: tournamentCountByRuleName[rule.name] ?? 0,
+    };
   });
   if (cards.every((c) => c.total === 0)) return null;
 
@@ -164,7 +176,13 @@ function DashboardCard({
   );
 }
 
-const AXIS_LABELS: Record<string, string> = { weight: "体重", age: "年齢", sex: "性別", height: "身長", experience: "経験" };
+const AXIS_LABELS: Record<string, string> = {
+  weight: "体重",
+  age: "年齢",
+  sex: "性別",
+  height: "身長",
+  experience: "経験",
+};
 const AXIS_ORDER = ["weight", "age", "sex", "height", "experience"];
 
 function balanceColor(balance: string, isReference: boolean): string {
@@ -178,14 +196,24 @@ function SuggestionAxisGroup({ axis, items }: { axis: string; items: SplitSugges
   const isReference = axis === "experience";
   return (
     <div className={isReference ? "border-t border-gray-700/50 pt-2" : ""}>
-      <p className="text-xs text-gray-500 mb-1">{AXIS_LABELS[axis] ?? axis}{isReference && <span className="ml-1.5 text-gray-600">（参考）</span>}</p>
+      <p className="text-xs text-gray-500 mb-1">
+        {AXIS_LABELS[axis] ?? axis}
+        {isReference && <span className="ml-1.5 text-gray-600">（参考）</span>}
+      </p>
       <div className="flex flex-wrap gap-1.5">
         {items.map((s, i) => (
-          <span key={i} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs ${isReference ? "bg-gray-700/30 opacity-60" : "bg-gray-700/60"}`}>
+          <span
+            key={i}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs ${isReference ? "bg-gray-700/30 opacity-60" : "bg-gray-700/60"}`}
+          >
             <span className={balanceColor(s.balance, isReference)}>{s.balance}</span>
-            <span className={isReference ? "text-gray-500" : "text-gray-300"}>{s.belowLabel} {s.belowCount}名</span>
+            <span className={isReference ? "text-gray-500" : "text-gray-300"}>
+              {s.belowLabel} {s.belowCount}名
+            </span>
             <span className="text-gray-600">/</span>
-            <span className={isReference ? "text-gray-500" : "text-gray-300"}>{s.aboveLabel} {s.aboveCount}名</span>
+            <span className={isReference ? "text-gray-500" : "text-gray-300"}>
+              {s.aboveLabel} {s.aboveCount}名
+            </span>
           </span>
         ))}
       </div>
@@ -223,22 +251,42 @@ function RuleDistributionPanel({
 
   return (
     <div className="rounded-xl border border-gray-700 bg-gray-800/50 overflow-hidden">
-      <button onClick={() => setIsOpen((prev) => !prev)} className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700/50 transition">
-        <span>{"💡"} 参加者の分布（{entries.length}名）</span>
+      <button
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700/50 transition"
+      >
+        <span>
+          {"💡"} 参加者の分布（{entries.length}名）
+        </span>
         <span className="text-xs text-gray-500">{isOpen ? "▲ 閉じる" : "▼ 開く"}</span>
       </button>
       {isOpen && (
         <div className="px-4 pb-3 space-y-4 border-t border-gray-700">
           {sections.map((section) => {
             const grouped = new Map<string, SplitSuggestion[]>();
-            for (const s of section.suggestions) { const list = grouped.get(s.axis) ?? []; list.push(s); grouped.set(s.axis, list); }
+            for (const s of section.suggestions) {
+              const list = grouped.get(s.axis) ?? [];
+              list.push(s);
+              grouped.set(s.axis, list);
+            }
             const sorted: [string, SplitSuggestion[]][] = [];
-            for (const axis of AXIS_ORDER) { const items = grouped.get(axis); if (items) sorted.push([axis, items]); }
-            for (const [axis, items] of grouped) { if (!sorted.some(([a]) => a === axis)) sorted.push([axis, items]); }
+            for (const axis of AXIS_ORDER) {
+              const items = grouped.get(axis);
+              if (items) sorted.push([axis, items]);
+            }
+            for (const [axis, items] of grouped) {
+              if (!sorted.some(([a]) => a === axis)) sorted.push([axis, items]);
+            }
             return (
               <div key={section.label} className="pt-2">
-                <p className="text-xs font-medium text-gray-400 mb-2">{section.label}（{section.count}名）</p>
-                <div className="space-y-2">{sorted.map(([axis, items]) => <SuggestionAxisGroup key={axis} axis={axis} items={items} />)}</div>
+                <p className="text-xs font-medium text-gray-400 mb-2">
+                  {section.label}（{section.count}名）
+                </p>
+                <div className="space-y-2">
+                  {sorted.map(([axis, items]) => (
+                    <SuggestionAxisGroup key={axis} axis={axis} items={items} />
+                  ))}
+                </div>
               </div>
             );
           })}
@@ -283,8 +331,20 @@ export type BracketSectionProps = {
   ) => void;
 };
 
-function BracketStatusBanners({ hasEntryChanges, entryChangeSummary, allEntriesAssigned, isEntryClosed, hasTournaments, onNavigateStep }: {
-  hasEntryChanges: boolean; entryChangeSummary: string; allEntriesAssigned: boolean; isEntryClosed: boolean; hasTournaments: boolean; onNavigateStep: (s: 1 | 2 | 3) => void;
+function BracketStatusBanners({
+  hasEntryChanges,
+  entryChangeSummary,
+  allEntriesAssigned,
+  isEntryClosed,
+  hasTournaments,
+  onNavigateStep,
+}: {
+  hasEntryChanges: boolean;
+  entryChangeSummary: string;
+  allEntriesAssigned: boolean;
+  isEntryClosed: boolean;
+  hasTournaments: boolean;
+  onNavigateStep: (s: 1 | 2 | 3) => void;
 }) {
   return (
     <>
@@ -292,21 +352,38 @@ function BracketStatusBanners({ hasEntryChanges, entryChangeSummary, allEntriesA
         <div className="bg-orange-950 border border-orange-700 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap">
           <span className="text-orange-400 shrink-0">⚠️</span>
           <p className="text-sm text-orange-300">{entryChangeSummary}</p>
-          <button onClick={() => onNavigateStep(1)} className="ml-auto shrink-0 text-xs bg-orange-700 hover:bg-orange-600 text-white px-3 py-1.5 rounded transition">① 参加者一覧を確認 →</button>
+          <button
+            onClick={() => onNavigateStep(1)}
+            className="ml-auto shrink-0 text-xs bg-orange-700 hover:bg-orange-600 text-white px-3 py-1.5 rounded transition"
+          >
+            ① 参加者一覧を確認 →
+          </button>
         </div>
       )}
       {allEntriesAssigned && !hasEntryChanges && (
         <div className="bg-green-950 border border-green-700 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap">
           <span className="text-green-400 shrink-0">✅</span>
           <p className="text-sm text-green-300">全員の対戦表が確定しました。試合番号を設定してください。</p>
-          <button onClick={() => onNavigateStep(3)} className="ml-auto shrink-0 text-xs text-green-400 hover:text-green-300 underline">③ 試合番号設定へ →</button>
+          <button
+            onClick={() => onNavigateStep(3)}
+            className="ml-auto shrink-0 text-xs text-green-400 hover:text-green-300 underline"
+          >
+            ③ 試合番号設定へ →
+          </button>
         </div>
       )}
       {!isEntryClosed && !hasTournaments && (
         <div className="bg-blue-950/50 border border-blue-700/50 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap">
           <span className="text-blue-400 shrink-0">💡</span>
-          <p className="text-sm text-blue-300">参加受付が終了していません。締め切ってから対戦表を作成することをおすすめします。</p>
-          <button onClick={() => onNavigateStep(1)} className="ml-auto shrink-0 text-xs text-blue-400 hover:text-blue-300">① 参加者管理へ →</button>
+          <p className="text-sm text-blue-300">
+            参加受付が終了していません。締め切ってから対戦表を作成することをおすすめします。
+          </p>
+          <button
+            onClick={() => onNavigateStep(1)}
+            className="ml-auto shrink-0 text-xs text-blue-400 hover:text-blue-300"
+          >
+            ① 参加者管理へ →
+          </button>
         </div>
       )}
     </>
@@ -341,11 +418,29 @@ export function BracketSection({
 }: BracketSectionProps) {
   return (
     <div className="space-y-6">
-      <BracketStatusBanners hasEntryChanges={hasEntryChanges} entryChangeSummary={entryChangeSummary} allEntriesAssigned={allEntriesAssigned} isEntryClosed={!!event.entry_closed} hasTournaments={tournaments.length > 0} onNavigateStep={onNavigateStep} />
+      <BracketStatusBanners
+        hasEntryChanges={hasEntryChanges}
+        entryChangeSummary={entryChangeSummary}
+        allEntriesAssigned={allEntriesAssigned}
+        isEntryClosed={!!event.entry_closed}
+        hasTournaments={tournaments.length > 0}
+        onNavigateStep={onNavigateStep}
+      />
 
       <div className="grid grid-cols-2 rounded-xl overflow-hidden border border-gray-700">
-        {([["courts", "対戦表"], ["bracket-rules", "振り分けルール"]] as const).map(([key, label]) => (
-          <button key={key} onClick={() => onSetBracketSubTab(key)} className={`py-2 text-sm font-medium transition ${bracketSubTab === key ? "bg-blue-700 text-white" : "bg-gray-800 hover:bg-gray-750 text-gray-400 hover:text-gray-200"}`}>{label}</button>
+        {(
+          [
+            ["courts", "対戦表"],
+            ["bracket-rules", "振り分けルール"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => onSetBracketSubTab(key)}
+            className={`py-2 text-sm font-medium transition ${bracketSubTab === key ? "bg-blue-700 text-white" : "bg-gray-800 hover:bg-gray-750 text-gray-400 hover:text-gray-200"}`}
+          >
+            {label}
+          </button>
         ))}
       </div>
 

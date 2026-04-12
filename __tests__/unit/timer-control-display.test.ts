@@ -463,7 +463,9 @@ function resultDisplayText(state: {
   resultDetail: Record<string, number> | null;
 }): string {
   if (!state.resultMethod) return "";
-  return formatDetailResult(state.resultMethod, state.resultDetail) ?? resultMethodLabel(state.resultMethod as ResultMethod);
+  return (
+    formatDetailResult(state.resultMethod, state.resultDetail) ?? resultMethodLabel(state.resultMethod as ResultMethod)
+  );
 }
 
 describe("勝利オーバーレイの表示ロジック", () => {

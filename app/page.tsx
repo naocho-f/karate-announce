@@ -19,13 +19,26 @@ type CourtData = {
   tournaments: TournamentData[];
 };
 
-function CourtCard({ courtNum, tournaments, courtNames }: { courtNum: number; tournaments: TournamentData[]; courtNames?: string[] | null }) {
+function CourtCard({
+  courtNum,
+  tournaments,
+  courtNames,
+}: {
+  courtNum: number;
+  tournaments: TournamentData[];
+  courtNames?: string[] | null;
+}) {
   const courtName = courtNames?.[courtNum - 1]?.trim() || `コート${courtNum}`;
   return (
     <div className="bg-gray-800/80 border border-gray-700/40 rounded-xl overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-600/40">
         <h2 className="font-semibold">{courtName}</h2>
-        <Link href={`/court/${courtNum}`} className="text-sm bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition">アナウンス →</Link>
+        <Link
+          href={`/court/${courtNum}`}
+          className="text-sm bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition"
+        >
+          アナウンス →
+        </Link>
       </div>
       <div className="p-4 space-y-6">
         {tournaments.length === 0 ? (
@@ -35,11 +48,17 @@ function CourtCard({ courtNum, tournaments, courtNames }: { courtNum: number; to
             <div key={tournament.id}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm font-medium text-gray-200">{tournament.name}</span>
-                <span className={`text-xs px-2 py-0.5 rounded ${tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"}`}>
+                <span
+                  className={`text-xs px-2 py-0.5 rounded ${tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"}`}
+                >
                   {tournament.status === "ongoing" ? "進行中" : "準備中"}
                 </span>
               </div>
-              {matches.length === 0 ? <p className="text-xs text-gray-500">試合データなし</p> : <BracketView matches={matches} nameMap={nameMap} affiliationMap={affiliationMap} />}
+              {matches.length === 0 ? (
+                <p className="text-xs text-gray-500">試合データなし</p>
+              ) : (
+                <BracketView matches={matches} nameMap={nameMap} affiliationMap={affiliationMap} />
+              )}
             </div>
           ))
         )}
@@ -66,16 +85,29 @@ async function fetchFighterMaps(allMatches: Match[]) {
   });
   const fighterMap: Record<string, Fighter> = {};
   if (allFighterIds.size > 0) {
-    const { data: fs } = await supabase.from("fighters").select("*, dojo:dojos(*)").in("id", [...allFighterIds]);
-    (fs ?? []).forEach((f) => { fighterMap[f.id] = f as Fighter; });
+    const { data: fs } = await supabase
+      .from("fighters")
+      .select("*, dojo:dojos(*)")
+      .in("id", [...allFighterIds]);
+    (fs ?? []).forEach((f) => {
+      fighterMap[f.id] = f as Fighter;
+    });
   }
   return {
     nameMap: Object.fromEntries(Object.entries(fighterMap).map(([id, f]) => [id, fighterFullName(f)])),
-    affiliationMap: Object.fromEntries(Object.entries(fighterMap).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""])),
+    affiliationMap: Object.fromEntries(
+      Object.entries(fighterMap).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""]),
+    ),
   };
 }
 
-function buildCourtData(ae: Event, allTourns: Tournament[], allMatches: Match[], nameMap: Record<string, string>, affiliationMap: Record<string, string>): CourtData[] {
+function buildCourtData(
+  ae: Event,
+  allTourns: Tournament[],
+  allMatches: Match[],
+  nameMap: Record<string, string>,
+  affiliationMap: Record<string, string>,
+): CourtData[] {
   const matchesByTournament: Record<string, Match[]> = {};
   allMatches.forEach((m) => {
     if (!matchesByTournament[m.tournament_id]) matchesByTournament[m.tournament_id] = [];
@@ -83,9 +115,14 @@ function buildCourtData(ae: Event, allTourns: Tournament[], allMatches: Match[],
   });
   return Array.from({ length: ae.court_count }, (_, i) => ({
     courtNum: i + 1,
-    tournaments: allTourns.filter((t) => t.court === String(i + 1)).map((t) => ({
-      tournament: t, matches: matchesByTournament[t.id] ?? [], nameMap, affiliationMap,
-    })),
+    tournaments: allTourns
+      .filter((t) => t.court === String(i + 1))
+      .map((t) => ({
+        tournament: t,
+        matches: matchesByTournament[t.id] ?? [],
+        nameMap,
+        affiliationMap,
+      })),
   }));
 }
 
@@ -98,10 +135,27 @@ export default function Home() {
     setActiveEvent(ae ?? null);
     if (!ae) return;
 
-    const { data: allTourns } = await supabase.from("tournaments").select("*").eq("event_id", ae.id).neq("status", "finished").order("sort_order").order("created_at");
-    if (!allTourns?.length) { setCourts([]); return; }
+    const { data: allTourns } = await supabase
+      .from("tournaments")
+      .select("*")
+      .eq("event_id", ae.id)
+      .neq("status", "finished")
+      .order("sort_order")
+      .order("created_at");
+    if (!allTourns?.length) {
+      setCourts([]);
+      return;
+    }
 
-    const { data: allMatches } = await supabase.from("matches").select("*").in("tournament_id", allTourns.map((t) => t.id)).order("round").order("position");
+    const { data: allMatches } = await supabase
+      .from("matches")
+      .select("*")
+      .in(
+        "tournament_id",
+        allTourns.map((t) => t.id),
+      )
+      .order("round")
+      .order("position");
     const { nameMap, affiliationMap } = await fetchFighterMaps(allMatches ?? []);
     setCourts(buildCourtData(ae, allTourns, allMatches ?? [], nameMap, affiliationMap));
   }, []);
@@ -150,13 +204,20 @@ export default function Home() {
         </div>
 
         {!activeEvent ? (
-          <div className="text-center py-20 text-gray-500"><p>開催中の試合はありません</p></div>
+          <div className="text-center py-20 text-gray-500">
+            <p>開催中の試合はありません</p>
+          </div>
         ) : (
           <>
             <EventHeader event={activeEvent} />
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
               {courts.map(({ courtNum, tournaments }) => (
-                <CourtCard key={courtNum} courtNum={courtNum} tournaments={tournaments} courtNames={activeEvent.court_names} />
+                <CourtCard
+                  key={courtNum}
+                  courtNum={courtNum}
+                  tournaments={tournaments}
+                  courtNames={activeEvent.court_names}
+                />
               ))}
             </div>
           </>

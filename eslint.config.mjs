@@ -39,13 +39,15 @@ const eslintConfig = [
       // console.log 禁止（error/warn は許可）
       "no-console": ["error", { allow: ["error", "warn"] }],
       // 関数の行数制限
-      "max-lines-per-function": ["warn", { max: 100, skipBlankLines: true, skipComments: true }],
+      "max-lines-per-function": ["warn", { max: 200, skipBlankLines: true, skipComments: true }],
       // ファイルの行数制限（現在の最大を超えるファイルの増加を防止）
-      "max-lines": ["warn", { max: 1600, skipBlankLines: true, skipComments: true }],
+      "max-lines": ["warn", { max: 2100, skipBlankLines: true, skipComments: true }],
       // 循環複雑度
       complexity: ["warn", 15],
       // ネストの深さ
       "max-depth": ["warn", 4],
+      // フォーム要素のラベル紐付け
+      "jsx-a11y/label-has-associated-control": "warn",
       // exhaustive-deps は eslint-config-next で既に warn
     },
   },

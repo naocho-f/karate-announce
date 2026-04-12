@@ -7,17 +7,17 @@
 
 ## 1. ツール一覧
 
-| ツール | 目的 | 実行場所 |
-|--------|------|---------|
-| eslint-plugin-security | eval/child_process/非リテラルfs等の危険パターン検出 | pre-commit + CI |
-| eslint-plugin-no-unsanitized | innerHTML/insertAdjacentHTML等のXSSリスク検出 | pre-commit + CI |
-| react/no-danger | dangerouslySetInnerHTML使用禁止 | pre-commit + CI |
-| Semgrep | OWASP Top 10/secrets等のセキュリティスキャン | pre-commit(staged) + CI(全体) |
-| gitleaks | シークレット漏洩検出 | pre-commit(staged) + CI(全履歴) |
-| osv-scanner | 依存パッケージの脆弱性検出 | CI + 手動 |
-| npm audit | npm依存の脆弱性検出 | CI |
-| CodeQL | GitHubによる高度なセマンティック分析 | CI |
-| Dependabot | 依存パッケージの自動更新PR | GitHub |
+| ツール                       | 目的                                                | 実行場所                        |
+| ---------------------------- | --------------------------------------------------- | ------------------------------- |
+| eslint-plugin-security       | eval/child_process/非リテラルfs等の危険パターン検出 | pre-commit + CI                 |
+| eslint-plugin-no-unsanitized | innerHTML/insertAdjacentHTML等のXSSリスク検出       | pre-commit + CI                 |
+| react/no-danger              | dangerouslySetInnerHTML使用禁止                     | pre-commit + CI                 |
+| Semgrep                      | OWASP Top 10/secrets等のセキュリティスキャン        | pre-commit(staged) + CI(全体)   |
+| gitleaks                     | シークレット漏洩検出                                | pre-commit(staged) + CI(全履歴) |
+| osv-scanner                  | 依存パッケージの脆弱性検出                          | CI + 手動                       |
+| npm audit                    | npm依存の脆弱性検出                                 | CI                              |
+| CodeQL                       | GitHubによる高度なセマンティック分析                | CI                              |
+| Dependabot                   | 依存パッケージの自動更新PR                          | GitHub                          |
 
 ---
 
@@ -35,11 +35,11 @@ brew install semgrep gitleaks osv-scanner
 
 ## 3. 実行コマンド
 
-| コマンド | 内容 |
-|---------|------|
-| `npm run security:check` | 全チェック（ESLint + tsc + 外部ツール） |
-| `npm run security:lint` | ESLint + tsc のみ |
-| `npm run security:scan` | 外部ツール（semgrep + gitleaks + osv-scanner） |
+| コマンド                 | 内容                                           |
+| ------------------------ | ---------------------------------------------- |
+| `npm run security:check` | 全チェック（ESLint + tsc + 外部ツール）        |
+| `npm run security:lint`  | ESLint + tsc のみ                              |
+| `npm run security:scan`  | 外部ツール（semgrep + gitleaks + osv-scanner） |
 
 ---
 

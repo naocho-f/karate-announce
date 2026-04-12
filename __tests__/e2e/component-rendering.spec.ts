@@ -41,9 +41,13 @@ test.describe("GroupSection コンポーネント", () => {
       await page.request.post("/api/admin/entries", {
         data: {
           entry: {
-            event_id: eventId, family_name: `グループテスト${i + 1}`, given_name: "選手",
-            family_name_reading: `グループテスト${i + 1}`, given_name_reading: "センシュ",
-            is_test: true, weight: 60,
+            event_id: eventId,
+            family_name: `グループテスト${i + 1}`,
+            given_name: "選手",
+            family_name_reading: `グループテスト${i + 1}`,
+            given_name_reading: "センシュ",
+            is_test: true,
+            weight: 60,
           },
           rule_ids: [],
         },
@@ -72,9 +76,7 @@ test.describe("GuideSections コンポーネント", () => {
     await expect(guideTab).toBeVisible({ timeout: 10_000 });
     await guideTab.click();
     // ガイド内のセクション（事前準備 or 当日の操作）が表示される
-    await expect(
-      page.locator("text=事前準備").or(page.locator("text=当日の操作"))
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("text=事前準備").or(page.locator("text=当日の操作"))).toBeVisible({ timeout: 10_000 });
   });
 });
 
@@ -90,9 +92,7 @@ test.describe("ParticipantEmailConfig コンポーネント", () => {
     await expect(emailTab).toBeVisible({ timeout: 10_000 });
     await emailTab.click();
     // メール設定関連のUIが表示される
-    await expect(
-      page.locator("text=確認メール").or(page.locator("text=メール設定"))
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("text=確認メール").or(page.locator("text=メール設定"))).toBeVisible({ timeout: 10_000 });
   });
 });
 
@@ -108,7 +108,7 @@ test.describe("TimerPresetEditor コンポーネント", () => {
     await createBtn.click();
     // TimerPresetEditor のフォームが表示される（プリセット名入力フィールド）
     await expect(
-      page.locator("input[placeholder*='プリセット名']").or(page.locator("label", { hasText: "プリセット名" }))
+      page.locator("input[placeholder*='プリセット名']").or(page.locator("label", { hasText: "プリセット名" })),
     ).toBeVisible({ timeout: 5_000 });
   });
 });

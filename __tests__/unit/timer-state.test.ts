@@ -891,7 +891,12 @@ describe("timer-state", () => {
   // ── 16. 寝技タイマー累積モード ──
 
   describe("寝技タイマー累積モード", () => {
-    const accumPreset = { newaza_enabled: true, newaza_duration: 120, newaza_accumulate: true, newaza_direction: "countdown" as const };
+    const accumPreset = {
+      newaza_enabled: true,
+      newaza_duration: 120,
+      newaza_accumulate: true,
+      newaza_direction: "countdown" as const,
+    };
 
     it("累積モード: 解除時に elapsedMs が保持される", () => {
       const s = readyState(accumPreset);

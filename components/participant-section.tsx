@@ -289,7 +289,12 @@ function generateDemoGrade(age: number): string | null {
   return null;
 }
 
-function generateDemoPhysical(age: number): { baseWeight: number; weightRange: number; baseHeight: number; heightRange: number } {
+function generateDemoPhysical(age: number): {
+  baseWeight: number;
+  weightRange: number;
+  baseHeight: number;
+  heightRange: number;
+} {
   if (age < 10) return { baseWeight: 20, weightRange: 15, baseHeight: 110, heightRange: 30 };
   if (age < 13) return { baseWeight: 30, weightRange: 20, baseHeight: 130, heightRange: 25 };
   if (age < 18) return { baseWeight: 40, weightRange: 30, baseHeight: 145, heightRange: 30 };
@@ -418,7 +423,19 @@ function generateDemoEntries(
         memo,
         is_test: true,
         form_version: formVersion,
-        extra_fields: { ...buildDemoExtraFields(i, age, sexChoices, matchExpChoices, desiredMatchChoices, headButtChoices, equipmentChoices, rentalChoicesMap), ...(useAny ? { rule_any: true, rule_any_label: anyChoice.label } : {}) },
+        extra_fields: {
+          ...buildDemoExtraFields(
+            i,
+            age,
+            sexChoices,
+            matchExpChoices,
+            desiredMatchChoices,
+            headButtChoices,
+            equipmentChoices,
+            rentalChoicesMap,
+          ),
+          ...(useAny ? { rule_any: true, rule_any_label: anyChoice.label } : {}),
+        },
       },
     };
   });
@@ -450,9 +467,16 @@ function entryRuleAnyLabel(e: Entry): string | null {
   return ef?.rule_any === true ? (ef.rule_any_label as string) || "どちらでも良い" : null;
 }
 
-
 function getRulePreferenceValue(entry: Entry, entryRuleIds: Record<string, Set<string>>, eventRules: Rule[]): string {
-  return entryRuleAnyLabel(entry) ?? (entryRuleIds[entry.id] ? eventRules.filter((r) => entryRuleIds[entry.id].has(r.id)).map((r) => r.name).join("\n") : "");
+  return (
+    entryRuleAnyLabel(entry) ??
+    (entryRuleIds[entry.id]
+      ? eventRules
+          .filter((r) => entryRuleIds[entry.id].has(r.id))
+          .map((r) => r.name)
+          .join("\n")
+      : "")
+  );
 }
 
 function getFieldValue(
@@ -495,7 +519,12 @@ function resolveArrayChoices(
 
 const SEX_LABELS: Record<string, string> = { male: "男性", female: "女性" };
 
-function resolveChoiceLabel(key: string, raw: string, fieldConfigs: FormFieldConfig[], customFieldDefs: CustomFieldDef[]): string | null {
+function resolveChoiceLabel(
+  key: string,
+  raw: string,
+  fieldConfigs: FormFieldConfig[],
+  customFieldDefs: CustomFieldDef[],
+): string | null {
   const fc = fieldConfigs.find((f) => f.field_key === key);
   const def = isCustomField(key) ? customFieldDefs.find((d) => d.field_key === key) : null;
   const poolDef = getFieldDef(key);
@@ -505,14 +534,21 @@ function resolveChoiceLabel(key: string, raw: string, fieldConfigs: FormFieldCon
   return c?.label ?? null;
 }
 
-function formatValue(key: string, raw: string, fieldConfigs: FormFieldConfig[], customFieldDefs: CustomFieldDef[]): string {
+function formatValue(
+  key: string,
+  raw: string,
+  fieldConfigs: FormFieldConfig[],
+  customFieldDefs: CustomFieldDef[],
+): string {
   if (raw.startsWith("other:")) return `その他: ${raw.slice(6)}`;
   if (key === "sex") return SEX_LABELS[raw] ?? raw;
   if (raw.startsWith("[")) {
     try {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) return resolveArrayChoices(arr, fieldConfigs, customFieldDefs, key);
-    } catch { /* not JSON */ }
+    } catch {
+      /* not JSON */
+    }
   }
   return resolveChoiceLabel(key, raw, fieldConfigs, customFieldDefs) ?? raw;
 }
@@ -620,9 +656,7 @@ async function downloadCsvData(
 
   const displayFields = buildCsvDisplayFields(fieldConfigs, customFieldDefs);
   const textForceKeys = new Set(
-    fieldConfigs
-      .filter((fc) => getFieldDef(fc.field_key)?.type === "tel")
-      .map((fc) => fc.field_key),
+    fieldConfigs.filter((fc) => getFieldDef(fc.field_key)?.type === "tel").map((fc) => fc.field_key),
   );
 
   const headers = [
@@ -756,9 +790,7 @@ function EntryNameCell({
       >
         {entryFullName(entry)}
       </a>
-      {entry.is_withdrawn && (
-        <span className="ml-1.5 text-xs bg-red-900 text-red-300 px-1.5 py-0.5 rounded">欠場</span>
-      )}
+      {entry.is_withdrawn && <span className="ml-1.5 text-xs bg-red-900 text-red-300 px-1.5 py-0.5 rounded">欠場</span>}
       {currentFormVersion != null && entry.form_version != null && entry.form_version < currentFormVersion && (
         <span
           className="ml-1.5 text-xs bg-purple-900 text-purple-300 px-1.5 py-0.5 rounded"
@@ -805,22 +837,34 @@ function EntryActionsCell({
       >
         {entry.is_withdrawn ? "欠場取消" : "欠場"}
       </button>
-      <button
-        onClick={() => onDelete(entry.id)}
-        className="text-xs text-red-500 hover:text-red-300 transition"
-      >
+      <button onClick={() => onDelete(entry.id)} className="text-xs text-red-500 hover:text-red-300 transition">
         削除
       </button>
     </td>
   );
 }
 
-function RuleButtonsCell({ entry, eventRules, entryRuleIds, processingRuleKeys, onToggleRule }: {
-  entry: Entry; eventRules: Rule[]; entryRuleIds: Record<string, Set<string>>; processingRuleKeys: Set<string>; onToggleRule: (entryId: string, ruleId: string) => void;
+function RuleButtonsCell({
+  entry,
+  eventRules,
+  entryRuleIds,
+  processingRuleKeys,
+  onToggleRule,
+}: {
+  entry: Entry;
+  eventRules: Rule[];
+  entryRuleIds: Record<string, Set<string>>;
+  processingRuleKeys: Set<string>;
+  onToggleRule: (entryId: string, ruleId: string) => void;
 }) {
   if (eventRules.length === 0) return null;
   const anyLabel = entryRuleAnyLabel(entry);
-  if (anyLabel) return <td className="px-2 py-1.5"><span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded">{anyLabel}</span></td>;
+  if (anyLabel)
+    return (
+      <td className="px-2 py-1.5">
+        <span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded">{anyLabel}</span>
+      </td>
+    );
   return (
     <td className="px-2 py-1.5">
       <div className="flex gap-1 flex-wrap">
@@ -828,7 +872,12 @@ function RuleButtonsCell({ entry, eventRules, entryRuleIds, processingRuleKeys, 
           const checked = entryRuleIds[entry.id]?.has(r.id) ?? false;
           const busy = processingRuleKeys.has(`${entry.id}:${r.id}`);
           return (
-            <button key={r.id} onClick={() => onToggleRule(entry.id, r.id)} disabled={busy} className={`text-xs px-1.5 py-0.5 rounded transition disabled:opacity-50 ${checked ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-500 hover:bg-gray-600"}`}>
+            <button
+              key={r.id}
+              onClick={() => onToggleRule(entry.id, r.id)}
+              disabled={busy}
+              className={`text-xs px-1.5 py-0.5 rounded transition disabled:opacity-50 ${checked ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-500 hover:bg-gray-600"}`}
+            >
               {busy ? "…" : r.name}
             </button>
           );
@@ -838,19 +887,35 @@ function RuleButtonsCell({ entry, eventRules, entryRuleIds, processingRuleKeys, 
   );
 }
 
-function MemoButtonsCell({ entry, memoOpen, appMemoOpen, onSetOpenMemoId, onSetOpenAppMemoId }: {
-  entry: Entry; memoOpen: boolean; appMemoOpen: boolean; onSetOpenMemoId: (id: string | null) => void; onSetOpenAppMemoId: (id: string | null) => void;
+function MemoButtonsCell({
+  entry,
+  memoOpen,
+  appMemoOpen,
+  onSetOpenMemoId,
+  onSetOpenAppMemoId,
+}: {
+  entry: Entry;
+  memoOpen: boolean;
+  appMemoOpen: boolean;
+  onSetOpenMemoId: (id: string | null) => void;
+  onSetOpenAppMemoId: (id: string | null) => void;
 }) {
   const hasAdminMemo = !!entry.admin_memo;
   return (
     <td className="px-2 py-1.5">
       <div className="flex gap-1">
         {entry.memo && (
-          <button onClick={() => onSetOpenAppMemoId(appMemoOpen ? null : entry.id)} className={`text-xs px-2 py-0.5 rounded border transition whitespace-nowrap ${appMemoOpen ? "bg-gray-600 text-gray-200 border-gray-500" : "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"}`}>
+          <button
+            onClick={() => onSetOpenAppMemoId(appMemoOpen ? null : entry.id)}
+            className={`text-xs px-2 py-0.5 rounded border transition whitespace-nowrap ${appMemoOpen ? "bg-gray-600 text-gray-200 border-gray-500" : "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"}`}
+          >
             申込備考あり
           </button>
         )}
-        <button onClick={() => onSetOpenMemoId(memoOpen ? null : entry.id)} className={`text-xs px-2 py-0.5 rounded border transition whitespace-nowrap ${hasAdminMemo ? "bg-yellow-900/60 text-yellow-200 border-yellow-700 hover:bg-yellow-800/60" : "bg-gray-800 text-gray-500 border-gray-700 hover:bg-gray-700 hover:text-gray-400"}`}>
+        <button
+          onClick={() => onSetOpenMemoId(memoOpen ? null : entry.id)}
+          className={`text-xs px-2 py-0.5 rounded border transition whitespace-nowrap ${hasAdminMemo ? "bg-yellow-900/60 text-yellow-200 border-yellow-700 hover:bg-yellow-800/60" : "bg-gray-800 text-gray-500 border-gray-700 hover:bg-gray-700 hover:text-gray-400"}`}
+        >
           {hasAdminMemo ? "メモあり" : "メモ記入"}
         </button>
       </div>
@@ -858,13 +923,28 @@ function MemoButtonsCell({ entry, memoOpen, appMemoOpen, onSetOpenMemoId, onSetO
   );
 }
 
-function EntryExpandedRows({ entry, memoOpen, appMemoOpen, colSpan, onAdded }: { entry: Entry; memoOpen: boolean; appMemoOpen: boolean; colSpan: number; onAdded: () => void }) {
+function EntryExpandedRows({
+  entry,
+  memoOpen,
+  appMemoOpen,
+  colSpan,
+  onAdded,
+}: {
+  entry: Entry;
+  memoOpen: boolean;
+  appMemoOpen: boolean;
+  colSpan: number;
+  onAdded: () => void;
+}) {
   return (
     <>
       {appMemoOpen && (
         <tr className="bg-gray-900/60 border-b border-gray-700">
           <td colSpan={colSpan} className="px-4 py-3">
-            <p className="text-xs text-gray-400 whitespace-pre-wrap"><span className="text-gray-500 font-medium">申込時の備考: </span>{entry.memo}</p>
+            <p className="text-xs text-gray-400 whitespace-pre-wrap">
+              <span className="text-gray-500 font-medium">申込時の備考: </span>
+              {entry.memo}
+            </p>
           </td>
         </tr>
       )}
@@ -885,27 +965,92 @@ function entryPhysicalInfo(entry: Entry): string {
     entry.height ? `${parseFloat(String(entry.height))}cm` : null,
     entry.age != null ? `${entry.age}歳` : null,
     entry.grade,
-  ].filter(Boolean).join(" / ");
+  ]
+    .filter(Boolean)
+    .join(" / ");
 }
 
-function EntryTableRow({ entry, index, eventId, eventRules, entryRuleIds, processingEntryIds, processingRuleKeys, currentFormVersion, colSpan, openMemoId, openAppMemoId, onSetOpenMemoId, onSetOpenAppMemoId, onToggleRule, onToggleWithdrawn, onDelete, onAdded }: {
-  entry: Entry; index: number; eventId: string; eventRules: Rule[]; entryRuleIds: Record<string, Set<string>>; processingEntryIds: Set<string>; processingRuleKeys: Set<string>; currentFormVersion: number | null; colSpan: number; openMemoId: string | null; openAppMemoId: string | null; onSetOpenMemoId: (id: string | null) => void; onSetOpenAppMemoId: (id: string | null) => void; onToggleRule: (entryId: string, ruleId: string) => void; onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void; onDelete: (id: string) => void; onAdded: () => void;
+function EntryTableRow({
+  entry,
+  index,
+  eventId,
+  eventRules,
+  entryRuleIds,
+  processingEntryIds,
+  processingRuleKeys,
+  currentFormVersion,
+  colSpan,
+  openMemoId,
+  openAppMemoId,
+  onSetOpenMemoId,
+  onSetOpenAppMemoId,
+  onToggleRule,
+  onToggleWithdrawn,
+  onDelete,
+  onAdded,
+}: {
+  entry: Entry;
+  index: number;
+  eventId: string;
+  eventRules: Rule[];
+  entryRuleIds: Record<string, Set<string>>;
+  processingEntryIds: Set<string>;
+  processingRuleKeys: Set<string>;
+  currentFormVersion: number | null;
+  colSpan: number;
+  openMemoId: string | null;
+  openAppMemoId: string | null;
+  onSetOpenMemoId: (id: string | null) => void;
+  onSetOpenAppMemoId: (id: string | null) => void;
+  onToggleRule: (entryId: string, ruleId: string) => void;
+  onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void;
+  onDelete: (id: string) => void;
+  onAdded: () => void;
 }) {
   const memoOpen = openMemoId === entry.id;
   const appMemoOpen = openAppMemoId === entry.id;
-  const rowBg = entry.is_withdrawn ? "opacity-50 bg-gray-900/40" : memoOpen || appMemoOpen ? "bg-gray-750" : "hover:bg-gray-750";
+  const rowBg = entry.is_withdrawn
+    ? "opacity-50 bg-gray-900/40"
+    : memoOpen || appMemoOpen
+      ? "bg-gray-750"
+      : "hover:bg-gray-750";
   return (
     <>
       <tr className={`border-b border-gray-700 ${rowBg}`}>
         <td className="px-2 py-1.5 text-xs text-gray-600 text-right w-7">{index + 1}</td>
         <EntryNameCell entry={entry} eventId={eventId} currentFormVersion={currentFormVersion} />
-        <td className="px-2 py-1.5 text-xs text-gray-400">{[entry.school_name, entry.dojo_name].filter(Boolean).join(" ")}</td>
+        <td className="px-2 py-1.5 text-xs text-gray-400">
+          {[entry.school_name, entry.dojo_name].filter(Boolean).join(" ")}
+        </td>
         <td className="px-2 py-1.5 text-xs text-gray-500 whitespace-nowrap">{entryPhysicalInfo(entry)}</td>
-        <RuleButtonsCell entry={entry} eventRules={eventRules} entryRuleIds={entryRuleIds} processingRuleKeys={processingRuleKeys} onToggleRule={onToggleRule} />
-        <MemoButtonsCell entry={entry} memoOpen={memoOpen} appMemoOpen={appMemoOpen} onSetOpenMemoId={onSetOpenMemoId} onSetOpenAppMemoId={onSetOpenAppMemoId} />
-        <EntryActionsCell entry={entry} processing={processingEntryIds.has(entry.id)} onToggleWithdrawn={onToggleWithdrawn} onDelete={onDelete} />
+        <RuleButtonsCell
+          entry={entry}
+          eventRules={eventRules}
+          entryRuleIds={entryRuleIds}
+          processingRuleKeys={processingRuleKeys}
+          onToggleRule={onToggleRule}
+        />
+        <MemoButtonsCell
+          entry={entry}
+          memoOpen={memoOpen}
+          appMemoOpen={appMemoOpen}
+          onSetOpenMemoId={onSetOpenMemoId}
+          onSetOpenAppMemoId={onSetOpenAppMemoId}
+        />
+        <EntryActionsCell
+          entry={entry}
+          processing={processingEntryIds.has(entry.id)}
+          onToggleWithdrawn={onToggleWithdrawn}
+          onDelete={onDelete}
+        />
       </tr>
-      <EntryExpandedRows entry={entry} memoOpen={memoOpen} appMemoOpen={appMemoOpen} colSpan={colSpan} onAdded={onAdded} />
+      <EntryExpandedRows
+        entry={entry}
+        memoOpen={memoOpen}
+        appMemoOpen={appMemoOpen}
+        colSpan={colSpan}
+        onAdded={onAdded}
+      />
     </>
   );
 }
@@ -972,9 +1117,19 @@ function EntryTable({
 }
 
 type EntriesSectionProps = {
-  eventId: string; eventName: string; entries: Entry[]; entryRuleIds: Record<string, Set<string>>; eventRules: Rule[];
-  processingEntryIds: Set<string>; processingRuleKeys: Set<string>; currentFormVersion: number | null; ageCategories?: AgeCategory[];
-  onToggleRule: (entryId: string, ruleId: string) => void; onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void; onDelete: (id: string) => void; onAdded: () => void;
+  eventId: string;
+  eventName: string;
+  entries: Entry[];
+  entryRuleIds: Record<string, Set<string>>;
+  eventRules: Rule[];
+  processingEntryIds: Set<string>;
+  processingRuleKeys: Set<string>;
+  currentFormVersion: number | null;
+  ageCategories?: AgeCategory[];
+  onToggleRule: (entryId: string, ruleId: string) => void;
+  onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void;
+  onDelete: (id: string) => void;
+  onAdded: () => void;
 };
 
 async function addDemoEntriesAsync(eventId: string, eventRules: Rule[], currentFormVersion: number | null) {
@@ -985,7 +1140,9 @@ async function addDemoEntriesAsync(eventId: string, eventRules: Rule[], currentF
       const data = await res.json();
       fieldConfigs = (data.fields ?? []) as FormFieldConfig[];
     }
-  } catch { /* fallback */ }
+  } catch {
+    /* fallback */
+  }
   const ruleIds = eventRules.map((r) => r.id);
   const demoList = generateDemoEntries(eventId, 32, ruleIds, currentFormVersion, fieldConfigs);
   await Promise.all(
@@ -999,14 +1156,32 @@ async function addDemoEntriesAsync(eventId: string, eventRules: Rule[], currentF
   );
 }
 
-function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules, processingEntryIds, processingRuleKeys, currentFormVersion, ageCategories, onToggleRule, onToggleWithdrawn, onDelete, onAdded }: EntriesSectionProps) {
+function EntriesSection({
+  eventId,
+  eventName,
+  entries,
+  entryRuleIds,
+  eventRules,
+  processingEntryIds,
+  processingRuleKeys,
+  currentFormVersion,
+  ageCategories,
+  onToggleRule,
+  onToggleWithdrawn,
+  onDelete,
+  onAdded,
+}: EntriesSectionProps) {
   const [open, setOpen] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
-  async function refresh() { setRefreshing(true); await onAdded(); setRefreshing(false); }
+  async function refresh() {
+    setRefreshing(true);
+    await onAdded();
+    setRefreshing(false);
+  }
 
   async function addDemoEntries() {
     if (!confirm("テスト用に32名のダミー参加者を追加しますか？")) return;
@@ -1018,7 +1193,10 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
 
   async function deleteTestEntries() {
     const testEntries = entries.filter((e) => e.is_test);
-    if (testEntries.length === 0) { showToast("テストデータがありません"); return; }
+    if (testEntries.length === 0) {
+      showToast("テストデータがありません");
+      return;
+    }
     if (!confirm(`テストデータ ${testEntries.length} 名を削除しますか？`)) return;
     setGenerating(true);
     await Promise.all(testEntries.map((e) => fetch(`/api/admin/entries/${e.id}`, { method: "DELETE" })));
@@ -1027,7 +1205,8 @@ function EntriesSection({ eventId, eventName, entries, entryRuleIds, eventRules,
   }
 
   async function downloadCsv() {
-    if (entries.length === 0) { showToast("参加者がいません");
+    if (entries.length === 0) {
+      showToast("参加者がいません");
       return;
     }
     setDownloading(true);
@@ -1126,8 +1305,15 @@ function InlineMemoEditor({
   async function save() {
     const trimmed = memo.trim() || null;
     if (trimmed === (initialValue?.trim() || null)) return;
-    const res = await fetch(`/api/admin/entries/${entryId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ admin_memo: trimmed }) });
-    if (!res.ok) { showToast("メモの保存に失敗しました"); return; }
+    const res = await fetch(`/api/admin/entries/${entryId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ admin_memo: trimmed }),
+    });
+    if (!res.ok) {
+      showToast("メモの保存に失敗しました");
+      return;
+    }
     onSaved();
   }
 
@@ -1186,50 +1372,193 @@ function buildEntryPayload(fields: {
   };
 }
 
-function AddEntryNameFields({ familyName, givenName, familyReading, givenReading, schoolName, schoolNameReading, dojoName, dojoNameReading, inp, setFamilyName, setGivenName, setFamilyReading, setGivenReading, setSchoolName, setSchoolNameReading, setDojoName, setDojoNameReading }: {
-  familyName: string; givenName: string; familyReading: string; givenReading: string; schoolName: string; schoolNameReading: string; dojoName: string; dojoNameReading: string; inp: string;
-  setFamilyName: (v: string) => void; setGivenName: (v: string) => void; setFamilyReading: (v: string) => void; setGivenReading: (v: string) => void; setSchoolName: (v: string) => void; setSchoolNameReading: (v: string) => void; setDojoName: (v: string) => void; setDojoNameReading: (v: string) => void;
+function AddEntryNameFields({
+  familyName,
+  givenName,
+  familyReading,
+  givenReading,
+  schoolName,
+  schoolNameReading,
+  dojoName,
+  dojoNameReading,
+  inp,
+  setFamilyName,
+  setGivenName,
+  setFamilyReading,
+  setGivenReading,
+  setSchoolName,
+  setSchoolNameReading,
+  setDojoName,
+  setDojoNameReading,
+}: {
+  familyName: string;
+  givenName: string;
+  familyReading: string;
+  givenReading: string;
+  schoolName: string;
+  schoolNameReading: string;
+  dojoName: string;
+  dojoNameReading: string;
+  inp: string;
+  setFamilyName: (v: string) => void;
+  setGivenName: (v: string) => void;
+  setFamilyReading: (v: string) => void;
+  setGivenReading: (v: string) => void;
+  setSchoolName: (v: string) => void;
+  setSchoolNameReading: (v: string) => void;
+  setDojoName: (v: string) => void;
+  setDojoNameReading: (v: string) => void;
 }) {
   return (
     <div className="flex gap-2 flex-wrap">
-      <input value={familyName} onChange={(e) => setFamilyName(e.target.value)} placeholder="姓 *" className={`w-24 ${inp}`} required />
-      <input value={givenName} onChange={(e) => setGivenName(e.target.value)} placeholder="名" className={`w-24 ${inp}`} />
-      <input value={familyReading} onChange={(e) => setFamilyReading(e.target.value)} placeholder="姓読み" className={`w-28 ${inp}`} />
-      <input value={givenReading} onChange={(e) => setGivenReading(e.target.value)} placeholder="名読み" className={`w-28 ${inp}`} />
-      <input value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="流派 *" className={`w-28 ${inp}`} required />
-      <input value={schoolNameReading} onChange={(e) => setSchoolNameReading(e.target.value)} placeholder="流派読み" className={`w-28 ${inp}`} />
-      <input value={dojoName} onChange={(e) => setDojoName(e.target.value)} placeholder="道場名" className={`w-32 ${inp}`} />
-      <input value={dojoNameReading} onChange={(e) => setDojoNameReading(e.target.value)} placeholder="道場読み" className={`w-32 ${inp}`} />
+      <input
+        value={familyName}
+        onChange={(e) => setFamilyName(e.target.value)}
+        placeholder="姓 *"
+        className={`w-24 ${inp}`}
+        required
+      />
+      <input
+        value={givenName}
+        onChange={(e) => setGivenName(e.target.value)}
+        placeholder="名"
+        className={`w-24 ${inp}`}
+      />
+      <input
+        value={familyReading}
+        onChange={(e) => setFamilyReading(e.target.value)}
+        placeholder="姓読み"
+        className={`w-28 ${inp}`}
+      />
+      <input
+        value={givenReading}
+        onChange={(e) => setGivenReading(e.target.value)}
+        placeholder="名読み"
+        className={`w-28 ${inp}`}
+      />
+      <input
+        value={schoolName}
+        onChange={(e) => setSchoolName(e.target.value)}
+        placeholder="流派 *"
+        className={`w-28 ${inp}`}
+        required
+      />
+      <input
+        value={schoolNameReading}
+        onChange={(e) => setSchoolNameReading(e.target.value)}
+        placeholder="流派読み"
+        className={`w-28 ${inp}`}
+      />
+      <input
+        value={dojoName}
+        onChange={(e) => setDojoName(e.target.value)}
+        placeholder="道場名"
+        className={`w-32 ${inp}`}
+      />
+      <input
+        value={dojoNameReading}
+        onChange={(e) => setDojoNameReading(e.target.value)}
+        placeholder="道場読み"
+        className={`w-32 ${inp}`}
+      />
     </div>
   );
 }
 
-function AddEntryPhysicalFields({ weight, height, age, grade, experience, ageCategories, inp, setWeight, setHeight, setAge, setGrade, setExperience }: {
-  weight: string; height: string; age: string; grade: string; experience: string; ageCategories?: AgeCategory[]; inp: string;
-  setWeight: (v: string) => void; setHeight: (v: string) => void; setAge: (v: string) => void; setGrade: (v: string) => void; setExperience: (v: string) => void;
+function AddEntryPhysicalFields({
+  weight,
+  height,
+  age,
+  grade,
+  experience,
+  ageCategories,
+  inp,
+  setWeight,
+  setHeight,
+  setAge,
+  setGrade,
+  setExperience,
+}: {
+  weight: string;
+  height: string;
+  age: string;
+  grade: string;
+  experience: string;
+  ageCategories?: AgeCategory[];
+  inp: string;
+  setWeight: (v: string) => void;
+  setHeight: (v: string) => void;
+  setAge: (v: string) => void;
+  setGrade: (v: string) => void;
+  setExperience: (v: string) => void;
 }) {
   return (
     <div className="flex gap-2 flex-wrap">
-      <input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="体重 kg" type="number" step="0.1" className={`w-24 ${inp}`} />
-      <input value={height} onChange={(e) => setHeight(e.target.value)} placeholder="身長 cm" type="number" step="0.1" className={`w-24 ${inp}`} />
-      <input value={age} onChange={(e) => setAge(e.target.value)} placeholder="年齢" type="number" min="1" max="99" className={`w-20 ${inp}`} />
+      <input
+        value={weight}
+        onChange={(e) => setWeight(e.target.value)}
+        placeholder="体重 kg"
+        type="number"
+        step="0.1"
+        className={`w-24 ${inp}`}
+      />
+      <input
+        value={height}
+        onChange={(e) => setHeight(e.target.value)}
+        placeholder="身長 cm"
+        type="number"
+        step="0.1"
+        className={`w-24 ${inp}`}
+      />
+      <input
+        value={age}
+        onChange={(e) => setAge(e.target.value)}
+        placeholder="年齢"
+        type="number"
+        min="1"
+        max="99"
+        className={`w-20 ${inp}`}
+      />
       <select value={grade} onChange={(e) => setGrade(e.target.value)} className={`w-28 ${inp}`}>
         <option value="">年代区分</option>
-        {getGradeOptions(ageCategories).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        {getGradeOptions(ageCategories).map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
       </select>
-      <input value={experience} onChange={(e) => setExperience(e.target.value)} placeholder="格闘技経験" className={`flex-1 min-w-32 ${inp}`} />
+      <input
+        value={experience}
+        onChange={(e) => setExperience(e.target.value)}
+        placeholder="格闘技経験"
+        className={`flex-1 min-w-32 ${inp}`}
+      />
     </div>
   );
 }
 
-function RuleSelectionRow({ eventRules, selectedRules, toggleRule }: { eventRules: Rule[]; selectedRules: Set<string>; toggleRule: (id: string) => void }) {
+function RuleSelectionRow({
+  eventRules,
+  selectedRules,
+  toggleRule,
+}: {
+  eventRules: Rule[];
+  selectedRules: Set<string>;
+  toggleRule: (id: string) => void;
+}) {
   if (eventRules.length === 0) return null;
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <span className="text-xs text-gray-400">出場ルール:</span>
       {eventRules.map((r) => (
-        <button key={r.id} type="button" onClick={() => toggleRule(r.id)} className={`text-xs px-2 py-0.5 rounded transition ${selectedRules.has(r.id) ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}>
-          {selectedRules.has(r.id) ? "✓ " : ""}{r.name}
+        <button
+          key={r.id}
+          type="button"
+          onClick={() => toggleRule(r.id)}
+          className={`text-xs px-2 py-0.5 rounded transition ${selectedRules.has(r.id) ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400 hover:bg-gray-600"}`}
+        >
+          {selectedRules.has(r.id) ? "✓ " : ""}
+          {r.name}
         </button>
       ))}
     </div>
@@ -1323,16 +1652,60 @@ function AddEntryForm({
     onAdded();
   }
 
-  const inp = "flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
+  const inp =
+    "flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); void submit(e); }} className="border border-blue-700 rounded-lg p-3 space-y-2">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit(e);
+      }}
+      className="border border-blue-700 rounded-lg p-3 space-y-2"
+    >
       <p className="text-xs text-gray-400 font-medium">参加者追加</p>
-      <AddEntryNameFields familyName={familyName} givenName={givenName} familyReading={familyReading} givenReading={givenReading} schoolName={schoolName} schoolNameReading={schoolNameReading} dojoName={dojoName} dojoNameReading={dojoNameReading} inp={inp} setFamilyName={setFamilyName} setGivenName={setGivenName} setFamilyReading={setFamilyReading} setGivenReading={setGivenReading} setSchoolName={setSchoolName} setSchoolNameReading={setSchoolNameReading} setDojoName={setDojoName} setDojoNameReading={setDojoNameReading} />
-      <AddEntryPhysicalFields weight={weight} height={height} age={age} grade={grade} experience={experience} ageCategories={ageCategories} inp={inp} setWeight={setWeight} setHeight={setHeight} setAge={setAge} setGrade={setGrade} setExperience={setExperience} />
+      <AddEntryNameFields
+        familyName={familyName}
+        givenName={givenName}
+        familyReading={familyReading}
+        givenReading={givenReading}
+        schoolName={schoolName}
+        schoolNameReading={schoolNameReading}
+        dojoName={dojoName}
+        dojoNameReading={dojoNameReading}
+        inp={inp}
+        setFamilyName={setFamilyName}
+        setGivenName={setGivenName}
+        setFamilyReading={setFamilyReading}
+        setGivenReading={setGivenReading}
+        setSchoolName={setSchoolName}
+        setSchoolNameReading={setSchoolNameReading}
+        setDojoName={setDojoName}
+        setDojoNameReading={setDojoNameReading}
+      />
+      <AddEntryPhysicalFields
+        weight={weight}
+        height={height}
+        age={age}
+        grade={grade}
+        experience={experience}
+        ageCategories={ageCategories}
+        inp={inp}
+        setWeight={setWeight}
+        setHeight={setHeight}
+        setAge={setAge}
+        setGrade={setGrade}
+        setExperience={setExperience}
+      />
       <RuleSelectionRow eventRules={eventRules} selectedRules={selectedRules} toggleRule={toggleRule} />
-      <button type="submit" disabled={saving || !familyName.trim()} className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-1.5 rounded text-sm font-medium transition flex items-center justify-center gap-1.5">
-        {saving && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
+      <button
+        type="submit"
+        disabled={saving || !familyName.trim()}
+        className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-1.5 rounded text-sm font-medium transition flex items-center justify-center gap-1.5"
+      >
+        {saving && (
+          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+        )}
         {saving ? "追加中..." : "追加"}
       </button>
     </form>
@@ -1343,14 +1716,34 @@ function FormConfigStatusBadge({ eventId }: { eventId: string }) {
   const [status, setStatus] = useState<"loading" | "ready" | "draft" | "none">("loading");
   const [version, setVersion] = useState<number>(0);
   useEffect(() => {
-    supabase.from("form_configs").select("is_ready, version").eq("event_id", eventId).maybeSingle()
-      .then(({ data }) => { if (!data) setStatus("none"); else { setStatus(data.is_ready ? "ready" : "draft"); setVersion(data.version ?? 0); } });
+    supabase
+      .from("form_configs")
+      .select("is_ready, version")
+      .eq("event_id", eventId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) setStatus("none");
+        else {
+          setStatus(data.is_ready ? "ready" : "draft");
+          setVersion(data.version ?? 0);
+        }
+      });
   }, [eventId]);
   if (status === "loading") return null;
-  const styles = { ready: "bg-green-900 text-green-300", draft: "bg-yellow-900 text-yellow-300", none: "bg-gray-700 text-gray-400" };
+  const styles = {
+    ready: "bg-green-900 text-green-300",
+    draft: "bg-yellow-900 text-yellow-300",
+    none: "bg-gray-700 text-gray-400",
+  };
   const labels = { ready: "公開中", draft: "準備中", none: "未設定" };
-  const versionLabel = status !== "none" && version > 0 ? ` v${version}` : status !== "none" && version === 0 ? " 未公開" : "";
-  return <span className={`text-xs px-2 py-0.5 rounded ${styles[status]}`}>{labels[status]}{versionLabel}</span>;
+  const versionLabel =
+    status !== "none" && version > 0 ? ` v${version}` : status !== "none" && version === 0 ? " 未公開" : "";
+  return (
+    <span className={`text-xs px-2 py-0.5 rounded ${styles[status]}`}>
+      {labels[status]}
+      {versionLabel}
+    </span>
+  );
 }
 
 export type ParticipantSectionProps = {
@@ -1388,20 +1781,42 @@ export type ParticipantSectionProps = {
   onSetEvent: (fn: (prev: Event | null) => Event | null) => void;
 };
 
-function FormConfigCard({ eventId, entrySubTab, formConfigVersion, onSetEntrySubTab, onSetFormConfigVersion }: {
-  eventId: string; entrySubTab: "entries" | "form" | "email"; formConfigVersion: number;
-  onSetEntrySubTab: (tab: "entries" | "form" | "email") => void; onSetFormConfigVersion: (fn: (v: number) => number) => void;
+function FormConfigCard({
+  eventId,
+  entrySubTab,
+  formConfigVersion,
+  onSetEntrySubTab,
+  onSetFormConfigVersion,
+}: {
+  eventId: string;
+  entrySubTab: "entries" | "form" | "email";
+  formConfigVersion: number;
+  onSetEntrySubTab: (tab: "entries" | "form" | "email") => void;
+  onSetFormConfigVersion: (fn: (v: number) => number) => void;
 }) {
   return (
     <div className="bg-gray-800 rounded-xl overflow-hidden">
-      <button onClick={() => { const wasOpen = entrySubTab === "form"; onSetEntrySubTab(wasOpen ? "entries" : "form"); if (wasOpen) onSetFormConfigVersion((v) => v + 1); }} className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-700/50 transition">
+      <button
+        onClick={() => {
+          const wasOpen = entrySubTab === "form";
+          onSetEntrySubTab(wasOpen ? "entries" : "form");
+          if (wasOpen) onSetFormConfigVersion((v) => v + 1);
+        }}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-700/50 transition"
+      >
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-gray-200">フォーム設定</span>
           <FormConfigStatusBadge eventId={eventId} key={formConfigVersion} />
         </div>
-        <span className={`text-gray-500 text-xs transition-transform ${entrySubTab === "form" ? "rotate-180" : ""}`}>▼</span>
+        <span className={`text-gray-500 text-xs transition-transform ${entrySubTab === "form" ? "rotate-180" : ""}`}>
+          ▼
+        </span>
       </button>
-      {entrySubTab === "form" && <div className="border-t border-gray-700"><FormConfigPanel eventId={eventId} /></div>}
+      {entrySubTab === "form" && (
+        <div className="border-t border-gray-700">
+          <FormConfigPanel eventId={eventId} />
+        </div>
+      )}
     </div>
   );
 }
@@ -1499,16 +1914,54 @@ function EventImageSection({
   );
 }
 
-function AutoCloseSection({ event, entryCloseAtLocal, savingCloseAt, onSaveEntryCloseAt, onClearEntryCloseAt, onSetEntryCloseAtLocal }: {
-  event: Event; entryCloseAtLocal: string; savingCloseAt: boolean; onSaveEntryCloseAt: () => void; onClearEntryCloseAt: () => void; onSetEntryCloseAtLocal: (val: string) => void;
+function AutoCloseSection({
+  event,
+  entryCloseAtLocal,
+  savingCloseAt,
+  onSaveEntryCloseAt,
+  onClearEntryCloseAt,
+  onSetEntryCloseAtLocal,
+}: {
+  event: Event;
+  entryCloseAtLocal: string;
+  savingCloseAt: boolean;
+  onSaveEntryCloseAt: () => void;
+  onClearEntryCloseAt: () => void;
+  onSetEntryCloseAtLocal: (val: string) => void;
 }) {
   return (
     <div className="mt-3 flex items-center gap-3 flex-wrap">
-      <label className="text-sm text-gray-400 shrink-0">受付自動終了:</label>
-      <input type="datetime-local" className="bg-gray-700 text-white text-sm rounded px-2 py-1 border border-gray-600" value={entryCloseAtLocal} onChange={(e) => onSetEntryCloseAtLocal(e.target.value)} />
-      <button onClick={onSaveEntryCloseAt} disabled={savingCloseAt} className="px-3 py-1 text-sm bg-blue-700 hover:bg-blue-600 rounded disabled:opacity-50">{savingCloseAt ? "保存中..." : "保存"}</button>
-      {entryCloseAtLocal && <button onClick={onClearEntryCloseAt} disabled={savingCloseAt} className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded text-gray-300 disabled:opacity-50">クリア</button>}
-      {event.entry_close_at && <span className="text-xs text-gray-500">({new Date(event.entry_close_at) <= new Date() ? "期限切れ" : "予約済み"})</span>}
+      <label htmlFor="entry-close-at" className="text-sm text-gray-400 shrink-0">
+        受付自動終了:
+      </label>
+      <input
+        id="entry-close-at"
+        type="datetime-local"
+        className="bg-gray-700 text-white text-sm rounded px-2 py-1 border border-gray-600"
+        value={entryCloseAtLocal}
+        onChange={(e) => onSetEntryCloseAtLocal(e.target.value)}
+      />
+      <button
+        onClick={onSaveEntryCloseAt}
+        disabled={savingCloseAt}
+        className="px-3 py-1 text-sm bg-blue-700 hover:bg-blue-600 rounded disabled:opacity-50"
+      >
+        {savingCloseAt ? "保存中..." : "保存"}
+      </button>
+      {entryCloseAtLocal && (
+        <button
+          onClick={onClearEntryCloseAt}
+          disabled={savingCloseAt}
+          className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded text-gray-300 disabled:opacity-50"
+        >
+          クリア
+        </button>
+      )}
+      {event.entry_close_at && (
+        <span className="text-xs text-gray-500">
+          ({new Date(event.entry_close_at) <= new Date() ? "期限切れ" : "予約済み"})
+        </span>
+      )}
     </div>
   );
 }
@@ -1569,7 +2022,14 @@ function EntryReceptionCard({
         </div>
       )}
       <EntryFormUrl eventId={eventId} />
-      <AutoCloseSection event={event} entryCloseAtLocal={entryCloseAtLocal} savingCloseAt={savingCloseAt} onSaveEntryCloseAt={onSaveEntryCloseAt} onClearEntryCloseAt={onClearEntryCloseAt} onSetEntryCloseAtLocal={onSetEntryCloseAtLocal} />
+      <AutoCloseSection
+        event={event}
+        entryCloseAtLocal={entryCloseAtLocal}
+        savingCloseAt={savingCloseAt}
+        onSaveEntryCloseAt={onSaveEntryCloseAt}
+        onClearEntryCloseAt={onClearEntryCloseAt}
+        onSetEntryCloseAtLocal={onSetEntryCloseAtLocal}
+      />
       <EventImageSection
         event={event}
         imageType="banner"

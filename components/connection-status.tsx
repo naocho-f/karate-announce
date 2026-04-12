@@ -84,7 +84,12 @@ export function useConnectionStatus(
   }, [updateQuality]);
 
   const pollOnce = useCallback(async () => {
-    try { await fetchFnRef.current(); handleSuccess(); } catch { handleFailure(); }
+    try {
+      await fetchFnRef.current();
+      handleSuccess();
+    } catch {
+      handleFailure();
+    }
   }, [handleSuccess, handleFailure]);
 
   const reschedule = useCallback(() => {
@@ -93,10 +98,17 @@ export function useConnectionStatus(
     intervalRef.current = setInterval(() => void pollOnce(), interval);
   }, [pollOnce]);
 
-  useEffect(() => { rescheduleRef.current = reschedule; }, [reschedule]);
+  useEffect(() => {
+    rescheduleRef.current = reschedule;
+  }, [reschedule]);
 
   const wrappedFetch = useCallback(async () => {
-    try { await fetchFnRef.current(); handleSuccess(); } catch { handleFailure(); }
+    try {
+      await fetchFnRef.current();
+      handleSuccess();
+    } catch {
+      handleFailure();
+    }
   }, [handleSuccess, handleFailure]);
 
   // navigator online/offline イベント
@@ -121,14 +133,19 @@ export function useConnectionStatus(
 
   useEffect(() => {
     if (!enabled) {
-      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
       return;
     }
     failCountRef.current = 0;
     hasOperationRetryRef.current = false;
     updateQuality();
     intervalRef.current = setInterval(() => void pollOnce(), baseInterval);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [baseInterval, enabled, updateQuality, pollOnce]);
 
   return {

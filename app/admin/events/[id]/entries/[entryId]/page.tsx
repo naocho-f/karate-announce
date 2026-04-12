@@ -79,7 +79,11 @@ export default function EntryDetailPage({ params }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ admin_memo: trimmed }),
     });
-    if (!res.ok) { alert("メモの保存に失敗しました"); setSaving(false); return; }
+    if (!res.ok) {
+      alert("メモの保存に失敗しました");
+      setSaving(false);
+      return;
+    }
     setEntry((prev) => (prev ? { ...prev, admin_memo: trimmed } : prev));
     setSaving(false);
   }
@@ -138,7 +142,12 @@ function resolveChoiceLabel(value: string, choices: ChoiceOption[]): string | nu
   return c?.label ?? null;
 }
 
-function formatArrayValue(key: string, raw: string, fieldConfigs: FormFieldConfig[], customFieldDefs: CustomFieldDef[]): string | null {
+function formatArrayValue(
+  key: string,
+  raw: string,
+  fieldConfigs: FormFieldConfig[],
+  customFieldDefs: CustomFieldDef[],
+): string | null {
   try {
     const arr = JSON.parse(raw);
     if (!Array.isArray(arr)) return null;
@@ -156,7 +165,12 @@ function formatArrayValue(key: string, raw: string, fieldConfigs: FormFieldConfi
 
 const SEX_LABELS: Record<string, string> = { male: "男性", female: "女性" };
 
-function formatFieldValue(key: string, raw: string, fieldConfigs: FormFieldConfig[], customFieldDefs: CustomFieldDef[]): string {
+function formatFieldValue(
+  key: string,
+  raw: string,
+  fieldConfigs: FormFieldConfig[],
+  customFieldDefs: CustomFieldDef[],
+): string {
   if (raw.startsWith("other:")) return `その他: ${raw.slice(6)}`;
   if (key === "sex") return SEX_LABELS[raw] ?? raw;
   if (raw.startsWith("[")) {
@@ -302,11 +316,17 @@ function EntryDetailContent({
 function EntryBreadcrumb({ eventId, eventName, entryName }: { eventId: string; eventName: string; entryName: string }) {
   return (
     <nav className="flex items-center gap-1 text-sm">
-      <Link href="/admin" className="text-gray-400 hover:text-white">管理画面</Link>
+      <Link href="/admin" className="text-gray-400 hover:text-white">
+        管理画面
+      </Link>
       <span className="text-gray-600">/</span>
-      <Link href="/admin?tab=events" className="text-gray-400 hover:text-white">試合</Link>
+      <Link href="/admin?tab=events" className="text-gray-400 hover:text-white">
+        試合
+      </Link>
       <span className="text-gray-600">/</span>
-      <Link href={`/admin/events/${eventId}`} className="text-gray-400 hover:text-white">{eventName || "イベント"}</Link>
+      <Link href={`/admin/events/${eventId}`} className="text-gray-400 hover:text-white">
+        {eventName || "イベント"}
+      </Link>
       <span className="text-gray-600">/</span>
       <span className="text-gray-200">{entryName}</span>
     </nav>
@@ -347,7 +367,9 @@ function EntryFieldList({
               </span>
             ) : (
               entryRules.map((r) => (
-                <span key={r.id} className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">{r.name}</span>
+                <span key={r.id} className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">
+                  {r.name}
+                </span>
               ))
             )}
           </div>

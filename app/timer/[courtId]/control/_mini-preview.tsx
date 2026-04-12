@@ -19,7 +19,17 @@ function scoreDisplay(score: { points: number; wazaari: number }, p: TimerPreset
   return p?.show_points === false && p?.show_wazaari ? `技${score.wazaari}` : score.points;
 }
 
-function ScoreColumn({ name, score, p, colorClass }: { name: string; score: { points: number; wazaari: number }; p: TimerPreset | null; colorClass: string }) {
+function ScoreColumn({
+  name,
+  score,
+  p,
+  colorClass,
+}: {
+  name: string;
+  score: { points: number; wazaari: number };
+  p: TimerPreset | null;
+  colorClass: string;
+}) {
   return (
     <div className="text-center">
       <p className={`text-sm font-bold ${colorClass}`}>{name}</p>
@@ -28,7 +38,19 @@ function ScoreColumn({ name, score, p, colorClass }: { name: string; score: { po
   );
 }
 
-function PreviewHeader({ state, badge, isMuted, courtId, onToggleMute }: { state: TimerState; badge: { label: string; color: string }; isMuted: boolean; courtId: string; onToggleMute: () => void }) {
+function PreviewHeader({
+  state,
+  badge,
+  isMuted,
+  courtId,
+  onToggleMute,
+}: {
+  state: TimerState;
+  badge: { label: string; color: string };
+  isMuted: boolean;
+  courtId: string;
+  onToggleMute: () => void;
+}) {
   return (
     <div className="flex items-center justify-between mb-2">
       <div className="flex items-center gap-2">
@@ -37,7 +59,12 @@ function PreviewHeader({ state, badge, isMuted, courtId, onToggleMute }: { state
         {state.matchLabel && <span className="text-gray-400 text-sm">{state.matchLabel}</span>}
       </div>
       <div className="flex items-center gap-2">
-        <button onClick={onToggleMute} className={`px-2 py-0.5 rounded text-xs font-bold transition ${isMuted ? "bg-red-800 text-red-300" : "bg-gray-700 text-gray-400"}`}>{isMuted ? "ミュート中" : "音声ON"}</button>
+        <button
+          onClick={onToggleMute}
+          className={`px-2 py-0.5 rounded text-xs font-bold transition ${isMuted ? "bg-red-800 text-red-300" : "bg-gray-700 text-gray-400"}`}
+        >
+          {isMuted ? "ミュート中" : "音声ON"}
+        </button>
         <span className="text-gray-500 text-xs">コート: {courtId}</span>
       </div>
     </div>
@@ -55,7 +82,16 @@ function resolveSides(state: TimerState, swapSides: boolean) {
   };
 }
 
-export default function MiniPreview({ state, p, displayMs, swapSides, isMuted, courtId, badge, onToggleMute }: MiniPreviewProps) {
+export default function MiniPreview({
+  state,
+  p,
+  displayMs,
+  swapSides,
+  isMuted,
+  courtId,
+  badge,
+  onToggleMute,
+}: MiniPreviewProps) {
   const { leftName, rightName, leftScore, rightScore, leftColor, rightColor } = resolveSides(state, swapSides);
   return (
     <div className="bg-black border-b border-gray-800 p-3">
@@ -63,7 +99,9 @@ export default function MiniPreview({ state, p, displayMs, swapSides, isMuted, c
       <div className="flex items-center justify-center gap-8">
         <ScoreColumn name={leftName} score={leftScore} p={p} colorClass={leftColor} />
         <div className="text-center">
-          <span className="text-4xl font-bold tabular-nums" style={{ color: p?.theme_timer_color ?? "#00FF00" }}>{formatTime(displayMs, p?.theme_show_decimals)}</span>
+          <span className="text-4xl font-bold tabular-nums" style={{ color: p?.theme_timer_color ?? "#00FF00" }}>
+            {formatTime(displayMs, p?.theme_show_decimals)}
+          </span>
         </div>
         <ScoreColumn name={rightName} score={rightScore} p={p} colorClass={rightColor} />
       </div>

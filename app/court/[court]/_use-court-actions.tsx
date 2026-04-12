@@ -11,7 +11,11 @@ import { addPendingWinner, removePendingWinner } from "@/lib/optimistic-update";
 
 type MatchApiResult = "ok" | "failed" | "queued";
 
-async function callMatchApi(matchId: string, payload: Record<string, unknown>, offlineMode: string): Promise<MatchApiResult> {
+async function callMatchApi(
+  matchId: string,
+  payload: Record<string, unknown>,
+  offlineMode: string,
+): Promise<MatchApiResult> {
   try {
     const res = await resilientFetch(
       `/api/court/matches/${matchId}`,
@@ -32,7 +36,12 @@ async function callMatchApi(matchId: string, payload: Record<string, unknown>, o
   }
 }
 
-function getMatchContext(matchesMap: Record<string, Match[]>, tournaments: Tournament[], tournamentId: string, matchId: string) {
+function getMatchContext(
+  matchesMap: Record<string, Match[]>,
+  tournaments: Tournament[],
+  tournamentId: string,
+  matchId: string,
+) {
   const matches = matchesMap[tournamentId] ?? [];
   const match = matches.find((m) => m.id === matchId);
   const rounds = Math.max(...matches.map((m) => m.round), 1);
@@ -77,11 +86,19 @@ export function useCourtActions({
     const rulesText = match.rules ?? tournament?.default_rules;
     const rulesReading = rulesText ? (rulesReadingMap[rulesText] ?? null) : null;
     await announceMatchStart(
-      fighterFullName(f1), fighterAff(f1), fighterFullName(f2), fighterAff(f2),
+      fighterFullName(f1),
+      fighterAff(f1),
+      fighterFullName(f2),
+      fighterAff(f2),
       roundName(match.round, rounds),
-      fighterFullReading(f1), f1.affiliation_reading ?? f1.dojo?.name_reading,
-      fighterFullReading(f2), f2.affiliation_reading ?? f2.dojo?.name_reading,
-      match.match_label, rulesText, announceTemplates, rulesReading,
+      fighterFullReading(f1),
+      f1.affiliation_reading ?? f1.dojo?.name_reading,
+      fighterFullReading(f2),
+      f2.affiliation_reading ?? f2.dojo?.name_reading,
+      match.match_label,
+      rulesText,
+      announceTemplates,
+      rulesReading,
     );
   }
 
@@ -94,8 +111,16 @@ export function useCourtActions({
 
     startProcessing(matchId);
     const result = await callMatchApi(matchId, { action: "start", tournamentId }, offlineMode);
-    if (result === "failed") { endProcessing(matchId); showToast("試合開始に失敗しました"); return; }
-    if (result === "queued") { endProcessing(matchId); showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました"); return; }
+    if (result === "failed") {
+      endProcessing(matchId);
+      showToast("試合開始に失敗しました");
+      return;
+    }
+    if (result === "queued") {
+      endProcessing(matchId);
+      showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました");
+      return;
+    }
     await load();
     endProcessing(matchId);
     if (!mutedMatchIds.has(matchId)) await doStartAnnounce(match, rounds, tournamentId);
@@ -105,8 +130,11 @@ export function useCourtActions({
     const winner = fighters[winnerId];
     if (!winner || mutedMatchIds.has(matchId)) return;
     await announceWinner(
-      fighterFullName(winner), winner.affiliation ?? winner.dojo?.name ?? "",
-      fighterFullReading(winner), winner.affiliation_reading ?? winner.dojo?.name_reading, announceTemplates,
+      fighterFullName(winner),
+      winner.affiliation ?? winner.dojo?.name ?? "",
+      fighterFullReading(winner),
+      winner.affiliation_reading ?? winner.dojo?.name_reading,
+      announceTemplates,
     );
   }
 
@@ -116,10 +144,26 @@ export function useCourtActions({
 
     startProcessing(matchId);
     addPendingWinner(matchId);
-    const payload = { action: "set_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position };
+    const payload = {
+      action: "set_winner",
+      winnerId,
+      tournamentId,
+      round: match.round,
+      rounds,
+      position: match.position,
+    };
     const result = await callMatchApi(matchId, payload, offlineMode);
-    if (result === "failed") { endProcessing(matchId); removePendingWinner(matchId); showToast("勝者設定に失敗しました"); return; }
-    if (result === "queued") { endProcessing(matchId); showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました"); return; }
+    if (result === "failed") {
+      endProcessing(matchId);
+      removePendingWinner(matchId);
+      showToast("勝者設定に失敗しました");
+      return;
+    }
+    if (result === "queued") {
+      endProcessing(matchId);
+      showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました");
+      return;
+    }
     await load();
     removePendingWinner(matchId);
     endProcessing(matchId);
@@ -131,10 +175,25 @@ export function useCourtActions({
     if (!match || !fighters[winnerId]) return;
 
     startProcessing(matchId);
-    const payload = { action: "correct_winner", winnerId, tournamentId, round: match.round, rounds, position: match.position };
+    const payload = {
+      action: "correct_winner",
+      winnerId,
+      tournamentId,
+      round: match.round,
+      rounds,
+      position: match.position,
+    };
     const result = await callMatchApi(matchId, payload, offlineMode);
-    if (result === "failed") { endProcessing(matchId); showToast("勝者訂正に失敗しました"); return; }
-    if (result === "queued") { endProcessing(matchId); showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました"); return; }
+    if (result === "failed") {
+      endProcessing(matchId);
+      showToast("勝者訂正に失敗しました");
+      return;
+    }
+    if (result === "queued") {
+      endProcessing(matchId);
+      showToast(offlineMode === "offline" ? "操作を保存しました" : "送信待ちに保存しました");
+      return;
+    }
     await load();
     endProcessing(matchId);
     await doWinnerAnnounce(matchId, winnerId);

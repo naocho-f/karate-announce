@@ -109,8 +109,11 @@ function MetaEditForm({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3 flex-wrap">
-        <label className="text-xs text-gray-400 shrink-0">開催日</label>
+        <label htmlFor="meta-event-date" className="text-xs text-gray-400 shrink-0">
+          開催日
+        </label>
         <input
+          id="meta-event-date"
           type="date"
           value={metaDate}
           min={new Date().toISOString().slice(0, 10)}
@@ -119,7 +122,7 @@ function MetaEditForm({
         />
       </div>
       <div className="space-y-1">
-        <label className="text-xs text-gray-400">コート名</label>
+        <span className="text-xs text-gray-400">コート名</span>
         <div className="grid grid-cols-2 gap-2">
           {metaCourtNames.map((name, i) => (
             <div key={i} className="flex items-center gap-2">

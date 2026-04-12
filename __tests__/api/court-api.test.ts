@@ -337,7 +337,21 @@ describe("/api/court/matches/[id]", () => {
 
   it("PATCH: action=set_winner RPC エラー時に 500", async () => {
     const { supabaseAdmin } = await import("@/lib/supabase-admin");
-    vi.mocked(supabaseAdmin.rpc).mockResolvedValueOnce({ data: null, error: { message: "rpc failed", details: "", hint: "", code: "42000", name: "PostgrestError", toJSON: () => ({ name: "PostgrestError", message: "rpc failed", details: "", hint: "", code: "42000" }) }, count: null, status: 500, statusText: "Internal Server Error", success: false });
+    vi.mocked(supabaseAdmin.rpc).mockResolvedValueOnce({
+      data: null,
+      error: {
+        message: "rpc failed",
+        details: "",
+        hint: "",
+        code: "42000",
+        name: "PostgrestError",
+        toJSON: () => ({ name: "PostgrestError", message: "rpc failed", details: "", hint: "", code: "42000" }),
+      },
+      count: null,
+      status: 500,
+      statusText: "Internal Server Error",
+      success: false,
+    });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
     const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: {
@@ -355,7 +369,21 @@ describe("/api/court/matches/[id]", () => {
 
   it("PATCH: action=swap_with RPC エラー時に 500", async () => {
     const { supabaseAdmin } = await import("@/lib/supabase-admin");
-    vi.mocked(supabaseAdmin.rpc).mockResolvedValueOnce({ data: null, error: { message: "rpc failed", details: "", hint: "", code: "42000", name: "PostgrestError", toJSON: () => ({ name: "PostgrestError", message: "rpc failed", details: "", hint: "", code: "42000" }) }, count: null, status: 500, statusText: "Internal Server Error", success: false });
+    vi.mocked(supabaseAdmin.rpc).mockResolvedValueOnce({
+      data: null,
+      error: {
+        message: "rpc failed",
+        details: "",
+        hint: "",
+        code: "42000",
+        name: "PostgrestError",
+        toJSON: () => ({ name: "PostgrestError", message: "rpc failed", details: "", hint: "", code: "42000" }),
+      },
+      count: null,
+      status: 500,
+      statusText: "Internal Server Error",
+      success: false,
+    });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
     const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: { action: "swap_with", otherMatchId: "m2" },
