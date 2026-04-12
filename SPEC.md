@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-12（実装完了フロー改善）
+> 最終更新: 2026-04-12（メール設定プレースホルダー修正）
 
 ---
 
@@ -626,9 +626,10 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **レビュー指摘の全問題修正（2026-04-11）**: court/page.tsx のAPI多重実行修正（deps ref化）、admin events の依存配列なしuseEffect修正、E2Eテストの条件付きテストをassertionに変更、テスト未作成7件解消
 - **CLAUDE.md: 問題報告義務・先送り禁止ルール追加（2026-04-11）**: レビューで見つけた問題は全て修正してからコミット。問題・警告・懸念は全てユーザーに報告し、自己判断で省略しない
 - **管理画面の無限ループ+パフォーマンス修正（2026-04-11）**: useEventLoader/useEventActions の deps オブジェクト参照不安定による無限リクエストループ・毎レンダー callback 再生成を修正。ref パターンで安定化
-- **ESLint厳格化: 残13件リファクタリング完了（2026-04-11）**: entry/page.tsx・live/page.tsx・_group-section.tsx・_tournament-editor.tsxのmax-lines-per-function/complexity/set-state-in-effect警告をすべて解消。カスタムフック抽出・サブコンポーネント分割・lookup map化で0 warnings達成
+- **ESLint厳格化: 残13件リファクタリング完了（2026-04-11）**: entry/page.tsx・live/page.tsx・\_group-section.tsx・\_tournament-editor.tsxのmax-lines-per-function/complexity/set-state-in-effect警告をすべて解消。カスタムフック抽出・サブコンポーネント分割・lookup map化で0 warnings達成
 - **オフライン対応 Phase 1a: Service Worker + PWA + offlineページ（2026-04-07）**: Serwist によるApp Shellキャッシュ、PWAマニフェスト、オフラインフォールバックページを追加。画面一覧に /offline を追記
-- **出場希望ルール「どれでもOK」選択肢（2026-04-11）**: custom_choicesに__any__マーカーを追加し、全ルールにマッチする「どちらでも良い」選択肢を実現。ラベルカスタマイズ可能。extra_fields.rule_anyで全選択との区別
+- **出場希望ルール「どれでもOK」選択肢（2026-04-11）**: custom_choicesに**any**マーカーを追加し、全ルールにマッチする「どちらでも良い」選択肢を実現。ラベルカスタマイズ可能。extra_fields.rule_anyで全選択との区別
+- **メール設定プレースホルダー修正（2026-04-12）**: textarea placeholder の &#10; が JSX で改行として解釈されず文字列表示されていた問題を修正
 - **実装完了フロー改善（2026-04-12）**: 8→7ステップに統合。Step 3にformat:check+ESLint+npm ci追加（hook手戻り防止）。Step 4+5をレビューに統合。壊れ方の検証6観点（異常系・波及・N+1・境界値・部分失敗・順序依存）を全回答必須で追加
 - **イベント複製の完全化（2026-04-12）**: バナー・OGP画像・メールテンプレート・会場情報・通知メール・締切日時・振り分けルールを常時コピー対象に追加。参加者コピー時はトーナメント・対戦者・試合もコピー（結果はリセット）
 - **package-lock.json再生成（2026-04-12）**: Dependabot PRマージで発生した@swc/helpers欠落を修正。CI npm ci失敗の原因
