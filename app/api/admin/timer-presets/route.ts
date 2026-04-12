@@ -3,13 +3,19 @@ import { NextResponse } from "next/server";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { dbError } from "@/lib/api-utils";
+import { softDeleteCutoff } from "@/lib/soft-delete-shared";
 
 /** GET — プリセット一覧（event_id フィルタ可） */
 export async function GET(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
 
   const eventId = request.nextUrl.searchParams.get("event_id");
-  let query = supabaseAdmin.from("timer_presets").select("*").order("created_at", { ascending: true });
+  const cutoff = softDeleteCutoff();
+  let query = supabaseAdmin
+    .from("timer_presets")
+    .select("*")
+    .or(`deleted_at.is.null,deleted_at.gt.${cutoff}`)
+    .order("created_at", { ascending: true });
   if (eventId) {
     // UUID形式のバリデーション（クエリインジェクション防止）
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId)) {

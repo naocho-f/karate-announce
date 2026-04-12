@@ -61,6 +61,7 @@ export type Dojo = {
   id: string;
   name: string;
   name_reading: string | null;
+  deleted_at?: string | null;
   created_at: string;
 };
 
@@ -119,6 +120,7 @@ export type Event = {
   email_body_template: string | null;
   venue_info: string | null;
   notification_emails: string[] | null;
+  deleted_at?: string | null;
   created_at: string;
 };
 
@@ -128,6 +130,7 @@ export type Rule = {
   name_reading: string | null;
   description: string | null;
   timer_preset_id: string | null;
+  deleted_at?: string | null;
   created_at: string;
 };
 
@@ -303,6 +306,7 @@ export type TimerPreset = {
   // メタ
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
 };
 
 export type TimerLog = {

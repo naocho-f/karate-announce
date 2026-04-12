@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import type { Event, Rule } from "@/lib/types";
 import { showToast } from "@/components/toast";
+import { isDeleted, softDeleteCutoff } from "@/lib/soft-delete-shared";
 
 function useEventsData() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -20,9 +21,10 @@ function useEventsData() {
       supabase
         .from("events")
         .select("*")
+        .or(`deleted_at.is.null,deleted_at.gt.${softDeleteCutoff()}`)
         .order("event_date", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false }),
-      supabase.from("rules").select("*").order("name"),
+      supabase.from("rules").select("*").is("deleted_at", null).order("name"),
     ]);
     setEvents(es ?? []);
     setRules(rs ?? []);
@@ -35,9 +37,10 @@ function useEventsData() {
         supabase
           .from("events")
           .select("*")
+          .or(`deleted_at.is.null,deleted_at.gt.${softDeleteCutoff()}`)
           .order("event_date", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false }),
-        supabase.from("rules").select("*").order("name"),
+        supabase.from("rules").select("*").is("deleted_at", null).order("name"),
       ]);
       if (!c) {
         setEvents(es ?? []);
@@ -49,6 +52,7 @@ function useEventsData() {
       c = true;
     };
   }, []);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
   const remove = async (id: string) => {
     if (!confirm("この大会を削除しますか？")) return;
     setRemovingId(id);
@@ -56,6 +60,16 @@ function useEventsData() {
     setRemovingId(null);
     if (!r.ok) {
       showToast("削除に失敗しました");
+      return;
+    }
+    void load();
+  };
+  const restore = async (id: string) => {
+    setRestoringId(id);
+    const r = await fetch(`/api/admin/events/${id}/restore`, { method: "PATCH" });
+    setRestoringId(null);
+    if (!r.ok) {
+      showToast("削除取消に失敗しました");
       return;
     }
     void load();
@@ -108,11 +122,13 @@ function useEventsData() {
     rules,
     loading,
     removingId,
+    restoringId,
     activatingId,
     finishingId,
     reopeningId,
     load,
     remove,
+    restore,
     setActive,
     finishEvent,
     reopenEvent,
@@ -533,13 +549,16 @@ function EventCard({
   ed: ReturnType<typeof useEventsData>;
   onCopyModal: (id: string) => void;
 }) {
+  const deleted = isDeleted(e);
   return (
-    <li className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active ? "ring-2 ring-green-500" : ""}`}>
+    <li
+      className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active && !deleted ? "ring-2 ring-green-500" : ""} ${deleted ? "opacity-50" : ""}`}
+    >
       <div className="flex items-center gap-2 min-w-0">
-        {e.is_active && (
+        {e.is_active && !deleted && (
           <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold shrink-0">● 進行中</span>
         )}
-        {e.status === "finished" && (
+        {e.status === "finished" && !deleted && (
           <span className="text-xs bg-gray-600 text-gray-300 px-2 py-0.5 rounded-full shrink-0">完了</span>
         )}
         <span className="font-medium truncate">{e.name}</span>
@@ -547,32 +566,44 @@ function EventCard({
         <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded shrink-0">{e.court_count}コート</span>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
-        <EventActionButtons event={e} ed={ed} />
-        <Link
-          href={`/admin/events/${e.id}`}
-          className="text-xs px-3 py-1.5 rounded-lg font-medium bg-blue-700 hover:bg-blue-600 text-white transition"
-        >
-          管理画面を開く →
-        </Link>
-        {e.is_active && (
-          <Link
-            href="/"
-            target="_blank"
-            className="text-xs px-3 py-1.5 rounded-lg font-medium bg-green-700 hover:bg-green-600 text-white transition"
+        {deleted ? (
+          <button
+            onClick={() => void ed.restore(e.id)}
+            disabled={ed.restoringId === e.id}
+            className="text-xs text-blue-500 hover:text-blue-400 ml-auto transition disabled:opacity-50"
           >
-            アナウンス画面 ↗
-          </Link>
+            {ed.restoringId === e.id ? "取消中..." : "削除取消"}
+          </button>
+        ) : (
+          <>
+            <EventActionButtons event={e} ed={ed} />
+            <Link
+              href={`/admin/events/${e.id}`}
+              className="text-xs px-3 py-1.5 rounded-lg font-medium bg-blue-700 hover:bg-blue-600 text-white transition"
+            >
+              管理画面を開く →
+            </Link>
+            {e.is_active && (
+              <Link
+                href="/"
+                target="_blank"
+                className="text-xs px-3 py-1.5 rounded-lg font-medium bg-green-700 hover:bg-green-600 text-white transition"
+              >
+                アナウンス画面 ↗
+              </Link>
+            )}
+            <button onClick={() => onCopyModal(e.id)} className="text-xs text-gray-400 hover:text-blue-400 transition">
+              複製
+            </button>
+            <button
+              onClick={() => void ed.remove(e.id)}
+              disabled={ed.removingId === e.id}
+              className="text-xs text-red-500 hover:text-red-400 ml-auto transition disabled:opacity-50"
+            >
+              {ed.removingId === e.id ? "削除中..." : "削除"}
+            </button>
+          </>
         )}
-        <button onClick={() => onCopyModal(e.id)} className="text-xs text-gray-400 hover:text-blue-400 transition">
-          複製
-        </button>
-        <button
-          onClick={() => void ed.remove(e.id)}
-          disabled={ed.removingId === e.id}
-          className="text-xs text-red-500 hover:text-red-400 ml-auto transition disabled:opacity-50"
-        >
-          {ed.removingId === e.id ? "削除中..." : "削除"}
-        </button>
       </div>
     </li>
   );

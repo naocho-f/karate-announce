@@ -71,6 +71,42 @@
 - 管理画面: `deleted_at IS NULL OR deleted_at > NOW() - INTERVAL '24 hours'`（24時間以内の削除済みも含む）
 - 公開画面: `deleted_at IS NULL`（削除済みは一切表示しない）
 
+## UI仕様
+
+### グレーアウト表示
+
+削除済み（24時間以内）のアイテムは以下のスタイルで表示：
+
+- `opacity-50` で半透明化
+- 削除ボタンの代わりに「削除取消」ボタンを表示
+- 表示位置は変えない（通常アイテムと同じリスト内）
+
+### SELECTクエリのフィルタ
+
+管理画面では Supabase JS クライアントで以下のフィルタを使用：
+
+```typescript
+const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+query.or(`deleted_at.is.null,deleted_at.gt.${cutoff}`);
+```
+
+公開画面では：
+
+```typescript
+query.is("deleted_at", null);
+```
+
+### 対象コンポーネント
+
+| コンポーネント                              | エンティティ                    | クエリ方式    |
+| ------------------------------------------- | ------------------------------- | ------------- |
+| components/events-panel.tsx                 | events                          | Supabase直接  |
+| components/timer-presets-panel.tsx          | timer_presets                   | fetch API経由 |
+| components/settings-panel.tsx               | dojos, rules                    | Supabase直接  |
+| app/admin/events/[id]/page.tsx              | tournaments, entries            | Supabase直接  |
+| components/bracket-rules-panel.tsx          | bracket_rules                   | fetch API経由 |
+| app/admin/events/[id]/form-config-panel.tsx | form_notices, custom_field_defs | fetch API経由 |
+
 ## DBマイグレーション
 
 ```sql

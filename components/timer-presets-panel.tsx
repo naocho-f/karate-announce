@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import type { TimerPreset } from "@/lib/types";
 import { DEFAULT_LAYOUT } from "@/lib/types";
 import { showToast } from "@/components/toast";
+import { isDeleted } from "@/lib/soft-delete-shared";
 import { TimerPresetEditor, EMPTY_PRESET } from "@/components/_timer-preset-editor";
 import type { EditablePreset } from "@/components/_timer-preset-editor";
 
@@ -21,44 +22,62 @@ function PresetListItem({
   p,
   deletingId,
   duplicatingId,
+  restoringId,
   onEdit,
   onDelete,
   onDuplicate,
+  onRestore,
 }: {
   p: TimerPreset;
   deletingId: string | null;
   duplicatingId: string | null;
+  restoringId: string | null;
   onEdit: (p: TimerPreset) => void;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
+  onRestore: (id: string) => void;
 }) {
   return (
-    <div className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-lg p-3">
+    <div
+      className={`flex items-center justify-between bg-gray-900 border border-gray-800 rounded-lg p-3 ${isDeleted(p) ? "opacity-50" : ""}`}
+    >
       <div>
         <p className="font-bold">{p.name}</p>
         <p className="text-xs text-gray-500">{presetSummary(p)}</p>
       </div>
       <div className="flex gap-1">
-        <button
-          onClick={() => onEdit(p)}
-          className="px-2 py-1 rounded bg-blue-900/50 hover:bg-blue-800/60 text-xs text-blue-300 transition"
-        >
-          編集
-        </button>
-        <button
-          onClick={() => void onDuplicate(p.id)}
-          disabled={duplicatingId === p.id}
-          className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs text-gray-300 transition disabled:opacity-50"
-        >
-          {duplicatingId === p.id ? "複製中..." : "複製"}
-        </button>
-        <button
-          onClick={() => void onDelete(p.id)}
-          disabled={deletingId === p.id}
-          className="px-2 py-1 rounded bg-red-900/50 hover:bg-red-800/60 text-xs text-red-300 transition disabled:opacity-50"
-        >
-          {deletingId === p.id ? "削除中..." : "削除"}
-        </button>
+        {isDeleted(p) ? (
+          <button
+            onClick={() => void onRestore(p.id)}
+            disabled={restoringId === p.id}
+            className="px-2 py-1 rounded bg-blue-900/50 hover:bg-blue-800/60 text-xs text-blue-300 transition disabled:opacity-50"
+          >
+            {restoringId === p.id ? "取消中..." : "削除取消"}
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={() => onEdit(p)}
+              className="px-2 py-1 rounded bg-blue-900/50 hover:bg-blue-800/60 text-xs text-blue-300 transition"
+            >
+              編集
+            </button>
+            <button
+              onClick={() => void onDuplicate(p.id)}
+              disabled={duplicatingId === p.id}
+              className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs text-gray-300 transition disabled:opacity-50"
+            >
+              {duplicatingId === p.id ? "複製中..." : "複製"}
+            </button>
+            <button
+              onClick={() => void onDelete(p.id)}
+              disabled={deletingId === p.id}
+              className="px-2 py-1 rounded bg-red-900/50 hover:bg-red-800/60 text-xs text-red-300 transition disabled:opacity-50"
+            >
+              {deletingId === p.id ? "削除中..." : "削除"}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -71,6 +90,7 @@ export function TimerPresetsPanel() {
   const [editId, setEditId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/admin/timer-presets");
@@ -119,6 +139,14 @@ export function TimerPresetsPanel() {
     setDeletingId(null);
   };
 
+  const handleRestore = async (id: string) => {
+    setRestoringId(id);
+    const res = await fetch(`/api/admin/timer-presets/${id}/restore`, { method: "PATCH" });
+    if (res.ok) await load();
+    else showToast("削除取消に失敗しました");
+    setRestoringId(null);
+  };
+
   const handleDuplicate = async (id: string) => {
     setDuplicatingId(id);
     const res = await fetch(`/api/admin/timer-presets/${id}/duplicate`, { method: "POST" });
@@ -157,12 +185,14 @@ export function TimerPresetsPanel() {
               p={p}
               deletingId={deletingId}
               duplicatingId={duplicatingId}
+              restoringId={restoringId}
               onEdit={(pr) => {
                 setEditing({ ...pr });
                 setEditId(pr.id);
               }}
               onDelete={(id) => void handleDelete(id)}
               onDuplicate={(id) => void handleDuplicate(id)}
+              onRestore={(id) => void handleRestore(id)}
             />
           ))}
         </div>

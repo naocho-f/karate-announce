@@ -131,7 +131,12 @@ export default function Home() {
   const [courts, setCourts] = useState<CourtData[]>([]);
 
   const load = useCallback(async () => {
-    const { data: ae } = await supabase.from("events").select("*").eq("is_active", true).maybeSingle();
+    const { data: ae } = await supabase
+      .from("events")
+      .select("*")
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .maybeSingle();
     setActiveEvent(ae ?? null);
     if (!ae) return;
 

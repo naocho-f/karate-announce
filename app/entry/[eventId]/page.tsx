@@ -181,7 +181,12 @@ function useEntryPageData(eventId: string) {
 
   useEffect(() => {
     async function load() {
-      const { data: e } = await supabase.from("events").select("*").eq("id", eventId).maybeSingle();
+      const { data: e } = await supabase
+        .from("events")
+        .select("*")
+        .eq("id", eventId)
+        .is("deleted_at", null)
+        .maybeSingle();
       setEvent(e ?? null);
       if (!e) return;
       const [{ data: er }, { data: settingsRow }] = await Promise.all([

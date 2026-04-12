@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { isDev } from "@/lib/app-mode";
 import type { Dojo, Rule } from "@/lib/types";
+import { isDeleted, softDeleteCutoff } from "@/lib/soft-delete-shared";
 import {
   TTS_VOICES,
   getTtsSettings,
@@ -34,8 +35,14 @@ function DojoPanel() {
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+
   async function load() {
-    const { data } = await supabase.from("dojos").select("*").order("name");
+    const { data } = await supabase
+      .from("dojos")
+      .select("*")
+      .or(`deleted_at.is.null,deleted_at.gt.${softDeleteCutoff()}`)
+      .order("name");
     setDojos(data ?? []);
     setLoading(false);
   }
@@ -43,7 +50,11 @@ function DojoPanel() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const { data } = await supabase.from("dojos").select("*").order("name");
+      const { data } = await supabase
+        .from("dojos")
+        .select("*")
+        .or(`deleted_at.is.null,deleted_at.gt.${softDeleteCutoff()}`)
+        .order("name");
       if (!cancelled) {
         setDojos(data ?? []);
         setLoading(false);
@@ -97,6 +108,17 @@ function DojoPanel() {
     void load();
   }
 
+  async function restoreDojo(id: string) {
+    setRestoringId(id);
+    const res = await fetch(`/api/admin/dojos/${id}/restore`, { method: "PATCH" });
+    setRestoringId(null);
+    if (!res.ok) {
+      showToast("削除取消に失敗しました");
+      return;
+    }
+    void load();
+  }
+
   return (
     <div>
       <DojoAddForm
@@ -113,7 +135,9 @@ function DojoPanel() {
         <DojoList
           dojos={dojos}
           removingId={removingId}
+          restoringId={restoringId}
           onRemove={(id) => void remove(id)}
+          onRestore={(id) => void restoreDojo(id)}
           onUpdateReading={(id, v) => void updateReading(id, v)}
         />
       )}
@@ -175,33 +199,49 @@ function DojoAddForm({
 function DojoList({
   dojos,
   removingId,
+  restoringId,
   onRemove,
+  onRestore,
   onUpdateReading,
 }: {
   dojos: Dojo[];
   removingId: string | null;
+  restoringId: string | null;
   onRemove: (id: string) => void;
+  onRestore: (id: string) => void;
   onUpdateReading: (id: string, v: string) => void;
 }) {
   return (
     <ul className="space-y-2">
       {dojos.map((d) => (
-        <li key={d.id} className="bg-gray-800 rounded-lg px-4 py-3">
+        <li key={d.id} className={`bg-gray-800 rounded-lg px-4 py-3 ${isDeleted(d) ? "opacity-50" : ""}`}>
           <div className="flex items-center justify-between mb-1">
             <span className="font-medium">{d.name}</span>
-            <button
-              onClick={() => onRemove(d.id)}
-              disabled={removingId === d.id}
-              className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50"
-            >
-              {removingId === d.id ? "削除中..." : "削除"}
-            </button>
+            {isDeleted(d) ? (
+              <button
+                onClick={() => onRestore(d.id)}
+                disabled={restoringId === d.id}
+                className="text-blue-400 hover:text-blue-300 text-sm disabled:opacity-50"
+              >
+                {restoringId === d.id ? "取消中..." : "削除取消"}
+              </button>
+            ) : (
+              <button
+                onClick={() => onRemove(d.id)}
+                disabled={removingId === d.id}
+                className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50"
+              >
+                {removingId === d.id ? "削除中..." : "削除"}
+              </button>
+            )}
           </div>
-          <ReadingInput
-            value={d.name_reading ?? ""}
-            placeholder="読み仮名（例: きょくしんかい）"
-            onSave={(v) => onUpdateReading(d.id, v)}
-          />
+          {!isDeleted(d) && (
+            <ReadingInput
+              value={d.name_reading ?? ""}
+              placeholder="読み仮名（例: きょくしんかい）"
+              onSave={(v) => onUpdateReading(d.id, v)}
+            />
+          )}
         </li>
       ))}
       {dojos.length === 0 && <li className="text-gray-500 text-sm">流派が登録されていません</li>}
@@ -231,9 +271,10 @@ function useRulesData() {
   const [linkingRuleId, setLinkingRuleId] = useState<string | null>(null);
   const [selectingRuleId, setSelectingRuleId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
   const load = async () => {
     const [{ data }, presetsRes] = await Promise.all([
-      supabase.from("rules").select("*").order("name"),
+      supabase.from("rules").select("*").or(`deleted_at.is.null,deleted_at.gt.${softDeleteCutoff()}`).order("name"),
       fetch("/api/admin/timer-presets"),
     ]);
     setRules(data ?? []);
@@ -245,7 +286,7 @@ function useRulesData() {
     void (async () => {
       try {
         const [{ data }, pr] = await Promise.all([
-          supabase.from("rules").select("*").order("name"),
+          supabase.from("rules").select("*").or(`deleted_at.is.null,deleted_at.gt.${softDeleteCutoff()}`).order("name"),
           fetch("/api/admin/timer-presets"),
         ]);
         if (!c) {
@@ -285,6 +326,16 @@ function useRulesData() {
     }
     void load();
   };
+  const restoreRule = async (id: string) => {
+    setRestoringId(id);
+    const res = await fetch(`/api/admin/rules/${id}/restore`, { method: "PATCH" });
+    setRestoringId(null);
+    if (!res.ok) {
+      showToast("削除取消に失敗しました");
+      return;
+    }
+    void load();
+  };
   return {
     rules,
     loading,
@@ -292,12 +343,14 @@ function useRulesData() {
     linkingRuleId,
     selectingRuleId,
     removingId,
+    restoringId,
     setSelectingRuleId,
     load,
     linkPreset,
     updateReading,
     updateDescription,
     remove,
+    restoreRule,
   };
 }
 
@@ -351,9 +404,11 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
           linkingRuleId={rd.linkingRuleId}
           selectingRuleId={rd.selectingRuleId}
           removingId={rd.removingId}
+          restoringId={rd.restoringId}
           onSetSelectingRuleId={rd.setSelectingRuleId}
           onLinkPreset={(rId, pId) => void rd.linkPreset(rId, pId)}
           onRemove={(id) => void rd.remove(id)}
+          onRestore={(id) => void rd.restoreRule(id)}
           onUpdateReading={(id, v) => void rd.updateReading(id, v)}
           onUpdateDescription={(id, v) => void rd.updateDescription(id, v)}
           onNavigateToTimer={onNavigateToTimer}
@@ -431,9 +486,11 @@ function RulesList({
   linkingRuleId,
   selectingRuleId,
   removingId,
+  restoringId,
   onSetSelectingRuleId,
   onLinkPreset,
   onRemove,
+  onRestore,
   onUpdateReading,
   onUpdateDescription,
   onNavigateToTimer,
@@ -443,9 +500,11 @@ function RulesList({
   linkingRuleId: string | null;
   selectingRuleId: string | null;
   removingId: string | null;
+  restoringId: string | null;
   onSetSelectingRuleId: (id: string | null) => void;
   onLinkPreset: (ruleId: string, presetId: string | null) => void;
   onRemove: (id: string) => void;
+  onRestore: (id: string) => void;
   onUpdateReading: (id: string, v: string) => void;
   onUpdateDescription: (id: string, v: string) => void;
   onNavigateToTimer: () => void;
@@ -460,9 +519,11 @@ function RulesList({
           isLinking={linkingRuleId === r.id}
           isSelecting={selectingRuleId === r.id}
           removingId={removingId}
+          restoringId={restoringId}
           onSetSelectingRuleId={onSetSelectingRuleId}
           onLinkPreset={onLinkPreset}
           onRemove={onRemove}
+          onRestore={onRestore}
           onUpdateReading={onUpdateReading}
           onUpdateDescription={onUpdateDescription}
           onNavigateToTimer={onNavigateToTimer}
@@ -479,9 +540,11 @@ function RuleItem({
   isLinking,
   isSelecting,
   removingId,
+  restoringId,
   onSetSelectingRuleId,
   onLinkPreset,
   onRemove,
+  onRestore,
   onUpdateReading,
   onUpdateDescription,
   onNavigateToTimer,
@@ -491,37 +554,52 @@ function RuleItem({
   isLinking: boolean;
   isSelecting: boolean;
   removingId: string | null;
+  restoringId: string | null;
   onSetSelectingRuleId: (id: string | null) => void;
   onLinkPreset: (ruleId: string, presetId: string | null) => void;
   onRemove: (id: string) => void;
+  onRestore: (id: string) => void;
   onUpdateReading: (id: string, v: string) => void;
   onUpdateDescription: (id: string, v: string) => void;
   onNavigateToTimer: () => void;
 }) {
+  const deleted = isDeleted(r);
   const linkedPreset = r.timer_preset_id ? presets.find((p) => p.id === r.timer_preset_id) : null;
   return (
-    <li className="bg-gray-800 rounded-lg px-4 py-3">
+    <li className={`bg-gray-800 rounded-lg px-4 py-3 ${deleted ? "opacity-50" : ""}`}>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium">{r.name}</span>
-          <RulePresetBadge
-            rule={r}
-            linkedPreset={linkedPreset}
-            isLinking={isLinking}
-            isSelecting={isSelecting}
-            onSetSelectingRuleId={onSetSelectingRuleId}
-            onLinkPreset={onLinkPreset}
-          />
+          {!deleted && (
+            <RulePresetBadge
+              rule={r}
+              linkedPreset={linkedPreset}
+              isLinking={isLinking}
+              isSelecting={isSelecting}
+              onSetSelectingRuleId={onSetSelectingRuleId}
+              onLinkPreset={onLinkPreset}
+            />
+          )}
         </div>
-        <button
-          onClick={() => onRemove(r.id)}
-          disabled={removingId === r.id}
-          className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50"
-        >
-          {removingId === r.id ? "削除中..." : "削除"}
-        </button>
+        {deleted ? (
+          <button
+            onClick={() => onRestore(r.id)}
+            disabled={restoringId === r.id}
+            className="text-blue-400 hover:text-blue-300 text-sm disabled:opacity-50"
+          >
+            {restoringId === r.id ? "取消中..." : "削除取消"}
+          </button>
+        ) : (
+          <button
+            onClick={() => onRemove(r.id)}
+            disabled={removingId === r.id}
+            className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50"
+          >
+            {removingId === r.id ? "削除中..." : "削除"}
+          </button>
+        )}
       </div>
-      {isSelecting && (
+      {!deleted && isSelecting && (
         <PresetSelector
           ruleId={r.id}
           currentPresetId={r.timer_preset_id}
@@ -532,12 +610,16 @@ function RuleItem({
           onNavigateToTimer={onNavigateToTimer}
         />
       )}
-      <ReadingInput
-        value={r.name_reading ?? ""}
-        placeholder="読み仮名（例: くみて3ぷんえんちょう1ぷん）"
-        onSave={(v) => onUpdateReading(r.id, v)}
-      />
-      <DescriptionInput value={r.description ?? ""} onSave={(v) => onUpdateDescription(r.id, v)} />
+      {!deleted && (
+        <>
+          <ReadingInput
+            value={r.name_reading ?? ""}
+            placeholder="読み仮名（例: くみて3ぷんえんちょう1ぷん）"
+            onSave={(v) => onUpdateReading(r.id, v)}
+          />
+          <DescriptionInput value={r.description ?? ""} onSave={(v) => onUpdateDescription(r.id, v)} />
+        </>
+      )}
     </li>
   );
 }

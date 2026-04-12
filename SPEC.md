@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-12（論理削除導入）
+> 最終更新: 2026-04-12（論理削除UI対応）
 
 ---
 
@@ -412,47 +412,47 @@ settings (
 
 認証: `verifyAdminAuth()` による Cookie チェック
 
-| メソッド     | パス                                      | 概要                                                                                           |
-| ------------ | ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| POST/DELETE  | `/api/admin/login`                        | ログイン・ログアウト                                                                           |
-| POST         | `/api/admin/events`                       | 大会作成（`copy_from_event_id` 指定で過去大会から複製。`copy_entries` で任意エントリーコピー） |
-| PATCH        | `/api/admin/events/[id]`                  | 大会更新                                                                                       |
-| DELETE       | `/api/admin/events/[id]`                  | 大会削除                                                                                       |
-| POST         | `/api/admin/dojos`                        | 流派追加                                                                                       |
-| PATCH/DELETE | `/api/admin/dojos/[id]`                   | 流派更新・削除                                                                                 |
-| POST         | `/api/admin/fighters`                     | 選手追加                                                                                       |
-| PATCH/DELETE | `/api/admin/fighters/[id]`                | 選手更新・削除                                                                                 |
-| POST         | `/api/admin/rules`                        | ルール追加（name, name_reading, description）                                                  |
-| PATCH/DELETE | `/api/admin/rules/[id]`                   | ルール更新（name_reading, description）・削除                                                  |
-| POST         | `/api/admin/entries`                      | エントリー追加（管理者）                                                                       |
-| PATCH        | `/api/admin/entries/[id]`                 | エントリー更新                                                                                 |
-| DELETE       | `/api/admin/entries/[id]`                 | エントリー削除                                                                                 |
-| POST/DELETE  | `/api/admin/entry-rules`                  | ルール紐付け管理                                                                               |
-| GET/POST     | `/api/admin/bracket-rules`                | 振り分けルール一覧取得・作成                                                                   |
-| PUT/DELETE   | `/api/admin/bracket-rules/[id]`           | 振り分けルール更新・削除                                                                       |
-| POST         | `/api/admin/tournaments`                  | トーナメント作成・対戦表生成                                                                   |
-| PUT          | `/api/admin/tournaments/[id]`             | トーナメント更新（matches 再作成、id/sort_order/created_at 保持）                              |
-| DELETE       | `/api/admin/tournaments/[id]`             | トーナメント削除                                                                               |
-| PATCH        | `/api/admin/matches/[id]`                 | マッチ更新（管理者）                                                                           |
-| POST         | `/api/admin/matches/[id]/replace`         | マッチの選手差し替え（`{ slot, entry_id }`）                                                   |
-| POST         | `/api/admin/matches/batch`                | 試合ラベル一括更新                                                                             |
-| POST         | `/api/admin/matches/swap`                 | 同一ラウンド内の隣接試合入替                                                                   |
-| GET/PUT      | `/api/admin/settings`                     | 全体設定（体重差・身長差上限等）の取得・更新                                                   |
-| POST/DELETE  | `/api/admin/events/[id]/banner`           | バナー画像アップロード/削除                                                                    |
-| POST/DELETE  | `/api/admin/events/[id]/ogp`              | OGP画像アップロード/削除                                                                       |
-| GET/POST     | `/api/admin/timer-presets`                | タイマー一覧取得・新規作成                                                                     |
-| PATCH/DELETE | `/api/admin/timer-presets/[id]`           | タイマー更新・削除                                                                             |
-| POST         | `/api/admin/timer-presets/[id]/duplicate` | タイマー複製                                                                                   |
-| POST/DELETE  | `/api/admin/timer-presets/[id]/buzzer`    | カスタムブザー音源アップロード/削除                                                            |
-| PATCH        | `/api/admin/events/[id]/restore`          | イベント削除取消（論理削除から復元、24時間以内）                                                |
-| PATCH        | `/api/admin/dojos/[id]/restore`           | 道場削除取消                                                                                   |
-| PATCH        | `/api/admin/rules/[id]/restore`           | ルール削除取消                                                                                 |
-| PATCH        | `/api/admin/entries/[id]/restore`         | エントリー削除取消                                                                             |
-| PATCH        | `/api/admin/tournaments/[id]/restore`     | トーナメント削除取消                                                                           |
-| PATCH        | `/api/admin/timer-presets/[id]/restore`   | タイマー削除取消                                                                               |
-| PATCH        | `/api/admin/bracket-rules/[id]/restore`   | 振り分けルール削除取消                                                                         |
-| PATCH        | `/api/admin/form-config/notices/[id]/restore` | 注意書き削除取消                                                                           |
-| PATCH        | `/api/admin/form-config/custom-fields/restore` | カスタムフィールド削除取消                                                                 |
+| メソッド     | パス                                           | 概要                                                                                           |
+| ------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| POST/DELETE  | `/api/admin/login`                             | ログイン・ログアウト                                                                           |
+| POST         | `/api/admin/events`                            | 大会作成（`copy_from_event_id` 指定で過去大会から複製。`copy_entries` で任意エントリーコピー） |
+| PATCH        | `/api/admin/events/[id]`                       | 大会更新                                                                                       |
+| DELETE       | `/api/admin/events/[id]`                       | 大会削除                                                                                       |
+| POST         | `/api/admin/dojos`                             | 流派追加                                                                                       |
+| PATCH/DELETE | `/api/admin/dojos/[id]`                        | 流派更新・削除                                                                                 |
+| POST         | `/api/admin/fighters`                          | 選手追加                                                                                       |
+| PATCH/DELETE | `/api/admin/fighters/[id]`                     | 選手更新・削除                                                                                 |
+| POST         | `/api/admin/rules`                             | ルール追加（name, name_reading, description）                                                  |
+| PATCH/DELETE | `/api/admin/rules/[id]`                        | ルール更新（name_reading, description）・削除                                                  |
+| POST         | `/api/admin/entries`                           | エントリー追加（管理者）                                                                       |
+| PATCH        | `/api/admin/entries/[id]`                      | エントリー更新                                                                                 |
+| DELETE       | `/api/admin/entries/[id]`                      | エントリー削除                                                                                 |
+| POST/DELETE  | `/api/admin/entry-rules`                       | ルール紐付け管理                                                                               |
+| GET/POST     | `/api/admin/bracket-rules`                     | 振り分けルール一覧取得・作成                                                                   |
+| PUT/DELETE   | `/api/admin/bracket-rules/[id]`                | 振り分けルール更新・削除                                                                       |
+| POST         | `/api/admin/tournaments`                       | トーナメント作成・対戦表生成                                                                   |
+| PUT          | `/api/admin/tournaments/[id]`                  | トーナメント更新（matches 再作成、id/sort_order/created_at 保持）                              |
+| DELETE       | `/api/admin/tournaments/[id]`                  | トーナメント削除                                                                               |
+| PATCH        | `/api/admin/matches/[id]`                      | マッチ更新（管理者）                                                                           |
+| POST         | `/api/admin/matches/[id]/replace`              | マッチの選手差し替え（`{ slot, entry_id }`）                                                   |
+| POST         | `/api/admin/matches/batch`                     | 試合ラベル一括更新                                                                             |
+| POST         | `/api/admin/matches/swap`                      | 同一ラウンド内の隣接試合入替                                                                   |
+| GET/PUT      | `/api/admin/settings`                          | 全体設定（体重差・身長差上限等）の取得・更新                                                   |
+| POST/DELETE  | `/api/admin/events/[id]/banner`                | バナー画像アップロード/削除                                                                    |
+| POST/DELETE  | `/api/admin/events/[id]/ogp`                   | OGP画像アップロード/削除                                                                       |
+| GET/POST     | `/api/admin/timer-presets`                     | タイマー一覧取得・新規作成                                                                     |
+| PATCH/DELETE | `/api/admin/timer-presets/[id]`                | タイマー更新・削除                                                                             |
+| POST         | `/api/admin/timer-presets/[id]/duplicate`      | タイマー複製                                                                                   |
+| POST/DELETE  | `/api/admin/timer-presets/[id]/buzzer`         | カスタムブザー音源アップロード/削除                                                            |
+| PATCH        | `/api/admin/events/[id]/restore`               | イベント削除取消（論理削除から復元、24時間以内）                                               |
+| PATCH        | `/api/admin/dojos/[id]/restore`                | 道場削除取消                                                                                   |
+| PATCH        | `/api/admin/rules/[id]/restore`                | ルール削除取消                                                                                 |
+| PATCH        | `/api/admin/entries/[id]/restore`              | エントリー削除取消                                                                             |
+| PATCH        | `/api/admin/tournaments/[id]/restore`          | トーナメント削除取消                                                                           |
+| PATCH        | `/api/admin/timer-presets/[id]/restore`        | タイマー削除取消                                                                               |
+| PATCH        | `/api/admin/bracket-rules/[id]/restore`        | 振り分けルール削除取消                                                                         |
+| PATCH        | `/api/admin/form-config/notices/[id]/restore`  | 注意書き削除取消                                                                               |
+| PATCH        | `/api/admin/form-config/custom-fields/restore` | カスタムフィールド削除取消                                                                     |
 
 ### 5.2 コート用 API（認証必須）
 
@@ -704,3 +704,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **コード整形・a11y・CLAUDE.md整理（2026-04-12）**: Prettier一括フォーマット反映、htmlFor/aria-label追加、CLAUDE.md簡潔化とCLAUDE_BAK.md分離
 - CLAUDE.md修正
 - **論理削除（ソフトデリート）導入（2026-04-12）**: 9テーブルにdeleted_atカラム追加。削除操作を物理削除から論理削除に変更。24時間以内は画面から削除取消可能、24時間経過で非表示
+- **論理削除UI対応 Phase 2（2026-04-12）**: 管理画面の全一覧でdeleted_atフィルタ追加、削除済みアイテムのグレーアウト表示と削除取消ボタン実装。公開画面では削除済みを完全非表示

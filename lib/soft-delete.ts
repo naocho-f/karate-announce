@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { dbError } from "@/lib/api-utils";
-
-const RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000; // 24時間
+import { RESTORE_WINDOW_MS } from "@/lib/soft-delete-shared";
 
 /**
  * 論理削除されたレコードを復元する。

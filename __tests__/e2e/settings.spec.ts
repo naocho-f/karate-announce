@@ -50,8 +50,15 @@ test.describe("設定", () => {
     if (await deleteBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await deleteBtn.click();
 
-      // 削除後にルールが消えることを確認
-      await expect(page.locator(`text=${ruleName}`)).not.toBeVisible({ timeout: 5_000 });
+      // 論理削除後: ルールがグレーアウト表示され「削除取消」ボタンが出現
+      const ruleContainer = page.locator(`text=${ruleName}`).first().locator("..").locator("..");
+      await expect(ruleContainer).toHaveClass(/opacity-50/, { timeout: 5_000 });
+      const restoreBtn = ruleContainer.locator('button:has-text("削除取消")');
+      await expect(restoreBtn).toBeVisible({ timeout: 5_000 });
+
+      // 削除取消でグレーアウトが解除される
+      await restoreBtn.click();
+      await expect(ruleContainer).not.toHaveClass(/opacity-50/, { timeout: 5_000 });
     }
   });
 
@@ -87,7 +94,11 @@ test.describe("設定", () => {
     if (await deleteBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await deleteBtn.click();
 
-      await expect(page.locator(`text=${dojoName}`)).not.toBeVisible({ timeout: 5_000 });
+      // 論理削除後: 流派がグレーアウト表示され「削除取消」ボタンが出現
+      const dojoContainer = page.locator(`text=${dojoName}`).first().locator("..").locator("..");
+      await expect(dojoContainer).toHaveClass(/opacity-50/, { timeout: 5_000 });
+      const restoreBtn = dojoContainer.locator('button:has-text("削除取消")');
+      await expect(restoreBtn).toBeVisible({ timeout: 5_000 });
     }
   });
 
