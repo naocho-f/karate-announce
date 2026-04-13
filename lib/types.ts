@@ -30,6 +30,7 @@ export type KouryuukaiFontSizes = {
   timer: number; // メインタイマー
   newaza: number; // 寝技タイマー数字
   newazaLabel: number; // 寝技ラベル（寝1/寝2）
+  newazaNumber: number; // 寝技番号（1/2）
   playerName: number; // 選手名
   points: number; // ポイント数字
   matchNumber: number; // 試合番号
@@ -39,12 +40,14 @@ export type KouryuukaiFontSizes = {
   cautionCell: number; // 注意セル内文字
   wazaariLabel: number; // 「技有」ラベル
   wazaariCell: number; // 技有セル内数字
+  borderWidth: number; // 区切り線の太さ（px）
 };
 
 export const DEFAULT_KOURYUUKAI_FONT_SIZES: KouryuukaiFontSizes = {
   timer: 28,
   newaza: 4,
   newazaLabel: 2,
+  newazaNumber: 1.5,
   playerName: 2,
   points: 18,
   matchNumber: 12,
@@ -54,6 +57,7 @@ export const DEFAULT_KOURYUUKAI_FONT_SIZES: KouryuukaiFontSizes = {
   cautionCell: 1.5,
   wazaariLabel: 1.5,
   wazaariCell: 2.5,
+  borderWidth: 1,
 };
 
 export type LayoutConfig = {

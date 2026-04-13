@@ -762,10 +762,16 @@ function LayoutSection({
   );
 }
 
-const KOURYUUKAI_FONT_FIELDS: { key: keyof KouryuukaiFontSizes; label: string }[] = [
+const KOURYUUKAI_FONT_FIELDS: {
+  key: keyof KouryuukaiFontSizes;
+  label: string;
+  max?: number;
+  unit?: string;
+}[] = [
   { key: "timer", label: "メインタイマー" },
   { key: "newaza", label: "寝技タイマー数字" },
-  { key: "newazaLabel", label: "寝技ラベル（寝1/寝2）" },
+  { key: "newazaLabel", label: "寝技ラベル（寝）" },
+  { key: "newazaNumber", label: "寝技番号（1/2）" },
   { key: "playerName", label: "選手名" },
   { key: "points", label: "ポイント数字" },
   { key: "matchNumber", label: "試合番号" },
@@ -775,6 +781,7 @@ const KOURYUUKAI_FONT_FIELDS: { key: keyof KouryuukaiFontSizes; label: string }[
   { key: "cautionCell", label: "注意セル文字" },
   { key: "wazaariLabel", label: "技有ラベル" },
   { key: "wazaariCell", label: "技有セル数字" },
+  { key: "borderWidth", label: "区切り線の太さ", max: 10, unit: "px" },
 ];
 
 function KouryuukaiFontSizeEditor({
@@ -790,15 +797,15 @@ function KouryuukaiFontSizeEditor({
   };
   return (
     <div className="space-y-2 mt-2">
-      {KOURYUUKAI_FONT_FIELDS.map(({ key, label }) => (
+      {KOURYUUKAI_FONT_FIELDS.map(({ key, label, max: fieldMax, unit: fieldUnit }) => (
         <div key={key} className="flex items-center gap-2">
           <span className="text-xs text-gray-400 w-32 shrink-0">{label}</span>
           <input
             id={`kouryuukai-fs-${key}`}
             type="range"
-            min={0.5}
-            max={40}
-            step={0.5}
+            min={key === "borderWidth" ? 0 : 0.5}
+            max={fieldMax ?? 40}
+            step={key === "borderWidth" ? 1 : 0.5}
             value={currentFs[key]}
             onChange={(e) => updateFs(key, Number(e.target.value))}
             className="flex-1"
@@ -806,14 +813,14 @@ function KouryuukaiFontSizeEditor({
           <input
             id={`kouryuukai-fs-num-${key}`}
             type="number"
-            min={0.5}
-            max={100}
-            step={0.5}
+            min={key === "borderWidth" ? 0 : 0.5}
+            max={fieldMax ?? 100}
+            step={key === "borderWidth" ? 1 : 0.5}
             value={currentFs[key]}
             onChange={(e) => updateFs(key, Number(e.target.value))}
             className="w-16 bg-gray-800 border border-gray-700 rounded px-1 py-0.5 text-xs text-right"
           />
-          <span className="text-xs text-gray-500">vh</span>
+          <span className="text-xs text-gray-500">{fieldUnit ?? "vh"}</span>
         </div>
       ))}
     </div>
@@ -1292,7 +1299,6 @@ function TimerPreview({
           timerColor={timerColor}
           colorLeft={colorLeft}
           colorRight={colorRight}
-          dt={layout.dividerThickness}
           fs={{ ...DEFAULT_KOURYUUKAI_FONT_SIZES, ...layout.kouryuukaiFontSizes }}
           vhToPx={vhToPx}
         />
@@ -2020,50 +2026,89 @@ function PvWazaariCells({
   );
 }
 
+function PvNewazaCell({
+  num,
+  timeText,
+  timeColor,
+  fs,
+  bw,
+  borderBottom,
+}: {
+  num: number;
+  timeText: string;
+  timeColor: string;
+  fs: KouryuukaiFontSizes;
+  bw: string;
+  borderBottom?: boolean;
+  vhToPx: (v: number) => number;
+}) {
+  return (
+    <div style={{ height: "50%", display: "flex", borderBottom: borderBottom ? bw : undefined }}>
+      <div
+        style={{
+          width: "20%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRight: bw,
+        }}
+      >
+        <span className="text-gray-400 font-bold" style={{ fontSize: `${fs.newazaLabel}vh` }}>
+          寝
+        </span>
+        <span className="text-green-300 font-bold" style={{ fontSize: `${fs.newazaNumber}vh` }}>
+          {num}
+        </span>
+      </div>
+      <div style={{ width: "80%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span className="font-bold tabular-nums" style={{ color: timeColor, fontSize: `${fs.newaza}vh` }}>
+          {timeText}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function KouryuukaiPreview({
   timerColor,
   colorLeft,
   colorRight,
-  dt,
   fs,
   vhToPx,
 }: {
   timerColor: string;
   colorLeft: string;
   colorRight: string;
-  dt: number;
   fs: KouryuukaiFontSizes;
   vhToPx: (v: number) => number;
 }) {
+  const bw = `${fs.borderWidth}px solid #555`;
   return (
     <div className="absolute inset-0 flex flex-col">
       {/* 上部 50% */}
-      <div style={{ height: "50%", display: "flex", borderBottom: `${dt}px solid #555` }}>
+      <div style={{ height: "50%", display: "flex", borderBottom: bw }}>
         <PvCell style={{ width: "65%" }}>
           <PreviewTimerDigits text="1:23" style={{ color: timerColor, fontSize: `${vhToPx(fs.timer)}px` }} />
         </PvCell>
-        <div style={{ width: "35%", display: "flex", flexDirection: "column", borderLeft: `${dt}px solid #555` }}>
-          <PvCell style={{ height: "50%", borderBottom: `${dt}px solid #555`, gap: "2px" }}>
-            <span className="text-gray-400 font-bold" style={{ fontSize: `${vhToPx(fs.newazaLabel)}px` }}>
-              寝1
-            </span>
-            <PreviewTimerDigits text="1:33" style={{ color: "rgb(34 211 238)", fontSize: `${vhToPx(fs.newaza)}px` }} />
-          </PvCell>
-          <PvCell style={{ height: "50%", gap: "2px" }}>
-            <span className="text-gray-400 font-bold" style={{ fontSize: `${vhToPx(fs.newazaLabel)}px` }}>
-              寝2
-            </span>
-            <span className="text-gray-600 font-bold" style={{ fontSize: `${vhToPx(fs.newaza)}px` }}>
-              --:--
-            </span>
-          </PvCell>
+        <div style={{ width: "35%", display: "flex", flexDirection: "column", borderLeft: bw }}>
+          <PvNewazaCell
+            num={1}
+            timeText="1:33"
+            timeColor="rgb(34 211 238)"
+            fs={fs}
+            bw={bw}
+            borderBottom
+            vhToPx={vhToPx}
+          />
+          <PvNewazaCell num={2} timeText="--:--" timeColor="#555" fs={fs} bw={bw} vhToPx={vhToPx} />
         </div>
       </div>
       {/* 下部 50% */}
       <div style={{ height: "50%", display: "flex", flexDirection: "column" }}>
         {/* 選手名 15% */}
-        <div style={{ height: "15%", display: "flex", borderBottom: `${dt}px solid #555` }}>
-          <PvCell style={{ width: "50%", borderRight: `${dt}px solid #555` }}>
+        <div style={{ height: "15%", display: "flex", borderBottom: bw }}>
+          <PvCell style={{ width: "50%", borderRight: bw }}>
             <span className="font-bold" style={{ color: colorLeft, fontSize: `${vhToPx(fs.playerName)}px` }}>
               山田 太郎
             </span>
@@ -2078,20 +2123,20 @@ function KouryuukaiPreview({
         <div style={{ height: "85%", display: "flex" }}>
           {/* 赤 33% */}
           <div style={{ width: "33%", display: "flex" }}>
-            <div style={{ width: "15%", borderRight: `${dt}px solid #555` }}>
+            <div style={{ width: "20%", borderRight: bw }}>
               <PvFoulCells color={colorLeft} fs={fs} vhToPx={vhToPx} />
             </div>
-            <PvCell style={{ width: "70%", borderRight: `${dt}px solid #555` }}>
+            <PvCell style={{ width: "60%", borderRight: bw }}>
               <span className="font-bold tabular-nums" style={{ color: colorLeft, fontSize: `${vhToPx(fs.points)}px` }}>
                 3
               </span>
             </PvCell>
-            <div style={{ width: "15%", borderRight: `${dt}px solid #555` }}>
+            <div style={{ width: "20%", borderRight: bw }}>
               <PvWazaariCells color={colorLeft} fs={fs} vhToPx={vhToPx} />
             </div>
           </div>
           {/* 試合番号 34% */}
-          <PvCell style={{ width: "34%", flexDirection: "column", borderRight: `${dt}px solid #555` }}>
+          <PvCell style={{ width: "34%", flexDirection: "column", borderRight: bw }}>
             <span className="text-gray-500 font-bold" style={{ fontSize: `${vhToPx(fs.matchNumberLabel)}px` }}>
               試合番号
             </span>
@@ -2104,10 +2149,10 @@ function KouryuukaiPreview({
           </PvCell>
           {/* 白 33% */}
           <div style={{ width: "33%", display: "flex" }}>
-            <div style={{ width: "15%", borderRight: `${dt}px solid #555` }}>
+            <div style={{ width: "20%", borderRight: bw }}>
               <PvWazaariCells color={colorRight} fs={fs} vhToPx={vhToPx} />
             </div>
-            <PvCell style={{ width: "70%", borderRight: `${dt}px solid #555` }}>
+            <PvCell style={{ width: "60%", borderRight: bw }}>
               <span
                 className="font-bold tabular-nums"
                 style={{ color: colorRight, fontSize: `${vhToPx(fs.points)}px` }}
@@ -2115,7 +2160,7 @@ function KouryuukaiPreview({
                 1
               </span>
             </PvCell>
-            <div style={{ width: "15%" }}>
+            <div style={{ width: "20%" }}>
               <PvFoulCells color={colorRight} fs={fs} vhToPx={vhToPx} />
             </div>
           </div>
