@@ -8,6 +8,7 @@ import { createInitialState, getDisplayMs, getNewazaElapsedMs, getNewazaDisplayM
 import { resolveLayout } from "@/lib/timer-layout";
 import type { LayoutRow, LayoutAlignment, LayoutVerticalAlign, TimerPreset, KouryuukaiFontSizes } from "@/lib/types";
 import { DEFAULT_KOURYUUKAI_FONT_SIZES } from "@/lib/types";
+import { matchLabelToShort } from "@/lib/match-utils";
 
 // ── フォーマット ──────────────────────────────────────────────
 
@@ -1299,7 +1300,7 @@ export function KouryuukaiLayout({
               className="font-bold tabular-nums"
               style={{ fontSize: sz(fs.matchNumber), color: "#E1D200", lineHeight: 1 }}
             >
-              {state.matchLabel || "--"}
+              {matchLabelToShort(state.matchLabel) || "--"}
             </span>
           </KouryuukaiCell>
 
