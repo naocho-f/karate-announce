@@ -25,6 +25,16 @@ import type { TimerPreset } from "@/lib/types";
 import ScoringPanel from "./_scoring-panel";
 import ResultPanel from "./_result-panel";
 
+/** HEX色が明るいかどうか判定（明るければtrue） */
+function isLightColor(hex: string): boolean {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  // 相対輝度の簡易計算
+  return r * 0.299 + g * 0.587 + b * 0.114 > 150;
+}
+
 function formatTime(ms: number, showDecimals = false): string {
   const totalSec = Math.max(0, ms) / 1000;
   const min = Math.floor(totalSec / 60);
@@ -163,14 +173,20 @@ function MainControls({ props: { state, phase, p, newazaDispMs, onUpdate } }: { 
             ▶ 開始 [Space]
           </button>
         )}
-        {phase === "running" && (
-          <button
-            onClick={() => onUpdate(pauseTimer)}
-            className="flex-1 py-6 rounded-lg bg-yellow-700 hover:bg-yellow-600 text-white font-bold text-xl transition"
-          >
-            ⏸ ストップ [Space]
-          </button>
-        )}
+        {phase === "running" &&
+          (() => {
+            const bg = p?.theme_timer_color ?? "#b45309";
+            const textColor = isLightColor(bg) ? "#000000" : "#ffffff";
+            return (
+              <button
+                onClick={() => onUpdate(pauseTimer)}
+                className="flex-1 py-6 rounded-lg font-bold text-xl transition hover:brightness-110"
+                style={{ backgroundColor: bg, color: textColor }}
+              >
+                ⏸ ストップ [Space]
+              </button>
+            );
+          })()}
         {phase === "paused" && (
           <button
             onClick={() => onUpdate(resumeTimer)}
