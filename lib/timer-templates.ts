@@ -1,3 +1,4 @@
+// タイマーテンプレート定義（テンプレート選択UIで使用）
 import type { EditablePreset } from "@/components/_timer-preset-editor";
 
 export type TimerTemplate = {
