@@ -25,6 +25,37 @@ export type LayoutRow = {
   scoreCenterMode?: "newaza" | "match_info"; // scores用: 中央に寝技 or 試合番号を表示
 };
 
+/** 交流会テンプレート用フォントサイズ設定（各領域個別指定、vh単位） */
+export type KouryuukaiFontSizes = {
+  timer: number; // メインタイマー
+  newaza: number; // 寝技タイマー数字
+  newazaLabel: number; // 寝技ラベル（寝1/寝2）
+  playerName: number; // 選手名
+  points: number; // ポイント数字
+  matchNumber: number; // 試合番号
+  matchNumberLabel: number; // 「試合番号」ラベル
+  foulLabel: number; // 「反則」ラベル
+  foulCell: number; // 反則セル内数字
+  cautionCell: number; // 注意セル内文字
+  wazaariLabel: number; // 「技有」ラベル
+  wazaariCell: number; // 技有セル内数字
+};
+
+export const DEFAULT_KOURYUUKAI_FONT_SIZES: KouryuukaiFontSizes = {
+  timer: 28,
+  newaza: 4,
+  newazaLabel: 2,
+  playerName: 2,
+  points: 18,
+  matchNumber: 12,
+  matchNumberLabel: 2,
+  foulLabel: 1.5,
+  foulCell: 2,
+  cautionCell: 1.5,
+  wazaariLabel: 1.5,
+  wazaariCell: 2.5,
+};
+
 export type LayoutConfig = {
   rows: LayoutRow[];
   dividerThickness: number; // px
@@ -35,6 +66,10 @@ export type LayoutConfig = {
   labelFoul: string; // 反則ラベル（例: "F", "反則", "反"）
   labelPoint: string; // ポイントラベル（例: "", "pt", "P"）
   labelNewaza: string; // 寝技ラベル（例: "寝技", "NEWAZA"）
+  // テンプレートID（専用レイアウトを使う場合）
+  templateId?: string; // "kouryuukai" など。未設定時は行ベースレイアウト
+  // 交流会テンプレート用フォントサイズ
+  kouryuukaiFontSizes?: KouryuukaiFontSizes;
 };
 
 export const DEFAULT_LAYOUT: LayoutConfig = {

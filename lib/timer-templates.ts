@@ -70,41 +70,13 @@ export const TIMER_TEMPLATES: TimerTemplate[] = [
       buzzer_duration_newaza: 1.5,
       buzzer_repeat_newaza: 1,
       swap_sides: false,
-      // レイアウト: 3行構成（画像準拠）
+      // レイアウト: 交流会テンプレート専用（%指定グリッド）
       layout: {
-        rows: [
-          // 行1: タイマー+寝技横並び (60%)
-          {
-            type: "timer_with_newaza",
-            height: 60,
-            fontSize: 35,
-            align: "center",
-            verticalAlign: "middle",
-            timerRatio: 0.75,
-            subFontSize: 5,
-          },
-          // 行2: 選手名 (5%)
-          {
-            type: "player_names",
-            height: 5,
-            fontSize: 2.5,
-            align: "left",
-            verticalAlign: "middle",
-          },
-          // 行3: スコア (35%) - 中央に試合番号
-          {
-            type: "scores",
-            height: 35,
-            fontSize: 25,
-            align: "center",
-            verticalAlign: "middle",
-            subFontSize: 6,
-            scoreCenterMode: "match_info",
-          },
-        ],
-        dividerThickness: 1,
-        scoreGap: 2,
-        scoreItemGap: 8,
+        rows: [],
+        templateId: "kouryuukai",
+        dividerThickness: 2,
+        scoreGap: 0,
+        scoreItemGap: 0,
         labelWazaari: "技有",
         labelFoul: "反則",
         labelPoint: "",

@@ -2,8 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { TimerPreset } from "@/lib/types";
-import { DEFAULT_LAYOUT } from "@/lib/types";
-import type { LayoutConfig, LayoutRow, LayoutRowType, LayoutAlignment, LayoutVerticalAlign } from "@/lib/types";
+import { DEFAULT_LAYOUT, DEFAULT_KOURYUUKAI_FONT_SIZES } from "@/lib/types";
+import type {
+  LayoutConfig,
+  LayoutRow,
+  LayoutRowType,
+  LayoutAlignment,
+  LayoutVerticalAlign,
+  KouryuukaiFontSizes,
+} from "@/lib/types";
 import { rowTypeLabel } from "@/lib/timer-layout";
 import { BUILTIN_SOUNDS, SOUND_CATEGORIES, testBuzzer, preloadCustomBuzzer } from "@/lib/timer-buzzer";
 import { showToast } from "@/components/toast";
@@ -1202,6 +1209,25 @@ function TimerPreview({
     alignItems: v === "top" ? "flex-start" : v === "bottom" ? "flex-end" : "center",
   });
 
+  if (layout.templateId === "kouryuukai") {
+    return (
+      <div
+        ref={previewRef}
+        className="relative aspect-video overflow-hidden rounded"
+        style={{ background: bgColor, fontFamily }}
+      >
+        <KouryuukaiPreview
+          timerColor={timerColor}
+          colorLeft={colorLeft}
+          colorRight={colorRight}
+          dt={layout.dividerThickness}
+          fs={{ ...DEFAULT_KOURYUUKAI_FONT_SIZES, ...layout.kouryuukaiFontSizes }}
+          vhToPx={vhToPx}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       ref={previewRef}
@@ -1796,6 +1822,217 @@ function BuzzerCustomSection({
       ) : (
         <p className="text-xs text-gray-500">カスタム音源のアップロードはプリセット保存後に行えます</p>
       )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// 交流会テンプレート専用プレビュー
+// ══════════════════════════════════════════════════════════════
+
+const PV_BORDER = "1px solid #555";
+
+function PvCell({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        border: PV_BORDER,
+        overflow: "hidden",
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function PvFoulCells({ color, fs, vhToPx }: { color: string; fs: KouryuukaiFontSizes; vhToPx: (v: number) => number }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
+      <div style={{ height: "15%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span className="text-gray-400 font-bold" style={{ fontSize: `${vhToPx(fs.foulLabel)}px` }}>
+          反則
+        </span>
+      </div>
+      {[3, 2, 1].map((n) => (
+        <div
+          key={n}
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: n === 1 ? color : "#1a1a2e",
+            border: "1px solid #333",
+            fontSize: `${vhToPx(fs.foulCell)}px`,
+            color: n === 1 ? "#000" : "#555",
+            fontWeight: "bold",
+          }}
+        >
+          {n}
+        </div>
+      ))}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#1a1a2e",
+          border: "1px solid #333",
+          fontSize: `${vhToPx(fs.cautionCell)}px`,
+          color: "#555",
+          fontWeight: "bold",
+        }}
+      >
+        注意
+      </div>
+    </div>
+  );
+}
+
+function PvWazaariCells({
+  color,
+  fs,
+  vhToPx,
+}: {
+  color: string;
+  fs: KouryuukaiFontSizes;
+  vhToPx: (v: number) => number;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
+      <div style={{ height: "15%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span className="text-gray-400 font-bold" style={{ fontSize: `${vhToPx(fs.wazaariLabel)}px` }}>
+          技有
+        </span>
+      </div>
+      {[2, 1].map((n) => (
+        <div
+          key={n}
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: n === 1 ? color : "#1a1a2e",
+            border: "1px solid #333",
+            fontSize: `${vhToPx(fs.wazaariCell)}px`,
+            color: n === 1 ? "#000" : "#555",
+            fontWeight: "bold",
+          }}
+        >
+          {n}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function KouryuukaiPreview({
+  timerColor,
+  colorLeft,
+  colorRight,
+  dt,
+  fs,
+  vhToPx,
+}: {
+  timerColor: string;
+  colorLeft: string;
+  colorRight: string;
+  dt: number;
+  fs: KouryuukaiFontSizes;
+  vhToPx: (v: number) => number;
+}) {
+  return (
+    <div className="absolute inset-0 flex flex-col">
+      {/* 上部 50% */}
+      <div style={{ height: "50%", display: "flex", borderBottom: `${dt}px solid #555` }}>
+        <PvCell style={{ width: "65%" }}>
+          <PreviewTimerDigits text="1:23" style={{ color: timerColor, fontSize: `${vhToPx(fs.timer)}px` }} />
+        </PvCell>
+        <div style={{ width: "35%", display: "flex", flexDirection: "column", borderLeft: `${dt}px solid #555` }}>
+          <PvCell style={{ height: "50%", borderBottom: `${dt}px solid #555`, gap: "2px" }}>
+            <span className="text-gray-400 font-bold" style={{ fontSize: `${vhToPx(fs.newazaLabel)}px` }}>
+              寝1
+            </span>
+            <PreviewTimerDigits text="1:33" style={{ color: "rgb(34 211 238)", fontSize: `${vhToPx(fs.newaza)}px` }} />
+          </PvCell>
+          <PvCell style={{ height: "50%", gap: "2px" }}>
+            <span className="text-gray-400 font-bold" style={{ fontSize: `${vhToPx(fs.newazaLabel)}px` }}>
+              寝2
+            </span>
+            <span className="text-gray-600 font-bold" style={{ fontSize: `${vhToPx(fs.newaza)}px` }}>
+              --:--
+            </span>
+          </PvCell>
+        </div>
+      </div>
+      {/* 下部 50% */}
+      <div style={{ height: "50%", display: "flex", flexDirection: "column" }}>
+        {/* 選手名 15% */}
+        <div style={{ height: "15%", display: "flex", borderBottom: `${dt}px solid #555` }}>
+          <PvCell style={{ width: "50%", borderRight: `${dt}px solid #555` }}>
+            <span className="font-bold" style={{ color: colorLeft, fontSize: `${vhToPx(fs.playerName)}px` }}>
+              山田 太郎
+            </span>
+          </PvCell>
+          <PvCell style={{ width: "50%" }}>
+            <span className="font-bold" style={{ color: colorRight, fontSize: `${vhToPx(fs.playerName)}px` }}>
+              鈴木 一郎
+            </span>
+          </PvCell>
+        </div>
+        {/* スコア 85% */}
+        <div style={{ height: "85%", display: "flex" }}>
+          {/* 赤 33% */}
+          <div style={{ width: "33%", display: "flex" }}>
+            <div style={{ width: "15%", borderRight: `${dt}px solid #555` }}>
+              <PvFoulCells color={colorLeft} fs={fs} vhToPx={vhToPx} />
+            </div>
+            <PvCell style={{ width: "70%", borderRight: `${dt}px solid #555` }}>
+              <span className="font-bold tabular-nums" style={{ color: colorLeft, fontSize: `${vhToPx(fs.points)}px` }}>
+                3
+              </span>
+            </PvCell>
+            <div style={{ width: "15%", borderRight: `${dt}px solid #555` }}>
+              <PvWazaariCells color={colorLeft} fs={fs} vhToPx={vhToPx} />
+            </div>
+          </div>
+          {/* 試合番号 34% */}
+          <PvCell style={{ width: "34%", flexDirection: "column", borderRight: `${dt}px solid #555` }}>
+            <span className="text-gray-500 font-bold" style={{ fontSize: `${vhToPx(fs.matchNumberLabel)}px` }}>
+              試合番号
+            </span>
+            <span
+              className="font-bold tabular-nums"
+              style={{ fontSize: `${vhToPx(fs.matchNumber)}px`, color: "#E1D200" }}
+            >
+              B-28
+            </span>
+          </PvCell>
+          {/* 白 33% */}
+          <div style={{ width: "33%", display: "flex" }}>
+            <div style={{ width: "15%", borderRight: `${dt}px solid #555` }}>
+              <PvWazaariCells color={colorRight} fs={fs} vhToPx={vhToPx} />
+            </div>
+            <PvCell style={{ width: "70%", borderRight: `${dt}px solid #555` }}>
+              <span
+                className="font-bold tabular-nums"
+                style={{ color: colorRight, fontSize: `${vhToPx(fs.points)}px` }}
+              >
+                1
+              </span>
+            </PvCell>
+            <div style={{ width: "15%" }}>
+              <PvFoulCells color={colorRight} fs={fs} vhToPx={vhToPx} />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
