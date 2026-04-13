@@ -785,6 +785,7 @@ function RangeFilter({
 }
 
 function ClearableSelect({
+  id,
   label,
   value,
   onChange,
@@ -792,6 +793,7 @@ function ClearableSelect({
   width,
   inpSm,
 }: {
+  id?: string;
   label: string;
   value: string;
   onChange: (v: string) => void;
@@ -803,7 +805,7 @@ function ClearableSelect({
     <div className="flex items-center gap-1">
       <span className="text-xs text-gray-500">{label}</span>
       <div className="relative">
-        <select value={value} onChange={(e) => onChange(e.target.value)} className={`${inpSm} ${width} pr-6`}>
+        <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={`${inpSm} ${width} pr-6`}>
           {options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
@@ -912,6 +914,7 @@ function FilterInputs({
         inpSm={inpSm}
       />
       <ClearableSelect
+        id="group-filter-sex"
         label="性別"
         value={sexFilter}
         onChange={onSetSexFilter}
@@ -942,6 +945,7 @@ function FilterInputs({
         />
       </div>
       <ClearableSelect
+        id="group-filter-match-count"
         label="試合数"
         value={matchCountFilter}
         onChange={onSetMatchCountFilter}
@@ -975,7 +979,12 @@ function GradeRangeFilter({
   return (
     <div className="flex items-center gap-1">
       <span className="text-xs text-gray-500">年代</span>
-      <select value={minGrade} onChange={(e) => onSetMinGrade(e.target.value)} className={`w-20 ${inpSm}`}>
+      <select
+        id="group-filter-min-grade"
+        value={minGrade}
+        onChange={(e) => onSetMinGrade(e.target.value)}
+        className={`w-20 ${inpSm}`}
+      >
         <option value="">下限</option>
         {gradeOpts.map((o) => (
           <option key={o.value} value={o.value}>
@@ -984,7 +993,12 @@ function GradeRangeFilter({
         ))}
       </select>
       <span className="text-xs text-gray-500">〜</span>
-      <select value={maxGrade} onChange={(e) => onSetMaxGrade(e.target.value)} className={`w-20 ${inpSm}`}>
+      <select
+        id="group-filter-max-grade"
+        value={maxGrade}
+        onChange={(e) => onSetMaxGrade(e.target.value)}
+        className={`w-20 ${inpSm}`}
+      >
         <option value="">上限</option>
         {gradeOpts.map((o) => (
           <option key={o.value} value={o.value}>
@@ -1200,6 +1214,7 @@ function PairRow({
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-gray-500 w-5 shrink-0 text-center">{idx + 1}</span>
             <select
+              id={`pair-${pair.id}-e1`}
               value={pair.e1.id}
               onChange={(ev) => onUpdateE1(pair.id, ev.target.value)}
               className="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500"
@@ -1236,6 +1251,7 @@ function PairRow({
           <div className="flex items-center gap-1.5 pl-6">
             <span className="text-gray-600 text-xs shrink-0">vs</span>
             <select
+              id={`pair-${pair.id}-e2`}
               value={pair.e2?.id ?? ""}
               onChange={(ev) => onUpdateE2(pair.id, ev.target.value || null)}
               className="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500"

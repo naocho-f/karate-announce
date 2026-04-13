@@ -1342,6 +1342,7 @@ function InlineMemoEditor({
 
   return (
     <textarea
+      id={`memo-entry-${entryId}`}
       value={memo}
       onChange={(e) => setMemo(e.target.value)}
       onBlur={() => void save()}
@@ -1435,6 +1436,7 @@ function AddEntryNameFields({
   return (
     <div className="flex gap-2 flex-wrap">
       <input
+        id="add-entry-family-name"
         value={familyName}
         onChange={(e) => setFamilyName(e.target.value)}
         placeholder="姓 *"
@@ -1442,18 +1444,21 @@ function AddEntryNameFields({
         required
       />
       <input
+        id="add-entry-given-name"
         value={givenName}
         onChange={(e) => setGivenName(e.target.value)}
         placeholder="名"
         className={`w-24 ${inp}`}
       />
       <input
+        id="add-entry-family-reading"
         value={familyReading}
         onChange={(e) => setFamilyReading(e.target.value)}
         placeholder="姓読み"
         className={`w-28 ${inp}`}
       />
       <input
+        id="add-entry-given-reading"
         value={givenReading}
         onChange={(e) => setGivenReading(e.target.value)}
         placeholder="名読み"
@@ -1542,7 +1547,7 @@ function AddEntryPhysicalFields({
         max="99"
         className={`w-20 ${inp}`}
       />
-      <select value={grade} onChange={(e) => setGrade(e.target.value)} className={`w-28 ${inp}`}>
+      <select id="add-entry-grade" value={grade} onChange={(e) => setGrade(e.target.value)} className={`w-28 ${inp}`}>
         <option value="">年代区分</option>
         {getGradeOptions(ageCategories).map((o) => (
           <option key={o.value} value={o.value}>

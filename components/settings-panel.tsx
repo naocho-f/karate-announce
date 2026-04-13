@@ -470,6 +470,7 @@ function RuleAddForm({
         </button>
       </div>
       <textarea
+        id="rule-description"
         value={description}
         onChange={(e) => onDescriptionChange(e.target.value)}
         placeholder="装備や特殊ルール等を記載（例: 防具はメンホー・拳サポーター着用必須）※試合時間・延長有無はタイマーで設定"
@@ -710,6 +711,7 @@ function PresetSelector({
   return (
     <div className="mb-1 flex items-center gap-2">
       <select
+        id={`rule-preset-${ruleId}`}
         value={currentPresetId ?? ""}
         disabled={isLinking}
         onChange={(e) => {
@@ -939,6 +941,7 @@ function TemplateEditor() {
       </div>
       <TemplateVarChips vars={vars} onInsertVar={insertVar} />
       <textarea
+        id="announce-template"
         ref={textareaRef}
         value={currentTemplate}
         onChange={(e) => updateTemplate(e.target.value)}
@@ -1157,6 +1160,7 @@ function DescriptionInput({ value, onSave }: { value: string; onSave: (v: string
       className="mt-1 space-y-1"
     >
       <textarea
+        id="event-description-draft"
         autoFocus
         value={draft}
         onChange={(e) => setDraft(e.target.value)}

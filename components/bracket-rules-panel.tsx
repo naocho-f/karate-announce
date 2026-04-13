@@ -449,7 +449,7 @@ function BracketRuleForm({
         <input className={inputCls} value={form.name} onChange={upd("name")} placeholder="例: 小学生軽量級" />
       </FormField>
       <FormField label="対象ルール">
-        <select className={inputCls} value={form.rule_id} onChange={upd("rule_id")}>
+        <select id="bracket-rule-id" className={inputCls} value={form.rule_id} onChange={upd("rule_id")}>
           <option value="">全ルール</option>
           {rules.map((r) => (
             <option key={r.id} value={r.id}>
@@ -460,7 +460,7 @@ function BracketRuleForm({
       </FormField>
       <div className="grid grid-cols-2 gap-3">
         <FormField label="年代下限">
-          <select className={inputCls} value={form.min_grade} onChange={upd("min_grade")}>
+          <select id="bracket-min-grade" className={inputCls} value={form.min_grade} onChange={upd("min_grade")}>
             <option value="">指定なし</option>
             {gradeOpts.map((o) => (
               <option key={o.value} value={o.value}>
@@ -470,7 +470,7 @@ function BracketRuleForm({
           </select>
         </FormField>
         <FormField label="年代上限">
-          <select className={inputCls} value={form.max_grade} onChange={upd("max_grade")}>
+          <select id="bracket-max-grade" className={inputCls} value={form.max_grade} onChange={upd("max_grade")}>
             <option value="">指定なし</option>
             {gradeOpts.map((o) => (
               <option key={o.value} value={o.value}>
@@ -517,7 +517,7 @@ function BracketRuleForm({
         </FormField>
       </div>
       <FormField label="性別">
-        <select className={inputCls} value={form.sex_filter} onChange={upd("sex_filter")}>
+        <select id="bracket-sex-filter" className={inputCls} value={form.sex_filter} onChange={upd("sex_filter")}>
           <option value="">指定なし</option>
           <option value="male">男</option>
           <option value="female">女</option>
@@ -553,7 +553,7 @@ function BracketRuleForm({
         </FormField>
       </div>
       <FormField label="割り当てコート">
-        <select className={inputCls} value={form.court_num} onChange={upd("court_num")}>
+        <select id="bracket-court-num" className={inputCls} value={form.court_num} onChange={upd("court_num")}>
           <option value="">自動</option>
           {Array.from({ length: courtCount }, (_, i) => i + 1).map((n) => (
             <option key={n} value={String(n)}>

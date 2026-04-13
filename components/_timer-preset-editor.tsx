@@ -146,6 +146,7 @@ function PresetField({
       <label className="text-sm">
         <span className="text-gray-400">{label}</span>
         <select
+          id={`preset-field-${editKey}`}
           value={String(val ?? "")}
           onChange={(e) => onChange({ [editKey]: e.target.value })}
           className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm"
@@ -1157,6 +1158,7 @@ function ScoresRowExtra({
       <div className="flex items-center gap-2">
         <span className="text-xs text-gray-400 w-20 shrink-0">中央表示</span>
         <select
+          id={`score-center-mode-${idx}`}
           value={row.scoreCenterMode ?? "newaza"}
           onChange={(e) => onUpdateRow(idx, { scoreCenterMode: e.target.value as "newaza" | "match_info" })}
           className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs"

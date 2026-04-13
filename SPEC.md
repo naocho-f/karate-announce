@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-13（テンプレート機能・交流会レイアウト・注意機能）
+> 最終更新: 2026-04-13（フォーム要素id属性追加）
 
 ---
 
@@ -709,3 +709,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **テンプレート機能・交流会レイアウト・注意機能（2026-04-13）**: タイマープリセット新規作成時にテンプレート選択可能（交流会テンプレート追加）。timer_with_newaza行タイプ（タイマー+寝技横並び）、scoreCenterMode（スコア中央に試合番号表示）追加。注意(caution)機能追加（反則の前段階、黄橙色表示、キーバインドD/K）
 - **Vercel重複デプロイ修正（2026-04-13）**: .vercel/project.jsonを削除しCLI経由の重複デプロイを解消。Step 7のvercel lsにスコープ指定追加
 - **フォーム要素id属性追加（2026-04-13）**: E2Eテスト用にlive検索・コート名・エントリーフォーム各フィールド・管理画面ラベルエディタにid属性を付与
+- **フォーム要素id属性追加 Phase 2（2026-04-13）**: DevTools警告解消のため participant-section/group-section/bracket-rules-panel/guide-sections/tournament-editor/settings-panel/timer-preset-editor/bug-report-fab の各フォーム要素にid属性を付与

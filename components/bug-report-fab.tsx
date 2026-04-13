@@ -24,6 +24,7 @@ function BugTextField({
         {required && <span className="text-red-400"> *</span>}
       </label>
       <textarea
+        id={`bug-report-${label}`}
         rows={2}
         value={value}
         onChange={(e) => onChange(e.target.value)}

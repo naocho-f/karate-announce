@@ -1112,6 +1112,7 @@ function CourtEstimatesPanel({
         <label className="flex items-center gap-1.5 text-gray-400">
           試合間:
           <select
+            id="tournament-interval-min"
             value={intervalMin}
             onChange={(e) => onSetIntervalMin(Number(e.target.value))}
             className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs outline-none focus:border-blue-500"
@@ -1799,6 +1800,7 @@ function TournamentCourtSelect({
   return (
     <>
       <select
+        id={`tournament-court-${tournament.id}`}
         value={tournament.court}
         onChange={(e) => {
           void (async () => {

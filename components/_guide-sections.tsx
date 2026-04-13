@@ -710,7 +710,10 @@ function OperationsSections1b({ openIds, toggle, onNavigate: _onNavigate }: Guid
             </div>
             <div className="flex gap-2">
               <div className="flex-1 bg-blue-600 text-white rounded px-3 py-1.5 text-center text-[10px]">登録する</div>
-              <select className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-[10px] text-white">
+              <select
+                id="guide-demo-court"
+                className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-[10px] text-white"
+              >
                 <option>未割当</option>
                 <option>Aコート</option>
                 <option>Bコート</option>
