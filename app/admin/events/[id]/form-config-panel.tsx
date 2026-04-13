@@ -64,6 +64,7 @@ function InlineLabelEditor({
 
   return (
     <input
+      id="inline-label-editor"
       ref={inputRef}
       value={draft}
       onChange={(e) => setDraft(e.target.value)}

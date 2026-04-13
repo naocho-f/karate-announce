@@ -372,6 +372,7 @@ function WatchPanel({ watch }: { watch: WatchState }) {
     <div className="bg-gray-800 border-t border-gray-700/60 px-3 py-3">
       <div className="max-w-lg mx-auto space-y-2">
         <input
+          id="live-search"
           type="text"
           value={watchSearch}
           onChange={(e) => setWatchSearch(e.target.value)}

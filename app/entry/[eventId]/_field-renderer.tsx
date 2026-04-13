@@ -45,6 +45,7 @@ function ComboInput({
   return (
     <div ref={ref} className="relative">
       <input
+        id="combo-input"
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
@@ -638,6 +639,7 @@ function BranchField({
     <div id={`field-${key}`} className="space-y-2">
       <FieldLabel label={config.custom_label || def.label} required={isReq} />
       <input
+        id={`field-input-${key}`}
         value={values[key] ?? ""}
         onChange={(e) => onSetValue(key, e.target.value)}
         placeholder={def.placeholder}
@@ -706,6 +708,7 @@ function SimpleInput({
   if (type === "textarea")
     return (
       <textarea
+        id={`field-textarea-${fieldKey}`}
         value={val}
         onChange={onChange}
         placeholder={def.placeholder}
@@ -921,6 +924,7 @@ function SelectInput({
   return (
     <>
       <select
+        id={`field-select-${fieldKey}`}
         value={values[fieldKey] ?? ""}
         onChange={(e) => onSetValue(fieldKey, e.target.value)}
         className={`${inp} ${hasError ? "border-red-500" : ""}`}
@@ -936,6 +940,7 @@ function SelectInput({
       </select>
       {values[fieldKey] === "__other__" && config.has_other_option && (
         <input
+          id={`field-select-other-${fieldKey}`}
           value={otherValues[fieldKey] ?? ""}
           onChange={(e) => onSetOtherValues((prev) => ({ ...prev, [fieldKey]: e.target.value }))}
           placeholder="その他の内容を入力"
@@ -998,6 +1003,7 @@ function RadioInput({
       )}
       {values[fieldKey] === "__other__" && config.has_other_option && (
         <input
+          id={`field-radio-other-${fieldKey}`}
           value={otherValues[fieldKey] ?? ""}
           onChange={(e) => onSetOtherValues((prev) => ({ ...prev, [fieldKey]: e.target.value }))}
           placeholder="その他の内容を入力"
@@ -1074,6 +1080,7 @@ function CheckboxInput({
         <div className="flex items-start gap-2 py-1">
           <span className="text-sm text-gray-200">その他：</span>
           <input
+            id={`field-checkbox-other-${fieldKey}`}
             value={otherValues[fieldKey] ?? ""}
             onChange={(e) => onSetOtherValues((prev) => ({ ...prev, [fieldKey]: e.target.value }))}
             placeholder="自由入力"

@@ -128,6 +128,7 @@ function MetaEditForm({
             <div key={i} className="flex items-center gap-2">
               <span className="text-xs text-gray-500 w-14 shrink-0">コート{i + 1}</span>
               <input
+                id={`court-name-${i}`}
                 value={name}
                 onChange={(e) =>
                   onSetMetaCourtNames((prev) => {
