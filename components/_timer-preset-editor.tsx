@@ -2076,7 +2076,7 @@ function KouryuukaiPreview({
             borderBottom
             vhToPx={vhToPx}
           />
-          <PvNewazaCell num={2} timeText="--:--" timeColor="#555" fs={fs} bw={bw} vhToPx={vhToPx} />
+          <div style={{ height: "50%" }} />
         </div>
       </div>
       {/* 下部 50% */}
