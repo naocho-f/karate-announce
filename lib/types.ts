@@ -25,7 +25,7 @@ export type LayoutRow = {
   scoreCenterMode?: "newaza" | "match_info"; // scores用: 中央に寝技 or 試合番号を表示
 };
 
-/** 交流会テンプレート用フォントサイズ設定（各領域個別指定、vh単位） */
+/** 交流会テンプレート用フォントサイズ設定（各領域個別指定、コンテナ高さに対する%） */
 export type KouryuukaiFontSizes = {
   timer: number; // メインタイマー
   newaza: number; // 寝技タイマー数字
