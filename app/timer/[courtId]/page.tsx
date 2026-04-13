@@ -1101,7 +1101,7 @@ function KouryuukaiFoulCells({
           justifyContent: "center",
           backgroundColor: score.cautions > 0 ? CAUTION_COLOR : "#1a1a2e",
           fontSize: sz(fs.cautionCell),
-          color: "#A0A0A0",
+          color: score.cautions > 0 ? "#000000" : "#A0A0A0",
           fontWeight: "bold",
         }}
       >
