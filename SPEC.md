@@ -707,4 +707,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **論理削除UI対応 Phase 2（2026-04-12）**: 管理画面の全一覧でdeleted_atフィルタ追加、削除済みアイテムのグレーアウト表示と削除取消ボタン実装。公開画面では削除済みを完全非表示
 - **論理削除 子エンティティUI完了（2026-04-12）**: tournaments/entries/bracket_rulesのグレーアウト+削除取消。form_notices/custom_field_defsのAPIフィルタ。Supabase本番DBマイグレーション適用
 - **テンプレート機能・交流会レイアウト・注意機能（2026-04-13）**: タイマープリセット新規作成時にテンプレート選択可能（交流会テンプレート追加）。timer_with_newaza行タイプ（タイマー+寝技横並び）、scoreCenterMode（スコア中央に試合番号表示）追加。注意(caution)機能追加（反則の前段階、黄橙色表示、キーバインドD/K）
-- **Vercel重複デプロイ調査（2026-04-13）**: テスト用差分（調査後に削除予定）
+- **Vercel重複デプロイ修正（2026-04-13）**: .vercel/project.jsonを削除しCLI経由の重複デプロイを解消。Step 7のvercel lsにスコープ指定追加
