@@ -1548,7 +1548,7 @@ function ScoresPreviewRow({
       >
         {scoreCenterMode === "match_info" ? (
           <>
-            <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.15}px` }}>
+            <span className="font-bold" style={{ fontSize: `${fsPx * 0.15}px`, color: "#E1D200" }}>
               試合番号
             </span>
             <span className="font-bold tabular-nums" style={{ fontSize: `${fsPx * 0.5}px`, color: "#E1D200" }}>
@@ -1941,7 +1941,7 @@ function PvFoulCells({ fs, vhToPx }: { fs: KouryuukaiFontSizes; vhToPx: (v: numb
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: n === 1 ? "#008CFF" : "#1a1a2e",
+            backgroundColor: n === 1 ? "#DC2626" : "#1a1a2e",
             borderBottom: cb,
             fontSize: `${vhToPx(fs.foulCell)}px`,
             color: n === 1 ? "#000" : "#555",
@@ -2113,8 +2113,8 @@ function KouryuukaiPreview({
           {/* 試合番号 34% */}
           <PvCell style={{ width: "34%", flexDirection: "column", gap: 0 }}>
             <span
-              className="text-gray-500 font-bold"
-              style={{ fontSize: `${vhToPx(fs.matchNumberLabel)}px`, lineHeight: 1 }}
+              className="font-bold"
+              style={{ fontSize: `${vhToPx(fs.matchNumberLabel)}px`, lineHeight: 1, color: "#E1D200" }}
             >
               試合番号
             </span>

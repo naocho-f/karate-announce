@@ -540,7 +540,7 @@ function CenterMatchInfo({
         borderRight: `${dividerThickness}px solid ${dividerColor}`,
       }}
     >
-      <span className="text-gray-500 font-bold" style={{ fontSize: `${row.fontSize * 0.15}vh` }}>
+      <span className="font-bold" style={{ fontSize: `${row.fontSize * 0.15}vh`, color: "#E1D200" }}>
         試合番号
       </span>
       <span className="font-bold tabular-nums" style={{ fontSize: `${row.fontSize * 0.5}vh`, color: "#E1D200" }}>
@@ -1047,7 +1047,7 @@ function KouryuukaiNewazaCell({
 }
 
 function KouryuukaiFoulCells({ score, fs }: { score: { fouls: number; cautions: number }; fs: KouryuukaiFontSizes }) {
-  const LIGHT_COLOR = "#008CFF"; // 画像指定の共通点灯色 R0/G140/B255
+  const LIGHT_COLOR = "#DC2626"; // 反則セル点灯色: 赤
   const CAUTION_COLOR = "#E1D200"; // 画像指定の注意色 R225/G210/B0
   const cb = `${fs.borderWidth}px solid #333`;
   return (
@@ -1263,7 +1263,10 @@ function KouryuukaiLayout({
 
           {/* 試合番号 34% */}
           <KouryuukaiCell style={{ width: "34%", flexDirection: "column", gap: 0 }}>
-            <span className="text-gray-500 font-bold" style={{ fontSize: `${fs.matchNumberLabel}vh`, lineHeight: 1 }}>
+            <span
+              className="font-bold"
+              style={{ fontSize: `${fs.matchNumberLabel}vh`, lineHeight: 1, color: "#E1D200" }}
+            >
               試合番号
             </span>
             <span
