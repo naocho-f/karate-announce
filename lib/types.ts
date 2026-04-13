@@ -344,6 +344,10 @@ export type TimerPreset = {
   // レイアウト（行ベースエディタ）
   layout: LayoutConfig | null;
   // ブザー
+  buzzer_on_start: "auto" | "manual" | "off";
+  buzzer_sound_start: string; // 開始用音源ID
+  buzzer_duration_start: number; // 開始鳴動秒数
+  buzzer_repeat_start: number; // 開始連続回数（1〜3）
   buzzer_on_time_up: "auto" | "manual" | "off";
   buzzer_on_newaza: "auto" | "manual" | "off";
   buzzer_sound: string; // メイン用音源ID or "custom"

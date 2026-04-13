@@ -65,6 +65,10 @@ export const EMPTY_PRESET: EditablePreset = {
   theme_show_decimals: false,
   theme_font_family: "digital",
   theme_divider_color: "#333333",
+  buzzer_on_start: "off",
+  buzzer_sound_start: "mid-square-single",
+  buzzer_duration_start: 1.5,
+  buzzer_repeat_start: 1,
   buzzer_on_time_up: "auto",
   buzzer_on_newaza: "auto",
   buzzer_sound: "mid-square-single",
@@ -904,11 +908,26 @@ function BuzzerSection({
   return (
     <>
       <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">ブザー</h3>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
+        {F("buzzer_on_start", "試合開始ブザー", "select", { options: buzzerOpts })}
         {F("buzzer_on_time_up", "試合終了ブザー", "select", { options: buzzerOpts })}
         {F("buzzer_on_newaza", "寝技タイムアップブザー", "select", { options: buzzerOpts })}
       </div>
-      <p className="text-xs text-gray-500 mt-2 mb-1">試合終了ブザー音源</p>
+      <p className="text-xs text-gray-500 mt-2 mb-1">試合開始ブザー音源</p>
+      <BuzzerSoundSelector
+        soundId={editing.buzzer_sound_start ?? "mid-square-single"}
+        duration={editing.buzzer_duration_start ?? 1.5}
+        repeat={editing.buzzer_repeat_start ?? 1}
+        customPath={editing.buzzer_custom_path ?? null}
+        presetId={editId}
+        onSoundChange={(v) => update({ buzzer_sound_start: v })}
+        onDurationChange={(v) => update({ buzzer_duration_start: v })}
+        onRepeatChange={(v) => update({ buzzer_repeat_start: v })}
+        onCustomPathChange={(v) =>
+          update({ buzzer_custom_path: v, buzzer_sound_start: v ? "custom" : "mid-square-single" })
+        }
+      />
+      <p className="text-xs text-gray-500 mt-3 mb-1">試合終了ブザー音源</p>
       <BuzzerSoundSelector
         soundId={editing.buzzer_sound ?? "mid-square-single"}
         duration={editing.buzzer_duration ?? 1.5}

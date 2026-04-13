@@ -343,6 +343,20 @@ export function useTimerControl() {
         stateRef.current = next;
         broadcast(next);
         flushTimerLogs(next.matchId, prevLogsLen, next);
+        // 試合開始ブザー: ready/extension → running に遷移した場合
+        if (
+          (prev.phase === "ready" || prev.phase === "extension") &&
+          next.phase === "running" &&
+          next.preset?.buzzer_on_start === "auto"
+        ) {
+          void playBuzzer(
+            next.preset.buzzer_sound_start ?? "mid-square-single",
+            next.preset.buzzer_duration_start ?? 1.5,
+            next.preset.buzzer_repeat_start ?? 1,
+          ).then((r) => {
+            if (r === "fallback") setBuzzerWarning(true);
+          });
+        }
         return next;
       });
     },

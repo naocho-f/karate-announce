@@ -100,6 +100,31 @@ describe("/api/admin/timer-presets/[id]", () => {
     expect(res.status).toBe(200);
   });
 
+  it("PATCH: 開始ブザー設定を更新できる", async () => {
+    mockResult("timer_presets", "update", {
+      data: {
+        id: "p1",
+        buzzer_on_start: "auto",
+        buzzer_sound_start: "high-sine-single",
+        buzzer_duration_start: 2.0,
+        buzzer_repeat_start: 2,
+      },
+    });
+    const { PATCH } = await import("@/app/api/admin/timer-presets/[id]/route");
+    const req = createAdminRequest("PATCH", "/api/admin/timer-presets/p1", {
+      body: {
+        buzzer_on_start: "auto",
+        buzzer_sound_start: "high-sine-single",
+        buzzer_duration_start: 2.0,
+        buzzer_repeat_start: 2,
+      },
+    });
+    const res = await PATCH(req, createParams({ id: "p1" }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.buzzer_on_start).toBe("auto");
+  });
+
   it("DELETE: プリセットを削除できる", async () => {
     const { DELETE } = await import("@/app/api/admin/timer-presets/[id]/route");
     const req = createAdminRequest("DELETE", "/api/admin/timer-presets/p1");
