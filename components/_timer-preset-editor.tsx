@@ -1944,7 +1944,7 @@ function PvFoulCells({ fs, vhToPx }: { fs: KouryuukaiFontSizes; vhToPx: (v: numb
             backgroundColor: n === 1 ? "#DC2626" : "#1a1a2e",
             borderBottom: cb,
             fontSize: `${vhToPx(fs.foulCell)}px`,
-            color: n === 1 ? "#000" : "#555",
+            color: "#A0A0A0",
             fontWeight: "bold",
           }}
         >
@@ -1959,7 +1959,7 @@ function PvFoulCells({ fs, vhToPx }: { fs: KouryuukaiFontSizes; vhToPx: (v: numb
           justifyContent: "center",
           backgroundColor: "#1a1a2e",
           fontSize: `${vhToPx(fs.cautionCell)}px`,
-          color: "#555",
+          color: "#A0A0A0",
           fontWeight: "bold",
         }}
       >
@@ -1989,7 +1989,7 @@ function PvWazaariCells({ fs, vhToPx }: { fs: KouryuukaiFontSizes; vhToPx: (v: n
             backgroundColor: n === 1 ? "#008CFF" : "#1a1a2e",
             borderBottom: n > 1 ? cb : undefined,
             fontSize: `${vhToPx(fs.wazaariCell)}px`,
-            color: n === 1 ? "#000" : "#555",
+            color: "#A0A0A0",
             fontWeight: "bold",
           }}
         >
@@ -2076,7 +2076,7 @@ function KouryuukaiPreview({
             borderBottom
             vhToPx={vhToPx}
           />
-          <div style={{ height: "50%" }} />
+          <PvNewazaCell num={2} timeText="" timeColor="transparent" fs={fs} bw={bw} vhToPx={vhToPx} />
         </div>
       </div>
       {/* 下部 50% */}

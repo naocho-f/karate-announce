@@ -1076,7 +1076,7 @@ function KouryuukaiFoulCells({ score, fs }: { score: { fouls: number; cautions: 
             backgroundColor: score.fouls >= n ? LIGHT_COLOR : "#1a1a2e",
             borderBottom: cb,
             fontSize: `${fs.foulCell}vh`,
-            color: score.fouls >= n ? "#000" : "#555",
+            color: "#A0A0A0",
             fontWeight: "bold",
           }}
         >
@@ -1091,7 +1091,7 @@ function KouryuukaiFoulCells({ score, fs }: { score: { fouls: number; cautions: 
           justifyContent: "center",
           backgroundColor: score.cautions > 0 ? CAUTION_COLOR : "#1a1a2e",
           fontSize: `${fs.cautionCell}vh`,
-          color: score.cautions > 0 ? "#000" : "#555",
+          color: "#A0A0A0",
           fontWeight: "bold",
         }}
       >
@@ -1129,7 +1129,7 @@ function KouryuukaiWazaariCells({ score, fs }: { score: { wazaari: number }; fs:
             backgroundColor: score.wazaari >= n ? LIGHT_COLOR : "#1a1a2e",
             borderBottom: n > 1 ? `${fs.borderWidth}px solid #333` : undefined,
             fontSize: `${fs.wazaariCell}vh`,
-            color: score.wazaari >= n ? "#000" : "#555",
+            color: "#A0A0A0",
             fontWeight: "bold",
           }}
         >
@@ -1197,25 +1197,23 @@ function KouryuukaiLayout({
               </span>
             }
           />
-          {/* 寝技2: 開始するまで完全に非表示 */}
-          {state.newaza.usedCount >= 1 || (state.newaza.active && state.newaza.usedCount === 1) ? (
-            <KouryuukaiNewazaCell
-              num={2}
-              fs={fs}
-              bw={bw}
-              timeText={
-                <span className="font-bold tabular-nums" style={{ fontSize: `${fs.newaza}vh` }}>
-                  {state.newaza.usedCount >= 2 ? (
-                    <span className="text-cyan-400">{formatTime(newazaDur)}</span>
-                  ) : (
-                    <span className="text-cyan-400">{formatTime(newazaDispMs)}</span>
-                  )}
+          {/* 寝技2: ラベルは常に表示、時間は開始後のみ表示 */}
+          <KouryuukaiNewazaCell
+            num={2}
+            fs={fs}
+            bw={bw}
+            timeText={
+              state.newaza.usedCount >= 2 ? (
+                <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${fs.newaza}vh` }}>
+                  {formatTime(newazaDur)}
                 </span>
-              }
-            />
-          ) : (
-            <div style={{ height: "50%" }} />
-          )}
+              ) : state.newaza.active && state.newaza.usedCount === 1 ? (
+                <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${fs.newaza}vh` }}>
+                  {formatTime(newazaDispMs)}
+                </span>
+              ) : null
+            }
+          />
         </div>
       </div>
 
