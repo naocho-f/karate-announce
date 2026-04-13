@@ -45,7 +45,7 @@ function ComboInput({
   return (
     <div ref={ref} className="relative">
       <input
-        id="combo-input"
+        id={`combo-${placeholder?.replace(/\s+/g, "-") ?? "input"}`}
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
