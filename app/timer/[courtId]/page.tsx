@@ -1023,10 +1023,10 @@ function KouryuukaiNewazaCell({
           justifyContent: "center",
         }}
       >
-        <span className="text-gray-400 font-bold" style={{ fontSize: `${fs.newazaLabel}vh`, lineHeight: 1 }}>
+        <span className="text-cyan-400 font-bold" style={{ fontSize: `${fs.newazaLabel}vh`, lineHeight: 1 }}>
           寝
         </span>
-        <span className="text-green-300 font-bold" style={{ fontSize: `${fs.newazaNumber}vh`, lineHeight: 1 }}>
+        <span className="text-cyan-400 font-bold" style={{ fontSize: `${fs.newazaNumber}vh`, lineHeight: 1 }}>
           {num}
         </span>
       </div>
@@ -1061,7 +1061,7 @@ function KouryuukaiFoulCells({ score, fs }: { score: { fouls: number; cautions: 
           borderBottom: cb,
         }}
       >
-        <span className="text-gray-400 font-bold" style={{ fontSize: `${fs.foulLabel}vh` }}>
+        <span className="font-bold" style={{ fontSize: `${fs.foulLabel}vh`, color: "#E0E0E0" }}>
           反則
         </span>
       </div>
@@ -1114,7 +1114,7 @@ function KouryuukaiWazaariCells({ score, fs }: { score: { wazaari: number }; fs:
           borderBottom: `${fs.borderWidth}px solid #333`,
         }}
       >
-        <span className="text-gray-400 font-bold" style={{ fontSize: `${fs.wazaariLabel}vh` }}>
+        <span className="font-bold" style={{ fontSize: `${fs.wazaariLabel}vh`, color: "#E0E0E0" }}>
           技有
         </span>
       </div>
