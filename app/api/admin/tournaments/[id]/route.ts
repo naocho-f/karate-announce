@@ -5,6 +5,7 @@ import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 import { ensureFighterFromEntry } from "@/lib/ensure-fighter";
 import type { Entry } from "@/lib/types";
 import { dbError } from "@/lib/api-utils";
+import { deletedAtFuture } from "@/lib/soft-delete-shared";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -201,10 +202,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { id } = await params;
 
-  const { error } = await supabaseAdmin
-    .from("tournaments")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
+  const { error } = await supabaseAdmin.from("tournaments").update({ deleted_at: deletedAtFuture() }).eq("id", id);
   if (error) return dbError(error);
 
   return NextResponse.json({ ok: true });

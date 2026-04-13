@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import type { TimerPreset } from "@/lib/types";
 import { DEFAULT_LAYOUT } from "@/lib/types";
 import { showToast } from "@/components/toast";
-import { isDeleted } from "@/lib/soft-delete-shared";
+import { isDeletePending } from "@/lib/soft-delete-shared";
+import { DeletePendingBar } from "@/components/delete-pending-bar";
 import { TimerPresetEditor, EMPTY_PRESET } from "@/components/_timer-preset-editor";
 import type { EditablePreset } from "@/components/_timer-preset-editor";
 import { TIMER_TEMPLATES } from "@/lib/timer-templates";
@@ -28,6 +29,7 @@ function PresetListItem({
   onDelete,
   onDuplicate,
   onRestore,
+  onExpire,
 }: {
   p: TimerPreset;
   deletingId: string | null;
@@ -37,24 +39,25 @@ function PresetListItem({
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
   onRestore: (id: string) => void;
+  onExpire: (id: string) => Promise<void>;
 }) {
   return (
     <div
-      className={`flex items-center justify-between bg-gray-900 border border-gray-800 rounded-lg p-3 ${isDeleted(p) ? "opacity-50" : ""}`}
+      className={`flex items-center justify-between bg-gray-900 border border-gray-800 rounded-lg p-3 ${isDeletePending(p) ? "opacity-20" : ""}`}
     >
       <div>
         <p className="font-bold">{p.name}</p>
         <p className="text-xs text-gray-500">{presetSummary(p)}</p>
       </div>
       <div className="flex gap-1">
-        {isDeleted(p) ? (
-          <button
-            onClick={() => void onRestore(p.id)}
-            disabled={restoringId === p.id}
-            className="px-2 py-1 rounded bg-blue-900/50 hover:bg-blue-800/60 text-xs text-blue-300 transition disabled:opacity-50"
-          >
-            {restoringId === p.id ? "取消中..." : "削除取消"}
-          </button>
+        {isDeletePending(p) ? (
+          <DeletePendingBar
+            deletedAt={p.deleted_at ?? ""}
+            onRestore={(id) => void onRestore(id)}
+            onExpire={onExpire}
+            restoringId={restoringId}
+            itemId={p.id}
+          />
         ) : (
           <>
             <button
@@ -205,6 +208,11 @@ export function TimerPresetsPanel() {
               onDelete={(id) => void handleDelete(id)}
               onDuplicate={(id) => void handleDuplicate(id)}
               onRestore={(id) => void handleRestore(id)}
+              onExpire={async (id) => {
+                const res = await fetch(`/api/admin/timer-presets/${id}/expire`, { method: "PATCH" });
+                if (res.ok) await load();
+                else showToast("削除に失敗しました");
+              }}
             />
           ))}
         </div>

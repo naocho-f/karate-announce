@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { BracketRule, Rule } from "@/lib/types";
 import { getGradeOptions, type AgeCategory } from "@/lib/grade-options";
 import { showToast } from "@/components/toast";
-import { isDeleted } from "@/lib/soft-delete-shared";
+import { isDeletePending } from "@/lib/soft-delete-shared";
+import { DeletePendingBar } from "@/components/delete-pending-bar";
 
 type Props = {
   eventId: string;
@@ -214,6 +215,7 @@ function useBracketRulesData(eventId: string) {
     movingId,
     deletingId,
     restoringId,
+    load,
     startCreate,
     startEdit,
     startDuplicate,
@@ -260,6 +262,11 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
           onEdit={d.startEdit}
           onDelete={(id) => void d.handleDelete(id)}
           onRestore={(id) => void d.handleRestore(id)}
+          onExpire={async (id) => {
+            const res = await fetch(`/api/admin/bracket-rules/${id}/expire`, { method: "PATCH" });
+            if (res.ok) await d.load();
+            else showToast("削除に失敗しました");
+          }}
         />
       ))}
       {d.showForm && (
@@ -328,6 +335,7 @@ function BracketRuleCard({
   onEdit,
   onDelete,
   onRestore,
+  onExpire,
 }: {
   rule: BracketRule;
   idx: number;
@@ -342,11 +350,12 @@ function BracketRuleCard({
   onEdit: (r: BracketRule) => void;
   onDelete: (id: string) => void;
   onRestore: (id: string) => void;
+  onExpire: (id: string) => Promise<void>;
 }) {
-  const deleted = isDeleted(rule);
+  const deleted = isDeletePending(rule);
   const summary = buildRuleSummary(rule, rules, getCourtLabel);
   return (
-    <div className={`bg-gray-800/50 border border-gray-700 rounded-lg p-3 space-y-2 ${deleted ? "opacity-50" : ""}`}>
+    <div className={`bg-gray-800/50 border border-gray-700 rounded-lg p-3 space-y-2 ${deleted ? "opacity-20" : ""}`}>
       <div className="flex items-center gap-2">
         {!deleted && (
           <div className="flex flex-col gap-0.5">
@@ -375,13 +384,13 @@ function BracketRuleCard({
           </div>
         </div>
         {deleted ? (
-          <button
-            onClick={() => onRestore(rule.id)}
-            disabled={restoringId === rule.id}
-            className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50"
-          >
-            {restoringId === rule.id ? "取消中..." : "削除取消"}
-          </button>
+          <DeletePendingBar
+            deletedAt={rule.deleted_at ?? ""}
+            onRestore={(id) => void onRestore(id)}
+            onExpire={onExpire}
+            restoringId={restoringId}
+            itemId={rule.id}
+          />
         ) : (
           <>
             <button onClick={() => onDuplicate(rule)} className="text-xs text-green-400 hover:text-green-300">

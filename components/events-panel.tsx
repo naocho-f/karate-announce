@@ -6,7 +6,8 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import type { Event, Rule } from "@/lib/types";
 import { showToast } from "@/components/toast";
-import { isDeleted, softDeleteCutoff } from "@/lib/soft-delete-shared";
+import { isDeletePending, softDeleteCutoff } from "@/lib/soft-delete-shared";
+import { DeletePendingBar } from "@/components/delete-pending-bar";
 
 function useEventsData() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -549,10 +550,10 @@ function EventCard({
   ed: ReturnType<typeof useEventsData>;
   onCopyModal: (id: string) => void;
 }) {
-  const deleted = isDeleted(e);
+  const deleted = isDeletePending(e);
   return (
     <li
-      className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active && !deleted ? "ring-2 ring-green-500" : ""} ${deleted ? "opacity-50" : ""}`}
+      className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active && !deleted ? "ring-2 ring-green-500" : ""} ${deleted ? "opacity-20" : ""}`}
     >
       <div className="flex items-center gap-2 min-w-0">
         {e.is_active && !deleted && (
@@ -567,13 +568,17 @@ function EventCard({
       </div>
       <div className="flex items-center gap-2 flex-wrap">
         {deleted ? (
-          <button
-            onClick={() => void ed.restore(e.id)}
-            disabled={ed.restoringId === e.id}
-            className="text-xs text-blue-500 hover:text-blue-400 ml-auto transition disabled:opacity-50"
-          >
-            {ed.restoringId === e.id ? "取消中..." : "削除取消"}
-          </button>
+          <DeletePendingBar
+            deletedAt={e.deleted_at ?? ""}
+            onRestore={(id) => void ed.restore(id)}
+            onExpire={async (id) => {
+              const res = await fetch(`/api/admin/events/${id}/expire`, { method: "PATCH" });
+              if (res.ok) await ed.load();
+              else showToast("削除に失敗しました");
+            }}
+            restoringId={ed.restoringId}
+            itemId={e.id}
+          />
         ) : (
           <>
             <EventActionButtons event={e} ed={ed} />

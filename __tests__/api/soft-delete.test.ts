@@ -152,8 +152,8 @@ describe("論理削除（ソフトデリート）", () => {
   // ── 削除取消（restore） ──
 
   describe("PATCH restore（削除取消）", () => {
-    it("道場の削除取消ができる（24時間以内）", async () => {
-      const recentDelete = new Date(Date.now() - 1000 * 60 * 60).toISOString();
+    it("道場の削除取消ができる（deleted_atが未来）", async () => {
+      const recentDelete = new Date(Date.now() + 1000 * 60 * 60 * 23).toISOString();
       mockResult("dojos", "select", { data: { id: "d1", deleted_at: recentDelete } });
       mockResult("dojos", "update", { data: null });
       const { PATCH } = await import("@/app/api/admin/dojos/[id]/restore/route");
@@ -162,8 +162,8 @@ describe("論理削除（ソフトデリート）", () => {
       expect(res.status).toBe(200);
     });
 
-    it("24時間超過の削除取消は404を返す", async () => {
-      const oldDelete = new Date(Date.now() - 1000 * 60 * 60 * 25).toISOString();
+    it("deleted_atが過去（期限切れ）の削除取消は404を返す", async () => {
+      const oldDelete = new Date(Date.now() - 1000 * 60 * 60).toISOString();
       mockResult("dojos", "select", { data: { id: "d1", deleted_at: oldDelete } });
       const { PATCH } = await import("@/app/api/admin/dojos/[id]/restore/route");
       const req = createAdminRequest("PATCH", "/api/admin/dojos/d1/restore");
@@ -172,7 +172,7 @@ describe("論理削除（ソフトデリート）", () => {
     });
 
     it("イベントの削除取消ができる", async () => {
-      const recentDelete = new Date(Date.now() - 1000 * 60 * 30).toISOString();
+      const recentDelete = new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString();
       mockResult("events", "select", { data: { id: "ev1", deleted_at: recentDelete } });
       mockResult("events", "update", { data: null });
       const { PATCH } = await import("@/app/api/admin/events/[id]/restore/route");
@@ -182,7 +182,7 @@ describe("論理削除（ソフトデリート）", () => {
     });
 
     it("トーナメントの削除取消ができる", async () => {
-      const recentDelete = new Date(Date.now() - 1000 * 60 * 10).toISOString();
+      const recentDelete = new Date(Date.now() + 1000 * 60 * 60 * 6).toISOString();
       mockResult("tournaments", "select", { data: { id: "t1", deleted_at: recentDelete } });
       mockResult("tournaments", "update", { data: null });
       const { PATCH } = await import("@/app/api/admin/tournaments/[id]/restore/route");

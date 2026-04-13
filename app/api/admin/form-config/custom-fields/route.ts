@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminAuth, unauthorized } from "@/lib/admin-auth";
 import { dbError } from "@/lib/api-utils";
+import { deletedAtFuture } from "@/lib/soft-delete-shared";
 
 /** POST — カスタムフィールド追加 */
 export async function POST(request: NextRequest) {
@@ -69,7 +70,7 @@ export async function DELETE(request: NextRequest) {
 
   await supabaseAdmin
     .from("custom_field_defs")
-    .update({ deleted_at: new Date().toISOString() })
+    .update({ deleted_at: deletedAtFuture() })
     .eq("form_config_id", form_config_id)
     .eq("field_key", field_key);
   await supabaseAdmin

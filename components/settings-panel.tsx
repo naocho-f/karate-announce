@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { isDev } from "@/lib/app-mode";
 import type { Dojo, Rule } from "@/lib/types";
-import { isDeleted, softDeleteCutoff } from "@/lib/soft-delete-shared";
+import { isDeletePending, softDeleteCutoff } from "@/lib/soft-delete-shared";
+import { DeletePendingBar } from "@/components/delete-pending-bar";
 import {
   TTS_VOICES,
   getTtsSettings,
@@ -138,6 +139,11 @@ function DojoPanel() {
           restoringId={restoringId}
           onRemove={(id) => void remove(id)}
           onRestore={(id) => void restoreDojo(id)}
+          onExpire={async (id) => {
+            const res = await fetch(`/api/admin/dojos/${id}/expire`, { method: "PATCH" });
+            if (res.ok) await load();
+            else showToast("削除に失敗しました");
+          }}
           onUpdateReading={(id, v) => void updateReading(id, v)}
         />
       )}
@@ -202,6 +208,7 @@ function DojoList({
   restoringId,
   onRemove,
   onRestore,
+  onExpire,
   onUpdateReading,
 }: {
   dojos: Dojo[];
@@ -209,22 +216,23 @@ function DojoList({
   restoringId: string | null;
   onRemove: (id: string) => void;
   onRestore: (id: string) => void;
+  onExpire: (id: string) => Promise<void>;
   onUpdateReading: (id: string, v: string) => void;
 }) {
   return (
     <ul className="space-y-2">
       {dojos.map((d) => (
-        <li key={d.id} className={`bg-gray-800 rounded-lg px-4 py-3 ${isDeleted(d) ? "opacity-50" : ""}`}>
+        <li key={d.id} className={`bg-gray-800 rounded-lg px-4 py-3 ${isDeletePending(d) ? "opacity-20" : ""}`}>
           <div className="flex items-center justify-between mb-1">
             <span className="font-medium">{d.name}</span>
-            {isDeleted(d) ? (
-              <button
-                onClick={() => onRestore(d.id)}
-                disabled={restoringId === d.id}
-                className="text-blue-400 hover:text-blue-300 text-sm disabled:opacity-50"
-              >
-                {restoringId === d.id ? "取消中..." : "削除取消"}
-              </button>
+            {isDeletePending(d) ? (
+              <DeletePendingBar
+                deletedAt={d.deleted_at ?? ""}
+                onRestore={(id) => void onRestore(id)}
+                onExpire={onExpire}
+                restoringId={restoringId}
+                itemId={d.id}
+              />
             ) : (
               <button
                 onClick={() => onRemove(d.id)}
@@ -235,7 +243,7 @@ function DojoList({
               </button>
             )}
           </div>
-          {!isDeleted(d) && (
+          {!isDeletePending(d) && (
             <ReadingInput
               value={d.name_reading ?? ""}
               placeholder="読み仮名（例: きょくしんかい）"
@@ -409,6 +417,11 @@ function RulesPanel({ onNavigateToTimer }: { onNavigateToTimer: () => void }) {
           onLinkPreset={(rId, pId) => void rd.linkPreset(rId, pId)}
           onRemove={(id) => void rd.remove(id)}
           onRestore={(id) => void rd.restoreRule(id)}
+          onExpire={async (id) => {
+            const res = await fetch(`/api/admin/rules/${id}/expire`, { method: "PATCH" });
+            if (res.ok) await rd.load();
+            else showToast("削除に失敗しました");
+          }}
           onUpdateReading={(id, v) => void rd.updateReading(id, v)}
           onUpdateDescription={(id, v) => void rd.updateDescription(id, v)}
           onNavigateToTimer={onNavigateToTimer}
@@ -492,6 +505,7 @@ function RulesList({
   onLinkPreset,
   onRemove,
   onRestore,
+  onExpire,
   onUpdateReading,
   onUpdateDescription,
   onNavigateToTimer,
@@ -506,6 +520,7 @@ function RulesList({
   onLinkPreset: (ruleId: string, presetId: string | null) => void;
   onRemove: (id: string) => void;
   onRestore: (id: string) => void;
+  onExpire: (id: string) => Promise<void>;
   onUpdateReading: (id: string, v: string) => void;
   onUpdateDescription: (id: string, v: string) => void;
   onNavigateToTimer: () => void;
@@ -525,6 +540,7 @@ function RulesList({
           onLinkPreset={onLinkPreset}
           onRemove={onRemove}
           onRestore={onRestore}
+          onExpire={onExpire}
           onUpdateReading={onUpdateReading}
           onUpdateDescription={onUpdateDescription}
           onNavigateToTimer={onNavigateToTimer}
@@ -546,6 +562,7 @@ function RuleItem({
   onLinkPreset,
   onRemove,
   onRestore,
+  onExpire,
   onUpdateReading,
   onUpdateDescription,
   onNavigateToTimer,
@@ -560,14 +577,15 @@ function RuleItem({
   onLinkPreset: (ruleId: string, presetId: string | null) => void;
   onRemove: (id: string) => void;
   onRestore: (id: string) => void;
+  onExpire: (id: string) => Promise<void>;
   onUpdateReading: (id: string, v: string) => void;
   onUpdateDescription: (id: string, v: string) => void;
   onNavigateToTimer: () => void;
 }) {
-  const deleted = isDeleted(r);
+  const deleted = isDeletePending(r);
   const linkedPreset = r.timer_preset_id ? presets.find((p) => p.id === r.timer_preset_id) : null;
   return (
-    <li className={`bg-gray-800 rounded-lg px-4 py-3 ${deleted ? "opacity-50" : ""}`}>
+    <li className={`bg-gray-800 rounded-lg px-4 py-3 ${deleted ? "opacity-20" : ""}`}>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium">{r.name}</span>
@@ -583,13 +601,13 @@ function RuleItem({
           )}
         </div>
         {deleted ? (
-          <button
-            onClick={() => onRestore(r.id)}
-            disabled={restoringId === r.id}
-            className="text-blue-400 hover:text-blue-300 text-sm disabled:opacity-50"
-          >
-            {restoringId === r.id ? "取消中..." : "削除取消"}
-          </button>
+          <DeletePendingBar
+            deletedAt={r.deleted_at ?? ""}
+            onRestore={(id) => void onRestore(id)}
+            onExpire={onExpire}
+            restoringId={restoringId}
+            itemId={r.id}
+          />
         ) : (
           <button
             onClick={() => onRemove(r.id)}

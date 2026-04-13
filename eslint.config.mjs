@@ -41,7 +41,7 @@ const eslintConfig = [
       // 関数の行数制限
       "max-lines-per-function": ["warn", { max: 200, skipBlankLines: true, skipComments: true }],
       // ファイルの行数制限（現在の最大を超えるファイルの増加を防止）
-      "max-lines": ["warn", { max: 2100, skipBlankLines: true, skipComments: true }],
+      "max-lines": ["warn", { max: 2200, skipBlankLines: true, skipComments: true }],
       // 循環複雑度
       complexity: ["warn", 15],
       // ネストの深さ

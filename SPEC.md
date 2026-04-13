@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-13（フォーム要素id属性追加）
+> 最終更新: 2026-04-13（論理削除UI: DeletePendingBar導入・opacity変更）
 
 ---
 
@@ -453,6 +453,13 @@ settings (
 | PATCH        | `/api/admin/bracket-rules/[id]/restore`        | 振り分けルール削除取消                                                                         |
 | PATCH        | `/api/admin/form-config/notices/[id]/restore`  | 注意書き削除取消                                                                               |
 | PATCH        | `/api/admin/form-config/custom-fields/restore` | カスタムフィールド削除取消                                                                     |
+| PATCH        | `/api/admin/events/[id]/expire`                | イベント即時削除（deleted_atを過去に設定し完全削除扱い）                                       |
+| PATCH        | `/api/admin/dojos/[id]/expire`                 | 道場即時削除                                                                                   |
+| PATCH        | `/api/admin/rules/[id]/expire`                 | ルール即時削除                                                                                 |
+| PATCH        | `/api/admin/entries/[id]/expire`               | エントリー即時削除                                                                             |
+| PATCH        | `/api/admin/tournaments/[id]/expire`           | トーナメント即時削除                                                                           |
+| PATCH        | `/api/admin/timer-presets/[id]/expire`         | タイマー即時削除                                                                               |
+| PATCH        | `/api/admin/bracket-rules/[id]/expire`         | 振り分けルール即時削除                                                                         |
 
 ### 5.2 コート用 API（認証必須）
 
@@ -711,3 +718,5 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **フォーム要素id属性追加（2026-04-13）**: E2Eテスト用にlive検索・コート名・エントリーフォーム各フィールド・管理画面ラベルエディタにid属性を付与
 - **フォーム要素id属性追加 Phase 2（2026-04-13）**: DevTools警告解消のため全コンポーネントのフォーム要素にid属性を付与。ループ内で重複するinline-label-editor/combo-inputを動的idに修正
 - **交流会テンプレート専用レイアウト（2026-04-13）**: %指定グリッドによる専用レンダラー。寝技ラベルは左端に縦書き表示（画像準拠）。反則・技有幅20%/ポイント60%。区切り線太さ調整可能。14項目のフォントサイズ+borderWidth個別調整
+- **論理削除UI改善（2026-04-13）**: deleted_atを「削除予定時刻(+24h)」に変更。削除予定アイテムをopacity-20で暗く表示、「○月○日○時○分に削除予定」表示、「今すぐ消す」で即時非表示。expireエンドポイント追加
+- **論理削除UI改善（2026-04-13）**: isDeleted→isDeletePending、opacity-50→opacity-20、削除取消ボタンをDeletePendingBarコンポーネント（削除予定日時表示+削除取消+今すぐ消す）に置換。対象: events/timer-presets/settings(dojos,rules)/bracket-rules/participant-section

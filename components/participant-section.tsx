@@ -8,7 +8,8 @@ import { supabase } from "@/lib/supabase";
 import type { Entry, Event, Rule, CustomFieldDef } from "@/lib/types";
 import { entryFullName } from "@/lib/types";
 import { getFieldDef, isCustomField } from "@/lib/form-fields";
-import { isDeleted } from "@/lib/soft-delete-shared";
+import { isDeletePending } from "@/lib/soft-delete-shared";
+import { DeletePendingBar } from "@/components/delete-pending-bar";
 import { getGradeOptions, type AgeCategory } from "@/lib/grade-options";
 import { FormConfigPanel } from "@/app/admin/events/[id]/form-config-panel";
 import { showToast } from "@/components/toast";
@@ -815,15 +816,19 @@ function EntryNameCell({
 function EntryActionsCell({
   entry,
   processing,
+  restoringId,
   onToggleWithdrawn,
   onDelete,
   onRestore,
+  onExpire,
 }: {
   entry: Entry;
   processing: boolean;
+  restoringId: string | null;
   onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void;
   onDelete: (id: string) => void;
   onRestore: (id: string) => void;
+  onExpire: (id: string) => Promise<void>;
 }) {
   if (processing) {
     return (
@@ -832,12 +837,16 @@ function EntryActionsCell({
       </td>
     );
   }
-  if (isDeleted(entry)) {
+  if (isDeletePending(entry)) {
     return (
       <td className="px-2 py-1.5 text-right whitespace-nowrap">
-        <button onClick={() => onRestore(entry.id)} className="text-xs text-blue-400 hover:text-blue-300 transition">
-          削除取消
-        </button>
+        <DeletePendingBar
+          deletedAt={entry.deleted_at ?? ""}
+          onRestore={(id) => void onRestore(id)}
+          onExpire={onExpire}
+          restoringId={restoringId}
+          itemId={entry.id}
+        />
       </td>
     );
   }
@@ -1000,6 +1009,7 @@ function EntryTableRow({
   onToggleWithdrawn,
   onDelete,
   onRestore,
+  onExpire,
   onAdded,
 }: {
   entry: Entry;
@@ -1019,12 +1029,13 @@ function EntryTableRow({
   onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void;
   onDelete: (id: string) => void;
   onRestore: (id: string) => void;
+  onExpire: (id: string) => Promise<void>;
   onAdded: () => void;
 }) {
   const memoOpen = openMemoId === entry.id;
   const appMemoOpen = openAppMemoId === entry.id;
-  const rowBg = isDeleted(entry)
-    ? "opacity-50 bg-gray-900/40"
+  const rowBg = isDeletePending(entry)
+    ? "opacity-20 bg-gray-900/40"
     : entry.is_withdrawn
       ? "opacity-50 bg-gray-900/40"
       : memoOpen || appMemoOpen
@@ -1056,9 +1067,11 @@ function EntryTableRow({
         <EntryActionsCell
           entry={entry}
           processing={processingEntryIds.has(entry.id)}
+          restoringId={null}
           onToggleWithdrawn={onToggleWithdrawn}
           onDelete={onDelete}
           onRestore={onRestore}
+          onExpire={onExpire}
         />
       </tr>
       <EntryExpandedRows
@@ -1084,6 +1097,7 @@ function EntryTable({
   onToggleWithdrawn,
   onDelete,
   onRestore,
+  onExpire,
   onAdded,
 }: {
   entries: Entry[];
@@ -1097,6 +1111,7 @@ function EntryTable({
   onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void;
   onDelete: (id: string) => void;
   onRestore: (id: string) => void;
+  onExpire: (id: string) => Promise<void>;
   onAdded: () => void;
 }) {
   const [openMemoId, setOpenMemoId] = useState<string | null>(null);
@@ -1127,6 +1142,7 @@ function EntryTable({
               onToggleWithdrawn={onToggleWithdrawn}
               onDelete={onDelete}
               onRestore={onRestore}
+              onExpire={onExpire}
               onAdded={onAdded}
             />
           ))}
@@ -1149,6 +1165,7 @@ type EntriesSectionProps = {
   onToggleRule: (entryId: string, ruleId: string) => void;
   onToggleWithdrawn: (entryId: string, withdrawn: boolean) => void;
   onDelete: (id: string) => void;
+  onExpire: (id: string) => Promise<void>;
   onRestore: (id: string) => void;
   onAdded: () => void;
 };
@@ -1190,6 +1207,7 @@ function EntriesSection({
   onToggleRule,
   onToggleWithdrawn,
   onDelete,
+  onExpire,
   onRestore,
   onAdded,
 }: EntriesSectionProps) {
@@ -1300,6 +1318,7 @@ function EntriesSection({
               onToggleWithdrawn={onToggleWithdrawn}
               onDelete={onDelete}
               onRestore={onRestore}
+              onExpire={onExpire}
               onAdded={onAdded}
             />
           )}
@@ -1355,7 +1374,6 @@ function InlineMemoEditor({
 }
 
 // ── AddEntryForm ──
-
 function buildEntryPayload(fields: {
   eventId: string;
   familyName: string;
@@ -1619,7 +1637,6 @@ function AddEntryForm({
   const [experience, setExperience] = useState("");
   const [selectedRules, setSelectedRules] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
-
   function toggleRule(id: string) {
     setSelectedRules((prev) => {
       const next = new Set(prev);
@@ -1627,7 +1644,6 @@ function AddEntryForm({
       return next;
     });
   }
-
   function resetForm() {
     setFamilyName("");
     setGivenName("");
@@ -1679,7 +1695,6 @@ function AddEntryForm({
     resetForm();
     onAdded();
   }
-
   const inp =
     "flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
 
@@ -1739,7 +1754,6 @@ function AddEntryForm({
     </form>
   );
 }
-
 function FormConfigStatusBadge({ eventId }: { eventId: string }) {
   const [status, setStatus] = useState<"loading" | "ready" | "draft" | "none">("loading");
   const [version, setVersion] = useState<number>(0);
@@ -1809,7 +1823,6 @@ export type ParticipantSectionProps = {
   onNavigateStep: (s: 1 | 2 | 3) => void;
   onSetEvent: (fn: (prev: Event | null) => Event | null) => void;
 };
-
 function FormConfigCard({
   eventId,
   entrySubTab,
@@ -2162,6 +2175,11 @@ export function ParticipantSection({
         onToggleRule={onToggleRule}
         onToggleWithdrawn={onToggleWithdrawn}
         onDelete={onDeleteEntry}
+        onExpire={async (id) => {
+          const res = await fetch(`/api/admin/entries/${id}/expire`, { method: "PATCH" });
+          if (res.ok) onLoad();
+          else showToast("削除に失敗しました");
+        }}
         onRestore={onRestoreEntry}
         onAdded={onLoad}
       />
