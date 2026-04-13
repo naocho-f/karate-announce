@@ -190,8 +190,10 @@ if [ -f "$WARN_FILE" ]; then
     echo "=== 新しい警告 ==="
     echo "$NEW_WARNINGS"
     echo "==================="
-    echo "（これらの警告は解消するまで毎回表示されます）"
+    echo "（警告を解消してください）"
     echo ""
+    rm -f "$WARN_FILE"
+    exit 1
   fi
   rm -f "$WARN_FILE"
 else

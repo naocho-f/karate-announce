@@ -15,6 +15,7 @@ COMP_NO_TEST: components/home-dashboard-panel.tsx
 COMP_NO_TEST: components/match-label-section.tsx
 COMP_NO_TEST: components/participant-section.tsx
 COMP_NO_TEST: components/settings-panel.tsx
+COMP_NO_TEST: components/sw-register.tsx
 COMP_NO_TEST: components/timer-presets-panel.tsx
 COMP_NO_TEST: components/toast.tsx
 COMP_NO_TEST: components/unified-status-bar.tsx
