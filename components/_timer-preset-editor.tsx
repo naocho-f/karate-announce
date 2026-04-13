@@ -1908,8 +1908,6 @@ function BuzzerCustomSection({
 // 交流会テンプレート専用プレビュー
 // ══════════════════════════════════════════════════════════════
 
-const PV_BORDER = "1px solid #555";
-
 function PvCell({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <div
@@ -1917,7 +1915,6 @@ function PvCell({ children, style }: { children: React.ReactNode; style?: React.
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        border: PV_BORDER,
         overflow: "hidden",
         ...style,
       }}
@@ -1928,17 +1925,10 @@ function PvCell({ children, style }: { children: React.ReactNode; style?: React.
 }
 
 function PvFoulCells({ color, fs, vhToPx }: { color: string; fs: KouryuukaiFontSizes; vhToPx: (v: number) => number }) {
+  const cb = `${fs.borderWidth}px solid #333`;
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
-      <div
-        style={{
-          height: "25%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          border: "1px solid #333",
-        }}
-      >
+      <div style={{ height: "25%", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: cb }}>
         <span className="text-gray-400 font-bold" style={{ fontSize: `${vhToPx(fs.foulLabel)}px` }}>
           反則
         </span>
@@ -1952,7 +1942,7 @@ function PvFoulCells({ color, fs, vhToPx }: { color: string; fs: KouryuukaiFontS
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: n === 1 ? color : "#1a1a2e",
-            border: "1px solid #333",
+            borderBottom: cb,
             fontSize: `${vhToPx(fs.foulCell)}px`,
             color: n === 1 ? "#000" : "#555",
             fontWeight: "bold",
@@ -1968,7 +1958,6 @@ function PvFoulCells({ color, fs, vhToPx }: { color: string; fs: KouryuukaiFontS
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: "#1a1a2e",
-          border: "1px solid #333",
           fontSize: `${vhToPx(fs.cautionCell)}px`,
           color: "#555",
           fontWeight: "bold",
@@ -1989,17 +1978,10 @@ function PvWazaariCells({
   fs: KouryuukaiFontSizes;
   vhToPx: (v: number) => number;
 }) {
+  const cb = `${fs.borderWidth}px solid #333`;
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
-      <div
-        style={{
-          height: "25%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          border: "1px solid #333",
-        }}
-      >
+      <div style={{ height: "25%", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: cb }}>
         <span className="text-gray-400 font-bold" style={{ fontSize: `${vhToPx(fs.wazaariLabel)}px` }}>
           技有
         </span>
@@ -2013,7 +1995,7 @@ function PvWazaariCells({
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: n === 1 ? color : "#1a1a2e",
-            border: "1px solid #333",
+            borderBottom: n > 1 ? cb : undefined,
             fontSize: `${vhToPx(fs.wazaariCell)}px`,
             color: n === 1 ? "#000" : "#555",
             fontWeight: "bold",
@@ -2051,7 +2033,6 @@ function PvNewazaCell({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          borderRight: bw,
         }}
       >
         <span className="text-gray-400 font-bold" style={{ fontSize: `${fs.newazaLabel}vh` }}>
@@ -2061,7 +2042,9 @@ function PvNewazaCell({
           {num}
         </span>
       </div>
-      <div style={{ width: "80%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div
+        style={{ width: "80%", display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: "4%" }}
+      >
         <span className="font-bold tabular-nums" style={{ color: timeColor, fontSize: `${fs.newaza}vh` }}>
           {timeText}
         </span>
@@ -2123,10 +2106,10 @@ function KouryuukaiPreview({
         <div style={{ height: "85%", display: "flex" }}>
           {/* 赤 33% */}
           <div style={{ width: "33%", display: "flex" }}>
-            <div style={{ width: "20%", borderRight: bw }}>
+            <div style={{ width: "20%" }}>
               <PvFoulCells color={colorLeft} fs={fs} vhToPx={vhToPx} />
             </div>
-            <PvCell style={{ width: "60%", borderRight: bw }}>
+            <PvCell style={{ width: "60%" }}>
               <span className="font-bold tabular-nums" style={{ color: colorLeft, fontSize: `${vhToPx(fs.points)}px` }}>
                 3
               </span>
@@ -2136,7 +2119,7 @@ function KouryuukaiPreview({
             </div>
           </div>
           {/* 試合番号 34% */}
-          <PvCell style={{ width: "34%", flexDirection: "column", borderRight: bw }}>
+          <PvCell style={{ width: "34%", flexDirection: "column" }}>
             <span className="text-gray-500 font-bold" style={{ fontSize: `${vhToPx(fs.matchNumberLabel)}px` }}>
               試合番号
             </span>
@@ -2148,11 +2131,11 @@ function KouryuukaiPreview({
             </span>
           </PvCell>
           {/* 白 33% */}
-          <div style={{ width: "33%", display: "flex" }}>
-            <div style={{ width: "20%", borderRight: bw }}>
+          <div style={{ width: "33%", display: "flex", borderLeft: bw }}>
+            <div style={{ width: "20%" }}>
               <PvWazaariCells color={colorRight} fs={fs} vhToPx={vhToPx} />
             </div>
-            <PvCell style={{ width: "60%", borderRight: bw }}>
+            <PvCell style={{ width: "60%" }}>
               <span
                 className="font-bold tabular-nums"
                 style={{ color: colorRight, fontSize: `${vhToPx(fs.points)}px` }}

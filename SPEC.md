@@ -719,4 +719,5 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **フォーム要素id属性追加 Phase 2（2026-04-13）**: DevTools警告解消のため全コンポーネントのフォーム要素にid属性を付与。ループ内で重複するinline-label-editor/combo-inputを動的idに修正
 - **交流会テンプレート専用レイアウト（2026-04-13）**: %指定グリッドによる専用レンダラー。寝技ラベルは左端に縦書き表示（画像準拠）。反則・技有幅20%/ポイント60%。区切り線太さ調整可能。14項目のフォントサイズ+borderWidth個別調整
 - **論理削除UI改善（2026-04-13）**: deleted_atを「削除予定時刻(+24h)」に変更。削除予定アイテムをopacity-20で暗く表示、「○月○日○時○分に削除予定」表示、「今すぐ消す」で即時非表示。expireエンドポイント追加
-- **論理削除UI改善（2026-04-13）**: isDeleted→isDeletePending、opacity-50→opacity-20、削除取消ボタンをDeletePendingBarコンポーネント（削除予定日時表示+削除取消+今すぐ消す）に置換。対象: events/timer-presets/settings(dojos,rules)/bracket-rules/participant-section
+- **論理削除UI改善（2026-04-13）**: isDeleted→isDeletePending、opacity-50→opacity-20、DeletePendingBarコンポーネント追加
+- **交流会レイアウト枠線修正（2026-04-13）**: border-collapse方式（右と下のみ）で枠線2px重複解消。反則-ポイント間/ポイント-技あり間/寝技ラベル-時間間の枠線非表示。寝技タイマー右揃え
