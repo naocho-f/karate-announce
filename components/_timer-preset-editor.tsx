@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { TimerPreset } from "@/lib/types";
 import { DEFAULT_LAYOUT, DEFAULT_KOURYUUKAI_FONT_SIZES } from "@/lib/types";
 import type {
@@ -110,18 +110,6 @@ const ALL_ROW_TYPES: LayoutRowType[] = [
   "newaza",
   "spacer",
 ];
-
-function PreviewTimerDigits({ text, style }: { text: string; style: React.CSSProperties }) {
-  const colonIdx = text.indexOf(":");
-  if (colonIdx === -1) return <span style={style}>{text}</span>;
-  return (
-    <span className="font-bold tabular-nums leading-none" style={style}>
-      {text.slice(0, colonIdx)}
-      <span style={{ position: "relative", bottom: "0.06em" }}>:</span>
-      {text.slice(colonIdx + 1)}
-    </span>
-  );
-}
 
 // ── フィールドレンダラー ──
 function PresetField({
@@ -287,20 +275,11 @@ export function TimerPresetEditor({
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [addRowOpen, setAddRowOpen] = useState(false);
-  const previewRef = useRef<HTMLDivElement>(null);
-  const [previewHeight, setPreviewHeight] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     setLocalEditing(editing);
   }, [editing]);
-  useEffect(() => {
-    if (!previewRef.current) return;
-    const obs = new ResizeObserver((entries) => {
-      for (const entry of entries) setPreviewHeight(entry.contentRect.height);
-    });
-    obs.observe(previewRef.current);
-    return () => obs.disconnect();
-  }, [localEditing]);
 
   const layout: LayoutConfig = localEditing.layout ?? {
     ...DEFAULT_LAYOUT,
@@ -343,7 +322,6 @@ export function TimerPresetEditor({
       setSaving(false);
     }
   };
-  const vhToPx = (vh: number) => (vh / 100) * previewHeight;
   const F = (
     k: keyof EditablePreset,
     l: string,
@@ -354,35 +332,33 @@ export function TimerPresetEditor({
   return (
     <div className="mt-6 border border-gray-700 rounded-xl bg-gray-900 p-6">
       <h2 className="text-lg font-bold mb-4">{editId ? "タイマー編集" : "新規タイマー"}</h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-4 overflow-y-auto max-h-[80vh]">
-          <EditorFormSections
-            editing={localEditing}
-            F={F}
-            layout={layout}
-            setLayout={setLayout}
-            expandedRow={expandedRow}
-            setExpandedRow={setExpandedRow}
-            dragIdx={dragIdx}
-            setDragIdx={setDragIdx}
-            updateRow={updateRow}
-            removeRow={removeRow}
-            moveRow={moveRow}
-            addRowOpen={addRowOpen}
-            setAddRowOpen={setAddRowOpen}
-            addRow={addRow}
-            editId={editId}
-            update={update}
-          />
-        </div>
-        <div className="lg:sticky lg:top-4 self-start">
-          <div className="rounded-lg overflow-hidden border border-gray-700">
-            <p className="text-xs text-gray-500 px-2 py-1 bg-gray-800/50">プレビュー（実際のタイマー画面イメージ）</p>
-            <TimerPreview editing={localEditing} layout={layout} previewRef={previewRef} vhToPx={vhToPx} />
-          </div>
-        </div>
+      <div className="space-y-4 overflow-y-auto max-h-[80vh]">
+        <EditorFormSections
+          editing={localEditing}
+          F={F}
+          layout={layout}
+          setLayout={setLayout}
+          expandedRow={expandedRow}
+          setExpandedRow={setExpandedRow}
+          dragIdx={dragIdx}
+          setDragIdx={setDragIdx}
+          updateRow={updateRow}
+          removeRow={removeRow}
+          moveRow={moveRow}
+          addRowOpen={addRowOpen}
+          setAddRowOpen={setAddRowOpen}
+          addRow={addRow}
+          editId={editId}
+          update={update}
+        />
       </div>
       <div className="flex gap-2 mt-6">
+        <button
+          onClick={() => setShowPreview(true)}
+          className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white font-bold transition"
+        >
+          プレビュー
+        </button>
         <button
           onClick={() => void handleSave()}
           disabled={saving || !localEditing.name}
@@ -394,6 +370,7 @@ export function TimerPresetEditor({
           キャンセル
         </button>
       </div>
+      {showPreview && <PreviewModal editing={localEditing} layout={layout} onClose={() => setShowPreview(false)} />}
     </div>
   );
 }
@@ -1263,7 +1240,7 @@ function ScoresRowExtra({
 }
 
 // ══════════════════════════════════════════════════════════════
-// TimerPreview
+// プレビューモーダル
 // ══════════════════════════════════════════════════════════════
 
 function buildKouryuukaiDummyData(editing: EditablePreset, layout: LayoutConfig) {
@@ -1321,428 +1298,38 @@ function buildKouryuukaiDummyData(editing: EditablePreset, layout: LayoutConfig)
   };
 }
 
-function KouryuukaiPreviewWrapper({
+function PreviewModal({
   editing,
   layout,
-  previewRef,
+  onClose,
 }: {
   editing: EditablePreset;
   layout: LayoutConfig;
-  previewRef: React.RefObject<HTMLDivElement | null>;
+  onClose: () => void;
 }) {
   const { state, theme, sides, durationMs, newazaDispMs } = buildKouryuukaiDummyData(editing, layout);
   return (
-    <div ref={previewRef} className="relative aspect-video overflow-hidden rounded">
-      <KouryuukaiLayout
-        state={state}
-        theme={theme}
-        sides={sides}
-        displayMs={durationMs}
-        newazaDispMs={newazaDispMs}
-        className="absolute inset-0 select-none overflow-hidden"
-      />
-    </div>
-  );
-}
-
-function TimerPreview({
-  editing,
-  layout,
-  previewRef,
-  vhToPx,
-}: {
-  editing: EditablePreset;
-  layout: LayoutConfig;
-  previewRef: React.RefObject<HTMLDivElement | null>;
-  vhToPx: (vh: number) => number;
-}) {
-  const bgColor = editing.theme_bg_color ?? "#000000";
-  const timerColor = editing.theme_timer_color ?? "#00FF00";
-  const dividerColor = editing.theme_divider_color ?? "#333333";
-  const colorLeft = editing.color_left ?? "#DC2626";
-  const colorRight = editing.color_right ?? "#FFFFFF";
-  const fontFamily = FONT_FAMILY_MAP[editing.theme_font_family ?? "digital"] ?? FONT_FAMILY_MAP.digital;
-  const totalFixedVh = layout.rows.reduce((s, r) => s + r.height, 0);
-  const flexCount = layout.rows.filter((r) => r.height === 0).length;
-  const flexVh = flexCount > 0 ? Math.max(0, 100 - totalFixedVh) / flexCount : 0;
-  const alignStyle = (a: LayoutAlignment): React.CSSProperties => ({
-    justifyContent: a === "left" ? "flex-start" : a === "right" ? "flex-end" : "center",
-  });
-  const vAlignStyle = (v: LayoutVerticalAlign): React.CSSProperties => ({
-    alignItems: v === "top" ? "flex-start" : v === "bottom" ? "flex-end" : "center",
-  });
-
-  if (layout.templateId === "kouryuukai") {
-    return <KouryuukaiPreviewWrapper editing={editing} layout={layout} previewRef={previewRef} />;
-  }
-
-  return (
-    <div
-      ref={previewRef}
-      className="relative aspect-video overflow-hidden rounded"
-      style={{ background: bgColor, fontFamily }}
-    >
-      <div className="absolute inset-0 flex flex-col" style={{ height: "100%" }}>
-        {layout.rows.map((row, idx) => (
-          <PreviewRow
-            key={idx}
-            row={row}
-            idx={idx}
-            rowVh={row.height === 0 ? flexVh : row.height}
-            fsPx={vhToPx(row.fontSize)}
-            borderTop={idx > 0 ? `${layout.dividerThickness}px solid ${dividerColor}` : "none"}
-            timerColor={timerColor}
-            colorLeft={colorLeft}
-            colorRight={colorRight}
-            dividerColor={dividerColor}
-            dividerThickness={layout.dividerThickness}
-            editing={editing}
-            layout={layout}
-            alignStyle={alignStyle}
-            vAlignStyle={vAlignStyle}
-            scoreGap={layout.scoreGap}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PreviewRow({
-  row,
-  idx,
-  rowVh,
-  fsPx,
-  borderTop,
-  timerColor,
-  colorLeft,
-  colorRight,
-  dividerColor,
-  dividerThickness,
-  editing,
-  layout,
-  alignStyle,
-  vAlignStyle,
-  scoreGap,
-}: {
-  row: LayoutRow;
-  idx: number;
-  rowVh: number;
-  fsPx: number;
-  borderTop: string;
-  timerColor: string;
-  colorLeft: string;
-  colorRight: string;
-  dividerColor: string;
-  dividerThickness: number;
-  editing: EditablePreset;
-  layout: LayoutConfig;
-  alignStyle: (a: LayoutAlignment) => React.CSSProperties;
-  vAlignStyle: (v: LayoutVerticalAlign) => React.CSSProperties;
-  scoreGap: number;
-}) {
-  const baseStyle = {
-    height: `${rowVh}%`,
-    borderTop,
-    ...alignStyle(row.align),
-    ...vAlignStyle(row.verticalAlign),
-    padding: "0 4px",
-  };
-
-  if (row.type === "timer") {
-    return (
-      <div key={idx} className="flex" style={baseStyle}>
-        <PreviewTimerDigits
-          text={editing.theme_show_decimals ? "1:23.4" : "1:23"}
-          style={{ color: timerColor, fontSize: `${fsPx}px` }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
+      <div className="relative" style={{ width: "80vw", height: "80vh" }} onClick={(e) => e.stopPropagation()}>
+        <KouryuukaiLayout
+          state={state}
+          theme={theme}
+          sides={sides}
+          displayMs={durationMs}
+          newazaDispMs={newazaDispMs}
+          className="w-full h-full select-none overflow-hidden"
         />
-      </div>
-    );
-  }
-  if (row.type === "timer_with_newaza") {
-    const ratio = row.timerRatio ?? 0.75;
-    const subFsPx = fsPx * ((row.subFontSize ?? 5) / row.fontSize);
-    return (
-      <div key={idx} className="flex" style={{ height: `${rowVh}%`, borderTop }}>
-        <div style={{ width: `${ratio * 100}%`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <PreviewTimerDigits
-            text={editing.theme_show_decimals ? "1:23.4" : "1:23"}
-            style={{ color: timerColor, fontSize: `${fsPx}px` }}
-          />
-        </div>
-        <div
-          style={{
-            width: `${(1 - ratio) * 100}%`,
-            display: "flex",
-            flexDirection: "column",
-            borderLeft: `${dividerThickness}px solid ${dividerColor}`,
-          }}
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 px-3 py-1 rounded bg-gray-700/80 hover:bg-gray-600 text-white text-sm transition"
         >
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "2px",
-              borderBottom: `${dividerThickness}px solid ${dividerColor}`,
-            }}
-          >
-            <span className="text-gray-400 font-bold" style={{ fontSize: `${subFsPx * 0.5}px` }}>
-              寝1
-            </span>
-            <PreviewTimerDigits text="1:33" style={{ color: "rgb(34 211 238)", fontSize: `${subFsPx}px` }} />
-          </div>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "2px" }}>
-            <span className="text-gray-400 font-bold" style={{ fontSize: `${subFsPx * 0.5}px` }}>
-              寝2
-            </span>
-            <span className="text-gray-600 font-bold" style={{ fontSize: `${subFsPx}px` }}>
-              --:--
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  if (row.type === "newaza") {
-    return (
-      <div key={idx} className="flex gap-1" style={baseStyle}>
-        <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.5}px` }}>
-          {layout.labelNewaza || "寝技"}
-        </span>
-        <PreviewTimerDigits text="0:12" style={{ color: "rgb(34 211 238)", fontSize: `${fsPx}px` }} />
-      </div>
-    );
-  }
-  if (row.type === "match_info") {
-    return (
-      <div key={idx} className="flex" style={baseStyle}>
-        <span className="text-gray-400" style={{ fontSize: `${fsPx}px` }}>
-          A-1 第1試合
-        </span>
-      </div>
-    );
-  }
-  if (row.type === "player_names") {
-    return (
-      <div key={idx} className="flex" style={{ ...baseStyle, gap: `${scoreGap}px` }}>
-        <div className="flex-1 flex" style={alignStyle(row.align)}>
-          <span className="font-bold" style={{ color: colorLeft, fontSize: `${fsPx}px` }}>
-            山田 太郎
-          </span>
-        </div>
-        <div className="flex-1 flex" style={alignStyle(row.align)}>
-          <span className="font-bold" style={{ color: colorRight, fontSize: `${fsPx}px` }}>
-            鈴木 一郎
-          </span>
-        </div>
-      </div>
-    );
-  }
-  if (row.type === "scores") {
-    return (
-      <ScoresPreviewRow
-        row={row}
-        rowVh={rowVh}
-        fsPx={fsPx}
-        borderTop={borderTop}
-        colorLeft={colorLeft}
-        colorRight={colorRight}
-        dividerColor={dividerColor}
-        dividerThickness={dividerThickness}
-        labelNewaza={layout.labelNewaza}
-        showPoints={editing.show_points ?? true}
-        showWazaari={editing.show_wazaari ?? false}
-        scoreCenterMode={row.scoreCenterMode}
-      />
-    );
-  }
-  return <div key={idx} style={{ height: `${rowVh}%`, borderTop }} />;
-}
-
-// ── ScoresPreviewRow ──
-
-function ScoresPreviewRow({
-  row: _row,
-  rowVh,
-  fsPx,
-  borderTop,
-  colorLeft,
-  colorRight,
-  dividerColor,
-  dividerThickness,
-  labelNewaza,
-  showPoints,
-  showWazaari,
-  scoreCenterMode,
-}: {
-  row: LayoutRow;
-  rowVh: number;
-  fsPx: number;
-  borderTop: string;
-  colorLeft: string;
-  colorRight: string;
-  dividerColor: string;
-  dividerThickness: number;
-  labelNewaza?: string;
-  showPoints: boolean;
-  showWazaari: boolean;
-  scoreCenterMode?: "newaza" | "match_info";
-}) {
-  const bothVisible = showPoints && showWazaari;
-  const mainFsPx = bothVisible ? fsPx * 0.67 : fsPx;
-  const wazaariFsPx = bothVisible ? fsPx * 0.35 : fsPx;
-  return (
-    <div className="flex" style={{ height: `${rowVh}%`, borderTop }}>
-      <div className="flex-1 flex">
-        <FoulColumn fsPx={fsPx} color={colorLeft} filledIndex={1} />
-        <ScoreColumn
-          color={colorLeft}
-          mainFsPx={mainFsPx}
-          wazaariFsPx={wazaariFsPx}
-          showPoints={showPoints}
-          showWazaari={showWazaari}
-          fsPx={fsPx}
-          pointVal="3"
-          wazaariVal="1"
-        />
-      </div>
-      <div
-        className="flex flex-col items-center justify-center"
-        style={{
-          minWidth: `${fsPx * 1.2}px`,
-          borderLeft: `${dividerThickness}px solid ${dividerColor}`,
-          borderRight: `${dividerThickness}px solid ${dividerColor}`,
-        }}
-      >
-        {scoreCenterMode === "match_info" ? (
-          <>
-            <span className="font-bold" style={{ fontSize: `${fsPx * 0.15}px`, color: "#E1D200" }}>
-              試合番号
-            </span>
-            <span className="font-bold tabular-nums" style={{ fontSize: `${fsPx * 0.5}px`, color: "#E1D200" }}>
-              B-28
-            </span>
-          </>
-        ) : (
-          <>
-            <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.2}px` }}>
-              {labelNewaza || "寝技"}
-            </span>
-            <PreviewTimerDigits text="0:12" style={{ color: "rgb(34 211 238)", fontSize: `${fsPx * 0.45}px` }} />
-          </>
-        )}
-      </div>
-      <div className="flex-1 flex">
-        <ScoreColumn
-          color={colorRight}
-          mainFsPx={mainFsPx}
-          wazaariFsPx={wazaariFsPx}
-          showPoints={showPoints}
-          showWazaari={showWazaari}
-          fsPx={fsPx}
-          pointVal="1"
-          wazaariVal="0"
-        />
-        <FoulColumn fsPx={fsPx} color="#1a1a2e" filledIndex={0} />
+          閉じる
+        </button>
       </div>
     </div>
   );
 }
-
-function FoulColumn({ fsPx, color, filledIndex }: { fsPx: number; color: string; filledIndex: number }) {
-  const cellH = Math.max(fsPx * 0.22, 4);
-  const cellW = Math.max(fsPx * 0.35, 6);
-  const foulFs = Math.max(fsPx * 0.13, 3);
-  const cautionFs = Math.max(fsPx * 0.09, 2);
-  return (
-    <div className="flex flex-col items-center justify-center" style={{ padding: `0 ${fsPx * 0.05}px` }}>
-      <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.1}px` }}>
-        反則
-      </span>
-      {/* 反則 3→2→1（上から） */}
-      {[3, 2, 1].map((n) => (
-        <div
-          key={n}
-          style={{
-            width: `${cellW}px`,
-            height: `${cellH}px`,
-            backgroundColor: n === filledIndex ? color : "#1a1a2e",
-            border: "1px solid #333",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: `${foulFs}px`,
-            color: n === filledIndex ? "#000" : "#555",
-          }}
-        >
-          {n}
-        </div>
-      ))}
-      {/* 注意セル（一番下） */}
-      <div
-        style={{
-          width: `${cellW}px`,
-          height: `${cellH}px`,
-          backgroundColor: "#1a1a2e",
-          border: "1px solid #333",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: `${cautionFs}px`,
-          color: "#555",
-        }}
-      >
-        注意
-      </div>
-    </div>
-  );
-}
-
-function ScoreColumn({
-  color,
-  mainFsPx,
-  wazaariFsPx,
-  showPoints,
-  showWazaari,
-  fsPx,
-  pointVal,
-  wazaariVal,
-}: {
-  color: string;
-  mainFsPx: number;
-  wazaariFsPx: number;
-  showPoints: boolean;
-  showWazaari: boolean;
-  fsPx: number;
-  pointVal: string;
-  wazaariVal: string;
-}) {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center">
-      {showPoints && (
-        <span className="font-bold tabular-nums leading-none" style={{ color, fontSize: `${mainFsPx}px` }}>
-          {pointVal}
-        </span>
-      )}
-      {showWazaari && (
-        <div
-          className="flex items-baseline justify-center gap-0.5"
-          style={{ marginTop: showPoints ? `${fsPx * 0.05}px` : undefined }}
-        >
-          <span className="text-gray-500 font-bold" style={{ fontSize: `${wazaariFsPx * 0.35}px` }}>
-            技
-          </span>
-          <span className="font-bold tabular-nums leading-none" style={{ color, fontSize: `${wazaariFsPx}px` }}>
-            {wazaariVal}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
+// 旧プレビューコンポーネント（TimerPreview/PreviewRow/ScoresPreviewRow/FoulColumn/ScoreColumn）は削除済み
 // ══════════════════════════════════════════════════════════════
 // BuzzerSoundSelector
 // ══════════════════════════════════════════════════════════════
