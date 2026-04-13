@@ -242,7 +242,7 @@ export default function TimerDisplayPage() {
 
 // ── テーマ・サイド解決 ──
 
-type TimerTheme = {
+export type TimerTheme = {
   p: TimerPreset | null;
   layout: ReturnType<typeof resolveLayout>;
   bgColor: string;
@@ -262,7 +262,7 @@ type TimerTheme = {
   rightWins: boolean;
 };
 
-type TimerSides = {
+export type TimerSides = {
   leftName: string;
   rightName: string;
   leftColorName: string;
@@ -1140,20 +1140,22 @@ function KouryuukaiWazaariCells({ score, fs }: { score: { wazaari: number }; fs:
   );
 }
 
-function KouryuukaiLayout({
+export function KouryuukaiLayout({
   state,
   theme,
   sides,
   displayMs,
   newazaDispMs,
   onClick,
+  className,
 }: {
   state: TimerState;
   theme: TimerTheme;
   sides: TimerSides;
   displayMs: number;
   newazaDispMs: number;
-  onClick: () => void;
+  onClick?: () => void;
+  className?: string;
 }) {
   const fs: KouryuukaiFontSizes = {
     ...DEFAULT_KOURYUUKAI_FONT_SIZES,
@@ -1164,7 +1166,7 @@ function KouryuukaiLayout({
 
   return (
     <div
-      className="h-screen cursor-pointer select-none overflow-hidden"
+      className={className ?? "h-screen cursor-pointer select-none overflow-hidden"}
       style={{
         backgroundColor: theme.bgColor,
         fontFamily: theme.fontFamily,
