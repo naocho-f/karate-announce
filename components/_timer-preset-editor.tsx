@@ -1924,7 +1924,7 @@ function PvCell({ children, style }: { children: React.ReactNode; style?: React.
   );
 }
 
-function PvFoulCells({ color, fs, vhToPx }: { color: string; fs: KouryuukaiFontSizes; vhToPx: (v: number) => number }) {
+function PvFoulCells({ fs, vhToPx }: { fs: KouryuukaiFontSizes; vhToPx: (v: number) => number }) {
   const cb = `${fs.borderWidth}px solid #333`;
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
@@ -1941,7 +1941,7 @@ function PvFoulCells({ color, fs, vhToPx }: { color: string; fs: KouryuukaiFontS
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: n === 1 ? color : "#1a1a2e",
+            backgroundColor: n === 1 ? "#008CFF" : "#1a1a2e",
             borderBottom: cb,
             fontSize: `${vhToPx(fs.foulCell)}px`,
             color: n === 1 ? "#000" : "#555",
@@ -1969,15 +1969,7 @@ function PvFoulCells({ color, fs, vhToPx }: { color: string; fs: KouryuukaiFontS
   );
 }
 
-function PvWazaariCells({
-  color,
-  fs,
-  vhToPx,
-}: {
-  color: string;
-  fs: KouryuukaiFontSizes;
-  vhToPx: (v: number) => number;
-}) {
+function PvWazaariCells({ fs, vhToPx }: { fs: KouryuukaiFontSizes; vhToPx: (v: number) => number }) {
   const cb = `${fs.borderWidth}px solid #333`;
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
@@ -1994,7 +1986,7 @@ function PvWazaariCells({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: n === 1 ? color : "#1a1a2e",
+            backgroundColor: n === 1 ? "#008CFF" : "#1a1a2e",
             borderBottom: n > 1 ? cb : undefined,
             fontSize: `${vhToPx(fs.wazaariCell)}px`,
             color: n === 1 ? "#000" : "#555",
@@ -2035,10 +2027,10 @@ function PvNewazaCell({
           justifyContent: "center",
         }}
       >
-        <span className="text-gray-400 font-bold" style={{ fontSize: `${fs.newazaLabel}vh` }}>
+        <span className="text-gray-400 font-bold" style={{ fontSize: `${fs.newazaLabel}vh`, lineHeight: 1 }}>
           寝
         </span>
-        <span className="text-green-300 font-bold" style={{ fontSize: `${fs.newazaNumber}vh` }}>
+        <span className="text-green-300 font-bold" style={{ fontSize: `${fs.newazaNumber}vh`, lineHeight: 1 }}>
           {num}
         </span>
       </div>
@@ -2107,7 +2099,7 @@ function KouryuukaiPreview({
           {/* 赤 33% */}
           <div style={{ width: "33%", display: "flex" }}>
             <div style={{ width: "20%" }}>
-              <PvFoulCells color={colorLeft} fs={fs} vhToPx={vhToPx} />
+              <PvFoulCells fs={fs} vhToPx={vhToPx} />
             </div>
             <PvCell style={{ width: "60%" }}>
               <span className="font-bold tabular-nums" style={{ color: colorLeft, fontSize: `${vhToPx(fs.points)}px` }}>
@@ -2115,17 +2107,20 @@ function KouryuukaiPreview({
               </span>
             </PvCell>
             <div style={{ width: "20%", borderRight: bw }}>
-              <PvWazaariCells color={colorLeft} fs={fs} vhToPx={vhToPx} />
+              <PvWazaariCells fs={fs} vhToPx={vhToPx} />
             </div>
           </div>
           {/* 試合番号 34% */}
-          <PvCell style={{ width: "34%", flexDirection: "column" }}>
-            <span className="text-gray-500 font-bold" style={{ fontSize: `${vhToPx(fs.matchNumberLabel)}px` }}>
+          <PvCell style={{ width: "34%", flexDirection: "column", gap: 0 }}>
+            <span
+              className="text-gray-500 font-bold"
+              style={{ fontSize: `${vhToPx(fs.matchNumberLabel)}px`, lineHeight: 1 }}
+            >
               試合番号
             </span>
             <span
               className="font-bold tabular-nums"
-              style={{ fontSize: `${vhToPx(fs.matchNumber)}px`, color: "#E1D200" }}
+              style={{ fontSize: `${vhToPx(fs.matchNumber)}px`, color: "#E1D200", lineHeight: 1 }}
             >
               B-28
             </span>
@@ -2133,7 +2128,7 @@ function KouryuukaiPreview({
           {/* 白 33% */}
           <div style={{ width: "33%", display: "flex", borderLeft: bw }}>
             <div style={{ width: "20%" }}>
-              <PvWazaariCells color={colorRight} fs={fs} vhToPx={vhToPx} />
+              <PvWazaariCells fs={fs} vhToPx={vhToPx} />
             </div>
             <PvCell style={{ width: "60%" }}>
               <span
@@ -2144,7 +2139,7 @@ function KouryuukaiPreview({
               </span>
             </PvCell>
             <div style={{ width: "20%" }}>
-              <PvFoulCells color={colorRight} fs={fs} vhToPx={vhToPx} />
+              <PvFoulCells fs={fs} vhToPx={vhToPx} />
             </div>
           </div>
         </div>

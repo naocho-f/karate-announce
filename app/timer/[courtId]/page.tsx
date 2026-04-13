@@ -1023,10 +1023,10 @@ function KouryuukaiNewazaCell({
           justifyContent: "center",
         }}
       >
-        <span className="text-gray-400 font-bold" style={{ fontSize: `${fs.newazaLabel}vh` }}>
+        <span className="text-gray-400 font-bold" style={{ fontSize: `${fs.newazaLabel}vh`, lineHeight: 1 }}>
           寝
         </span>
-        <span className="text-green-300 font-bold" style={{ fontSize: `${fs.newazaNumber}vh` }}>
+        <span className="text-green-300 font-bold" style={{ fontSize: `${fs.newazaNumber}vh`, lineHeight: 1 }}>
           {num}
         </span>
       </div>
@@ -1046,16 +1046,9 @@ function KouryuukaiNewazaCell({
   );
 }
 
-function KouryuukaiFoulCells({
-  score,
-  color,
-  fs,
-}: {
-  score: { fouls: number; cautions: number };
-  color: string;
-  fs: KouryuukaiFontSizes;
-}) {
-  const CAUTION_COLOR = "#E1D200";
+function KouryuukaiFoulCells({ score, fs }: { score: { fouls: number; cautions: number }; fs: KouryuukaiFontSizes }) {
+  const LIGHT_COLOR = "#008CFF"; // 画像指定の共通点灯色 R0/G140/B255
+  const CAUTION_COLOR = "#E1D200"; // 画像指定の注意色 R225/G210/B0
   const cb = `${fs.borderWidth}px solid #333`;
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
@@ -1080,7 +1073,7 @@ function KouryuukaiFoulCells({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: score.fouls >= n ? color : "#1a1a2e",
+            backgroundColor: score.fouls >= n ? LIGHT_COLOR : "#1a1a2e",
             borderBottom: cb,
             fontSize: `${fs.foulCell}vh`,
             color: score.fouls >= n ? "#000" : "#555",
@@ -1108,15 +1101,8 @@ function KouryuukaiFoulCells({
   );
 }
 
-function KouryuukaiWazaariCells({
-  score,
-  color,
-  fs,
-}: {
-  score: { wazaari: number };
-  color: string;
-  fs: KouryuukaiFontSizes;
-}) {
+function KouryuukaiWazaariCells({ score, fs }: { score: { wazaari: number }; fs: KouryuukaiFontSizes }) {
+  const LIGHT_COLOR = "#008CFF"; // 画像指定の共通点灯色 R0/G140/B255
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
       <div
@@ -1140,7 +1126,7 @@ function KouryuukaiWazaariCells({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: score.wazaari >= n ? color : "#1a1a2e",
+            backgroundColor: score.wazaari >= n ? LIGHT_COLOR : "#1a1a2e",
             borderBottom: n > 1 ? `${fs.borderWidth}px solid #333` : undefined,
             fontSize: `${fs.wazaariCell}vh`,
             color: score.wazaari >= n ? "#000" : "#555",
@@ -1211,22 +1197,25 @@ function KouryuukaiLayout({
               </span>
             }
           />
-          <KouryuukaiNewazaCell
-            num={2}
-            fs={fs}
-            bw={bw}
-            timeText={
-              <span className="font-bold tabular-nums" style={{ fontSize: `${fs.newaza}vh` }}>
-                {state.newaza.usedCount >= 2 ? (
-                  <span className="text-cyan-400">{formatTime(newazaDur)}</span>
-                ) : state.newaza.active && state.newaza.usedCount === 1 ? (
-                  <span className="text-cyan-400">{formatTime(newazaDispMs)}</span>
-                ) : (
-                  <span className="text-gray-600">--:--</span>
-                )}
-              </span>
-            }
-          />
+          {/* 寝技2: 開始するまで完全に非表示 */}
+          {state.newaza.usedCount >= 1 || (state.newaza.active && state.newaza.usedCount === 1) ? (
+            <KouryuukaiNewazaCell
+              num={2}
+              fs={fs}
+              bw={bw}
+              timeText={
+                <span className="font-bold tabular-nums" style={{ fontSize: `${fs.newaza}vh` }}>
+                  {state.newaza.usedCount >= 2 ? (
+                    <span className="text-cyan-400">{formatTime(newazaDur)}</span>
+                  ) : (
+                    <span className="text-cyan-400">{formatTime(newazaDispMs)}</span>
+                  )}
+                </span>
+              }
+            />
+          ) : (
+            <div style={{ height: "50%" }} />
+          )}
         </div>
       </div>
 
@@ -1258,7 +1247,7 @@ function KouryuukaiLayout({
           <div style={{ width: "33%", display: "flex" }}>
             {/* 反則（右borderなし: ポイントとの間に線を引かない） */}
             <div style={{ width: "20%" }}>
-              <KouryuukaiFoulCells score={sides.leftScore} color={theme.colorLeft} fs={fs} />
+              <KouryuukaiFoulCells score={sides.leftScore} fs={fs} />
             </div>
             {/* ポイント */}
             <KouryuukaiCell style={{ width: "60%" }}>
@@ -1268,16 +1257,19 @@ function KouryuukaiLayout({
             </KouryuukaiCell>
             {/* 技あり（左borderなし: ポイントとの間に線を引かない） */}
             <div style={{ width: "20%", borderRight: bw }}>
-              <KouryuukaiWazaariCells score={sides.leftScore} color={theme.colorLeft} fs={fs} />
+              <KouryuukaiWazaariCells score={sides.leftScore} fs={fs} />
             </div>
           </div>
 
           {/* 試合番号 34% */}
-          <KouryuukaiCell style={{ width: "34%", flexDirection: "column" }}>
-            <span className="text-gray-500 font-bold" style={{ fontSize: `${fs.matchNumberLabel}vh` }}>
+          <KouryuukaiCell style={{ width: "34%", flexDirection: "column", gap: 0 }}>
+            <span className="text-gray-500 font-bold" style={{ fontSize: `${fs.matchNumberLabel}vh`, lineHeight: 1 }}>
               試合番号
             </span>
-            <span className="font-bold tabular-nums" style={{ fontSize: `${fs.matchNumber}vh`, color: "#E1D200" }}>
+            <span
+              className="font-bold tabular-nums"
+              style={{ fontSize: `${fs.matchNumber}vh`, color: "#E1D200", lineHeight: 1 }}
+            >
               {state.matchLabel || "--"}
             </span>
           </KouryuukaiCell>
@@ -1286,7 +1278,7 @@ function KouryuukaiLayout({
           <div style={{ width: "33%", display: "flex", borderLeft: bw }}>
             {/* 技あり */}
             <div style={{ width: "20%" }}>
-              <KouryuukaiWazaariCells score={sides.rightScore} color={theme.colorRight} fs={fs} />
+              <KouryuukaiWazaariCells score={sides.rightScore} fs={fs} />
             </div>
             {/* ポイント */}
             <KouryuukaiCell style={{ width: "60%" }}>
@@ -1296,7 +1288,7 @@ function KouryuukaiLayout({
             </KouryuukaiCell>
             {/* 反則（右borderなし） */}
             <div style={{ width: "20%" }}>
-              <KouryuukaiFoulCells score={sides.rightScore} color={theme.colorRight} fs={fs} />
+              <KouryuukaiFoulCells score={sides.rightScore} fs={fs} />
             </div>
           </div>
         </div>
