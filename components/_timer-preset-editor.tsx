@@ -729,6 +729,20 @@ function LayoutSection({
   setAddRowOpen: (v: boolean) => void;
   addRow: (t: LayoutRowType) => void;
 }) {
+  if (layout.templateId === "kouryuukai") {
+    return (
+      <>
+        <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">
+          レイアウト（交流会テンプレート）
+        </h3>
+        <p className="text-xs text-gray-500 mt-1">
+          固定グリッドレイアウト。各領域のフォントサイズを個別調整できます（vh単位）。
+        </p>
+        <KouryuukaiFontSizeEditor layout={layout} setLayout={setLayout} />
+      </>
+    );
+  }
+
   return (
     <>
       <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">レイアウトエディタ</h3>
@@ -745,6 +759,64 @@ function LayoutSection({
       <LayoutLabelSettings layout={layout} setLayout={setLayout} />
       <AddRowButton addRowOpen={addRowOpen} setAddRowOpen={setAddRowOpen} addRow={addRow} />
     </>
+  );
+}
+
+const KOURYUUKAI_FONT_FIELDS: { key: keyof KouryuukaiFontSizes; label: string }[] = [
+  { key: "timer", label: "メインタイマー" },
+  { key: "newaza", label: "寝技タイマー数字" },
+  { key: "newazaLabel", label: "寝技ラベル（寝1/寝2）" },
+  { key: "playerName", label: "選手名" },
+  { key: "points", label: "ポイント数字" },
+  { key: "matchNumber", label: "試合番号" },
+  { key: "matchNumberLabel", label: "試合番号ラベル" },
+  { key: "foulLabel", label: "反則ラベル" },
+  { key: "foulCell", label: "反則セル数字" },
+  { key: "cautionCell", label: "注意セル文字" },
+  { key: "wazaariLabel", label: "技有ラベル" },
+  { key: "wazaariCell", label: "技有セル数字" },
+];
+
+function KouryuukaiFontSizeEditor({
+  layout,
+  setLayout,
+}: {
+  layout: LayoutConfig;
+  setLayout: (l: LayoutConfig) => void;
+}) {
+  const currentFs: KouryuukaiFontSizes = { ...DEFAULT_KOURYUUKAI_FONT_SIZES, ...layout.kouryuukaiFontSizes };
+  const updateFs = (key: keyof KouryuukaiFontSizes, value: number) => {
+    setLayout({ ...layout, kouryuukaiFontSizes: { ...currentFs, [key]: value } });
+  };
+  return (
+    <div className="space-y-2 mt-2">
+      {KOURYUUKAI_FONT_FIELDS.map(({ key, label }) => (
+        <div key={key} className="flex items-center gap-2">
+          <span className="text-xs text-gray-400 w-32 shrink-0">{label}</span>
+          <input
+            id={`kouryuukai-fs-${key}`}
+            type="range"
+            min={0.5}
+            max={40}
+            step={0.5}
+            value={currentFs[key]}
+            onChange={(e) => updateFs(key, Number(e.target.value))}
+            className="flex-1"
+          />
+          <input
+            id={`kouryuukai-fs-num-${key}`}
+            type="number"
+            min={0.5}
+            max={100}
+            step={0.5}
+            value={currentFs[key]}
+            onChange={(e) => updateFs(key, Number(e.target.value))}
+            className="w-16 bg-gray-800 border border-gray-700 rounded px-1 py-0.5 text-xs text-right"
+          />
+          <span className="text-xs text-gray-500">vh</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -1852,7 +1924,15 @@ function PvCell({ children, style }: { children: React.ReactNode; style?: React.
 function PvFoulCells({ color, fs, vhToPx }: { color: string; fs: KouryuukaiFontSizes; vhToPx: (v: number) => number }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
-      <div style={{ height: "15%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div
+        style={{
+          height: "25%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          border: "1px solid #333",
+        }}
+      >
         <span className="text-gray-400 font-bold" style={{ fontSize: `${vhToPx(fs.foulLabel)}px` }}>
           反則
         </span>
@@ -1905,7 +1985,15 @@ function PvWazaariCells({
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
-      <div style={{ height: "15%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div
+        style={{
+          height: "25%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          border: "1px solid #333",
+        }}
+      >
         <span className="text-gray-400 font-bold" style={{ fontSize: `${vhToPx(fs.wazaariLabel)}px` }}>
           技有
         </span>

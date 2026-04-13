@@ -1007,20 +1007,21 @@ function KouryuukaiFoulCells({
   const CAUTION_COLOR = "#E1D200";
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
-      {/* ラベル */}
+      {/* ラベル 25% */}
       <div
         style={{
-          height: "15%",
+          height: "25%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          border: "1px solid #333",
         }}
       >
         <span className="text-gray-400 font-bold" style={{ fontSize: `${fs.foulLabel}vh` }}>
           反則
         </span>
       </div>
-      {/* 3→2→1→注意 (上から) */}
+      {/* 3→2→1→注意 残り75%を均等割 */}
       {[3, 2, 1].map((n) => (
         <div
           key={n}
@@ -1069,19 +1070,21 @@ function KouryuukaiWazaariCells({
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
+      {/* ラベル 25% */}
       <div
         style={{
-          height: "15%",
+          height: "25%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          border: "1px solid #333",
         }}
       >
         <span className="text-gray-400 font-bold" style={{ fontSize: `${fs.wazaariLabel}vh` }}>
           技有
         </span>
       </div>
-      {/* 2→1 (上から) */}
+      {/* 2→1 残り75%を均等割 */}
       {[2, 1].map((n) => (
         <div
           key={n}
