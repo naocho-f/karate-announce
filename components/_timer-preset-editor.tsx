@@ -78,9 +78,26 @@ const ROW_DEFAULTS: Record<LayoutRowType, LayoutRow> = {
   match_info: { type: "match_info", height: 0, fontSize: 2, align: "center", verticalAlign: "middle" },
   newaza: { type: "newaza", height: 8, fontSize: 4, align: "center", verticalAlign: "middle" },
   spacer: { type: "spacer", height: 5, fontSize: 0, align: "center", verticalAlign: "middle" },
+  timer_with_newaza: {
+    type: "timer_with_newaza",
+    height: 60,
+    fontSize: 35,
+    align: "center",
+    verticalAlign: "middle",
+    timerRatio: 0.75,
+    subFontSize: 5,
+  },
 };
 
-const ALL_ROW_TYPES: LayoutRowType[] = ["timer", "scores", "player_names", "match_info", "newaza", "spacer"];
+const ALL_ROW_TYPES: LayoutRowType[] = [
+  "timer",
+  "timer_with_newaza",
+  "scores",
+  "player_names",
+  "match_info",
+  "newaza",
+  "spacer",
+];
 
 function PreviewTimerDigits({ text, style }: { text: string; style: React.CSSProperties }) {
   const colonIdx = text.indexOf(":");
@@ -1037,6 +1054,16 @@ function RowDetailPanel({
         </div>
       </div>
       {row.type === "scores" && <ScoresRowExtra row={row} idx={idx} onUpdateRow={onUpdateRow} />}
+      {row.type === "timer_with_newaza" && (
+        <SliderField
+          label="タイマー幅比率"
+          value={(row.timerRatio ?? 0.75) * 100}
+          max={90}
+          step={5}
+          unit="%"
+          onChange={(v) => onUpdateRow(idx, { timerRatio: v / 100 })}
+        />
+      )}
     </div>
   );
 }
@@ -1126,6 +1153,17 @@ function ScoresRowExtra({
             onChange={(v) => onUpdateRow(idx, { subAlign: v as LayoutAlignment })}
           />
         </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-400 w-20 shrink-0">中央表示</span>
+        <select
+          value={row.scoreCenterMode ?? "newaza"}
+          onChange={(e) => onUpdateRow(idx, { scoreCenterMode: e.target.value as "newaza" | "match_info" })}
+          className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs"
+        >
+          <option value="newaza">寝技タイマー</option>
+          <option value="match_info">試合番号</option>
+        </select>
       </div>
     </>
   );
@@ -1245,6 +1283,52 @@ function PreviewRow({
       </div>
     );
   }
+  if (row.type === "timer_with_newaza") {
+    const ratio = row.timerRatio ?? 0.75;
+    const subFsPx = fsPx * ((row.subFontSize ?? 5) / row.fontSize);
+    return (
+      <div key={idx} className="flex" style={{ height: `${rowVh}%`, borderTop }}>
+        <div style={{ width: `${ratio * 100}%`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <PreviewTimerDigits
+            text={editing.theme_show_decimals ? "1:23.4" : "1:23"}
+            style={{ color: timerColor, fontSize: `${fsPx}px` }}
+          />
+        </div>
+        <div
+          style={{
+            width: `${(1 - ratio) * 100}%`,
+            display: "flex",
+            flexDirection: "column",
+            borderLeft: `${dividerThickness}px solid ${dividerColor}`,
+          }}
+        >
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "2px",
+              borderBottom: `${dividerThickness}px solid ${dividerColor}`,
+            }}
+          >
+            <span className="text-gray-400 font-bold" style={{ fontSize: `${subFsPx * 0.5}px` }}>
+              寝1
+            </span>
+            <PreviewTimerDigits text="1:33" style={{ color: "rgb(34 211 238)", fontSize: `${subFsPx}px` }} />
+          </div>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "2px" }}>
+            <span className="text-gray-400 font-bold" style={{ fontSize: `${subFsPx * 0.5}px` }}>
+              寝2
+            </span>
+            <span className="text-gray-600 font-bold" style={{ fontSize: `${subFsPx}px` }}>
+              --:--
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (row.type === "newaza") {
     return (
       <div key={idx} className="flex gap-1" style={baseStyle}>
@@ -1294,6 +1378,7 @@ function PreviewRow({
         labelNewaza={layout.labelNewaza}
         showPoints={editing.show_points ?? true}
         showWazaari={editing.show_wazaari ?? false}
+        scoreCenterMode={row.scoreCenterMode}
       />
     );
   }
@@ -1314,6 +1399,7 @@ function ScoresPreviewRow({
   labelNewaza,
   showPoints,
   showWazaari,
+  scoreCenterMode,
 }: {
   row: LayoutRow;
   rowVh: number;
@@ -1326,6 +1412,7 @@ function ScoresPreviewRow({
   labelNewaza?: string;
   showPoints: boolean;
   showWazaari: boolean;
+  scoreCenterMode?: "newaza" | "match_info";
 }) {
   const bothVisible = showPoints && showWazaari;
   const mainFsPx = bothVisible ? fsPx * 0.67 : fsPx;
@@ -1353,10 +1440,23 @@ function ScoresPreviewRow({
           borderRight: `${dividerThickness}px solid ${dividerColor}`,
         }}
       >
-        <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.2}px` }}>
-          {labelNewaza || "寝技"}
-        </span>
-        <PreviewTimerDigits text="0:12" style={{ color: "rgb(34 211 238)", fontSize: `${fsPx * 0.45}px` }} />
+        {scoreCenterMode === "match_info" ? (
+          <>
+            <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.15}px` }}>
+              試合番号
+            </span>
+            <span className="font-bold tabular-nums" style={{ fontSize: `${fsPx * 0.5}px`, color: "#E1D200" }}>
+              B-28
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.2}px` }}>
+              {labelNewaza || "寝技"}
+            </span>
+            <PreviewTimerDigits text="0:12" style={{ color: "rgb(34 211 238)", fontSize: `${fsPx * 0.45}px` }} />
+          </>
+        )}
       </div>
       <div className="flex-1 flex">
         <ScoreColumn
@@ -1379,12 +1479,14 @@ function FoulColumn({ fsPx, color, filledIndex }: { fsPx: number; color: string;
   const cellH = Math.max(fsPx * 0.22, 4);
   const cellW = Math.max(fsPx * 0.35, 6);
   const foulFs = Math.max(fsPx * 0.13, 3);
+  const cautionFs = Math.max(fsPx * 0.09, 2);
   return (
     <div className="flex flex-col items-center justify-center" style={{ padding: `0 ${fsPx * 0.05}px` }}>
       <span className="text-gray-500 font-bold" style={{ fontSize: `${fsPx * 0.1}px` }}>
         反則
       </span>
-      {[4, 3, 2, 1].map((n) => (
+      {/* 反則 3→2→1（上から） */}
+      {[3, 2, 1].map((n) => (
         <div
           key={n}
           style={{
@@ -1398,8 +1500,26 @@ function FoulColumn({ fsPx, color, filledIndex }: { fsPx: number; color: string;
             fontSize: `${foulFs}px`,
             color: n === filledIndex ? "#000" : "#555",
           }}
-        />
+        >
+          {n}
+        </div>
       ))}
+      {/* 注意セル（一番下） */}
+      <div
+        style={{
+          width: `${cellW}px`,
+          height: `${cellH}px`,
+          backgroundColor: "#1a1a2e",
+          border: "1px solid #333",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: `${cautionFs}px`,
+          color: "#555",
+        }}
+      >
+        注意
+      </div>
     </div>
   );
 }

@@ -4,7 +4,14 @@
 
 export type LayoutAlignment = "left" | "center" | "right";
 export type LayoutVerticalAlign = "top" | "middle" | "bottom";
-export type LayoutRowType = "timer" | "scores" | "player_names" | "match_info" | "newaza" | "spacer";
+export type LayoutRowType =
+  | "timer"
+  | "scores"
+  | "player_names"
+  | "match_info"
+  | "newaza"
+  | "spacer"
+  | "timer_with_newaza";
 
 export type LayoutRow = {
   type: LayoutRowType;
@@ -14,6 +21,8 @@ export type LayoutRow = {
   verticalAlign: LayoutVerticalAlign;
   subFontSize?: number; // scores用: 技あり・反則のフォントサイズ(vh)
   subAlign?: LayoutAlignment;
+  timerRatio?: number; // timer_with_newaza用: メインタイマーの幅比率(0〜1、デフォルト0.75)
+  scoreCenterMode?: "newaza" | "match_info"; // scores用: 中央に寝技 or 試合番号を表示
 };
 
 export type LayoutConfig = {
@@ -234,6 +243,8 @@ export type ResultDetail = {
   white_wazaari?: number;
   red_fouls?: number;
   white_fouls?: number;
+  red_cautions?: number;
+  white_cautions?: number;
   corrected?: boolean;
 };
 

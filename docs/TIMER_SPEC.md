@@ -1,7 +1,7 @@
 # スポーツタイマー機能 仕様書（ドラフト）
 
 > **ステータス**: Phase 1 実装済み（一部未実装項目あり）
-> **最終更新**: 2026-04-01
+> **最終更新**: 2026-04-13
 > **対象プロジェクト**: karate-announce（`/timer` ルートとして組み込み）
 > **参考機材**: SEIKO STS-2225 / JT-801 柔道タイマー
 
@@ -218,13 +218,15 @@ type LayoutConfig = {
   labelNewaza: string; // 寝技ラベル（"寝技", "NEWAZA" 等）
 };
 type LayoutRow = {
-  type: "timer" | "scores" | "player_names" | "match_info" | "newaza" | "spacer";
+  type: "timer" | "scores" | "player_names" | "match_info" | "newaza" | "spacer" | "timer_with_newaza";
   height: number; // vh。0 = flex-1（残りを均等分割）
   fontSize: number; // vh。制限なし
   align: "left" | "center" | "right";
   verticalAlign: "top" | "middle" | "bottom";
   subFontSize?: number; // scores用: 技あり・反則のフォントサイズ(vh)
   subAlign?: "left" | "center" | "right";
+  timerRatio?: number; // timer_with_newaza用: メインタイマーの幅比率(0〜1、デフォルト0.75)
+  scoreCenterMode?: "newaza" | "match_info"; // scores用: 中央に寝技 or 試合番号を表示
 };
 ```
 
@@ -237,6 +239,42 @@ type LayoutRow = {
 | `match_info` | 試合番号・延長表示 | なし |
 | `newaza` | 寝技タイマー | なし |
 | `spacer` | 空白行 | なし |
+| `timer_with_newaza` | メインタイマー＋寝技タイマー横並び | なし（内部で左右分割） |
+
+**timer_with_newaza 行の詳細:**
+
+- 左側（timerRatio、デフォルト75%）: メインタイマー（大フォント）
+- 右側: 寝技タイマー2段表示（寝1/寝2）。寝技1回目・2回目をそれぞれ表示
+
+**scores 行の scoreCenterMode:**
+
+- `"newaza"`（デフォルト）: スコア行中央に寝技タイマーを表示
+- `"match_info"`: スコア行中央に試合番号を大きく黄色で表示
+
+#### テンプレート機能
+
+プリセット新規作成時に、定義済みテンプレートから初期値を一括セットできる。テンプレート適用後は全フィールド自由に編集可能。
+
+| テンプレート名 | 説明                                                                |
+| -------------- | ------------------------------------------------------------------- |
+| 空のプリセット | すべてデフォルト値から設定（従来の動作）                            |
+| 交流会         | タイマー+寝技横並び、スコア中央に試合番号表示。赤=ピンク、白=グレー |
+
+テンプレート定義は `lib/timer-templates.ts` で管理。
+
+#### 注意（caution）機能
+
+反則の前段階の警告。反則とは別にカウントし、表示色も異なる。
+
+- `ScoreState.cautions: number` — 注意カウント
+- 注意ボタン: 操作画面に黄色系ボタンとして表示（キーバインド: D=赤側、K=白側）
+- 反則セル表示: 下から「注意 → 反則1 → 反則2 → 反則3」の4段
+  - 注意セル: 点灯時は黄橙色（#E1D200）
+  - 反則セル: 点灯時は選手色
+  - 「注意から始まる場合」: 注意セルが黄橙色に点灯
+  - 「いきなり反則の場合」: 注意セルは黒のまま、反則1が選手色で点灯
+- 注意は自動判定（反則負け・相手ポイント付与）には影響しない
+- Undo対応
 
 **管理画面のレイアウトエディタ:**
 

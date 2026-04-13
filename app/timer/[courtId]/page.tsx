@@ -402,9 +402,153 @@ function TimerRowMatchInfo({
   );
 }
 
+// ── タイマー＋寝技横並び行 ──
+
+function TimerWithNewazaRow({
+  row,
+  bs,
+  theme,
+  state,
+  displayMs,
+  newazaDispMs,
+}: {
+  row: LayoutRow;
+  bs: React.CSSProperties;
+  theme: TimerTheme;
+  state: TimerState;
+  displayMs: number;
+  newazaDispMs: number;
+}) {
+  const ratio = row.timerRatio ?? 0.75;
+  const subFs = row.subFontSize ?? 5;
+  const newazaDur = (theme.p?.newaza_duration ?? 30) * 1000;
+  const showNewaza = theme.p?.newaza_enabled ?? false;
+  return (
+    <div style={{ ...bs, display: "flex" }}>
+      {/* メインタイマー */}
+      <div
+        style={{
+          width: `${ratio * 100}%`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <TimerDigits
+          text={formatTime(displayMs, theme.showDecimals)}
+          style={{ fontSize: `${row.fontSize}vh`, color: theme.currentTimerColor }}
+        />
+      </div>
+      {/* 寝技タイマー（右側2段） */}
+      {showNewaza && (
+        <div
+          style={{
+            width: `${(1 - ratio) * 100}%`,
+            display: "flex",
+            flexDirection: "column",
+            borderLeft: `${theme.layout.dividerThickness}px solid ${theme.dividerColor}`,
+          }}
+        >
+          {/* 寝1 */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.5em",
+              borderBottom: `${theme.layout.dividerThickness}px solid ${theme.dividerColor}`,
+            }}
+          >
+            <span className="text-gray-400 font-bold" style={{ fontSize: `${subFs * 0.6}vh` }}>
+              寝
+            </span>
+            <span className="text-green-300 font-bold" style={{ fontSize: `${subFs * 0.5}vh` }}>
+              1
+            </span>
+            <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${subFs}vh` }}>
+              {state.newaza.usedCount >= 1 || state.newaza.active
+                ? formatTime(state.newaza.active && state.newaza.usedCount === 0 ? newazaDispMs : newazaDur)
+                : formatTime(newazaDur)}
+            </span>
+          </div>
+          {/* 寝2 */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.5em",
+            }}
+          >
+            <span className="text-gray-400 font-bold" style={{ fontSize: `${subFs * 0.6}vh` }}>
+              寝
+            </span>
+            <span className="text-green-300 font-bold" style={{ fontSize: `${subFs * 0.5}vh` }}>
+              2
+            </span>
+            <span className="font-bold text-gray-600 tabular-nums" style={{ fontSize: `${subFs}vh` }}>
+              {state.newaza.usedCount >= 2
+                ? formatTime(newazaDur)
+                : state.newaza.active && state.newaza.usedCount === 1
+                  ? (() => {
+                      return <span className="text-cyan-400">{formatTime(newazaDispMs)}</span>;
+                    })()
+                  : "--:--"}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── スコア行中央: 試合番号表示 ──
+
+function CenterMatchInfo({
+  row,
+  state,
+  dividerColor,
+  dividerThickness,
+}: {
+  row: LayoutRow;
+  state: TimerState;
+  dividerColor: string;
+  dividerThickness: number;
+}) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center"
+      style={{
+        minWidth: `${row.fontSize * 1.2}vh`,
+        borderLeft: `${dividerThickness}px solid ${dividerColor}`,
+        borderRight: `${dividerThickness}px solid ${dividerColor}`,
+      }}
+    >
+      <span className="text-gray-500 font-bold" style={{ fontSize: `${row.fontSize * 0.15}vh` }}>
+        試合番号
+      </span>
+      <span className="font-bold tabular-nums" style={{ fontSize: `${row.fontSize * 0.5}vh`, color: "#E1D200" }}>
+        {state.matchLabel || "--"}
+      </span>
+    </div>
+  );
+}
+
 const ROW_RENDERERS: Record<string, (p: TimerRowProps & { bs: React.CSSProperties }) => React.ReactNode> = {
   timer: (p) => <TimerRowTimer row={p.row} bs={p.bs} theme={p.theme} displayMs={p.displayMs} />,
   match_info: (p) => <TimerRowMatchInfo row={p.row} bs={p.bs} state={p.state} theme={p.theme} />,
+  timer_with_newaza: (p) => (
+    <TimerWithNewazaRow
+      row={p.row}
+      bs={p.bs}
+      theme={p.theme}
+      state={p.state}
+      displayMs={p.displayMs}
+      newazaDispMs={p.newazaDispMs}
+    />
+  ),
   newaza: (p) => (
     <NewazaRow
       row={p.row}
@@ -535,15 +679,24 @@ function ScoresRow({
         rowFontSize={row.fontSize}
         foulSide="left"
       />
-      <CenterNewaza
-        row={row}
-        theme={theme}
-        showNewaza={showNewaza}
-        isDraw={isDraw}
-        newazaDispMs={newazaDispMs}
-        dividerColor={theme.dividerColor}
-        dividerThickness={theme.layout.dividerThickness}
-      />
+      {row.scoreCenterMode === "match_info" ? (
+        <CenterMatchInfo
+          row={row}
+          state={state}
+          dividerColor={theme.dividerColor}
+          dividerThickness={theme.layout.dividerThickness}
+        />
+      ) : (
+        <CenterNewaza
+          row={row}
+          theme={theme}
+          showNewaza={showNewaza}
+          isDraw={isDraw}
+          newazaDispMs={newazaDispMs}
+          dividerColor={theme.dividerColor}
+          dividerThickness={theme.layout.dividerThickness}
+        />
+      )}
       <ScoresSide
         score={sides.rightScore}
         color={colorRight}
@@ -581,7 +734,7 @@ function ScoresSide({
   foulSide,
   foulRight,
 }: {
-  score: { points: number; wazaari: number; fouls: number };
+  score: { points: number; wazaari: number; fouls: number; cautions: number };
   color: string;
   wins: boolean;
   showFouls: boolean;
@@ -610,8 +763,6 @@ function ScoresSide({
   );
 }
 
-const CIRCLED_NUMS = ["\u2460", "\u2461", "\u2462", "\u2463"];
-
 function FoulIndicator({
   side,
   score,
@@ -619,10 +770,11 @@ function FoulIndicator({
   fontSize,
 }: {
   side: "left" | "right";
-  score: { fouls: number };
+  score: { fouls: number; cautions: number };
   color: string;
   fontSize: number;
 }) {
+  const CAUTION_COLOR = "#E1D200";
   return (
     <div
       className="flex flex-col items-center justify-center"
@@ -632,7 +784,8 @@ function FoulIndicator({
       <span className="text-gray-500 font-bold" style={{ fontSize: `${fontSize * 0.1}vh` }}>
         反則
       </span>
-      {[4, 3, 2, 1].map((n) => (
+      {/* 上から 3→2→1→注意 の順（下から積み上がり） */}
+      {[3, 2, 1].map((n) => (
         <div
           key={n}
           data-testid={`foul-cell-${side}-${n}`}
@@ -648,9 +801,26 @@ function FoulIndicator({
             color: score.fouls >= n ? "#000" : "#555",
           }}
         >
-          {CIRCLED_NUMS[n - 1]}
+          {n}
         </div>
       ))}
+      {/* 注意セル（一番下） */}
+      <div
+        data-testid={`caution-cell-${side}`}
+        style={{
+          width: `${fontSize * 0.35}vh`,
+          height: `${fontSize * 0.22}vh`,
+          backgroundColor: score.cautions > 0 ? CAUTION_COLOR : "#1a1a2e",
+          border: "1px solid #333",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: `${fontSize * 0.09}vh`,
+          color: score.cautions > 0 ? "#000" : "#555",
+        }}
+      >
+        注意
+      </div>
     </div>
   );
 }

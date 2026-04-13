@@ -7,6 +7,7 @@ import { showToast } from "@/components/toast";
 import { isDeleted } from "@/lib/soft-delete-shared";
 import { TimerPresetEditor, EMPTY_PRESET } from "@/components/_timer-preset-editor";
 import type { EditablePreset } from "@/components/_timer-preset-editor";
+import { TIMER_TEMPLATES } from "@/lib/timer-templates";
 
 function presetSummary(p: TimerPreset): string {
   const dur = `${Math.floor(p.match_duration / 60)}分${p.match_duration % 60 > 0 ? `${p.match_duration % 60}秒` : ""}`;
@@ -91,6 +92,7 @@ export function TimerPresetsPanel() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [showTemplateSelect, setShowTemplateSelect] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/admin/timer-presets");
@@ -156,8 +158,18 @@ export function TimerPresetsPanel() {
   };
 
   function startNewPreset() {
-    setEditing({ ...EMPTY_PRESET, layout: { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) } });
+    setShowTemplateSelect(true);
+  }
+
+  function selectTemplate(preset: EditablePreset) {
+    setEditing({
+      ...preset,
+      layout: preset.layout
+        ? { ...preset.layout, rows: preset.layout.rows.map((r) => ({ ...r })) }
+        : { ...DEFAULT_LAYOUT, rows: DEFAULT_LAYOUT.rows.map((r) => ({ ...r })) },
+    });
     setEditId(null);
+    setShowTemplateSelect(false);
   }
 
   return (
@@ -195,6 +207,42 @@ export function TimerPresetsPanel() {
               onRestore={(id) => void handleRestore(id)}
             />
           ))}
+        </div>
+      )}
+
+      {/* テンプレート選択 */}
+      {showTemplateSelect && (
+        <div className="mt-6 border border-gray-700 rounded-xl bg-gray-900 p-6">
+          <h2 className="text-lg font-bold mb-4">テンプレートを選択</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* 空のプリセット */}
+            <button
+              onClick={() => selectTemplate(EMPTY_PRESET)}
+              className="p-4 rounded-lg border-2 border-gray-700 hover:border-blue-500 hover:bg-blue-950/20 text-left transition"
+            >
+              <p className="font-bold text-white">空のプリセット</p>
+              <p className="text-xs text-gray-500 mt-1">すべてデフォルト値から設定</p>
+            </button>
+            {/* テンプレート一覧 */}
+            {TIMER_TEMPLATES.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => selectTemplate(t.preset)}
+                className="p-4 rounded-lg border-2 border-gray-700 hover:border-blue-500 hover:bg-blue-950/20 text-left transition"
+              >
+                <p className="font-bold text-white">{t.name}</p>
+                <p className="text-xs text-gray-500 mt-1">{t.description}</p>
+              </button>
+            ))}
+          </div>
+          <div className="mt-4">
+            <button
+              onClick={() => setShowTemplateSelect(false)}
+              className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition"
+            >
+              キャンセル
+            </button>
+          </div>
         </div>
       )}
 

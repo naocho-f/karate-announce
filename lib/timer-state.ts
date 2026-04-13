@@ -24,6 +24,7 @@ export interface ScoreState {
   wazaari: number;
   ippon: number;
   fouls: number;
+  cautions: number;
 }
 
 export interface NewazaState {
@@ -128,7 +129,7 @@ const EMPTY_FIGHTER: FighterInfo = {
   affiliationReading: null,
 };
 
-const EMPTY_SCORE: ScoreState = { points: 0, wazaari: 0, ippon: 0, fouls: 0 };
+const EMPTY_SCORE: ScoreState = { points: 0, wazaari: 0, ippon: 0, fouls: 0, cautions: 0 };
 
 const EMPTY_NEWAZA: NewazaState = {
   active: false,
@@ -479,6 +480,8 @@ function buildResultDetail(state: TimerState): ResultDetail {
     white_wazaari: state.whiteScore.wazaari,
     red_fouls: state.redScore.fouls,
     white_fouls: state.whiteScore.fouls,
+    red_cautions: state.redScore.cautions,
+    white_cautions: state.whiteScore.cautions,
   };
 }
 
@@ -541,6 +544,18 @@ export function addFoul(state: TimerState, side: FighterSide): TimerState {
 
   log(s, `${side}_foul`);
   return checkAutoFinish(s);
+}
+
+export function addCaution(state: TimerState, side: FighterSide): TimerState {
+  if (state.phase !== "running" && state.phase !== "paused" && state.phase !== "time_up") return state;
+  const s = { ...state };
+  pushUndo(s, `${side}_caution`, state.phase);
+  const score = side === "red" ? { ...s.redScore } : { ...s.whiteScore };
+  score.cautions += 1;
+  if (side === "red") s.redScore = score;
+  else s.whiteScore = score;
+  log(s, `${side}_caution`);
+  return s;
 }
 
 // ── 寝技 ──────────────────────────────────────────────────────

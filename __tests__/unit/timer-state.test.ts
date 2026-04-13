@@ -19,6 +19,7 @@ import {
   addWazaari,
   addIppon,
   addFoul,
+  addCaution,
   toggleNewaza,
   newazaTimeUp,
   adjustNewazaCount,
@@ -643,6 +644,8 @@ describe("timer-state", () => {
         white_wazaari: 0,
         red_fouls: 0,
         white_fouls: 1,
+        red_cautions: 0,
+        white_cautions: 0,
       });
     });
   });
@@ -1029,6 +1032,62 @@ describe("timer-state", () => {
       st = toggleNewaza(st);
       st = newazaTimeUp(st);
       expect(st.newaza.exhausted).toBe(false); // 非累積では false
+    });
+  });
+
+  // ── 注意(caution)テスト ──
+  describe("注意(caution)", () => {
+    it("addCaution: 注意カウント加算", () => {
+      const running = startTimer(readyState());
+      const s = addCaution(running, "red");
+      expect(s.redScore.cautions).toBe(1);
+      expect(s.whiteScore.cautions).toBe(0);
+    });
+
+    it("addCaution: 白側にも加算可能", () => {
+      const running = startTimer(readyState());
+      const s = addCaution(running, "white");
+      expect(s.whiteScore.cautions).toBe(1);
+      expect(s.redScore.cautions).toBe(0);
+    });
+
+    it("addCaution: 複数回加算", () => {
+      const running = startTimer(readyState());
+      let s = addCaution(running, "red");
+      s = addCaution(s, "red");
+      expect(s.redScore.cautions).toBe(2);
+    });
+
+    it("addCaution: 反則の自動判定には影響しない", () => {
+      const running = startTimer(readyState({ foul_loss_count: 3 }));
+      let s = addCaution(running, "red");
+      s = addCaution(s, "red");
+      s = addCaution(s, "red");
+      // 注意は何回与えても自動判定で finished にならない
+      expect(s.phase).not.toBe("finished");
+      expect(s.redScore.cautions).toBe(3);
+      expect(s.redScore.fouls).toBe(0);
+    });
+
+    it("addCaution: Undo で注意を戻せる", () => {
+      const running = startTimer(readyState());
+      let s = addCaution(running, "red");
+      expect(s.redScore.cautions).toBe(1);
+      s = undo(s);
+      expect(s.redScore.cautions).toBe(0);
+    });
+
+    it("addCaution: idle状態では変更しない", () => {
+      const idle = createInitialState();
+      const s = addCaution(idle, "red");
+      expect(s.redScore.cautions).toBe(0);
+      expect(s).toBe(idle);
+    });
+
+    it("createInitialState: cautions は 0 で初期化される", () => {
+      const s = createInitialState();
+      expect(s.redScore.cautions).toBe(0);
+      expect(s.whiteScore.cautions).toBe(0);
     });
   });
 });

@@ -33,6 +33,7 @@ const ROW_TYPE_LABELS: Record<LayoutRowType, string> = {
   match_info: "試合情報",
   newaza: "寝技タイマー",
   spacer: "スペーサー",
+  timer_with_newaza: "タイマー＋寝技（横並び）",
 };
 
 export function rowTypeLabel(type: LayoutRowType): string {

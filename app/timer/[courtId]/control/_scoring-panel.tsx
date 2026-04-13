@@ -10,6 +10,7 @@ type Props = {
   onAddPoint: (side: FighterSide) => void;
   onAddWazaari: (side: FighterSide) => void;
   onAddFoul: (side: FighterSide) => void;
+  onAddCaution: (side: FighterSide) => void;
   onIpponConfirm: (side: FighterSide) => void;
 };
 
@@ -17,10 +18,10 @@ type SideConfig = {
   side: FighterSide;
   label: string;
   name: string;
-  score: { points: number; wazaari: number; fouls: number; ippon: number };
+  score: { points: number; wazaari: number; fouls: number; cautions: number; ippon: number };
   bgClass: string;
   labelColor: string;
-  keys: { pt: string; wz: string; fl: string; ip: string };
+  keys: { pt: string; wz: string; fl: string; ct: string; ip: string };
 };
 
 function resolveSide(state: TimerState, swapSides: boolean, position: "left" | "right"): SideConfig {
@@ -34,8 +35,64 @@ function resolveSide(state: TimerState, swapSides: boolean, position: "left" | "
       ? "bg-red-900/50 hover:bg-red-800/60 text-red-300"
       : "bg-gray-700/50 hover:bg-gray-600/60 text-gray-200",
     labelColor: isRed ? "text-red-400" : "text-gray-200",
-    keys: position === "left" ? { pt: "Q", wz: "W", fl: "E", ip: "R" } : { pt: "I", wz: "O", fl: "P", ip: "L" },
+    keys:
+      position === "left"
+        ? { pt: "Q", wz: "W", fl: "E", ct: "D", ip: "R" }
+        : { pt: "I", wz: "O", fl: "P", ct: "K", ip: "L" },
   };
+}
+
+function ScoreSummary({ score }: { score: SideConfig["score"] }) {
+  return (
+    <div className="text-center text-xs text-gray-500">
+      {score.points}pt / 技{score.wazaari} / 反{score.fouls}
+      {score.cautions > 0 && ` / 注${score.cautions}`}
+      {score.ippon > 0 && ` / 一本${score.ippon}`}
+    </div>
+  );
+}
+
+function ScoreGridButtons({
+  side,
+  bgClass,
+  keys,
+  showPoints,
+  showWazaari,
+  showFouls,
+  onAddPoint,
+  onAddWazaari,
+  onAddFoul,
+}: {
+  side: FighterSide;
+  bgClass: string;
+  keys: SideConfig["keys"];
+  showPoints: boolean;
+  showWazaari: boolean;
+  showFouls: boolean;
+  onAddPoint: (s: FighterSide) => void;
+  onAddWazaari: (s: FighterSide) => void;
+  onAddFoul: (s: FighterSide) => void;
+}) {
+  const cols = [showPoints, showWazaari, showFouls].filter(Boolean).length || 1;
+  return (
+    <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+      {showPoints && (
+        <button onClick={() => onAddPoint(side)} className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
+          +1pt [{keys.pt}]
+        </button>
+      )}
+      {showWazaari && (
+        <button onClick={() => onAddWazaari(side)} className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
+          技あり [{keys.wz}]
+        </button>
+      )}
+      {showFouls && (
+        <button onClick={() => onAddFoul(side)} className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
+          反則 [{keys.fl}]
+        </button>
+      )}
+    </div>
+  );
 }
 
 function ScoringColumn({
@@ -44,6 +101,7 @@ function ScoringColumn({
   onAddPoint,
   onAddWazaari,
   onAddFoul,
+  onAddCaution,
   onIpponConfirm,
 }: {
   cfg: SideConfig;
@@ -51,32 +109,35 @@ function ScoringColumn({
   onAddPoint: (s: FighterSide) => void;
   onAddWazaari: (s: FighterSide) => void;
   onAddFoul: (s: FighterSide) => void;
+  onAddCaution: (s: FighterSide) => void;
   onIpponConfirm: (s: FighterSide) => void;
 }) {
   const { side, label, name, score, bgClass, labelColor, keys } = cfg;
-  const cols = [p?.show_points, p?.show_wazaari, p?.show_fouls].filter(Boolean).length || 1;
+  const showFouls = p?.show_fouls ?? false;
   return (
     <div className="space-y-2">
       <p className={`${labelColor} font-bold text-center text-sm`}>
         {label} ({name || label})
       </p>
-      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
-        {p?.show_points && (
-          <button onClick={() => onAddPoint(side)} className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
-            +1pt [{keys.pt}]
-          </button>
-        )}
-        {p?.show_wazaari && (
-          <button onClick={() => onAddWazaari(side)} className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
-            技あり [{keys.wz}]
-          </button>
-        )}
-        {p?.show_fouls && (
-          <button onClick={() => onAddFoul(side)} className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
-            反則 [{keys.fl}]
-          </button>
-        )}
-      </div>
+      <ScoreGridButtons
+        side={side}
+        bgClass={bgClass}
+        keys={keys}
+        showPoints={p?.show_points ?? false}
+        showWazaari={p?.show_wazaari ?? false}
+        showFouls={showFouls}
+        onAddPoint={onAddPoint}
+        onAddWazaari={onAddWazaari}
+        onAddFoul={onAddFoul}
+      />
+      {showFouls && (
+        <button
+          onClick={() => onAddCaution(side)}
+          className="w-full py-2 rounded bg-yellow-900/50 hover:bg-yellow-800/60 text-yellow-300 text-sm font-bold transition"
+        >
+          注意 [{keys.ct}]
+        </button>
+      )}
       {p?.show_ippon && (
         <button
           onClick={() => onIpponConfirm(side)}
@@ -85,10 +146,7 @@ function ScoringColumn({
           一本 [{keys.ip}]
         </button>
       )}
-      <div className="text-center text-xs text-gray-500">
-        {score.points}pt / 技{score.wazaari} / 反{score.fouls}
-        {score.ippon > 0 && ` / 一本${score.ippon}`}
-      </div>
+      <ScoreSummary score={score} />
     </div>
   );
 }
@@ -100,6 +158,7 @@ export default function ScoringPanel({
   onAddPoint,
   onAddWazaari,
   onAddFoul,
+  onAddCaution,
   onIpponConfirm,
 }: Props) {
   const left = resolveSide(state, swapSides, "left");
@@ -114,6 +173,7 @@ export default function ScoringPanel({
           onAddPoint={onAddPoint}
           onAddWazaari={onAddWazaari}
           onAddFoul={onAddFoul}
+          onAddCaution={onAddCaution}
           onIpponConfirm={onIpponConfirm}
         />
         <ScoringColumn
@@ -122,6 +182,7 @@ export default function ScoringPanel({
           onAddPoint={onAddPoint}
           onAddWazaari={onAddWazaari}
           onAddFoul={onAddFoul}
+          onAddCaution={onAddCaution}
           onIpponConfirm={onIpponConfirm}
         />
       </div>

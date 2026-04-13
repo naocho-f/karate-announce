@@ -10,6 +10,7 @@ import {
   addWazaari,
   addIppon,
   addFoul,
+  addCaution,
   toggleNewaza,
   adjustNewazaCount,
   undo,
@@ -73,6 +74,7 @@ export default function MatchOperations(props: MatchOperationsProps) {
           onAddPoint={(side) => props.onUpdate((s) => addPoint(s, side))}
           onAddWazaari={(side) => props.onUpdate((s) => addWazaari(s, side))}
           onAddFoul={(side) => props.onUpdate((s) => addFoul(s, side))}
+          onAddCaution={(side) => props.onUpdate((s) => addCaution(s, side))}
           onIpponConfirm={(side) => props.onSetIpponConfirmSide(side)}
         />
       )}
