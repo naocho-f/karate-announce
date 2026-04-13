@@ -11,6 +11,12 @@ AI運用6原則
 第6原則： AIは全てのチャットの冒頭にこの6原則を逐語的に必ず画面出力してから対応する。
 </law>
 
+## 環境変数
+
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- `OPENAI_API_KEY`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`
+- `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_MODE`
+
 <every_chat>
 [AI運用6原則]
 

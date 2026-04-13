@@ -198,5 +198,127 @@ describe("論理削除（ソフトデリート）", () => {
       const res = await PATCH(req, createParams({ id: "not-exist" }));
       expect(res.status).toBe(404);
     });
+
+    it("ルールの削除取消ができる", async () => {
+      const recentDelete = new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString();
+      mockResult("rules", "select", { data: { id: "r1", deleted_at: recentDelete } });
+      mockResult("rules", "update", { data: null });
+      const { PATCH } = await import("@/app/api/admin/rules/[id]/restore/route");
+      const req = createAdminRequest("PATCH", "/api/admin/rules/r1/restore");
+      const res = await PATCH(req, createParams({ id: "r1" }));
+      expect(res.status).toBe(200);
+    });
+
+    it("エントリーの削除取消ができる", async () => {
+      const recentDelete = new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString();
+      mockResult("entries", "select", { data: { id: "e1", deleted_at: recentDelete } });
+      mockResult("entries", "update", { data: null });
+      const { PATCH } = await import("@/app/api/admin/entries/[id]/restore/route");
+      const req = createAdminRequest("PATCH", "/api/admin/entries/e1/restore");
+      const res = await PATCH(req, createParams({ id: "e1" }));
+      expect(res.status).toBe(200);
+    });
+
+    it("タイマープリセットの削除取消ができる", async () => {
+      const recentDelete = new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString();
+      mockResult("timer_presets", "select", { data: { id: "p1", deleted_at: recentDelete } });
+      mockResult("timer_presets", "update", { data: null });
+      const { PATCH } = await import("@/app/api/admin/timer-presets/[id]/restore/route");
+      const req = createAdminRequest("PATCH", "/api/admin/timer-presets/p1/restore");
+      const res = await PATCH(req, createParams({ id: "p1" }));
+      expect(res.status).toBe(200);
+    });
+
+    it("振り分けルールの削除取消ができる", async () => {
+      const recentDelete = new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString();
+      mockResult("bracket_rules", "select", { data: { id: "br1", deleted_at: recentDelete } });
+      mockResult("bracket_rules", "update", { data: null });
+      const { PATCH } = await import("@/app/api/admin/bracket-rules/[id]/restore/route");
+      const req = createAdminRequest("PATCH", "/api/admin/bracket-rules/br1/restore");
+      const res = await PATCH(req, createParams({ id: "br1" }));
+      expect(res.status).toBe(200);
+    });
+
+    it("注意書きの削除取消ができる", async () => {
+      const recentDelete = new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString();
+      mockResult("form_notices", "select", { data: { id: "n1", deleted_at: recentDelete } });
+      mockResult("form_notices", "update", { data: null });
+      const { PATCH } = await import("@/app/api/admin/form-config/notices/[id]/restore/route");
+      const req = createAdminRequest("PATCH", "/api/admin/form-config/notices/n1/restore");
+      const res = await PATCH(req, createParams({ id: "n1" }));
+      expect(res.status).toBe(200);
+    });
+
+    it("カスタムフィールドの削除取消ができる", async () => {
+      const recentDelete = new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString();
+      mockResult("custom_field_defs", "select", { data: { id: "cf1", deleted_at: recentDelete } });
+      mockResult("custom_field_defs", "update", { data: null });
+      const { PATCH } = await import("@/app/api/admin/form-config/custom-fields/restore/route");
+      const req = createAdminRequest("PATCH", "/api/admin/form-config/custom-fields/restore", {
+        body: { form_config_id: "fc1", field_key: "custom_abc" },
+      });
+      const res = await PATCH(req);
+      expect(res.status).toBe(200);
+    });
+  });
+
+  // ── 即時削除（expire） ──
+
+  describe("PATCH expire（今すぐ消す）", () => {
+    it("道場のexpireができる", async () => {
+      mockResult("dojos", "update", { data: null });
+      const { PATCH } = await import("@/app/api/admin/dojos/[id]/expire/route");
+      const req = createAdminRequest("PATCH", "/api/admin/dojos/d1/expire");
+      const res = await PATCH(req, createParams({ id: "d1" }));
+      expect(res.status).toBe(200);
+    });
+
+    it("ルールのexpireができる", async () => {
+      mockResult("rules", "update", { data: null });
+      const { PATCH } = await import("@/app/api/admin/rules/[id]/expire/route");
+      const req = createAdminRequest("PATCH", "/api/admin/rules/r1/expire");
+      const res = await PATCH(req, createParams({ id: "r1" }));
+      expect(res.status).toBe(200);
+    });
+
+    it("イベントのexpireができる", async () => {
+      mockResult("events", "update", { data: null });
+      const { PATCH } = await import("@/app/api/admin/events/[id]/expire/route");
+      const req = createAdminRequest("PATCH", "/api/admin/events/ev1/expire");
+      const res = await PATCH(req, createParams({ id: "ev1" }));
+      expect(res.status).toBe(200);
+    });
+
+    it("トーナメントのexpireができる", async () => {
+      mockResult("tournaments", "update", { data: null });
+      const { PATCH } = await import("@/app/api/admin/tournaments/[id]/expire/route");
+      const req = createAdminRequest("PATCH", "/api/admin/tournaments/t1/expire");
+      const res = await PATCH(req, createParams({ id: "t1" }));
+      expect(res.status).toBe(200);
+    });
+
+    it("エントリーのexpireができる", async () => {
+      mockResult("entries", "update", { data: null });
+      const { PATCH } = await import("@/app/api/admin/entries/[id]/expire/route");
+      const req = createAdminRequest("PATCH", "/api/admin/entries/e1/expire");
+      const res = await PATCH(req, createParams({ id: "e1" }));
+      expect(res.status).toBe(200);
+    });
+
+    it("タイマープリセットのexpireができる", async () => {
+      mockResult("timer_presets", "update", { data: null });
+      const { PATCH } = await import("@/app/api/admin/timer-presets/[id]/expire/route");
+      const req = createAdminRequest("PATCH", "/api/admin/timer-presets/p1/expire");
+      const res = await PATCH(req, createParams({ id: "p1" }));
+      expect(res.status).toBe(200);
+    });
+
+    it("振り分けルールのexpireができる", async () => {
+      mockResult("bracket_rules", "update", { data: null });
+      const { PATCH } = await import("@/app/api/admin/bracket-rules/[id]/expire/route");
+      const req = createAdminRequest("PATCH", "/api/admin/bracket-rules/br1/expire");
+      const res = await PATCH(req, createParams({ id: "br1" }));
+      expect(res.status).toBe(200);
+    });
   });
 });
