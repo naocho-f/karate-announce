@@ -354,12 +354,6 @@ export function TimerPresetEditor({
       </div>
       <div className="flex gap-2 mt-6">
         <button
-          onClick={() => setShowPreview(true)}
-          className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white font-bold transition"
-        >
-          プレビュー
-        </button>
-        <button
           onClick={() => void handleSave()}
           disabled={saving || !localEditing.name}
           className="flex-1 py-2 rounded bg-blue-700 hover:bg-blue-600 text-white font-bold transition disabled:opacity-50"
@@ -370,6 +364,13 @@ export function TimerPresetEditor({
           キャンセル
         </button>
       </div>
+      {/* 右下固定プレビューボタン */}
+      <button
+        onClick={() => setShowPreview(true)}
+        className="fixed bottom-6 right-6 z-40 px-5 py-3 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-900/50 transition text-sm"
+      >
+        プレビュー
+      </button>
       {showPreview && <PreviewModal editing={localEditing} layout={layout} onClose={() => setShowPreview(false)} />}
     </div>
   );
@@ -1309,8 +1310,8 @@ function PreviewModal({
 }) {
   const { state, theme, sides, durationMs, newazaDispMs } = buildKouryuukaiDummyData(editing, layout);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
-      <div className="relative" style={{ width: "80vw", height: "80vh" }} onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 cursor-pointer" onClick={onClose}>
+      <div style={{ width: "80vw", height: "80vh" }}>
         <KouryuukaiLayout
           state={state}
           theme={theme}
@@ -1319,12 +1320,6 @@ function PreviewModal({
           newazaDispMs={newazaDispMs}
           className="w-full h-full select-none overflow-hidden"
         />
-        <button
-          onClick={onClose}
-          className="absolute top-2 right-2 px-3 py-1 rounded bg-gray-700/80 hover:bg-gray-600 text-white text-sm transition"
-        >
-          閉じる
-        </button>
       </div>
     </div>
   );

@@ -724,4 +724,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **交流会レイアウト色・間隔修正（2026-04-13）**: 反則・技有の点灯色を画像指定の共通色#008CFFに変更。寝技ラベル間隔詰め。試合番号ラベル-番号間隔詰め。寝技2は開始まで非表示
 - **pre-commit警告全解消（2026-04-13）**: restore/expire全APIのテスト追加、soft-delete/soft-delete-shared/timer-templatesのユニットテスト追加、delete-pending-barテスト追加、CLAUDE.mdに環境変数一覧追記
 - **交流会レイアウト色修正（2026-04-13）**: 反則セル点灯色を赤、試合番号ラベルを黄色に修正。反則・技有セル文字色を常にグレー(#A0A0A0)に統一。寝技2はラベル表示+時間のみ開始後表示
-- **プレビューをモーダル化（2026-04-13）**: 旧プレビュー（小さい横並び表示）を削除。「プレビュー」ボタン→80vw x 80vhモーダルでKouryuukaiLayoutを直接表示。旧PreviewRow/ScoresPreviewRow/FoulColumn/ScoreColumn等を全削除
+- **プレビューをモーダル化（2026-04-13）**: 右下固定プレビューボタン→80vw x 80vhモーダル。どこクリックしても閉じる
