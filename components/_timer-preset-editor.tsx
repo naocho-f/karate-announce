@@ -1329,6 +1329,15 @@ function PreviewModal({
 // BuzzerSoundSelector
 // ══════════════════════════════════════════════════════════════
 
+type TenantSound = {
+  id: string;
+  name: string;
+  file_url: string;
+  file_size: number;
+  mime_type: string;
+  created_at: string;
+};
+
 function BuzzerSoundSelector({
   soundId,
   duration,
@@ -1352,6 +1361,20 @@ function BuzzerSoundSelector({
 }) {
   const [uploading, setUploading] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [tenantSounds, setTenantSounds] = useState<TenantSound[]>([]);
+  const [soundsLoaded, setSoundsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (soundId === "custom" && !soundsLoaded) {
+      fetch("/api/admin/custom-sounds")
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data: TenantSound[]) => {
+          setTenantSounds(data);
+          setSoundsLoaded(true);
+        })
+        .catch(() => setSoundsLoaded(true));
+    }
+  }, [soundId, soundsLoaded]);
 
   async function handlePreview() {
     if (playing) return;
@@ -1365,14 +1388,16 @@ function BuzzerSoundSelector({
   }
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !presetId) return;
+    if (!file) return;
     setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
-    const res = await fetch(`/api/admin/timer-presets/${presetId}/buzzer`, { method: "POST", body: formData });
+    // テナント音源ライブラリにアップロード
+    const res = await fetch("/api/admin/custom-sounds", { method: "POST", body: formData });
     if (res.ok) {
-      const { url } = await res.json();
-      onCustomPathChange(url);
+      const sound: TenantSound = await res.json();
+      setTenantSounds((prev) => [sound, ...prev]);
+      onCustomPathChange(sound.file_url);
     } else {
       showToast("アップロードに失敗しました");
     }
@@ -1383,6 +1408,9 @@ function BuzzerSoundSelector({
     if (!presetId) return;
     await fetch(`/api/admin/timer-presets/${presetId}/buzzer`, { method: "DELETE" });
     onCustomPathChange(null);
+  }
+  function handleSelectTenantSound(url: string) {
+    onCustomPathChange(url);
   }
 
   return (
@@ -1400,12 +1428,13 @@ function BuzzerSoundSelector({
       {soundId === "custom" && (
         <BuzzerCustomSection
           customPath={customPath}
-          presetId={presetId}
           uploading={uploading}
           playing={playing}
+          tenantSounds={tenantSounds}
           onPreview={() => void handlePreview()}
           onDelete={() => void handleDelete()}
           onUpload={(e) => void handleUpload(e)}
+          onSelectTenantSound={handleSelectTenantSound}
         />
       )}
     </div>
@@ -1505,53 +1534,73 @@ function BuzzerControls({
 
 function BuzzerCustomSection({
   customPath,
-  presetId,
   uploading,
   playing,
+  tenantSounds,
   onPreview,
   onDelete,
   onUpload,
+  onSelectTenantSound,
 }: {
   customPath: string | null;
-  presetId: string | null;
   uploading: boolean;
   playing: boolean;
+  tenantSounds: TenantSound[];
   onPreview: () => void;
   onDelete: () => void;
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSelectTenantSound: (url: string) => void;
 }) {
   return (
     <div className="bg-gray-900 rounded px-3 py-2 space-y-2">
-      {customPath ? (
+      {customPath && (
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-300 truncate flex-1">アップロード済み</span>
+          <span className="text-xs text-gray-300 truncate flex-1">
+            {tenantSounds.find((s) => s.file_url === customPath)?.name ?? "選択済み"}
+          </span>
           <div className="flex gap-2 shrink-0">
             <button onClick={onPreview} disabled={playing} className="text-xs text-blue-400 hover:text-blue-300">
               {playing ? "再生中..." : "試聴"}
             </button>
             <button onClick={onDelete} className="text-xs text-red-400 hover:text-red-300">
-              削除
+              解除
             </button>
           </div>
         </div>
-      ) : presetId ? (
-        <div>
-          <label htmlFor="buzzer-custom-upload" className="block text-xs text-gray-400 mb-1">
-            音源ファイル（MP3/WAV/OGG、2MB以内）
-          </label>
-          <input
-            id="buzzer-custom-upload"
-            type="file"
-            accept="audio/mpeg,audio/wav,audio/ogg"
-            onChange={onUpload}
-            disabled={uploading}
-            className="text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-700 file:text-gray-300 hover:file:bg-gray-600"
-          />
-          {uploading && <p className="text-xs text-blue-400 mt-1">アップロード中...</p>}
-        </div>
-      ) : (
-        <p className="text-xs text-gray-500">カスタム音源のアップロードはプリセット保存後に行えます</p>
       )}
+      {tenantSounds.length > 0 && (
+        <div>
+          <p className="text-xs text-gray-400 mb-1">音源ライブラリから選択</p>
+          <select
+            value={customPath ?? ""}
+            onChange={(e) => {
+              if (e.target.value) onSelectTenantSound(e.target.value);
+            }}
+            className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500"
+          >
+            <option value="">-- 選択してください --</option>
+            {tenantSounds.map((s) => (
+              <option key={s.id} value={s.file_url}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      <div>
+        <label htmlFor="buzzer-custom-upload" className="block text-xs text-gray-400 mb-1">
+          新規アップロード（MP3/WAV/OGG、2MB以内）
+        </label>
+        <input
+          id="buzzer-custom-upload"
+          type="file"
+          accept="audio/mpeg,audio/wav,audio/ogg"
+          onChange={onUpload}
+          disabled={uploading}
+          className="text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-700 file:text-gray-300 hover:file:bg-gray-600"
+        />
+        {uploading && <p className="text-xs text-blue-400 mt-1">アップロード中...</p>}
+      </div>
     </div>
   );
 }

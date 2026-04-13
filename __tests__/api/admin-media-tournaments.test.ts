@@ -177,6 +177,7 @@ describe("/api/admin/timer-presets/[id]/buzzer", () => {
   beforeEach(() => resetAll());
 
   it("POST: カスタムブザー音源をアップロードできる", async () => {
+    mockResult("tenants", "select", { data: { id: "tenant-1" } });
     const { POST } = await import("@/app/api/admin/timer-presets/[id]/buzzer/route");
     const formData = new FormData();
     formData.append("file", createMockFile("buzzer.mp3", "audio/mpeg"));

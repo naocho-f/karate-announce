@@ -466,6 +466,17 @@ export type CustomFieldDef = {
 // マルチテナント（Phase 1 準備）
 // ──────────────────────────────────────────────
 
+export type TenantCustomSound = {
+  id: string;
+  tenant_id: string;
+  name: string;
+  file_url: string;
+  file_size: number;
+  mime_type: string;
+  created_at: string;
+  deleted_at: string | null;
+};
+
 export type Tenant = {
   id: string;
   slug: string;

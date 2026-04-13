@@ -24,16 +24,29 @@ export async function POST(request: NextRequest, ctx: Ctx) {
     return NextResponse.json({ error: "File too large. Max 2MB." }, { status: 400 });
   }
 
+  // テナント取得
+  const { data: tenant } = await supabaseAdmin.from("tenants").select("id").limit(1).single();
+  if (!tenant) return dbError(null, "テナントが見つかりません", 500);
+
   const ext = file.name.split(".").pop() || "mp3";
-  const storagePath = `timer-buzzer/${id}/${Date.now()}.${ext}`;
+  const storagePath = `custom-sounds/${tenant.id}/${Date.now()}.${ext}`;
   const buf = Buffer.from(await file.arrayBuffer());
 
   const { error: uploadErr } = await supabaseAdmin.storage
-    .from("form-notice-images") // 既存バケットを再利用
+    .from("form-notice-images")
     .upload(storagePath, buf, { contentType: file.type, upsert: true });
   if (uploadErr) return dbError(uploadErr);
 
   const { data: urlData } = supabaseAdmin.storage.from("form-notice-images").getPublicUrl(storagePath);
+
+  // テナント音源ライブラリにも自動登録
+  await supabaseAdmin.from("tenant_custom_sounds").insert({
+    tenant_id: tenant.id,
+    name: file.name.replace(/\.[^.]+$/, ""),
+    file_url: urlData.publicUrl,
+    file_size: file.size,
+    mime_type: file.type,
+  });
 
   const { error: updateErr } = await supabaseAdmin
     .from("timer_presets")

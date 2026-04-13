@@ -308,6 +308,18 @@ create table timer_presets (
   tenant_id uuid not null references tenants(id)
 );
 
+create table tenant_custom_sounds (
+  id uuid not null default gen_random_uuid(),
+  tenant_id uuid not null references tenants(id),
+  name text not null,
+  file_url text not null,
+  file_size integer not null,
+  mime_type text not null check (mime_type in ('audio/mpeg', 'audio/wav', 'audio/ogg')),
+  created_at timestamptz default now(),
+  deleted_at timestamptz,
+  constraint tenant_custom_sounds_pkey primary key (id)
+);
+
 create table tournaments (
   id uuid not null default gen_random_uuid(),
   name text not null,
