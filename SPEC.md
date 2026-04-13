@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-13（テナント共有カスタム音源機能追加）
+> 最終更新: 2026-04-13（カスタム音源の名前付け・編集機能追加）
 
 ---
 
@@ -444,8 +444,8 @@ settings (
 | PATCH/DELETE | `/api/admin/timer-presets/[id]`                | タイマー更新・削除                                                                             |
 | POST         | `/api/admin/timer-presets/[id]/duplicate`      | タイマー複製                                                                                   |
 | POST/DELETE  | `/api/admin/timer-presets/[id]/buzzer`         | カスタムブザー音源アップロード/削除                                                            |
-| GET/POST     | `/api/admin/custom-sounds`                    | テナント共有カスタム音源一覧取得・アップロード                                                  |
-| DELETE       | `/api/admin/custom-sounds/[id]`               | テナント共有カスタム音源削除                                                                    |
+| GET/POST     | `/api/admin/custom-sounds`                     | テナント共有カスタム音源一覧取得・アップロード                                                 |
+| PATCH/DELETE | `/api/admin/custom-sounds/[id]`                | テナント共有カスタム音源の名前変更・削除                                                       |
 | PATCH        | `/api/admin/events/[id]/restore`               | イベント削除取消（論理削除から復元、24時間以内）                                               |
 | PATCH        | `/api/admin/dojos/[id]/restore`                | 道場削除取消                                                                                   |
 | PATCH        | `/api/admin/rules/[id]/restore`                | ルール削除取消                                                                                 |
@@ -729,3 +729,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **プレビューをモーダル化（2026-04-13）**: 右下固定プレビューボタン→80vw x 80vhモーダル。どこクリックしても閉じる
 - **交流会レイアウト文字色調整（2026-04-13）**: 寝1/寝2ラベルをシアン(cyan-400)に統一、反則/技有ラベルを白寄り(#E0E0E0)に変更
 - **テナント共有カスタム音源（2026-04-13）**: カスタムブザー音源をテナント単位で管理・共有。tenant_custom_soundsテーブル追加、音源ライブラリAPI追加、プリセットエディタで既存音源選択対応
+- **カスタム音源の名前付け・編集（2026-04-13）**: アップロード時に名前入力可能、既存音源の名前をインライン編集可能。PATCH APIエンドポイント追加

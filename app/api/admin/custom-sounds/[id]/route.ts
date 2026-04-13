@@ -6,6 +6,29 @@ import { dbError } from "@/lib/api-utils";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+/** PATCH — テナント共有カスタム音源の名前変更 */
+export async function PATCH(request: NextRequest, ctx: Ctx) {
+  if (!verifyAdminAuth(request)) return unauthorized();
+  const { id } = await ctx.params;
+  const body = await request.json();
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  if (!name) {
+    return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("tenant_custom_sounds")
+    .update({ name })
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select("id, name, file_url, file_size, mime_type, created_at")
+    .single();
+  if (error) return dbError(error);
+  if (!data) return NextResponse.json({ error: "Sound not found" }, { status: 404 });
+
+  return NextResponse.json(data);
+}
+
 /** DELETE — テナント共有カスタム音源を削除 */
 export async function DELETE(request: NextRequest, ctx: Ctx) {
   if (!verifyAdminAuth(request)) return unauthorized();

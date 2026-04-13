@@ -74,6 +74,29 @@ describe("/api/admin/custom-sounds", () => {
 describe("/api/admin/custom-sounds/[id]", () => {
   beforeEach(() => resetAll());
 
+  it("PATCH: カスタム音源の名前を変更できる", async () => {
+    mockResult("tenant_custom_sounds", "update", {
+      data: { id: "s1", name: "変更後の名前" },
+    });
+    const { PATCH } = await import("@/app/api/admin/custom-sounds/[id]/route");
+    const req = createAdminRequest("PATCH", "/api/admin/custom-sounds/s1", {
+      body: { name: "変更後の名前" },
+    });
+    const res = await PATCH(req, createParams({ id: "s1" }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.name).toBe("変更後の名前");
+  });
+
+  it("PATCH: 名前が空の場合は400", async () => {
+    const { PATCH } = await import("@/app/api/admin/custom-sounds/[id]/route");
+    const req = createAdminRequest("PATCH", "/api/admin/custom-sounds/s1", {
+      body: { name: "" },
+    });
+    const res = await PATCH(req, createParams({ id: "s1" }));
+    expect(res.status).toBe(400);
+  });
+
   it("DELETE: カスタム音源を削除できる", async () => {
     mockResult("tenant_custom_sounds", "select", {
       data: {

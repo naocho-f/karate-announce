@@ -1363,6 +1363,7 @@ function BuzzerSoundSelector({
   const [playing, setPlaying] = useState(false);
   const [tenantSounds, setTenantSounds] = useState<TenantSound[]>([]);
   const [soundsLoaded, setSoundsLoaded] = useState(false);
+  const [uploadName, setUploadName] = useState("");
 
   useEffect(() => {
     if (soundId === "custom" && !soundsLoaded) {
@@ -1392,12 +1393,13 @@ function BuzzerSoundSelector({
     setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
-    // テナント音源ライブラリにアップロード
+    if (uploadName.trim()) formData.append("name", uploadName.trim());
     const res = await fetch("/api/admin/custom-sounds", { method: "POST", body: formData });
     if (res.ok) {
       const sound: TenantSound = await res.json();
       setTenantSounds((prev) => [sound, ...prev]);
       onCustomPathChange(sound.file_url);
+      setUploadName("");
     } else {
       showToast("アップロードに失敗しました");
     }
@@ -1411,6 +1413,19 @@ function BuzzerSoundSelector({
   }
   function handleSelectTenantSound(url: string) {
     onCustomPathChange(url);
+  }
+  async function handleRename(soundId: string, newName: string) {
+    const res = await fetch(`/api/admin/custom-sounds/${soundId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName }),
+    });
+    if (res.ok) {
+      const updated: TenantSound = await res.json();
+      setTenantSounds((prev) => prev.map((s) => (s.id === updated.id ? { ...s, name: updated.name } : s)));
+    } else {
+      showToast("名前の変更に失敗しました");
+    }
   }
 
   return (
@@ -1431,10 +1446,13 @@ function BuzzerSoundSelector({
           uploading={uploading}
           playing={playing}
           tenantSounds={tenantSounds}
+          uploadName={uploadName}
+          onUploadNameChange={setUploadName}
           onPreview={() => void handlePreview()}
           onDelete={() => void handleDelete()}
           onUpload={(e) => void handleUpload(e)}
           onSelectTenantSound={handleSelectTenantSound}
+          onRename={(id, name) => void handleRename(id, name)}
         />
       )}
     </div>
@@ -1537,20 +1555,29 @@ function BuzzerCustomSection({
   uploading,
   playing,
   tenantSounds,
+  uploadName,
+  onUploadNameChange,
   onPreview,
   onDelete,
   onUpload,
   onSelectTenantSound,
+  onRename,
 }: {
   customPath: string | null;
   uploading: boolean;
   playing: boolean;
   tenantSounds: TenantSound[];
+  uploadName: string;
+  onUploadNameChange: (name: string) => void;
   onPreview: () => void;
   onDelete: () => void;
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSelectTenantSound: (url: string) => void;
+  onRename: (id: string, name: string) => void;
 }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+
   return (
     <div className="bg-gray-900 rounded px-3 py-2 space-y-2">
       {customPath && (
@@ -1585,12 +1612,72 @@ function BuzzerCustomSection({
               </option>
             ))}
           </select>
+          <div className="mt-1 space-y-1">
+            {tenantSounds.map((s) => (
+              <div key={s.id} className="flex items-center gap-1 text-xs">
+                {editingId === s.id ? (
+                  <>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && editName.trim()) {
+                          onRename(s.id, editName.trim());
+                          setEditingId(null);
+                        } else if (e.key === "Escape") {
+                          setEditingId(null);
+                        }
+                      }}
+                      className="flex-1 min-w-0 bg-gray-700 border border-blue-500 rounded px-1 py-0.5 text-white outline-none text-xs"
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => {
+                        if (editName.trim()) {
+                          onRename(s.id, editName.trim());
+                          setEditingId(null);
+                        }
+                      }}
+                      className="text-green-400 hover:text-green-300 shrink-0"
+                    >
+                      OK
+                    </button>
+                    <button onClick={() => setEditingId(null)} className="text-gray-500 hover:text-gray-400 shrink-0">
+                      ✕
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-gray-400 truncate flex-1">{s.name}</span>
+                    <button
+                      onClick={() => {
+                        setEditingId(s.id);
+                        setEditName(s.name);
+                      }}
+                      className="text-gray-500 hover:text-gray-300 shrink-0"
+                      title="名前を編集"
+                    >
+                      ✏
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
       <div>
         <label htmlFor="buzzer-custom-upload" className="block text-xs text-gray-400 mb-1">
-          新規アップロード（MP3/WAV/OGG、2MB以内）
+          新規アップロード
         </label>
+        <input
+          type="text"
+          placeholder="音源名（省略時はファイル名）"
+          value={uploadName}
+          onChange={(e) => onUploadNameChange(e.target.value)}
+          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500 mb-1"
+        />
         <input
           id="buzzer-custom-upload"
           type="file"
@@ -1599,6 +1686,7 @@ function BuzzerCustomSection({
           disabled={uploading}
           className="text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-700 file:text-gray-300 hover:file:bg-gray-600"
         />
+        <p className="text-xs text-gray-600 mt-0.5">MP3/WAV/OGG、2MB以内</p>
         {uploading && <p className="text-xs text-blue-400 mt-1">アップロード中...</p>}
       </div>
     </div>
