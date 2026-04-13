@@ -3,9 +3,9 @@ export const dynamic = "force-dynamic";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Script from "next/script";
 import { BugReportFab } from "@/components/bug-report-fab";
 import { ToastContainer } from "@/components/toast";
+import { SwRegister } from "@/components/sw-register";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,13 +40,7 @@ export default function RootLayout({
         {children}
         <BugReportFab />
         <ToastContainer />
-        <Script
-          id="sw-register"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/serwist/sw.js')}`,
-          }}
-        />
+        <SwRegister />
       </body>
     </html>
   );
