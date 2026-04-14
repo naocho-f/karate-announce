@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-14（タイマー書き戻し進出処理修正v2）
+> 最終更新: 2026-04-14（RPC set_match_winner RECORD IS NOT NULLバグ修正）
 
 ---
 
@@ -742,4 +742,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **タイマー停止色統一（2026-04-14）**: paused/time_up/finishedでタイマー文字色を停止色(#b45309)に統一。running時のみ通常色/警告色を使用
 - **寝技解除時メインタイマー連動停止（2026-04-14）**: newaza_stops_main設定追加。寝技手動解除・タイムアップ時にメインタイマーも自動停止。操作画面にトースト通知
 - **Step 6.5 DBマイグレーション手順追加（2026-04-14）**: DBスキーマ変更時のマイグレーション実行をStep 6（プッシュ）とStep 7（デプロイ確認）の間に明示的に位置づけ
-- **タイマー書き戻し進出処理修正（2026-04-14）**: handleFinishTimerでround/positionをAPI側でDB取得するよう変更。クライアント側取得失敗時にトーナメント進出がスキップされるバグを修正
+- **タイマー書き戻し進出処理修正（2026-04-14）**: handleFinishTimerでround/positionをAPI側でDB取得するよう変更。RPC set_match_winnerの`RECORD IS NOT NULL`バグ修正（PostgreSQLではRECORDのフィールドにNULLがあるとIS NOT NULLがfalseになり進出処理がスキップされていた→`.id IS NOT NULL`に変更）

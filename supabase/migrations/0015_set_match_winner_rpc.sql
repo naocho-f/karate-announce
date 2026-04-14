@@ -50,7 +50,7 @@ BEGIN
     AND position = next_position
   FOR UPDATE;
 
-  IF next_match IS NOT NULL
+  IF next_match.id IS NOT NULL
      AND next_match.status <> 'done'
      AND next_match.status <> 'ongoing'
   THEN
