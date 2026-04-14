@@ -16,6 +16,20 @@ function shortMatchId(state: TimerState): string {
   return prefix ? `${prefix}-${state.matchNumber}` : `${state.matchNumber}`;
 }
 
+/** 累積モードで寝技inactive時もカウントダウン残り時間を表示すべきか */
+function shouldShowAccumulatedNewaza(state: TimerState): boolean {
+  return !!(state.preset?.newaza_accumulate && state.newaza.elapsedMs > 0);
+}
+
+/** 寝1の表示時間を返す */
+function newaza1DisplayTime(state: TimerState, newazaDispMs: number, newazaDur: number): number {
+  const accum = shouldShowAccumulatedNewaza(state);
+  if (state.newaza.usedCount >= 1 || state.newaza.active || accum) {
+    return (state.newaza.active && state.newaza.usedCount === 0) || accum ? newazaDispMs : newazaDur;
+  }
+  return newazaDur;
+}
+
 // ── フォーマット ──────────────────────────────────────────────
 
 function formatTime(ms: number, showDecimals = false): string {
@@ -493,9 +507,7 @@ function TimerWithNewazaRow({
               1
             </span>
             <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${subFs}vh` }}>
-              {state.newaza.usedCount >= 1 || state.newaza.active
-                ? formatTime(state.newaza.active && state.newaza.usedCount === 0 ? newazaDispMs : newazaDur)
-                : formatTime(newazaDur)}
+              {formatTime(newaza1DisplayTime(state, newazaDispMs, newazaDur))}
             </span>
           </div>
           {/* 寝2 */}
@@ -1239,9 +1251,7 @@ export function KouryuukaiLayout({
             borderBottom
             timeText={
               <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: sz(fs.newaza) }}>
-                {state.newaza.usedCount >= 1 || state.newaza.active
-                  ? formatTime(state.newaza.active && state.newaza.usedCount === 0 ? newazaDispMs : newazaDur)
-                  : formatTime(newazaDur)}
+                {formatTime(newaza1DisplayTime(state, newazaDispMs, newazaDur))}
               </span>
             }
           />
