@@ -16,18 +16,24 @@ function shortMatchId(state: TimerState): string {
   return prefix ? `${prefix}-${state.matchNumber}` : `${state.matchNumber}`;
 }
 
-/** 累積モードで寝技inactive時もカウントダウン残り時間を表示すべきか */
-function shouldShowAccumulatedNewaza(state: TimerState): boolean {
-  return !!(state.preset?.newaza_accumulate && state.newaza.elapsedMs > 0);
-}
-
-/** 寝1の表示時間を返す */
-function newaza1DisplayTime(state: TimerState, newazaDispMs: number, newazaDur: number): number {
-  const accum = shouldShowAccumulatedNewaza(state);
-  if (state.newaza.usedCount >= 1 || state.newaza.active || accum) {
-    return (state.newaza.active && state.newaza.usedCount === 0) || accum ? newazaDispMs : newazaDur;
+/** 寝技N回目の表示時間を返す（カウントダウン: 残り時間、カウントアップ: 経過時間） */
+function newazaRoundDisplayMs(
+  state: TimerState,
+  roundIndex: number,
+  newazaDispMs: number,
+  newazaDur: number,
+): number | null {
+  const isActive = state.newaza.active && state.newaza.usedCount === roundIndex;
+  const recorded = state.newaza.rounds[roundIndex];
+  if (isActive) return newazaDispMs;
+  if (recorded !== undefined) {
+    return state.preset?.newaza_direction === "countdown" ? Math.max(0, newazaDur - recorded) : recorded;
   }
-  return newazaDur;
+  // 累積モードでinactive・1回目が終わっていない場合
+  if (roundIndex === 0 && state.preset?.newaza_accumulate && state.newaza.elapsedMs > 0 && !state.newaza.active) {
+    return newazaDispMs;
+  }
+  return null;
 }
 
 // ── フォーマット ──────────────────────────────────────────────
@@ -507,7 +513,7 @@ function TimerWithNewazaRow({
               1
             </span>
             <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${subFs}vh` }}>
-              {formatTime(newaza1DisplayTime(state, newazaDispMs, newazaDur))}
+              {formatTime(newazaRoundDisplayMs(state, 0, newazaDispMs, newazaDur) ?? newazaDur)}
             </span>
           </div>
           {/* 寝2 */}
@@ -527,13 +533,11 @@ function TimerWithNewazaRow({
               2
             </span>
             <span className="font-bold text-gray-600 tabular-nums" style={{ fontSize: `${subFs}vh` }}>
-              {state.newaza.usedCount >= 2
-                ? formatTime(newazaDur)
-                : state.newaza.active && state.newaza.usedCount === 1
-                  ? (() => {
-                      return <span className="text-cyan-400">{formatTime(newazaDispMs)}</span>;
-                    })()
-                  : "--:--"}
+              {(() => {
+                const ms = newazaRoundDisplayMs(state, 1, newazaDispMs, newazaDur);
+                if (ms === null) return "--:--";
+                return <span className="text-cyan-400">{formatTime(ms)}</span>;
+              })()}
             </span>
           </div>
         </div>
@@ -1251,7 +1255,7 @@ export function KouryuukaiLayout({
             borderBottom
             timeText={
               <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: sz(fs.newaza) }}>
-                {formatTime(newaza1DisplayTime(state, newazaDispMs, newazaDur))}
+                {formatTime(newazaRoundDisplayMs(state, 0, newazaDispMs, newazaDur) ?? newazaDur)}
               </span>
             }
           />
@@ -1261,17 +1265,15 @@ export function KouryuukaiLayout({
             fs={fs}
             bw={bw}
             sz={sz}
-            timeText={
-              state.newaza.usedCount >= 2 ? (
+            timeText={(() => {
+              const ms = newazaRoundDisplayMs(state, 1, newazaDispMs, newazaDur);
+              if (ms === null) return null;
+              return (
                 <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: sz(fs.newaza) }}>
-                  {formatTime(newazaDur)}
+                  {formatTime(ms)}
                 </span>
-              ) : state.newaza.active && state.newaza.usedCount === 1 ? (
-                <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: sz(fs.newaza) }}>
-                  {formatTime(newazaDispMs)}
-                </span>
-              ) : null
-            }
+              );
+            })()}
           />
         </div>
       </div>

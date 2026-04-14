@@ -37,6 +37,8 @@ export interface NewazaState {
   usedCount: number;
   /** 累積モードで制限時間到達済み */
   exhausted: boolean;
+  /** 各回の経過時間（ミリ秒）。rounds[0]=寝技1、rounds[1]=寝技2… */
+  rounds: number[];
 }
 
 export type ResultMethod =
@@ -138,6 +140,7 @@ const EMPTY_NEWAZA: NewazaState = {
   startedAt: null,
   usedCount: 0,
   exhausted: false,
+  rounds: [],
 };
 
 export function createInitialState(): TimerState {
@@ -314,6 +317,7 @@ export function timeUp(state: TimerState): TimerState {
   // 寝技も停止
   if (s.newaza.active) {
     const newazaElapsed = getNewazaElapsedMs(state);
+    const segmentElapsed = state.newaza.startedAt ? Date.now() - state.newaza.startedAt : newazaElapsed;
     const freeRelease = (s.preset?.newaza_free_release ?? 0) * 1000;
     s.newaza = {
       ...s.newaza,
@@ -321,6 +325,7 @@ export function timeUp(state: TimerState): TimerState {
       elapsedMs: newazaElapsed,
       startedAt: null,
       usedCount: newazaElapsed <= freeRelease ? s.newaza.usedCount : s.newaza.usedCount + 1,
+      rounds: [...s.newaza.rounds, segmentElapsed],
     };
   }
   log(s, "time_up");
@@ -585,6 +590,7 @@ export function toggleNewaza(state: TimerState): TimerState {
       startedAt: null,
       usedCount: consumed ? s.newaza.usedCount + 1 : s.newaza.usedCount,
       exhausted: false,
+      rounds: [...s.newaza.rounds, segmentElapsed],
     };
     // 寝技解除時にメインタイマーも停止
     if (p.newaza_stops_main) {
@@ -615,12 +621,15 @@ export function newazaTimeUp(state: TimerState): TimerState {
   if (!state.newaza.active) return state;
   const s = { ...state };
   const p = s.preset;
+  const duration = (p?.newaza_duration ?? 30) * 1000;
+  const segmentElapsed = state.newaza.startedAt ? Date.now() - state.newaza.startedAt : duration;
   s.newaza = {
     active: false,
-    elapsedMs: (p?.newaza_duration ?? 30) * 1000,
+    elapsedMs: duration,
     startedAt: null,
     usedCount: s.newaza.usedCount + 1,
     exhausted: !!p?.newaza_accumulate,
+    rounds: [...s.newaza.rounds, p?.newaza_accumulate ? segmentElapsed : duration],
   };
   // 寝技タイムアップ時にメインタイマーも停止
   if (p?.newaza_stops_main && s.phase === "running") {

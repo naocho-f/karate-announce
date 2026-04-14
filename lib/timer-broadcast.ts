@@ -126,6 +126,10 @@ export function loadState(eventId: string, courtId: string): TimerState | null {
     if (state.newaza && (state.newaza as unknown as Record<string, unknown>).exhausted === undefined) {
       (state.newaza as unknown as Record<string, unknown>).exhausted = false;
     }
+    // rounds フィールド追加前の保存データとの互換性
+    if (state.newaza && !Array.isArray((state.newaza as unknown as Record<string, unknown>).rounds)) {
+      (state.newaza as unknown as Record<string, unknown>).rounds = [];
+    }
     // cautions フィールド追加前の保存データとの互換性
     if (state.redScore && state.redScore.cautions === undefined) {
       state.redScore.cautions = 0;

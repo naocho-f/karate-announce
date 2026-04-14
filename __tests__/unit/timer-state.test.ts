@@ -1039,6 +1039,55 @@ describe("timer-state", () => {
       st = newazaTimeUp(st);
       expect(st.newaza.exhausted).toBe(false); // 非累積では false
     });
+    it("解除時にroundsに各回の経過時間が記録される", () => {
+      const s = readyState({ newaza_enabled: true, newaza_duration: 30, newaza_accumulate: false });
+      let st = startTimer(s);
+      st = toggleNewaza(st); // 1回目開始
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 5000 } };
+      st = toggleNewaza(st); // 1回目解除
+      expect(st.newaza.rounds).toHaveLength(1);
+      expect(st.newaza.rounds[0]).toBeGreaterThanOrEqual(4000);
+      expect(st.newaza.rounds[0]).toBeLessThanOrEqual(6000);
+    });
+
+    it("2回解除するとroundsに2件記録される", () => {
+      const s = readyState({ newaza_enabled: true, newaza_duration: 30, newaza_accumulate: false });
+      let st = startTimer(s);
+      st = toggleNewaza(st); // 1回目開始
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 3000 } };
+      st = toggleNewaza(st); // 1回目解除
+      st = toggleNewaza(st); // 2回目開始
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 7000 } };
+      st = toggleNewaza(st); // 2回目解除
+      expect(st.newaza.rounds).toHaveLength(2);
+      expect(st.newaza.rounds[0]).toBeGreaterThanOrEqual(2000);
+      expect(st.newaza.rounds[1]).toBeGreaterThanOrEqual(6000);
+    });
+
+    it("累積モードでもroundsに各回の区間経過が記録される", () => {
+      const s = readyState(accumPreset);
+      let st = startTimer(s);
+      st = toggleNewaza(st); // 1回目開始
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 2000 } };
+      st = toggleNewaza(st); // 1回目解除
+      st = toggleNewaza(st); // 2回目開始
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 4000 } };
+      st = toggleNewaza(st); // 2回目解除
+      expect(st.newaza.rounds).toHaveLength(2);
+      expect(st.newaza.rounds[0]).toBeGreaterThanOrEqual(1500);
+      expect(st.newaza.rounds[0]).toBeLessThanOrEqual(2500);
+      expect(st.newaza.rounds[1]).toBeGreaterThanOrEqual(3500);
+      expect(st.newaza.rounds[1]).toBeLessThanOrEqual(4500);
+    });
+
+    it("newazaTimeUpでもroundsに記録される", () => {
+      const s = readyState({ newaza_enabled: true, newaza_duration: 30, newaza_accumulate: false });
+      let st = startTimer(s);
+      st = toggleNewaza(st); // 開始
+      st = newazaTimeUp(st); // タイムアップ
+      expect(st.newaza.rounds).toHaveLength(1);
+      expect(st.newaza.rounds[0]).toBe(30000);
+    });
   });
 
   // ── 注意(caution)テスト ──
