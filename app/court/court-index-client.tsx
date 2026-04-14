@@ -68,7 +68,6 @@ function useCourtPanelData(courtNum: string): CourtPanelData & { load: () => Pro
       .from("tournaments")
       .select("*")
       .eq("court", courtNum)
-      .neq("status", "finished")
       .order("sort_order")
       .order("created_at");
     if (!tourns?.length) {

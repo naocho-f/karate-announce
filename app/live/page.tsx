@@ -115,7 +115,6 @@ function useLiveData() {
       .from("tournaments")
       .select("*")
       .eq("event_id", ae.id)
-      .neq("status", "finished")
       .order("sort_order")
       .order("created_at");
     const tournIds = (allTourns ?? []).map((t) => t.id);

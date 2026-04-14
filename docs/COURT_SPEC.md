@@ -71,7 +71,7 @@ preparing → ongoing → finished
   - 全試合終了 → 緑バナー「全試合終了」
   - 試合中あり → 黄バナー「試合中」（該当試合へジャンプ）
   - 次の試合あり → 青バナー「次の試合」（該当試合へジャンプ）
-- **トーナメント一覧**: `status !== "finished"` のトーナメントを表示
+- **トーナメント一覧**: 完了済み含む全トーナメントを表示。完了済みトーナメントは名前横に「完了」バッジを表示
 - 各トーナメントは `BracketView` コンポーネントで描画
 
 ### 3.2 コート表示名
@@ -82,9 +82,9 @@ event.court_names[courtIndex]?.trim() || `コート${courtNum}`;
 
 イベント設定のコート名が優先、未設定時はデフォルト名。
 
-### 3.3 完了トーナメントの非表示
+### 3.3 完了トーナメントの表示
 
-`status === "finished"` のトーナメントはコート画面から自動的に除外。全トーナメントが finished の場合、「全試合終了」バナーが表示。
+完了済みトーナメントもコート画面に表示される。名前横に「完了」バッジを付与し、結果訂正も可能。全トーナメントが finished の場合、「全試合終了」バナーが表示。
 
 ---
 
@@ -94,7 +94,7 @@ event.court_names[courtIndex]?.trim() || `コート${courtNum}`;
 
 ```
 1. アクティブイベント取得（is_active = true）
-2. コート番号でトーナメント取得（status != "finished"、sort_order + created_at 順）
+2. コート番号でトーナメント取得（完了済み含む全件、sort_order + created_at 順）
 3. 全トーナメントの試合取得（round + position 順）
 4. 参照される fighter_id を収集
 5. エントリー取得（欠場状態を含む）
@@ -367,7 +367,7 @@ Body: { is_withdrawn: boolean }
 | --------------------- | ------------------------- | ----------------------------------- |
 | `isEventActive`       | `boolean \| null`         | null=読み込み中、false=非アクティブ |
 | `courtDisplayName`    | `string`                  | コート表示名                        |
-| `tournaments`         | `Tournament[]`            | 未完了トーナメント                  |
+| `tournaments`         | `Tournament[]`            | 全トーナメント（完了済み含む）      |
 | `matchesMap`          | `Record<string, Match[]>` | tournament_id → 試合配列            |
 | `fighters`            | `Record<string, Fighter>` | fighter_id → 詳細情報               |
 | `withdrawnFighterIds` | `Set<string>`             | 欠場中の fighter_id                 |
@@ -390,7 +390,7 @@ Body: { is_withdrawn: boolean }
 - [x] ポーリング方式: 3秒間隔 + visibility change
 - [x] コート画面は Realtime 不使用（ポーリングのみ）
 - [x] ライブ画面は Realtime + 5秒ポーリングのハイブリッド
-- [x] 完了トーナメントはコート画面から自動非表示
+- [x] 完了トーナメントもコート画面に表示（「完了」バッジ付き）
 - [x] 勝者訂正は次ラウンドが未進行の場合のみ伝搬
 - [x] 試合位置スワップは3ステップ（UNIQUE制約回避）
 - [x] ミュート状態は localStorage に永続化

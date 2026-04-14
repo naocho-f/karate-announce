@@ -115,7 +115,6 @@ function useCourtPageLoader(court: string, d: ReturnType<typeof useCourtPageData
         .select("*")
         .eq("event_id", eventId)
         .eq("court", court)
-        .neq("status", "finished")
         .order("sort_order")
         .order("created_at");
       if (!tourns?.length) {

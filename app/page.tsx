@@ -144,7 +144,6 @@ export default function Home() {
       .from("tournaments")
       .select("*")
       .eq("event_id", ae.id)
-      .neq("status", "finished")
       .order("sort_order")
       .order("created_at");
     if (!allTourns?.length) {
