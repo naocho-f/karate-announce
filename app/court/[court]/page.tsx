@@ -206,12 +206,15 @@ function useCourtPageLoader(court: string, d: ReturnType<typeof useCourtPageData
   }, [wrappedFetch]);
   useEffect(() => {
     const dc = dRef.current;
-    resilientFetch("/api/admin/settings", {}, { maxRetries: 2, timeout: 5000 })
-      .then((r) => r.json())
+    resilientFetch("/api/public/announce-settings", {}, { maxRetries: 2, timeout: 5000 })
+      .then((r) => {
+        if (!r.ok) throw new Error(`announce-settings fetch failed: ${r.status}`);
+        return r.json();
+      })
       .then((dat) => {
         if (dat.announce_templates) dc.setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...dat.announce_templates });
       })
-      .catch(() => {});
+      .catch((e) => console.error("[announce-settings]", e));
     supabase
       .from("rules")
       .select("name, name_reading")
@@ -244,6 +247,7 @@ export default function CourtPage({ params }: Props) {
       mutedMatchIds: d.mutedMatchIds,
       announceTemplates: d.announceTemplates,
       rulesReadingMap: d.rulesReadingMap,
+      courtDisplayName: d.courtDisplayName || `${court}コート`,
       offlineMode,
       startProcessing: d.startProcessing,
       endProcessing: d.endProcessing,
@@ -295,6 +299,7 @@ export default function CourtPage({ params }: Props) {
           timerControlActive={d.timerControlActive}
           announceTemplates={d.announceTemplates}
           rulesReadingMap={d.rulesReadingMap}
+          courtDisplayName={d.courtDisplayName || `${court}コート`}
           startMatch={startMatch}
           setWinner={setWinner}
           correctWinner={correctWinner}
@@ -348,6 +353,7 @@ function CourtPageBody(props: {
   timerControlActive: boolean;
   announceTemplates: AnnounceTemplates;
   rulesReadingMap: Record<string, string>;
+  courtDisplayName: string;
   startMatch: (tId: string, mId: string) => Promise<void>;
   setWinner: (tId: string, mId: string, wId: string) => Promise<void>;
   correctWinner: (tId: string, mId: string, wId: string) => Promise<void>;
@@ -407,6 +413,7 @@ function CourtPageBody(props: {
       timerControlActive={props.timerControlActive}
       announceTemplates={props.announceTemplates}
       rulesReadingMap={props.rulesReadingMap}
+      courtDisplayName={props.courtDisplayName}
       onStartMatch={(tId, mId) => void props.startMatch(tId, mId)}
       onSetWinner={(tId, mId, wId) => void props.setWinner(tId, mId, wId)}
       onCorrectWinner={(tId, mId, wId) => void props.correctWinner(tId, mId, wId)}

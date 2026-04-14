@@ -56,6 +56,7 @@ type UseCourtActionsArgs = {
   mutedMatchIds: Set<string>;
   announceTemplates: AnnounceTemplates;
   rulesReadingMap: Record<string, string>;
+  courtDisplayName: string;
   offlineMode: string;
   startProcessing: (id: string) => void;
   endProcessing: (id: string) => void;
@@ -69,6 +70,7 @@ export function useCourtActions({
   mutedMatchIds,
   announceTemplates,
   rulesReadingMap,
+  courtDisplayName,
   offlineMode,
   startProcessing,
   endProcessing,
@@ -99,6 +101,8 @@ export function useCourtActions({
       rulesText,
       announceTemplates,
       rulesReading,
+      courtDisplayName,
+      tournament?.name,
     );
   }
 

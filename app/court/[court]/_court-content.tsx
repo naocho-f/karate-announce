@@ -31,11 +31,13 @@ function buildPrefetchText(
   matchesMap: Record<string, Match[]>,
   announceTemplates: AnnounceTemplates,
   rulesReadingMap: Record<string, string>,
+  courtDisplayName: string,
 ): string | null {
   const f1 = match.fighter1_id ? fighters[match.fighter1_id] : null;
   const f2 = match.fighter2_id ? fighters[match.fighter2_id] : null;
   if (!f1 || !f2) return null;
   const { rounds, rulesText } = resolveMatchContext(match, tournaments, matchesMap);
+  const tournament = tournaments.find((t) => (matchesMap[t.id] ?? []).some((m) => m.id === match.id));
   return buildMatchStartText(
     fighterFullName(f1),
     fighterAffiliation(f1),
@@ -50,6 +52,8 @@ function buildPrefetchText(
     rulesText,
     announceTemplates,
     rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
+    courtDisplayName,
+    tournament?.name,
   );
 }
 
@@ -60,6 +64,7 @@ function usePrefetchNextMatchTts(
   matchesMap: Record<string, Match[]>,
   announceTemplates: AnnounceTemplates,
   rulesReadingMap: Record<string, string>,
+  courtDisplayName: string,
 ) {
   const prefetchedRef = useRef<string | null>(null);
   useEffect(() => {
@@ -76,9 +81,10 @@ function usePrefetchNextMatchTts(
       matchesMap,
       announceTemplates,
       rulesReadingMap,
+      courtDisplayName,
     );
     if (text) void prefetchTts(text);
-  }, [courtNextMatch, fighters, tournaments, matchesMap, announceTemplates, rulesReadingMap]);
+  }, [courtNextMatch, fighters, tournaments, matchesMap, announceTemplates, rulesReadingMap, courtDisplayName]);
 }
 
 export type CourtContentProps = {
@@ -92,6 +98,7 @@ export type CourtContentProps = {
   timerControlActive: boolean;
   announceTemplates: AnnounceTemplates;
   rulesReadingMap: Record<string, string>;
+  courtDisplayName: string;
   onStartMatch: (tournamentId: string, matchId: string) => void;
   onSetWinner: (tournamentId: string, matchId: string, winnerId: string) => void;
   onCorrectWinner: (tournamentId: string, matchId: string, winnerId: string) => void;
@@ -113,6 +120,7 @@ export default function CourtContent({
   timerControlActive,
   announceTemplates,
   rulesReadingMap,
+  courtDisplayName,
   onStartMatch,
   onSetWinner,
   onCorrectWinner,
@@ -153,7 +161,7 @@ export default function CourtContent({
     allMatches.length > 0 &&
     allMatches.every((m) => m.status === "done" || (m.round === 1 && m.fighter1_id && !m.fighter2_id));
 
-  usePrefetchNextMatchTts(courtNextMatch, fighters, tournaments, matchesMap, announceTemplates, rulesReadingMap);
+  usePrefetchNextMatchTts(courtNextMatch, fighters, tournaments, matchesMap, announceTemplates, rulesReadingMap, courtDisplayName);
 
   return (
     <div className="space-y-8">

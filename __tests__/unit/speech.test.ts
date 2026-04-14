@@ -143,6 +143,8 @@ describe("getTtsSettings / saveTtsSettings", () => {
 describe("定数エクスポート", () => {
   it("DEFAULT_TEMPLATES に matchStart と winner がある", () => {
     expect(DEFAULT_TEMPLATES.matchStart).toContain("{{試合ラベル}}");
+    expect(DEFAULT_TEMPLATES.matchStart).toContain("{{コート名}}");
+    expect(DEFAULT_TEMPLATES.matchStart).toContain("{{トーナメント名}}");
     expect(DEFAULT_TEMPLATES.winner).toContain("{{勝者名前}}");
   });
 
@@ -159,8 +161,19 @@ describe("定数エクスポート", () => {
     expect(WINNER_VARS.length).toBeGreaterThan(0);
   });
 
+  it("MATCH_VARS にコート名・トーナメント名が含まれる", () => {
+    const keys = MATCH_VARS.map((v) => v.key);
+    expect(keys).toContain("コート名");
+    expect(keys).toContain("トーナメント名");
+  });
+
   it("SAMPLE_MATCH_VARS が Record として存在する", () => {
     expect(SAMPLE_MATCH_VARS["試合ラベル"]).toBeDefined();
+  });
+
+  it("SAMPLE_MATCH_VARS にコート名・トーナメント名がある", () => {
+    expect(SAMPLE_MATCH_VARS["コート名"]).toBeDefined();
+    expect(SAMPLE_MATCH_VARS["トーナメント名"]).toBeDefined();
   });
 
   it("SAMPLE_WINNER_VARS が Record として存在する", () => {
@@ -282,6 +295,40 @@ describe("buildMatchStartText", () => {
     };
     const text = buildMatchStartText("A", "柔空会", "B", "", "決勝", null, null, null, null, null, null, templates);
     expect(text).toBe("流派:柔空会 道場:");
+  });
+
+  it("コート名・トーナメント名がテンプレートに展開される", () => {
+    const templates = {
+      matchStart: "{{コート名}}、{{トーナメント名}}、{{試合ラベル}}",
+      winner: "",
+    };
+    const text = buildMatchStartText(
+      "A",
+      "",
+      "B",
+      "",
+      "決勝",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      templates,
+      null,
+      "Aコート",
+      "男子一般部",
+    );
+    expect(text).toBe("Aコート、男子一般部、けっしょう");
+  });
+
+  it("コート名・トーナメント名が未指定の場合は空文字", () => {
+    const templates = {
+      matchStart: "{{コート名}}{{トーナメント名}}{{試合ラベル}}",
+      winner: "",
+    };
+    const text = buildMatchStartText("A", "", "B", "", "決勝", null, null, null, null, null, null, templates);
+    expect(text).toBe("けっしょう");
   });
 });
 

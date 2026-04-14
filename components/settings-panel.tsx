@@ -872,11 +872,14 @@ function TemplateEditor() {
 
   useEffect(() => {
     fetch("/api/admin/settings")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`settings fetch failed: ${r.status}`);
+        return r.json();
+      })
       .then((d) => {
         if (d.announce_templates) setTemplates({ ...DEFAULT_TEMPLATES, ...d.announce_templates });
       })
-      .catch(() => {});
+      .catch((e) => console.error("[announce-templates]", e));
   }, []);
 
   const currentTemplate = templates[activeTab];
@@ -908,11 +911,18 @@ function TemplateEditor() {
 
   async function save() {
     setSaving(true);
-    await fetch("/api/admin/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: "announce_templates", value: templates }),
-    });
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "announce_templates", value: templates }),
+      });
+      if (!res.ok) throw new Error(`save failed: ${res.status}`);
+    } catch (e) {
+      console.error("[announce-templates save]", e);
+      setSaving(false);
+      return;
+    }
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);

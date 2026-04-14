@@ -32,12 +32,14 @@ export type AnnounceTemplates = {
 
 export const DEFAULT_TEMPLATES: AnnounceTemplates = {
   matchStart:
-    "{{試合ラベル}}。ルール、{{ルール}}。{{選手1流派＋道場}}、所属、{{選手1名前}}選手。対。{{選手2流派＋道場}}、所属、{{選手2名前}}選手。これより試合を開始します。",
+    "{{コート名}}、{{トーナメント名}}、{{試合ラベル}}。ルール、{{ルール}}。{{選手1流派＋道場}}、所属、{{選手1名前}}選手。対。{{選手2流派＋道場}}、所属、{{選手2名前}}選手。これより試合を開始します。",
   winner: "ただいまの試合は、{{勝者流派＋道場}}、所属、{{勝者名前}}選手の勝ちです。",
 };
 
 /** 変数の説明とサンプル値（UI表示用） */
 export const MATCH_VARS: { key: string; desc: string; sample: string }[] = [
+  { key: "コート名", desc: "コートの表示名", sample: "Aコート" },
+  { key: "トーナメント名", desc: "トーナメント名", sample: "男子一般部" },
   { key: "試合ラベル", desc: "試合名またはラウンド名", sample: "準決勝" },
   { key: "ルール", desc: "ルール名のみ。未設定時は空", sample: "エキスパート" },
   { key: "選手1名前", desc: "選手1の名前（読み仮名優先）", sample: "じゅうくうたろう" },
@@ -331,6 +333,8 @@ export function buildMatchStartText(
   rules?: string | null,
   templates?: AnnounceTemplates,
   rulesReading?: string | null,
+  courtName?: string | null,
+  tournamentName?: string | null,
 ): string {
   const f1name = fighter1NameReading || fighter1Name;
   const f1affRaw = fighter1AffiliationReading || fighter1Affiliation;
@@ -343,6 +347,8 @@ export function buildMatchStartText(
   const { matchStart } = templates ?? DEFAULT_TEMPLATES;
   const rawLabel = matchLabel || roundLabel;
   return renderTemplate(matchStart, {
+    コート名: courtName ?? "",
+    トーナメント名: tournamentName ?? "",
     試合ラベル: normalizeMatchLabelForTts(rawLabel),
     ルール: rulesReading || (rules ?? ""),
     選手1名前: f1name,
@@ -370,6 +376,8 @@ export function announceMatchStart(
   rules?: string | null,
   templates?: AnnounceTemplates,
   rulesReading?: string | null,
+  courtName?: string | null,
+  tournamentName?: string | null,
 ): Promise<void> {
   const text = buildMatchStartText(
     fighter1Name,
@@ -385,6 +393,8 @@ export function announceMatchStart(
     rules,
     templates,
     rulesReading,
+    courtName,
+    tournamentName,
   );
   return speak(text);
 }

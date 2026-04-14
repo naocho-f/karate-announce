@@ -169,11 +169,13 @@ export function useTimerControl() {
   const matchListTopRef = useRef<HTMLDivElement | null>(null);
 
   // ── アナウンス関連 ──
+  const [courtDisplayName, setCourtDisplayName] = useState(`${courtId}コート`);
   const [announceTemplates, setAnnounceTemplates] = useState<AnnounceTemplates>(DEFAULT_TEMPLATES);
   const [rulesReadingMap, setRulesReadingMap] = useState<Record<string, string>>({});
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentRoundLabel, setCurrentRoundLabel] = useState("");
+  const [currentTournamentName, setCurrentTournamentName] = useState("");
   const [showAnnounceSelection, setShowAnnounceSelection] = useState(false);
   const [swapSides, setSwapSides] = useState(false);
   const [swapping, setSwapping] = useState(false);
@@ -201,12 +203,19 @@ export function useTimerControl() {
 
   // ── トーナメントデータ読み込み ──
   const loadTournamentData = useCallback(async () => {
-    const { data: activeEvent } = await supabase.from("events").select("id").eq("is_active", true).maybeSingle();
+    const { data: activeEvent } = await supabase
+      .from("events")
+      .select("id, court_names")
+      .eq("is_active", true)
+      .maybeSingle();
     if (!activeEvent) {
       setLoadingTournament(false);
       return;
     }
     setEventId(activeEvent.id);
+    const courtIdx = parseInt(courtId, 10) - 1;
+    const names: string[] | null = activeEvent.court_names;
+    setCourtDisplayName(names?.[courtIdx]?.trim() || `${courtId}コート`);
 
     const presetsRes = await resilientFetch("/api/admin/timer-presets", {}, { maxRetries: 2, timeout: 5000 }).catch(
       () => null,
@@ -292,12 +301,15 @@ export function useTimerControl() {
 
   // テンプレート・ルール読み仮名取得
   useEffect(() => {
-    resilientFetch("/api/admin/settings", {}, { maxRetries: 2, timeout: 5000 })
-      .then((r) => r.json())
+    resilientFetch("/api/public/announce-settings", {}, { maxRetries: 2, timeout: 5000 })
+      .then((r) => {
+        if (!r.ok) throw new Error(`announce-settings fetch failed: ${r.status}`);
+        return r.json();
+      })
       .then((d) => {
         if (d.announce_templates) setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...d.announce_templates });
       })
-      .catch(() => {});
+      .catch((e) => console.error("[announce-settings]", e));
     supabase
       .from("rules")
       .select("name, name_reading")
@@ -523,6 +535,7 @@ export function useTimerControl() {
     const f2 = candidate.fighter2;
     if (!f1 || !f2) return;
     setCurrentRoundLabel(roundName(candidate.match.round, candidate.totalRounds));
+    setCurrentTournamentName(candidate.tournament.name);
     const redInfo = buildFighterInfo(f1);
     const whiteInfo = buildFighterInfo(f2);
     update((s) => {
@@ -567,6 +580,8 @@ export function useTimerControl() {
       rulesText,
       announceTemplates,
       rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
+      courtDisplayName,
+      candidate.tournament.name,
     );
     void prefetchTts(ttsText);
   };
@@ -675,6 +690,8 @@ export function useTimerControl() {
         rulesText,
         announceTemplates,
         rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
+        courtDisplayName,
+        currentTournamentName,
       );
     } finally {
       setIsPlaying(false);

@@ -161,6 +161,7 @@ function doStartAnnounceIndex(
   tournaments: Tournament[],
   announceTemplates: AnnounceTemplates,
   rulesReadingMap: Record<string, string>,
+  courtDisplayName: string,
 ) {
   const f1 = match.fighter1_id ? fighters[match.fighter1_id] : null;
   const f2 = match.fighter2_id ? fighters[match.fighter2_id] : null;
@@ -181,6 +182,8 @@ function doStartAnnounceIndex(
     rulesText,
     announceTemplates,
     rulesText ? (rulesReadingMap[rulesText] ?? null) : null,
+    courtDisplayName,
+    tournament?.name,
   );
 }
 
@@ -188,6 +191,7 @@ function useCourtIndexActions(
   data: CourtPanelData & { load: () => Promise<void> },
   announceTemplates: AnnounceTemplates,
   rulesReadingMap: Record<string, string>,
+  courtDisplayName: string,
 ) {
   const [processingMatchIds, setProcessingMatchIds] = useState<Set<string>>(new Set());
   const { mode: offlineMode } = useOfflineMode();
@@ -242,7 +246,7 @@ function useCourtIndexActions(
     await load();
     endP(mId);
     if (!mutedMatchIds.has(mId))
-      doStartAnnounceIndex(match, rounds, tId, fighters, tournaments, announceTemplates, rulesReadingMap);
+      doStartAnnounceIndex(match, rounds, tId, fighters, tournaments, announceTemplates, rulesReadingMap, courtDisplayName);
   };
   const setWinner = async (tId: string, mId: string, wId: string) => {
     const { match, rounds } = getCtx(tId, mId);
@@ -316,7 +320,7 @@ function useCourtIndexActions(
   };
   const reannounceStart = async (tId: string, mId: string) => {
     const { match, rounds } = getCtx(tId, mId);
-    if (match) doStartAnnounceIndex(match, rounds, tId, fighters, tournaments, announceTemplates, rulesReadingMap);
+    if (match) doStartAnnounceIndex(match, rounds, tId, fighters, tournaments, announceTemplates, rulesReadingMap, courtDisplayName);
   };
   const reannounceWinner = async (tId: string, mId: string) => {
     const { match } = getCtx(tId, mId);
@@ -383,7 +387,7 @@ function CourtPanel({
   rulesReadingMap: Record<string, string>;
 }) {
   const data = useCourtPanelData(courtNum);
-  const actions = useCourtIndexActions(data, announceTemplates, rulesReadingMap);
+  const actions = useCourtIndexActions(data, announceTemplates, rulesReadingMap, courtDisplayName);
   const { tournaments, matchesMap, fighters, withdrawnFighterIds, fighterEntryMap } = data;
   const nameMap = Object.fromEntries(Object.entries(fighters).map(([id, f]) => [id, fighterFullName(f)]));
   const affiliationMap = Object.fromEntries(
@@ -497,12 +501,15 @@ export default function CourtIndexClient() {
   }, []);
 
   useEffect(() => {
-    resilientFetch("/api/admin/settings", {}, { maxRetries: 2, timeout: 5000 })
-      .then((r) => r.json())
+    resilientFetch("/api/public/announce-settings", {}, { maxRetries: 2, timeout: 5000 })
+      .then((r) => {
+        if (!r.ok) throw new Error(`announce-settings fetch failed: ${r.status}`);
+        return r.json();
+      })
       .then((d) => {
         if (d.announce_templates) setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...d.announce_templates });
       })
-      .catch(() => {});
+      .catch((e) => console.error("[announce-settings]", e));
     supabase
       .from("rules")
       .select("name, name_reading")

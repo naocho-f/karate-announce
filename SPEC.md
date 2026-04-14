@@ -745,3 +745,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **タイマー書き戻し進出処理修正（2026-04-14）**: handleFinishTimerでround/positionをAPI側でDB取得するよう変更。RPC set_match_winnerの`RECORD IS NOT NULL`バグ修正（PostgreSQLではRECORDのフィールドにNULLがあるとIS NOT NULLがfalseになり進出処理がスキップされていた→`.id IS NOT NULL`に変更）
 - **完了済みトーナメントの試合一覧表示（2026-04-14）**: loadTournamentDataのfinishedフィルタを除去し、完了済みトーナメントの試合も表示。トーナメント名横に「完了」バッジ表示。結果訂正も可能
 - **全画面でfinishedフィルタ除去（2026-04-14）**: ホーム・アナウンス・コート一覧・コート詳細の4画面からもfinishedフィルタを除去。完了済みトーナメントの試合が全画面で表示されるように統一
+- **アナウンステンプレート取得修正（2026-04-14）**: 認証不要の公開API `/api/public/announce-settings` 新設。非admin画面からテンプレート取得不可だったバグ修正。エラー黙殺(.catch(() => {}))を廃止。テンプレート変数にコート名・トーナメント名を追加
