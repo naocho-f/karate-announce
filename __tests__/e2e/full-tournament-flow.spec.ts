@@ -159,11 +159,9 @@ test.describe("大会フル進行フロー", () => {
     await page.locator("text=クイック試合").click();
     await page.keyboard.press("Space"); // 開始
 
-    // 赤ポイント [Q]
+    // キー入力（ショートカット廃止済み、エラーにならないことを確認）
     await page.keyboard.press("KeyQ");
-    // 白ポイント [I]
     await page.keyboard.press("KeyI");
-    // ブザー [B]（エラーにならないことを確認）
     await page.keyboard.press("KeyB");
 
     // 一時停止 [Space]

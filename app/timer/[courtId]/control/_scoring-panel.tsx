@@ -21,7 +21,6 @@ type SideConfig = {
   score: { points: number; wazaari: number; fouls: number; cautions: number; ippon: number };
   bgClass: string;
   labelColor: string;
-  keys: { pt: string; wz: string; fl: string; ct: string; ip: string };
 };
 
 function resolveSide(state: TimerState, swapSides: boolean, position: "left" | "right"): SideConfig {
@@ -35,10 +34,6 @@ function resolveSide(state: TimerState, swapSides: boolean, position: "left" | "
       ? "bg-red-900/50 hover:bg-red-800/60 text-red-300"
       : "bg-gray-700/50 hover:bg-gray-600/60 text-gray-200",
     labelColor: isRed ? "text-red-400" : "text-gray-200",
-    keys:
-      position === "left"
-        ? { pt: "Q", wz: "W", fl: "E", ct: "D", ip: "R" }
-        : { pt: "I", wz: "O", fl: "P", ct: "K", ip: "L" },
   };
 }
 
@@ -55,7 +50,6 @@ function ScoreSummary({ score }: { score: SideConfig["score"] }) {
 function ScoreGridButtons({
   side,
   bgClass,
-  keys,
   showPoints,
   showWazaari,
   showFouls,
@@ -65,7 +59,6 @@ function ScoreGridButtons({
 }: {
   side: FighterSide;
   bgClass: string;
-  keys: SideConfig["keys"];
   showPoints: boolean;
   showWazaari: boolean;
   showFouls: boolean;
@@ -78,17 +71,17 @@ function ScoreGridButtons({
     <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
       {showPoints && (
         <button onClick={() => onAddPoint(side)} className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
-          +1pt [{keys.pt}]
+          +1pt
         </button>
       )}
       {showWazaari && (
         <button onClick={() => onAddWazaari(side)} className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
-          技あり [{keys.wz}]
+          技あり
         </button>
       )}
       {showFouls && (
         <button onClick={() => onAddFoul(side)} className={`py-4 rounded ${bgClass} text-sm font-bold transition`}>
-          反則 [{keys.fl}]
+          反則
         </button>
       )}
     </div>
@@ -112,7 +105,7 @@ function ScoringColumn({
   onAddCaution: (s: FighterSide) => void;
   onIpponConfirm: (s: FighterSide) => void;
 }) {
-  const { side, label, name, score, bgClass, labelColor, keys } = cfg;
+  const { side, label, name, score, bgClass, labelColor } = cfg;
   const showFouls = p?.show_fouls ?? false;
   return (
     <div className="space-y-2">
@@ -122,7 +115,6 @@ function ScoringColumn({
       <ScoreGridButtons
         side={side}
         bgClass={bgClass}
-        keys={keys}
         showPoints={p?.show_points ?? false}
         showWazaari={p?.show_wazaari ?? false}
         showFouls={showFouls}
@@ -135,7 +127,7 @@ function ScoringColumn({
           onClick={() => onAddCaution(side)}
           className="w-full py-2 rounded bg-yellow-900/50 hover:bg-yellow-800/60 text-yellow-300 text-sm font-bold transition"
         >
-          注意 [{keys.ct}]
+          注意
         </button>
       )}
       {p?.show_ippon && (
@@ -143,7 +135,7 @@ function ScoringColumn({
           onClick={() => onIpponConfirm(side)}
           className={`w-full py-4 rounded ${bgClass} text-sm font-bold transition`}
         >
-          一本 [{keys.ip}]
+          一本
         </button>
       )}
       <ScoreSummary score={score} />
