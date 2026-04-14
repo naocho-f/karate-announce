@@ -591,10 +591,9 @@ function EventCard({
             {e.is_active && (
               <Link
                 href="/"
-                target="_blank"
                 className="text-xs px-3 py-1.5 rounded-lg font-medium bg-green-700 hover:bg-green-600 text-white transition"
               >
-                アナウンス画面 ↗
+                アナウンス画面
               </Link>
             )}
             <button onClick={() => onCopyModal(e.id)} className="text-xs text-gray-400 hover:text-blue-400 transition">
