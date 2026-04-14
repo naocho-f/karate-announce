@@ -308,8 +308,12 @@ export function useTimerControl() {
       })
       .then((d) => {
         if (d.announce_templates) setAnnounceTemplates({ ...DEFAULT_TEMPLATES, ...d.announce_templates });
+        else showToast("アナウンステンプレートが未設定です");
       })
-      .catch((e) => console.error("[announce-settings]", e));
+      .catch((e) => {
+        console.error("[announce-settings]", e);
+        showToast("アナウンステンプレートの読み込みに失敗しました");
+      });
     supabase
       .from("rules")
       .select("name, name_reading")

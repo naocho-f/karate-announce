@@ -35,7 +35,6 @@ const {
   announceWinner,
   announceCustom,
   stopSpeech,
-  DEFAULT_TEMPLATES,
   TTS_VOICES,
   MATCH_VARS,
   WINNER_VARS,
@@ -43,6 +42,13 @@ const {
   SAMPLE_WINNER_VARS,
   SAMPLE_TEXT,
 } = await import("@/lib/speech");
+
+/** テスト用の正常テンプレート（DBに保存されているテンプレートを想定） */
+const TEST_TEMPLATES = {
+  matchStart:
+    "{{試合ラベル}}。ルール、{{ルール}}。{{選手1流派＋道場}}、所属、{{選手1名前}}選手。対。{{選手2流派＋道場}}、所属、{{選手2名前}}選手。これより試合を開始します。",
+  winner: "ただいまの試合は、{{勝者流派＋道場}}、所属、{{勝者名前}}選手の勝ちです。",
+};
 
 describe("renderTemplate", () => {
   it("変数を置換する", () => {
@@ -65,55 +71,55 @@ describe("renderTemplate", () => {
 
 describe("試合ラベル読み仮名変換（buildMatchStartText経由）", () => {
   it("「決勝」→ けっしょう", () => {
-    expect(buildMatchStartText("A", "", "B", "", "決勝")).toContain("けっしょう");
+    expect(buildMatchStartText("A", "", "B", "", "決勝", null, null, null, null, null, null, TEST_TEMPLATES)).toContain("けっしょう");
   });
 
   it("「準決勝」→ じゅんけっしょう", () => {
-    expect(buildMatchStartText("A", "", "B", "", "準決勝")).toContain("じゅんけっしょう");
+    expect(buildMatchStartText("A", "", "B", "", "準決勝", null, null, null, null, null, null, TEST_TEMPLATES)).toContain("じゅんけっしょう");
   });
 
   it("「準々決勝」→ じゅんじゅんけっしょう", () => {
-    expect(buildMatchStartText("A", "", "B", "", "準々決勝")).toContain("じゅんじゅんけっしょう");
+    expect(buildMatchStartText("A", "", "B", "", "準々決勝", null, null, null, null, null, null, TEST_TEMPLATES)).toContain("じゅんじゅんけっしょう");
   });
 
   it("「3位決定戦」→ さんいけっていせん", () => {
-    expect(buildMatchStartText("A", "", "B", "", "3位決定戦")).toContain("さんいけっていせん");
+    expect(buildMatchStartText("A", "", "B", "", "3位決定戦", null, null, null, null, null, null, TEST_TEMPLATES)).toContain("さんいけっていせん");
   });
 
   it("「第1試合」→ だいいちしあい", () => {
-    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第1試合")).toContain("だいいちしあい");
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第1試合", null, TEST_TEMPLATES)).toContain("だいいちしあい");
   });
 
   it("「第5試合」→ だいごしあい", () => {
-    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第5試合")).toContain("だいごしあい");
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第5試合", null, TEST_TEMPLATES)).toContain("だいごしあい");
   });
 
   it("「第10試合」→ だいじゅうしあい", () => {
-    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第10試合")).toContain("だいじゅうしあい");
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第10試合", null, TEST_TEMPLATES)).toContain("だいじゅうしあい");
   });
 
   it("漢数字「第一試合」→ だいいちしあい", () => {
-    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第一試合")).toContain("だいいちしあい");
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第一試合", null, TEST_TEMPLATES)).toContain("だいいちしあい");
   });
 
   it("全角数字「第１試合」→ だいいちしあい", () => {
-    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第１試合")).toContain("だいいちしあい");
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第１試合", null, TEST_TEMPLATES)).toContain("だいいちしあい");
   });
 
   it("「第2回戦」→ だいにかいせん", () => {
-    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第2回戦")).toContain("だいにかいせん");
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第2回戦", null, TEST_TEMPLATES)).toContain("だいにかいせん");
   });
 
   it("「1回戦」（第なし）→ いっかいせん", () => {
-    expect(buildMatchStartText("A", "", "B", "", "1回戦")).toContain("いっかいせん");
+    expect(buildMatchStartText("A", "", "B", "", "1回戦", null, null, null, null, null, null, TEST_TEMPLATES)).toContain("いっかいせん");
   });
 
   it("「第1回戦」→ だいいっかいせん（促音）", () => {
-    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第1回戦")).toContain("だいいっかいせん");
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第1回戦", null, TEST_TEMPLATES)).toContain("だいいっかいせん");
   });
 
   it("未知のラベルはそのまま", () => {
-    expect(buildMatchStartText("A", "", "B", "", "エキシビション")).toContain("エキシビション");
+    expect(buildMatchStartText("A", "", "B", "", "エキシビション", null, null, null, null, null, null, TEST_TEMPLATES)).toContain("エキシビション");
   });
 });
 
@@ -141,13 +147,6 @@ describe("getTtsSettings / saveTtsSettings", () => {
 });
 
 describe("定数エクスポート", () => {
-  it("DEFAULT_TEMPLATES に matchStart と winner がある", () => {
-    expect(DEFAULT_TEMPLATES.matchStart).toContain("{{試合ラベル}}");
-    expect(DEFAULT_TEMPLATES.matchStart).toContain("{{コート名}}");
-    expect(DEFAULT_TEMPLATES.matchStart).toContain("{{トーナメント名}}");
-    expect(DEFAULT_TEMPLATES.winner).toContain("{{勝者名前}}");
-  });
-
   it("TTS_VOICES に nova が含まれる", () => {
     expect(TTS_VOICES.find((v) => v.value === "nova")).toBeTruthy();
   });
@@ -189,7 +188,7 @@ describe("定数エクスポート", () => {
 
 describe("buildMatchStartText", () => {
   it("テンプレートに選手情報を埋め込んだテキストを返す", () => {
-    const text = buildMatchStartText("山田太郎", "極真会　本部道場", "鈴木一郎", "正道会館", "準決勝");
+    const text = buildMatchStartText("山田太郎", "極真会　本部道場", "鈴木一郎", "正道会館", "準決勝", null, null, null, null, null, null, TEST_TEMPLATES);
     expect(text).toContain("じゅんけっしょう");
     expect(text).toContain("山田太郎");
     expect(text).toContain("鈴木一郎");
@@ -199,36 +198,21 @@ describe("buildMatchStartText", () => {
 
   it("読み仮名がある場合は読み仮名を使う", () => {
     const text = buildMatchStartText(
-      "山田太郎",
-      "極真会",
-      "鈴木一郎",
-      "正道会館",
-      "決勝",
-      "やまだたろう",
-      "きょくしんかい",
-      "すずきいちろう",
-      "せいどうかいかん",
+      "山田太郎", "極真会", "鈴木一郎", "正道会館", "決勝",
+      "やまだたろう", "きょくしんかい", "すずきいちろう", "せいどうかいかん",
+      null, null, TEST_TEMPLATES,
     );
     expect(text).toContain("やまだたろう");
     expect(text).toContain("きょくしんかい");
     expect(text).toContain("すずきいちろう");
     expect(text).toContain("せいどうかいかん");
-    // 漢字名は含まれない
     expect(text).not.toContain("山田太郎");
   });
 
   it("matchLabel がある場合はそちらを使う", () => {
     const text = buildMatchStartText(
-      "山田太郎",
-      "極真会",
-      "鈴木一郎",
-      "正道会館",
-      "準決勝",
-      null,
-      null,
-      null,
-      null,
-      "第3試合",
+      "山田太郎", "極真会", "鈴木一郎", "正道会館", "準決勝",
+      null, null, null, null, "第3試合", null, TEST_TEMPLATES,
     );
     expect(text).toContain("だいさんしあい");
     expect(text).not.toContain("じゅんけっしょう");
@@ -257,12 +241,12 @@ describe("buildMatchStartText", () => {
   });
 
   it("所属の全角スペースが読点に変換される", () => {
-    const text = buildMatchStartText("A", "柔空会　本部道場", "B", "", "決勝");
+    const text = buildMatchStartText("A", "柔空会　本部道場", "B", "", "決勝", null, null, null, null, null, null, TEST_TEMPLATES);
     expect(text).toContain("柔空会、本部道場");
   });
 
   it("所属にスペースがなければそのまま", () => {
-    const text = buildMatchStartText("A", "正道会館", "B", "", "決勝");
+    const text = buildMatchStartText("A", "正道会館", "B", "", "決勝", null, null, null, null, null, null, TEST_TEMPLATES);
     expect(text).toContain("正道会館");
   });
 
@@ -425,7 +409,7 @@ describe("announceMatchStart", () => {
     const deps = mockSpeakDeps();
     store.clear();
 
-    await announceMatchStart("山田太郎", "極真会　本部道場", "鈴木一郎", "正道会館", "決勝");
+    await announceMatchStart("山田太郎", "極真会　本部道場", "鈴木一郎", "正道会館", "決勝", null, null, null, null, null, null, TEST_TEMPLATES);
 
     // fetch が /api/tts に POST で呼ばれたことを検証
     expect(deps.fetchSpy).toHaveBeenCalledWith(
@@ -449,15 +433,9 @@ describe("announceMatchStart", () => {
     store.clear();
 
     await announceMatchStart(
-      "山田太郎",
-      "極真会　本部道場",
-      "鈴木一郎",
-      "正道会館",
-      "決勝",
-      "やまだたろう",
-      "きょくしんかい、ほんぶどうじょう",
-      "すずきいちろう",
-      "せいどうかいかん",
+      "山田太郎", "極真会　本部道場", "鈴木一郎", "正道会館", "決勝",
+      "やまだたろう", "きょくしんかい、ほんぶどうじょう", "すずきいちろう", "せいどうかいかん",
+      null, null, TEST_TEMPLATES,
     );
 
     const callBody = JSON.parse((deps.fetchSpy.mock.calls[0][1] as RequestInit).body as string);
@@ -473,7 +451,7 @@ describe("announceWinner", () => {
     const deps = mockSpeakDeps();
     store.clear();
 
-    await announceWinner("山田太郎", "極真会　本部道場");
+    await announceWinner("山田太郎", "極真会　本部道場", null, null, TEST_TEMPLATES);
 
     expect(deps.fetchSpy).toHaveBeenCalledWith(
       "/api/tts",
@@ -491,7 +469,7 @@ describe("announceWinner", () => {
     const deps = mockSpeakDeps();
     store.clear();
 
-    await announceWinner("山田太郎", "極真会　本部道場", "やまだたろう", "きょくしんかい、ほんぶどうじょう");
+    await announceWinner("山田太郎", "極真会　本部道場", "やまだたろう", "きょくしんかい、ほんぶどうじょう", TEST_TEMPLATES);
 
     const callBody = JSON.parse((deps.fetchSpy.mock.calls[0][1] as RequestInit).body as string);
     expect(callBody.text).toContain("やまだたろう");
