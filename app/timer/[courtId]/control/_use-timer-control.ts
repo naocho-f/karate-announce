@@ -7,18 +7,8 @@ import { createTimerChannel, saveState, loadState, setActiveFlag, clearActiveFla
 import {
   createInitialState,
   setMatch,
-  startTimer,
-  pauseTimer,
-  resumeTimer,
   timeUp,
-  adjustTime,
-  addPoint,
-  addWazaari,
-  addFoul,
-  addCaution,
-  toggleNewaza,
   newazaTimeUp,
-  undo,
   markResultWritten,
   tick,
   getDisplayMs,
@@ -55,59 +45,6 @@ function buildFighterInfo(f: Fighter): FighterInfo {
     nameReading: fighterFullReading(f),
     affiliation: f.affiliation ?? f.dojo?.name ?? "",
     affiliationReading: f.affiliation_reading ?? f.dojo?.name_reading ?? null,
-  };
-}
-
-type KeyAction = { update?: (st: TimerState) => TimerState; action?: () => void; preventDefault?: boolean };
-
-function buildKeyActionMap(
-  update: (fn: (s: TimerState) => TimerState) => void,
-  stateRef: React.RefObject<TimerState>,
-  setIpponConfirmSide: (side: FighterSide) => void,
-  setBuzzerWarning: (v: boolean) => void,
-): Record<string, (e: KeyboardEvent) => KeyAction> {
-  return {
-    Space: () => {
-      const s = stateRef.current;
-      if (s.phase === "ready" || s.phase === "extension") return { update: startTimer, preventDefault: true };
-      if (s.phase === "running") return { update: pauseTimer, preventDefault: true };
-      if (s.phase === "paused") return { update: resumeTimer, preventDefault: true };
-      return { preventDefault: true };
-    },
-    KeyG: () => ({
-      action: () => {
-        const before = stateRef.current;
-        update(toggleNewaza);
-        // 寝技解除でメインタイマーが自動停止した場合に通知
-        if (before.phase === "running" && before.newaza.active && before.preset?.newaza_stops_main) {
-          showToast("寝技解除によりメインタイマーを停止しました");
-        }
-      },
-    }),
-    KeyQ: () => ({ update: (st) => addPoint(st, "red") }),
-    KeyW: () => ({ update: (st) => addWazaari(st, "red") }),
-    KeyE: () => ({ update: (st) => addFoul(st, "red") }),
-    KeyD: () => ({ update: (st) => addCaution(st, "red") }),
-    KeyR: () => ({ action: () => setIpponConfirmSide("red") }),
-    KeyI: () => ({ update: (st) => addPoint(st, "white") }),
-    KeyO: () => ({ update: (st) => addWazaari(st, "white") }),
-    KeyP: () => ({ update: (st) => addFoul(st, "white") }),
-    KeyK: () => ({ update: (st) => addCaution(st, "white") }),
-    KeyL: () => ({ action: () => setIpponConfirmSide("white") }),
-    ArrowLeft: (e) => ({ update: (st) => adjustTime(st, e.shiftKey ? -1000 : -10000), preventDefault: true }),
-    ArrowRight: (e) => ({ update: (st) => adjustTime(st, e.shiftKey ? 1000 : 10000), preventDefault: true }),
-    KeyB: () => {
-      const s = stateRef.current;
-      void playBuzzer(
-        s.preset?.buzzer_sound ?? "mid-square-single",
-        s.preset?.buzzer_duration ?? 1.5,
-        s.preset?.buzzer_repeat ?? 1,
-      ).then((r) => {
-        if (r === "fallback") setBuzzerWarning(true);
-      });
-      return {};
-    },
-    Escape: () => ({ update: undo }),
   };
 }
 
@@ -479,24 +416,6 @@ export function useTimerControl() {
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, []);
-
-  // キーボードショートカット（アナウンス再生中は無効化）
-  useEffect(() => {
-    if (isPlaying) return;
-    const actionMap = buildKeyActionMap(update, stateRef, setIpponConfirmSide, setBuzzerWarning);
-    const handler = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      const actionFn = actionMap[e.code];
-      if (!actionFn) return;
-      const action = actionFn(e);
-      if (action.preventDefault) e.preventDefault();
-      if (action.update) update(action.update);
-      if (action.action) action.action();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [update, isPlaying]);
 
   // ── ルール→タイマーマッピング ──
   const [rulePresetMap, setRulePresetMap] = useState<Record<string, string>>({});

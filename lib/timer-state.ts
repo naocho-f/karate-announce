@@ -662,6 +662,25 @@ export function undo(state: TimerState): TimerState {
   return s;
 }
 
+const UNDO_ACTION_LABELS: Record<string, string> = {
+  red_point: "赤 +1pt",
+  white_point: "白 +1pt",
+  red_wazaari: "赤 技あり",
+  white_wazaari: "白 技あり",
+  red_ippon: "赤 一本",
+  white_ippon: "白 一本",
+  red_foul: "赤 反則",
+  white_foul: "白 反則",
+  red_caution: "赤 注意",
+  white_caution: "白 注意",
+  newaza_count_adjust: "寝技回数調整",
+};
+
+/** undoStack の action 文字列を日本語ラベルに変換 */
+export function undoActionLabel(action: string): string {
+  return UNDO_ACTION_LABELS[action] ?? action;
+}
+
 // ── 結果確定 ──────────────────────────────────────────────────
 
 /** 手動で結果を確定（判定・引き分け・棄権・負傷） */

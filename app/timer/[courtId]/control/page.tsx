@@ -4,7 +4,7 @@ import { flush } from "@/lib/offline-queue";
 import { useOfflineMode } from "@/components/unified-status-bar";
 import { setMode } from "@/lib/offline-mode";
 import { resetToIdle } from "@/lib/timer-state";
-import ShortcutPanel from "./_shortcut-panel";
+import HistoryPanel from "./_shortcut-panel";
 import IdlePanel from "./_idle-panel";
 import MatchOperations from "./_match-operations";
 import { PHASE_BADGE } from "./_timer-constants";
@@ -122,7 +122,7 @@ export default function TimerControlPage() {
           />
         </div>
 
-        <ShortcutPanel />
+        <HistoryPanel state={tc.state} onUpdate={tc.update} />
       </div>
 
       {tc.isPlaying && (

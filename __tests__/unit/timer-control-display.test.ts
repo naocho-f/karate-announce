@@ -7,7 +7,7 @@
  * 反則インジケータ: 反則数に応じたセル塗りつぶしロジック
  * 試合一覧: フィルタ・ソート・表示スタイルのロジック
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import type { ResultMethod } from "@/lib/timer-state";
 import { addIppon, createInitialState, setMatch } from "@/lib/timer-state";
 import type { TimerPreset } from "@/lib/types";
@@ -565,5 +565,46 @@ describe("次の試合位置スクロールのインデックス計算", () => {
   it("ready がない場合は -1 を返す", () => {
     const matches = [{ status: "done" }, { status: "done" }];
     expect(getScrollTargetIndex(matches)).toBe(-1);
+  });
+});
+
+// ── 操作履歴ラベル変換 ──────────────────────────────────────────
+
+describe("undoActionLabel", () => {
+  // lib/timer-state.ts に追加予定のエクスポート関数
+  // undoStack の action 文字列を日本語ラベルに変換する
+  let undoActionLabel: (action: string) => string;
+
+  beforeAll(async () => {
+    const mod = await import("@/lib/timer-state");
+    undoActionLabel = mod.undoActionLabel;
+  });
+
+  it("red_point → 赤 +1pt", () => {
+    expect(undoActionLabel("red_point")).toBe("赤 +1pt");
+  });
+
+  it("white_wazaari → 白 技あり", () => {
+    expect(undoActionLabel("white_wazaari")).toBe("白 技あり");
+  });
+
+  it("red_ippon → 赤 一本", () => {
+    expect(undoActionLabel("red_ippon")).toBe("赤 一本");
+  });
+
+  it("red_foul → 赤 反則", () => {
+    expect(undoActionLabel("red_foul")).toBe("赤 反則");
+  });
+
+  it("white_caution → 白 注意", () => {
+    expect(undoActionLabel("white_caution")).toBe("白 注意");
+  });
+
+  it("newaza_count_adjust → 寝技回数調整", () => {
+    expect(undoActionLabel("newaza_count_adjust")).toBe("寝技回数調整");
+  });
+
+  it("未知のアクションはそのまま返す", () => {
+    expect(undoActionLabel("unknown_action")).toBe("unknown_action");
   });
 });

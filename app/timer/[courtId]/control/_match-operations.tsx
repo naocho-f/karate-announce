@@ -14,6 +14,7 @@ import {
   toggleNewaza,
   adjustNewazaCount,
   undo,
+  undoActionLabel,
   finishManual,
   cancelResult,
   resetToIdle,
@@ -98,7 +99,7 @@ export default function MatchOperations(props: MatchOperationsProps) {
         />
       )}
       <WithdrawSection props={props} />
-      <UndoButton state={props.state} onUpdate={props.onUpdate} />
+      <UndoButton state={props.state} onUndo={() => props.onUpdate(undo)} />
     </>
   );
 }
@@ -161,7 +162,7 @@ function MainControls({ props: { state, phase, p, newazaDispMs, onUpdate } }: { 
             onClick={() => onUpdate(startTimer)}
             className="flex-1 py-6 rounded-lg bg-green-700 hover:bg-green-600 text-white font-bold text-xl transition"
           >
-            ▶ 開始 [Space]
+            ▶ 開始
           </button>
         )}
         {phase === "running" && (
@@ -169,7 +170,7 @@ function MainControls({ props: { state, phase, p, newazaDispMs, onUpdate } }: { 
             onClick={() => onUpdate(pauseTimer)}
             className="flex-1 py-6 rounded-lg bg-yellow-700 hover:bg-yellow-600 text-white font-bold text-xl transition"
           >
-            ⏸ ストップ [Space]
+            ⏸ ストップ
           </button>
         )}
         {phase === "paused" && (
@@ -177,7 +178,7 @@ function MainControls({ props: { state, phase, p, newazaDispMs, onUpdate } }: { 
             onClick={() => onUpdate(resumeTimer)}
             className="flex-1 py-6 rounded-lg bg-green-700 hover:bg-green-600 text-white font-bold text-xl transition"
           >
-            ▶ 再開 [Space]
+            ▶ 再開
           </button>
         )}
       </div>
@@ -417,15 +418,22 @@ function WithdrawSection({ props: { phase, onUpdate } }: { props: MatchOperation
   );
 }
 
-function UndoButton({ state, onUpdate }: { state: TimerState; onUpdate: (fn: (s: TimerState) => TimerState) => void }) {
+function UndoButton({
+  state,
+  onUndo,
+}: {
+  state: TimerState;
+  onUndo: () => void;
+}) {
   if (state.undoStack.length === 0) return null;
+  const lastAction = state.undoStack[state.undoStack.length - 1];
   return (
     <section>
       <button
-        onClick={() => onUpdate(undo)}
-        className="w-full py-2 rounded bg-gray-800 hover:bg-gray-700 text-orange-400 text-sm font-bold transition"
+        onClick={onUndo}
+        className="w-full py-3 rounded-lg bg-orange-700 hover:bg-orange-600 text-white text-base font-bold transition shadow-lg"
       >
-        取消 [Esc] — {state.undoStack[state.undoStack.length - 1].action}
+        取消 — {undoActionLabel(lastAction.action)}
       </button>
     </section>
   );
