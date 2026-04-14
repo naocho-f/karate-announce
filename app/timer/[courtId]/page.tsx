@@ -9,7 +9,6 @@ import { resolveLayout } from "@/lib/timer-layout";
 import type { LayoutRow, LayoutAlignment, LayoutVerticalAlign, TimerPreset, KouryuukaiFontSizes } from "@/lib/types";
 import { DEFAULT_KOURYUUKAI_FONT_SIZES } from "@/lib/types";
 
-
 /** コート名の頭文字 + match_number で短縮試合番号を生成（例: 「Bコート」+ 5 → 「B-5」） */
 function shortMatchId(state: TimerState): string {
   if (!state.matchNumber) return state.matchLabel || "--";

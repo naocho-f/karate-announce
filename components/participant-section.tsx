@@ -1239,7 +1239,7 @@ function EntriesSection({
     }
     if (!confirm(`テストデータ ${testEntries.length} 名を削除しますか？`)) return;
     setGenerating(true);
-    await Promise.all(testEntries.map((e) => fetch(`/api/admin/entries/${e.id}`, { method: "DELETE" })));
+    await Promise.all(testEntries.map((e) => fetch(`/api/admin/entries/${e.id}?hard=true`, { method: "DELETE" })));
     setGenerating(false);
     onAdded();
   }

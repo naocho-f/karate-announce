@@ -98,6 +98,26 @@ describe("論理削除（ソフトデリート）", () => {
       expect(entryRuleDeletes.length).toBe(0);
     });
 
+    it("テスト参加者はhard=trueで物理削除される", async () => {
+      mockResult("entries", "select", { data: { id: "e1", is_test: true } });
+      mockResult("entries", "delete", { data: null });
+      mockResult("entry_rules", "delete", { data: null });
+      const { DELETE } = await import("@/app/api/admin/entries/[id]/route");
+      const req = createAdminRequest("DELETE", "/api/admin/entries/e1?hard=true");
+      const res = await DELETE(req, createParams({ id: "e1" }));
+      expect(res.status).toBe(200);
+      const deletes = getCallsFor("entries", "delete");
+      expect(deletes.length).toBeGreaterThan(0);
+    });
+
+    it("テスト参加者以外はhard=trueでも物理削除されない", async () => {
+      mockResult("entries", "select", { data: { id: "e1", is_test: false } });
+      const { DELETE } = await import("@/app/api/admin/entries/[id]/route");
+      const req = createAdminRequest("DELETE", "/api/admin/entries/e1?hard=true");
+      const res = await DELETE(req, createParams({ id: "e1" }));
+      expect(res.status).toBe(403);
+    });
+
     it("タイマープリセットの削除がUPDATEでdeleted_atをセットする", async () => {
       mockResult("timer_presets", "update", { data: null });
       const { DELETE } = await import("@/app/api/admin/timer-presets/[id]/route");
