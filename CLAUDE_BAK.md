@@ -190,19 +190,21 @@
 - コミット後に `git push origin main` を実行する。（Vercel の GitHub 連携が自動デプロイする）
 - `vercel --prod` は実行しない。
 
+### Step 6.5: DBマイグレーション（DBスキーマ変更がある場合のみ）
+
+- `supabase/migrations/` に新規マイグレーションファイルがある場合、**プッシュ後・デプロイ確認前に**本番DBに対してマイグレーションを実行する。
+- **ユーザーに依頼せず自分で** Supabase Management API 経由で実行する。確認も不要。
+- 実行方法は memory/reference_supabase_sql.md を参照。
+- 既存データのマイグレーションも同時に実行する。
+- マイグレーションが完了しないと新機能が動作しないため、**Step 7 の前に必ず完了させる**。
+- **マイグレーションファイル必須**: SQL を Supabase に実行したら、同じ内容を `supabase/migrations/` にも保存する。RPC 関数・テーブル変更・インデックス等すべて対象。マイグレーションファイルがないと新環境構築時に再現できない。
+- **`supabase_schema.sql` も同時更新必須**: カラム追加・テーブル作成時は `supabase_schema.sql` にも反映する。`lib/types.ts` の型定義と `supabase_schema.sql` のカラム定義が一致していることを確認する。
+
 ### Step 7: デプロイ完了確認
 
 - 完了報告の前に `vercel ls --scope naocho-fs-projects` でデプロイが `● Ready` になっていることを確認する。
 - Ready になっていなければ30秒待ってから確認、以降10秒ごとにリトライして Ready を待つ。
 - **デプロイ完了を確認してから報告する。**
-
-## DBスキーマ変更
-
-- DBカラム追加・テーブル作成等が必要な場合、**ユーザーに依頼せず自分で** Supabase Management API 経由で実行する。確認も不要。
-- 実行方法は memory/reference_supabase_sql.md を参照。
-- 既存データのマイグレーションも同時に実行する。
-- **マイグレーションファイル必須**: SQL を Supabase に実行したら、同じ内容を `supabase/migrations/` にも `CREATE OR REPLACE` 形式で保存する。RPC 関数・テーブル変更・インデックス等すべて対象。マイグレーションファイルがないと新環境構築時に再現できない。
-- **`supabase_schema.sql` も同時更新必須**: カラム追加・テーブル作成時は `supabase_schema.sql` にも反映する。`lib/types.ts` の型定義と `supabase_schema.sql` のカラム定義が一致していることを確認する。
 
 ## コミュニケーション
 
