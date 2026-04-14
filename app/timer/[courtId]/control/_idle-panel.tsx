@@ -232,6 +232,9 @@ function MatchCard({
           )}
           <span className={`text-[10px] ml-auto ${ms === "done" ? "text-gray-700" : "text-gray-600"}`}>
             {c.tournament.name}
+            {c.tournament.status === "finished" && (
+              <span className="ml-1 px-1 py-0.5 rounded bg-gray-700 text-gray-400 text-[9px]">完了</span>
+            )}
           </span>
         </div>
       </div>

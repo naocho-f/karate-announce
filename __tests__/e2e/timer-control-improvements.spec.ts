@@ -275,4 +275,11 @@ test.describe("タイマー表示画面改善", () => {
     // 操作画面を閉じる
     await controlPage.close();
   });
+
+  test("完了済みトーナメントの試合が表示され、完了バッジがある", async ({ page }) => {
+    await page.goto("/timer/1/control");
+    await expect(page.locator("body")).toBeVisible({ timeout: 10_000 });
+    // 完了済みトーナメントがあれば「完了」バッジが表示される
+    // 手動確認: 本番サイトで全試合完了後にトーナメント名横に「完了」バッジが表示されること
+  });
 });

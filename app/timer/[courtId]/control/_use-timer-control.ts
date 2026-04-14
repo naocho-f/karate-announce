@@ -225,7 +225,6 @@ export function useTimerControl() {
       .select("*")
       .eq("event_id", activeEvent.id)
       .eq("court", courtId)
-      .neq("status", "finished")
       .order("sort_order")
       .order("created_at");
 
