@@ -13,6 +13,7 @@ export type BracketMatch = {
   winner_id: string | null;
   status: string;
   match_label: string | null;
+  match_number?: number;
   result_method?: string | null;
   result_detail?: {
     red_points?: number;
@@ -33,12 +34,20 @@ export function roundLabel(round: number, totalRounds: number): string {
   return `第${round}回戦`;
 }
 
-function pendingSlotLabel(round: number, position: number, slot: 0 | 1, totalRounds: number): string {
+function pendingSlotLabel(
+  round: number,
+  position: number,
+  slot: 0 | 1,
+  totalRounds: number,
+  matchNumberMap?: Record<string, number>,
+): string {
   if (round === 1) return "不戦勝";
   const feederRound = round - 1;
   const feederPos = position * 2 + slot;
-  if (feederRound === 1) return `第${feederPos + 1}試合の勝者`;
-  return `${roundLabel(feederRound, totalRounds)} 第${feederPos + 1}試合勝者`;
+  const num = matchNumberMap?.[`${feederRound}_${feederPos}`];
+  const label = num ? `${num}` : `${feederPos + 1}`;
+  if (feederRound === 1) return `第${label}試合の勝者`;
+  return `${roundLabel(feederRound, totalRounds)} 第${label}試合勝者`;
 }
 
 const RESULT_METHOD_LABELS: Record<string, string> = {
@@ -492,6 +501,7 @@ type BracketMatchCardProps = {
   processingMatchIds?: Set<string>;
   mutedMatchIds?: Set<string>;
   assignedNumbers?: Record<string, number>;
+  matchNumberMap?: Record<string, number>;
   nextMatchId?: string | null;
   hasOngoingMatch: boolean;
   timerControlActive: boolean;
@@ -520,8 +530,9 @@ function fighterName(
   position: number,
   slot: 0 | 1,
   maxRound: number,
+  matchNumberMap?: Record<string, number>,
 ): string {
-  return fighterId ? (nameMap[fighterId] ?? "?") : pendingSlotLabel(round, position, slot, maxRound);
+  return fighterId ? (nameMap[fighterId] ?? "?") : pendingSlotLabel(round, position, slot, maxRound, matchNumberMap);
 }
 
 function BracketMatchCardFooter({
@@ -600,9 +611,9 @@ function BracketMatchCardFooter({
 }
 
 function resolveFighterData(fighterId: string | null, slot: 0 | 1, m: BracketMatch, props: BracketMatchCardProps) {
-  const { nameMap, affiliationMap, withdrawnIds, fighterEntryMap, maxRound } = props;
+  const { nameMap, affiliationMap, withdrawnIds, fighterEntryMap, maxRound, matchNumberMap } = props;
   return {
-    name: fighterName(fighterId, nameMap, m.round, m.position, slot, maxRound),
+    name: fighterName(fighterId, nameMap, m.round, m.position, slot, maxRound, matchNumberMap),
     aff: fighterId ? affiliationMap[fighterId] : undefined,
     isWithdrawn: !!(fighterId && withdrawnIds?.has(fighterId)),
     entryId: fighterId ? fighterEntryMap?.[fighterId] : undefined,
@@ -911,6 +922,12 @@ export function BracketView({
 
   const isBye = (m: BracketMatch) => m.round === 1 && !!m.fighter1_id && !m.fighter2_id;
 
+  // round_position → match_number のマップ（pendingSlotLabel用）
+  const matchNumberMap: Record<string, number> = {};
+  for (const m of matches) {
+    if (m.match_number) matchNumberMap[`${m.round}_${m.position}`] = m.match_number;
+  }
+
   const connectors = matches
     .filter((m) => m.round < maxRound)
     .map((m) => {
@@ -941,6 +958,7 @@ export function BracketView({
             processingMatchIds={processingMatchIds}
             mutedMatchIds={mutedMatchIds}
             assignedNumbers={assignedNumbers}
+            matchNumberMap={matchNumberMap}
             nextMatchId={nextMatchId}
             hasOngoingMatch={hasOngoingMatch}
             timerControlActive={timerControlActive}
