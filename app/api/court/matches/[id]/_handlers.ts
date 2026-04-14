@@ -133,6 +133,30 @@ export async function handleCorrectWinner(
   return NextResponse.json({ ok: true });
 }
 
+/** クライアントから送られなかった round/position/rounds を DB から補完する */
+async function resolveMatchMeta(
+  supabaseAdmin: SupabaseClient,
+  matchId: string,
+  body: MatchBody,
+): Promise<{ round?: number; position?: number; rounds?: number }> {
+  let { round, position, rounds } = body;
+  const { winnerId, tournamentId } = body;
+  if ((round == null || position == null) && winnerId && tournamentId) {
+    const { data } = await supabaseAdmin.from("matches").select("round, position").eq("id", matchId).single();
+    if (data) {
+      round = data.round;
+      position = data.position;
+    }
+  }
+  if (rounds == null && winnerId && tournamentId) {
+    const { data } = await supabaseAdmin.from("matches").select("round").eq("tournament_id", tournamentId);
+    if (data) {
+      rounds = Math.max(...data.map((m: { round: number }) => m.round), 1);
+    }
+  }
+  return { round, position, rounds };
+}
+
 export async function handleFinishTimer(
   id: string,
   body: MatchBody,
@@ -140,7 +164,8 @@ export async function handleFinishTimer(
 ): Promise<NextResponse> {
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
-  const { winnerId, tournamentId, round, rounds, position, resultMethod, resultDetail } = body;
+  const { winnerId, tournamentId, resultMethod, resultDetail } = body;
+  const { round, position, rounds } = await resolveMatchMeta(supabaseAdmin, id, body);
 
   if (winnerId && round != null && rounds != null && position != null) {
     // 勝者あり → RPC でアトミック実行（match 更新 + 次ラウンド配置）

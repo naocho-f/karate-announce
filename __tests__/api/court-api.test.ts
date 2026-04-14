@@ -316,6 +316,39 @@ describe("/api/court/matches/[id]", () => {
     expect(res.status).toBe(200);
   });
 
+  it("PATCH: action=finish_timer round/position未送信でもAPI側で取得してRPC呼び出し", async () => {
+    // API側で match の round/position を取得するためのモック
+    mockResult("matches", "select", {
+      data: { round: 2, position: 3, tournament_id: "t1" },
+    });
+    const { supabaseAdmin } = await import("@/lib/supabase-admin");
+    const rpcSpy = vi.mocked(supabaseAdmin.rpc);
+    rpcSpy.mockClear();
+    const { PATCH } = await import("@/app/api/court/matches/[id]/route");
+    const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
+      body: {
+        action: "finish_timer",
+        winnerId: "f1",
+        tournamentId: "t1",
+        rounds: 5,
+        resultMethod: "ippon",
+        resultDetail: { red_points: 0, white_points: 0 },
+      },
+    });
+    const res = await PATCH(req, createParams({ id: "m1" }));
+    expect(res.status).toBe(200);
+    // RPC set_match_winner が呼ばれ、API側で取得した round/position が使われる
+    expect(rpcSpy).toHaveBeenCalledWith(
+      "set_match_winner",
+      expect.objectContaining({
+        p_match_id: "m1",
+        p_winner_id: "f1",
+        p_round: 2,
+        p_position: 3,
+      }),
+    );
+  });
+
   it("PATCH: action=swap_with で試合入れ替え", async () => {
     mockResult("matches", "select", { data: { position: 0 } });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
