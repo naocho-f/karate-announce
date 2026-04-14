@@ -133,27 +133,13 @@ export async function handleCorrectWinner(
   return NextResponse.json({ ok: true });
 }
 
-/** クライアントから送られなかった round/position/rounds を DB から補完する */
-async function resolveMatchMeta(
-  supabaseAdmin: SupabaseClient,
-  matchId: string,
-  body: MatchBody,
-): Promise<{ round?: number; position?: number; rounds?: number }> {
-  let { round, position, rounds } = body;
-  const { winnerId, tournamentId } = body;
-  if ((round == null || position == null) && winnerId && tournamentId) {
-    const { data } = await supabaseAdmin.from("matches").select("round, position").eq("id", matchId).single();
-    if (data) {
-      round = data.round;
-      position = data.position;
-    }
-  }
-  if (rounds == null && winnerId && tournamentId) {
-    const { data } = await supabaseAdmin.from("matches").select("round").eq("tournament_id", tournamentId);
-    if (data) {
-      rounds = Math.max(...data.map((m: { round: number }) => m.round), 1);
-    }
-  }
+/** match_id からラウンド情報を取得し RPC 用パラメータを構築する */
+async function fetchMatchMeta(supabaseAdmin: SupabaseClient, matchId: string, tournamentId: string) {
+  const { data: matchData } = await supabaseAdmin.from("matches").select("round, position").eq("id", matchId).single();
+  const { data: allMatches } = await supabaseAdmin.from("matches").select("round").eq("tournament_id", tournamentId);
+  const round = matchData?.round as number | undefined;
+  const position = matchData?.position as number | undefined;
+  const rounds = Array.isArray(allMatches) ? Math.max(...allMatches.map((m: { round: number }) => m.round), 1) : 1;
   return { round, position, rounds };
 }
 
@@ -165,12 +151,14 @@ export async function handleFinishTimer(
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
   const { winnerId, tournamentId, resultMethod, resultDetail } = body;
-  const { round, position, rounds } = await resolveMatchMeta(supabaseAdmin, id, body);
 
-  console.warn("[handleFinishTimer]", { matchId: id, winnerId, round, rounds, position, bodyRound: body.round, bodyPosition: body.position, bodyRounds: body.rounds });
+  if (winnerId && tournamentId) {
+    const { round, position, rounds } = await fetchMatchMeta(supabaseAdmin, id, tournamentId);
 
-  if (winnerId && round != null && rounds != null && position != null) {
-    // 勝者あり → RPC でアトミック実行（match 更新 + 次ラウンド配置）
+    if (round == null || position == null) {
+      return NextResponse.json({ error: "試合のラウンド情報が取得できません" }, { status: 500 });
+    }
+
     const { error } = await supabaseAdmin.rpc("set_match_winner", {
       p_match_id: id,
       p_winner_id: winnerId,

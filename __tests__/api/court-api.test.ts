@@ -220,18 +220,14 @@ describe("/api/court/matches/[id]", () => {
   });
 
   it("PATCH: action=finish_timer でタイマー結果書き戻し（非決勝）", async () => {
-    mockResult("matches", "select", {
-      data: { id: "next-m", fighter1_id: null, fighter2_id: "f2" },
-    });
+    // API側でround/positionを取得するモック（.single()で返る）
+    mockResult("matches", "select", { data: { round: 1, position: 0 } });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
     const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: {
         action: "finish_timer",
         winnerId: "f1",
         tournamentId: "t1",
-        round: 1,
-        rounds: 3,
-        position: 0,
         resultMethod: "ippon",
         resultDetail: { red_points: 0, white_points: 0 },
       },
@@ -241,15 +237,13 @@ describe("/api/court/matches/[id]", () => {
   });
 
   it("PATCH: action=finish_timer 決勝でトーナメント完了", async () => {
+    mockResult("matches", "select", { data: { round: 3, position: 0 } });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
     const req = createAdminRequest("PATCH", "/api/court/matches/m-final", {
       body: {
         action: "finish_timer",
         winnerId: "f1",
         tournamentId: "t1",
-        round: 3,
-        rounds: 3,
-        position: 0,
         resultMethod: "decision",
       },
     });
@@ -258,18 +252,13 @@ describe("/api/court/matches/[id]", () => {
   });
 
   it("PATCH: action=finish_timer ポイント勝ちで result_detail が保存される", async () => {
-    mockResult("matches", "select", {
-      data: { id: "next-m", fighter1_id: null, fighter2_id: "f2" },
-    });
+    mockResult("matches", "select", { data: { round: 1, position: 0 } });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
     const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: {
         action: "finish_timer",
         winnerId: "f1",
         tournamentId: "t1",
-        round: 1,
-        rounds: 3,
-        position: 0,
         resultMethod: "point",
         resultDetail: { red_points: 5, white_points: 3, red_wazaari: 1, white_wazaari: 0 },
       },
@@ -279,18 +268,13 @@ describe("/api/court/matches/[id]", () => {
   });
 
   it("PATCH: action=finish_timer 反則勝ちで result_method=foul", async () => {
-    mockResult("matches", "select", {
-      data: { id: "next-m", fighter1_id: null, fighter2_id: "f2" },
-    });
+    mockResult("matches", "select", { data: { round: 1, position: 0 } });
     const { PATCH } = await import("@/app/api/court/matches/[id]/route");
     const req = createAdminRequest("PATCH", "/api/court/matches/m1", {
       body: {
         action: "finish_timer",
         winnerId: "f1",
         tournamentId: "t1",
-        round: 1,
-        rounds: 3,
-        position: 0,
         resultMethod: "foul",
         resultDetail: { red_fouls: 3 },
       },
@@ -316,10 +300,10 @@ describe("/api/court/matches/[id]", () => {
     expect(res.status).toBe(200);
   });
 
-  it("PATCH: action=finish_timer round/position未送信でもAPI側で取得してRPC呼び出し", async () => {
-    // API側で match の round/position を取得するためのモック
+  it("PATCH: action=finish_timer API側でround/positionをDB取得してRPC呼び出し", async () => {
+    // API側で match の round/position を取得するためのモック（.single()用）
     mockResult("matches", "select", {
-      data: { round: 2, position: 3, tournament_id: "t1" },
+      data: { round: 2, position: 3 },
     });
     const { supabaseAdmin } = await import("@/lib/supabase-admin");
     const rpcSpy = vi.mocked(supabaseAdmin.rpc);
@@ -330,14 +314,13 @@ describe("/api/court/matches/[id]", () => {
         action: "finish_timer",
         winnerId: "f1",
         tournamentId: "t1",
-        rounds: 5,
         resultMethod: "ippon",
         resultDetail: { red_points: 0, white_points: 0 },
       },
     });
     const res = await PATCH(req, createParams({ id: "m1" }));
     expect(res.status).toBe(200);
-    // RPC set_match_winner が呼ばれ、API側で取得した round/position が使われる
+    // RPC set_match_winner が呼ばれる
     expect(rpcSpy).toHaveBeenCalledWith(
       "set_match_winner",
       expect.objectContaining({
