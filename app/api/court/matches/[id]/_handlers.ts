@@ -167,6 +167,8 @@ export async function handleFinishTimer(
   const { winnerId, tournamentId, resultMethod, resultDetail } = body;
   const { round, position, rounds } = await resolveMatchMeta(supabaseAdmin, id, body);
 
+  console.warn("[handleFinishTimer]", { matchId: id, winnerId, round, rounds, position, bodyRound: body.round, bodyPosition: body.position, bodyRounds: body.rounds });
+
   if (winnerId && round != null && rounds != null && position != null) {
     // 勝者あり → RPC でアトミック実行（match 更新 + 次ラウンド配置）
     const { error } = await supabaseAdmin.rpc("set_match_winner", {
