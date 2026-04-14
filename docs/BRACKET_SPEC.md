@@ -40,7 +40,7 @@
 | type              | text        | 'tournament'      | `tournament` / `one_match`                               |
 | status            | text        | 'preparing'       | `preparing` / `ongoing` / `finished`                     |
 | event_id          | uuid        | NULL              | FK → events                                              |
-| default_rules     | text        | NULL              | デフォルトルール名                                       |
+| default_rules     | text        | NOT NULL          | デフォルトルール名（必須）                               |
 | sort_order        | integer     | 0                 | 表示順序                                                 |
 | max_weight_diff   | numeric     | NULL              | 体重差の許容上限（kg）                                   |
 | max_height_diff   | numeric     | NULL              | 身長差の許容上限（cm）                                   |

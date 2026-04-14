@@ -904,6 +904,7 @@ function EditForm(props: EditFormProps) {
         confirming={confirming}
         totalPairs={totalPairs}
         confirmLabel={confirmLabel}
+        hasDefaultRule={!!defaultRuleId}
         onAddGroup={onAddGroup}
         onSetShowCreateForm={onSetShowCreateForm}
         onSetEditingTournamentId={onSetEditingTournamentId}
@@ -982,6 +983,7 @@ function EditFormFooter({
   confirming,
   totalPairs,
   confirmLabel,
+  hasDefaultRule,
   onAddGroup,
   onSetShowCreateForm,
   onSetEditingTournamentId,
@@ -992,6 +994,7 @@ function EditFormFooter({
   confirming: boolean;
   totalPairs: number;
   confirmLabel: string;
+  hasDefaultRule: boolean;
   onAddGroup: (type: "tournament" | "one_match") => void;
   onSetShowCreateForm: (show: boolean) => void;
   onSetEditingTournamentId: (id: string | null) => void;
@@ -1029,7 +1032,7 @@ function EditFormFooter({
         </button>
         <button
           onClick={onConfirm}
-          disabled={confirming || totalPairs === 0}
+          disabled={confirming || totalPairs === 0 || !hasDefaultRule}
           className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
         >
           {confirming && (

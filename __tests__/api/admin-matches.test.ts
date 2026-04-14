@@ -145,6 +145,7 @@ describe("POST /api/admin/tournaments", () => {
         ],
         eventId: "ev1",
         sortOrder: 1,
+        defaultRuleName: "テストルール",
         maxWeightDiff: 5,
         maxHeightDiff: 10,
       },
@@ -165,6 +166,7 @@ describe("POST /api/admin/tournaments", () => {
         courtName: "個別試合",
         courtNum: "B",
         type: "one_match",
+        defaultRuleName: "フルコンタクト",
         pairs: [
           {
             e1: { id: "e1", family_name: "田中", given_name: "太郎", event_id: "ev1" },
@@ -194,6 +196,7 @@ describe("POST /api/admin/tournaments", () => {
       body: {
         courtName: "コートB",
         courtNum: "B",
+        defaultRuleName: "テストルール",
         pairs: [
           {
             e1: { id: "e1", family_name: "田中", given_name: "太郎", event_id: "ev1" },
@@ -262,6 +265,7 @@ describe("POST /api/admin/tournaments", () => {
       body: {
         courtName: "コートC",
         courtNum: "C",
+        defaultRuleName: "テストルール",
         pairs: [
           {
             e1: { id: "e1", family_name: "田中", given_name: "太郎", event_id: "ev1" },
@@ -311,6 +315,27 @@ describe("POST /api/admin/tournaments", () => {
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
+
+  it("defaultRuleName 未指定の場合 400", async () => {
+    const { POST } = await import("@/app/api/admin/tournaments/route");
+    const req = createAdminRequest("POST", "/api/admin/tournaments", {
+      body: {
+        courtName: "コートA",
+        courtNum: "A",
+        pairs: [
+          {
+            e1: { id: "e1", family_name: "田中", given_name: "太郎", event_id: "ev1" },
+            e2: { id: "e2", family_name: "鈴木", given_name: "次郎", event_id: "ev1" },
+            matchLabel: null,
+            ruleName: null,
+          },
+        ],
+        eventId: "ev1",
+      },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
 });
 
 describe("/api/admin/tournaments/[id]", () => {
@@ -322,6 +347,7 @@ describe("/api/admin/tournaments/[id]", () => {
       body: {
         courtName: "コートA更新",
         courtNum: "A",
+        defaultRuleName: "テストルール",
         pairs: [
           {
             e1: { id: "e1", family_name: "田中", given_name: "太郎", event_id: "ev1" },
@@ -361,6 +387,26 @@ describe("/api/admin/tournaments/[id]", () => {
         courtName: "コートA",
         courtNum: "A",
         pairs: [],
+      },
+    });
+    const res = await PUT(req, createParams({ id: "t1" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("PUT: defaultRuleName 未指定の場合 400", async () => {
+    const { PUT } = await import("@/app/api/admin/tournaments/[id]/route");
+    const req = createAdminRequest("PUT", "/api/admin/tournaments/t1", {
+      body: {
+        courtName: "コートA",
+        courtNum: "A",
+        pairs: [
+          {
+            e1: { id: "e1", family_name: "田中", given_name: "太郎", event_id: "ev1" },
+            e2: { id: "e2", family_name: "鈴木", given_name: "次郎", event_id: "ev1" },
+            matchLabel: null,
+            ruleName: null,
+          },
+        ],
       },
     });
     const res = await PUT(req, createParams({ id: "t1" }));

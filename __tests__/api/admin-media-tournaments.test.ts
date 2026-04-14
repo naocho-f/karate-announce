@@ -322,6 +322,7 @@ describe("/api/admin/tournaments POST", () => {
         courtName: "Aコート",
         courtNum: "1",
         eventId: "ev1",
+        defaultRuleName: "フルコン",
         pairs: [
           {
             e1: { id: "e1", family_name: "田中", given_name: "太郎", event_id: "ev1" },
@@ -354,6 +355,7 @@ describe("/api/admin/tournaments POST", () => {
         courtName: "エキシビション",
         courtNum: "1",
         type: "one_match",
+        defaultRuleName: "テストルール",
         pairs: [
           {
             e1: { id: "e1", family_name: "田中", given_name: "太郎", event_id: "ev1" },
@@ -391,6 +393,7 @@ describe("/api/admin/tournaments POST", () => {
         courtName: "ワンマッチ1",
         courtNum: "1",
         type: "one_match",
+        defaultRuleName: "フルコン",
         eventId: "ev1",
         pairs: [
           {
@@ -422,6 +425,7 @@ describe("/api/admin/tournaments POST", () => {
       body: {
         courtName: "Aコート",
         courtNum: "1",
+        defaultRuleName: "本戦2分",
         pairs: [
           {
             e1: { id: "e1", family_name: "田中", event_id: "ev1" },
@@ -463,7 +467,7 @@ describe("/api/admin/tournaments POST", () => {
       ruleName: null,
     }));
     const req = createAdminRequest("POST", "/api/admin/tournaments", {
-      body: { courtName: "A", courtNum: "1", pairs },
+      body: { courtName: "A", courtNum: "1", defaultRuleName: "テストルール", pairs },
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
@@ -492,6 +496,7 @@ describe("/api/admin/tournaments POST", () => {
       body: {
         courtName: "A",
         courtNum: "1",
+        defaultRuleName: "テストルール",
         pairs: [
           {
             e1: { id: "e1", family_name: "A", event_id: "ev1" },
@@ -534,7 +539,7 @@ describe("/api/admin/tournaments POST", () => {
       ruleName: null,
     }));
     const req = createAdminRequest("POST", "/api/admin/tournaments", {
-      body: { courtName: "A", courtNum: "1", pairs },
+      body: { courtName: "A", courtNum: "1", defaultRuleName: "テストルール", pairs },
     });
     await POST(req);
 
@@ -552,6 +557,7 @@ describe("/api/admin/tournaments POST", () => {
       body: {
         courtName: "A",
         courtNum: "1",
+        defaultRuleName: "テストルール",
         pairs: [
           {
             e1: { id: "e1", family_name: "A", event_id: "ev1" },
@@ -578,6 +584,7 @@ describe("/api/admin/tournaments POST", () => {
       body: {
         courtName: "Bコート",
         courtNum: "2",
+        defaultRuleName: "ポイント",
         pairs: [
           {
             e1: { id: "e1", family_name: "田中", given_name: "太郎", event_id: "ev1" },
@@ -607,6 +614,7 @@ describe("/api/admin/tournaments POST", () => {
       body: {
         courtName: "A",
         courtNum: "1",
+        defaultRuleName: "テストルール",
         pairs: [
           {
             e1: { id: "e1", family_name: "A", event_id: "ev1" },
@@ -643,7 +651,7 @@ describe("/api/admin/tournaments POST", () => {
       ruleName: null,
     }));
     const req = createAdminRequest("POST", "/api/admin/tournaments", {
-      body: { courtName: "A", courtNum: "1", pairs },
+      body: { courtName: "A", courtNum: "1", defaultRuleName: "テストルール", pairs },
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
@@ -673,7 +681,7 @@ describe("/api/admin/tournaments POST", () => {
       ruleName: null,
     }));
     const req = createAdminRequest("POST", "/api/admin/tournaments", {
-      body: { courtName: "A", courtNum: "1", pairs },
+      body: { courtName: "A", courtNum: "1", defaultRuleName: "テストルール", pairs },
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
@@ -701,6 +709,7 @@ describe("/api/admin/tournaments POST", () => {
       body: {
         courtName: "A",
         courtNum: "1",
+        defaultRuleName: "テストルール",
         pairs: [
           {
             e1: { id: "e1", family_name: "A", event_id: "ev1" },
@@ -759,6 +768,7 @@ describe("/api/admin/tournaments POST", () => {
       body: {
         courtName: "A",
         courtNum: "1",
+        defaultRuleName: "テストルール",
         pairs: [
           {
             e1: { id: "e1", family_name: "A", event_id: "ev1" },

@@ -198,6 +198,7 @@ export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const body = (await request.json()) as PostBody;
   if (!body.pairs?.length) return NextResponse.json({ error: "pairs required" }, { status: 400 });
+  if (!body.defaultRuleName) return NextResponse.json({ error: "defaultRuleName required" }, { status: 400 });
 
   if (body.type === "one_match" && body.eventId) {
     const dupeErr = await checkOneMatchDuplicate(body.eventId, body.pairs[0]);

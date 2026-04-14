@@ -151,6 +151,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = (await request.json()) as TournamentBody;
   if (!body.pairs?.length) return NextResponse.json({ error: "pairs required" }, { status: 400 });
+  if (!body.defaultRuleName) return NextResponse.json({ error: "defaultRuleName required" }, { status: 400 });
 
   await supabaseAdmin.from("matches").delete().eq("tournament_id", id);
   const { error: tErr } = await supabaseAdmin.from("tournaments").update(buildTournamentUpdate(body)).eq("id", id);
