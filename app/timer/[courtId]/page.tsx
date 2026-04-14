@@ -321,7 +321,12 @@ function resolveTheme(state: TimerState, displayMs: number): TimerTheme {
     dividerColor: colors.dividerColor,
     fontFamily: colors.fontFamily,
     showDecimals: colors.showDecimals,
-    currentTimerColor: state.phase === "paused" ? "#b45309" : isWarn ? colors.warnColor : colors.timerColor,
+    currentTimerColor:
+      state.phase !== "running" && state.phase !== "ready" && state.phase !== "idle"
+        ? "#b45309"
+        : isWarn
+          ? colors.warnColor
+          : colors.timerColor,
     colorLeft: colors.colorLeft,
     colorRight: colors.colorRight,
     ...ts,
