@@ -70,52 +70,32 @@ describe("renderTemplate", () => {
 });
 
 describe("試合ラベル読み仮名変換（buildMatchStartText経由）", () => {
-  it("「決勝」→ けっしょう", () => {
+  it("「決勝」→ けっしょう（固定読み）", () => {
     expect(buildMatchStartText("A", "", "B", "", "決勝", null, null, null, null, null, null, TEST_TEMPLATES)).toContain("けっしょう");
   });
 
-  it("「準決勝」→ じゅんけっしょう", () => {
+  it("「準決勝」→ じゅんけっしょう（固定読み）", () => {
     expect(buildMatchStartText("A", "", "B", "", "準決勝", null, null, null, null, null, null, TEST_TEMPLATES)).toContain("じゅんけっしょう");
   });
 
-  it("「準々決勝」→ じゅんじゅんけっしょう", () => {
+  it("「準々決勝」→ じゅんじゅんけっしょう（固定読み）", () => {
     expect(buildMatchStartText("A", "", "B", "", "準々決勝", null, null, null, null, null, null, TEST_TEMPLATES)).toContain("じゅんじゅんけっしょう");
   });
 
-  it("「3位決定戦」→ さんいけっていせん", () => {
+  it("「3位決定戦」→ さんいけっていせん（固定読み）", () => {
     expect(buildMatchStartText("A", "", "B", "", "3位決定戦", null, null, null, null, null, null, TEST_TEMPLATES)).toContain("さんいけっていせん");
   });
 
-  it("「第1試合」→ だいいちしあい", () => {
-    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第1試合", null, TEST_TEMPLATES)).toContain("だいいちしあい");
+  it("「第1試合」→ 漢字のままTTSに渡す", () => {
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第1試合", null, TEST_TEMPLATES)).toContain("第1試合");
   });
 
-  it("「第5試合」→ だいごしあい", () => {
-    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第5試合", null, TEST_TEMPLATES)).toContain("だいごしあい");
+  it("「第8試合」→ 漢字のままTTSに渡す", () => {
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第8試合", null, TEST_TEMPLATES)).toContain("第8試合");
   });
 
-  it("「第10試合」→ だいじゅうしあい", () => {
-    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第10試合", null, TEST_TEMPLATES)).toContain("だいじゅうしあい");
-  });
-
-  it("漢数字「第一試合」→ だいいちしあい", () => {
-    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第一試合", null, TEST_TEMPLATES)).toContain("だいいちしあい");
-  });
-
-  it("全角数字「第１試合」→ だいいちしあい", () => {
-    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第１試合", null, TEST_TEMPLATES)).toContain("だいいちしあい");
-  });
-
-  it("「第2回戦」→ だいにかいせん", () => {
-    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第2回戦", null, TEST_TEMPLATES)).toContain("だいにかいせん");
-  });
-
-  it("「1回戦」（第なし）→ いっかいせん", () => {
-    expect(buildMatchStartText("A", "", "B", "", "1回戦", null, null, null, null, null, null, TEST_TEMPLATES)).toContain("いっかいせん");
-  });
-
-  it("「第1回戦」→ だいいっかいせん（促音）", () => {
-    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第1回戦", null, TEST_TEMPLATES)).toContain("だいいっかいせん");
+  it("「1回戦」→ 漢字のままTTSに渡す", () => {
+    expect(buildMatchStartText("A", "", "B", "", "1回戦", null, null, null, null, null, null, TEST_TEMPLATES)).toContain("1回戦");
   });
 
   it("未知のラベルはそのまま", () => {
@@ -214,8 +194,8 @@ describe("buildMatchStartText", () => {
       "山田太郎", "極真会", "鈴木一郎", "正道会館", "準決勝",
       null, null, null, null, "第3試合", null, TEST_TEMPLATES,
     );
-    expect(text).toContain("だいさんしあい");
-    expect(text).not.toContain("じゅんけっしょう");
+    expect(text).toContain("第3試合");
+    expect(text).not.toContain("準決勝");
   });
 
   it("カスタムテンプレートを使える", () => {

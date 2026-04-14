@@ -95,53 +95,7 @@ function splitAffiliationParts(aff: string): { school: string; dojo: string } {
 
 // ── 試合ラベル読み仮名変換 ──────────────────────────────────────────────
 
-/** 漢数字・全角数字・半角数字を読み仮名に変換するマップ */
-const NUM_READING: Record<string, string> = {
-  "1": "いち",
-  "2": "に",
-  "3": "さん",
-  "4": "よん",
-  "5": "ご",
-  "6": "ろく",
-  "7": "なな",
-  "8": "はち",
-  "9": "きゅう",
-  "10": "じゅう",
-  "11": "じゅういち",
-  "12": "じゅうに",
-  "13": "じゅうさん",
-  "14": "じゅうよん",
-  "15": "じゅうご",
-  "16": "じゅうろく",
-  一: "いち",
-  二: "に",
-  三: "さん",
-  四: "よん",
-  五: "ご",
-  六: "ろく",
-  七: "なな",
-  八: "はち",
-  九: "きゅう",
-  十: "じゅう",
-  "１": "いち",
-  "２": "に",
-  "３": "さん",
-  "４": "よん",
-  "５": "ご",
-  "６": "ろく",
-  "７": "なな",
-  "８": "はち",
-  "９": "きゅう",
-  "１０": "じゅう",
-  "１１": "じゅういち",
-  "１２": "じゅうに",
-  "１３": "じゅうさん",
-  "１４": "じゅうよん",
-  "１５": "じゅうご",
-  "１６": "じゅうろく",
-};
-
-/** よく使う試合ラベルの固定読み */
+/** よく使う試合ラベルの固定読み（第N試合等はTTSが漢字から正しく読むのでここには含めない） */
 const LABEL_READING: Record<string, string> = {
   決勝: "けっしょう",
   準決勝: "じゅんけっしょう",
@@ -159,25 +113,9 @@ function normalizeMatchLabelForTts(label: string): string {
   // 完全一致
   if (LABEL_READING[label]) return LABEL_READING[label];
 
-  let result = label;
-
-  // 「第N試合」「第N回戦」パターン
-  result = result.replace(/第([０-９0-9一二三四五六七八九十]+)(試合|回戦)/g, (_, num, suffix) => {
-    const reading = NUM_READING[num];
-    const suffixReading = suffix === "試合" ? "しあい" : "かいせん";
-    return reading ? `だい${reading}${suffixReading}` : `だい${num}${suffixReading}`;
-  });
-
-  // 「N回戦」パターン（第なし）
-  result = result.replace(/^([０-９0-9一二三四五六七八九十]+)回戦$/g, (_, num) => {
-    const reading = NUM_READING[num];
-    return reading ? `${reading}かいせん` : `${num}かいせん`;
-  });
-
-  // 促音処理: 「いちかい」→「いっかい」（1回戦、第1回戦 等）
-  result = result.replace(/いちかい/g, "いっかい");
-
-  return result;
+  // 「第N試合」「第N回戦」「N回戦」パターンは漢字のままTTSに渡す（ひらがな変換するとTTSが誤読するため）
+  // 固定読みのみ変換（決勝、準決勝等）
+  return LABEL_READING[label] ?? label;
 }
 
 // ── TTS 発話 ───────────────────────────────────────────────────────────
