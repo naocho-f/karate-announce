@@ -312,6 +312,7 @@ export type TimerPreset = {
   newaza_max_count: number;
   newaza_free_release: number;
   newaza_accumulate: boolean;
+  newaza_stops_main: boolean;
   // ポイント・判定
   show_points: boolean;
   show_wazaari: boolean;

@@ -46,6 +46,7 @@ export const DEFAULT_PRESET: TimerPreset = {
   newaza_max_count: 0,
   newaza_free_release: 0,
   newaza_accumulate: false,
+  newaza_stops_main: false,
   show_points: true,
   show_wazaari: true,
   wazaari_points: 0,

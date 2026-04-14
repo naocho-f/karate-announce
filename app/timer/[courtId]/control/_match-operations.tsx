@@ -22,6 +22,7 @@ import {
 } from "@/lib/timer-state";
 import { playBuzzer } from "@/lib/timer-buzzer";
 import type { TimerPreset } from "@/lib/types";
+import { showToast } from "@/components/toast";
 import ScoringPanel from "./_scoring-panel";
 import ResultPanel from "./_result-panel";
 
@@ -208,7 +209,13 @@ function NewazaControls({
     <>
       <div className="flex flex-col items-center gap-1 mt-2">
         <button
-          onClick={() => onUpdate(toggleNewaza)}
+          onClick={() => {
+            const wasActive = state.newaza.active;
+            onUpdate(toggleNewaza);
+            if (wasActive && state.phase === "running" && p.newaza_stops_main) {
+              showToast("寝技解除によりメインタイマーを停止しました");
+            }
+          }}
           className={`w-1/2 py-3 rounded-lg font-bold text-lg transition ${state.newaza.active ? "bg-cyan-700 hover:bg-cyan-600 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}
           disabled={isDisabled}
         >

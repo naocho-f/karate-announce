@@ -76,6 +76,7 @@ function makePreset(overrides: Partial<TimerPreset> = {}): TimerPreset {
     newaza_max_count: 0,
     newaza_free_release: 0,
     newaza_accumulate: false,
+    newaza_stops_main: false,
     show_points: true,
     show_wazaari: true,
     wazaari_points: 0,
@@ -1092,6 +1093,49 @@ describe("timer-state", () => {
       const s = createInitialState();
       expect(s.redScore.cautions).toBe(0);
       expect(s.whiteScore.cautions).toBe(0);
+    });
+  });
+
+  describe("newaza_stops_main（寝技解除時メインタイマー連動停止）", () => {
+    it("toggleNewaza 解除時に newaza_stops_main=true ならメインタイマーも paused", () => {
+      let s = startTimer(readyState({ newaza_enabled: true, newaza_stops_main: true }));
+      s = toggleNewaza(s); // 開始
+      expect(s.newaza.active).toBe(true);
+      expect(s.phase).toBe("running");
+      s = toggleNewaza(s); // 解除
+      expect(s.newaza.active).toBe(false);
+      expect(s.phase).toBe("paused");
+    });
+
+    it("toggleNewaza 解除時に newaza_stops_main=false ならメインタイマーは running のまま", () => {
+      let s = startTimer(readyState({ newaza_enabled: true, newaza_stops_main: false }));
+      s = toggleNewaza(s); // 開始
+      s = toggleNewaza(s); // 解除
+      expect(s.newaza.active).toBe(false);
+      expect(s.phase).toBe("running");
+    });
+
+    it("newazaTimeUp 時に newaza_stops_main=true ならメインタイマーも paused", () => {
+      let s = startTimer(readyState({ newaza_enabled: true, newaza_duration: 30, newaza_stops_main: true }));
+      s = toggleNewaza(s);
+      s = newazaTimeUp(s);
+      expect(s.newaza.active).toBe(false);
+      expect(s.phase).toBe("paused");
+    });
+
+    it("newazaTimeUp 時に newaza_stops_main=false ならメインタイマーは running のまま", () => {
+      let s = startTimer(readyState({ newaza_enabled: true, newaza_duration: 30, newaza_stops_main: false }));
+      s = toggleNewaza(s);
+      s = newazaTimeUp(s);
+      expect(s.newaza.active).toBe(false);
+      expect(s.phase).toBe("running");
+    });
+
+    it("toggleNewaza 開始時にはメインタイマーに影響しない", () => {
+      let s = startTimer(readyState({ newaza_enabled: true, newaza_stops_main: true }));
+      s = toggleNewaza(s); // 開始
+      expect(s.newaza.active).toBe(true);
+      expect(s.phase).toBe("running");
     });
   });
 });

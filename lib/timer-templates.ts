@@ -31,6 +31,7 @@ export const TIMER_TEMPLATES: TimerTemplate[] = [
       newaza_max_count: 2,
       newaza_free_release: 5,
       newaza_accumulate: false,
+      newaza_stops_main: false,
       // ポイント・判定
       show_points: true,
       show_wazaari: true,

@@ -582,6 +582,12 @@ export function toggleNewaza(state: TimerState): TimerState {
       usedCount: consumed ? s.newaza.usedCount + 1 : s.newaza.usedCount,
       exhausted: false,
     };
+    // 寝技解除時にメインタイマーも停止
+    if (p.newaza_stops_main) {
+      s.timerMs = getMainElapsedMs(state);
+      s.timerStartedAt = null;
+      s.phase = "paused";
+    }
     log(s, "newaza_release", { elapsed: totalElapsed, consumed });
   } else {
     // 開始チェック
@@ -612,6 +618,12 @@ export function newazaTimeUp(state: TimerState): TimerState {
     usedCount: s.newaza.usedCount + 1,
     exhausted: !!p?.newaza_accumulate,
   };
+  // 寝技タイムアップ時にメインタイマーも停止
+  if (p?.newaza_stops_main && s.phase === "running") {
+    s.timerMs = getMainElapsedMs(state);
+    s.timerStartedAt = null;
+    s.phase = "paused";
+  }
   log(s, "newaza_time_up");
   return s;
 }

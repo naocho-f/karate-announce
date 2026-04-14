@@ -74,7 +74,16 @@ function buildKeyActionMap(
       if (s.phase === "paused") return { update: resumeTimer, preventDefault: true };
       return { preventDefault: true };
     },
-    KeyG: () => ({ update: toggleNewaza }),
+    KeyG: () => ({
+      action: () => {
+        const before = stateRef.current;
+        update(toggleNewaza);
+        // 寝技解除でメインタイマーが自動停止した場合に通知
+        if (before.phase === "running" && before.newaza.active && before.preset?.newaza_stops_main) {
+          showToast("寝技解除によりメインタイマーを停止しました");
+        }
+      },
+    }),
     KeyQ: () => ({ update: (st) => addPoint(st, "red") }),
     KeyW: () => ({ update: (st) => addWazaari(st, "red") }),
     KeyE: () => ({ update: (st) => addFoul(st, "red") }),
@@ -398,6 +407,9 @@ export function useTimerControl() {
             ).then((r) => {
               if (r === "fallback") setBuzzerWarning(true);
             });
+          }
+          if (next.phase === "paused" && prev.phase === "running") {
+            showToast("寝技タイムアップによりメインタイマーを停止しました");
           }
           return next;
         });

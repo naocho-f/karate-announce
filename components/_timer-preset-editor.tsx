@@ -562,6 +562,7 @@ function NewazaSection({
           })}
           {editing.newaza_limit_type === "limited" && F("newaza_max_count", "最大起動回数", "number")}
           {F("newaza_free_release", "無消費解除時間", "duration")}
+          {F("newaza_stops_main", "寝技解除・タイムアップ時にメインタイマーも停止", "checkbox")}
         </div>
       )}
     </>
