@@ -13,8 +13,6 @@ import {
   addCaution,
   toggleNewaza,
   adjustNewazaCount,
-  undo,
-  undoActionLabel,
   finishManual,
   cancelResult,
   resetToIdle,
@@ -99,7 +97,6 @@ export default function MatchOperations(props: MatchOperationsProps) {
         />
       )}
       <WithdrawSection props={props} />
-      <UndoButton state={props.state} onUndo={() => props.onUpdate(undo)} />
     </>
   );
 }
@@ -414,21 +411,6 @@ function WithdrawSection({ props: { phase, onUpdate } }: { props: MatchOperation
           白棄権 → 赤勝利
         </button>
       </div>
-    </section>
-  );
-}
-
-function UndoButton({ state, onUndo }: { state: TimerState; onUndo: () => void }) {
-  if (state.undoStack.length === 0) return null;
-  const lastAction = state.undoStack[state.undoStack.length - 1];
-  return (
-    <section>
-      <button
-        onClick={onUndo}
-        className="w-full py-3 rounded-lg bg-orange-700 hover:bg-orange-600 text-white text-base font-bold transition shadow-lg"
-      >
-        取消 — {undoActionLabel(lastAction.action)}
-      </button>
     </section>
   );
 }
