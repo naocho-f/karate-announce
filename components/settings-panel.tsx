@@ -19,6 +19,7 @@ import {
   WINNER_VARS,
   SAMPLE_MATCH_VARS,
   SAMPLE_WINNER_VARS,
+  SAMPLE_TEXT,
   type AnnounceTemplates,
 } from "@/lib/speech";
 import { TimerPresetsPanel } from "@/components/timer-presets-panel";
@@ -784,9 +785,7 @@ function AnnounceSettingsPanel() {
     saveTtsSettings(voice, speed);
     setPlaying(true);
     await new Promise<void>((resolve) => {
-      void announceCustom(
-        "Aコート、男子一般部、準決勝。極真会所属、山田太郎選手。対。正道会館所属、鈴木一郎選手。これより試合を開始します。",
-      );
+      void announceCustom(SAMPLE_TEXT);
       setTimeout(resolve, 500);
     });
     setPlaying(false);

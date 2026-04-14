@@ -79,12 +79,12 @@ export function renderTemplate(template: string, vars: Record<string, string>): 
  * 「柔空会　本部道場」→「柔空会、本部道場」（読点で自然な間を作る）
  * 道場なしの場合「柔空会」→「柔空会」（変化なし）
  */
-export function buildAffiliationForTts(aff: string): string {
+function buildAffiliationForTts(aff: string): string {
   return aff.split("　").filter(Boolean).join("、");
 }
 
 /** アフィリエーション文字列を流派・道場に分解する */
-export function splitAffiliationParts(aff: string): { school: string; dojo: string } {
+function splitAffiliationParts(aff: string): { school: string; dojo: string } {
   const parts = aff.split("　").filter(Boolean);
   return {
     school: parts[0] ?? aff,
@@ -154,7 +154,7 @@ const LABEL_READING: Record<string, string> = {
  * 試合ラベルを TTS 用の読み仮名に変換。
  * 「第1試合」→「だいいちしあい」「準決勝」→「じゅんけっしょう」など。
  */
-export function normalizeMatchLabelForTts(label: string): string {
+function normalizeMatchLabelForTts(label: string): string {
   // 完全一致
   if (LABEL_READING[label]) return LABEL_READING[label];
 
@@ -182,6 +182,20 @@ export function normalizeMatchLabelForTts(label: string): string {
 // ── TTS 発話 ───────────────────────────────────────────────────────────
 
 let speaking = false;
+let currentAudio: HTMLAudioElement | null = null;
+let currentObjectUrl: string | null = null;
+
+/** 再生中の音声を即座に停止する。再生中でなければ何もしない */
+export function stopSpeech(): void {
+  if (!currentAudio) return;
+  currentAudio.pause();
+  if (currentObjectUrl) {
+    URL.revokeObjectURL(currentObjectUrl);
+    currentObjectUrl = null;
+  }
+  currentAudio = null;
+  speaking = false;
+}
 
 const TTS_CACHE_NAME = "karate-tts-cache";
 
@@ -237,13 +251,19 @@ async function speak(text: string): Promise<void> {
 
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
+    currentObjectUrl = url;
     const audio = new Audio(url);
+    currentAudio = audio;
     await new Promise<void>((resolve, reject) => {
       audio.onended = () => {
+        currentAudio = null;
+        currentObjectUrl = null;
         URL.revokeObjectURL(url);
         resolve();
       };
       audio.onerror = () => {
+        currentAudio = null;
+        currentObjectUrl = null;
         URL.revokeObjectURL(url);
         reject(new Error("Audio playback error"));
       };
@@ -252,6 +272,8 @@ async function speak(text: string): Promise<void> {
   } catch (e) {
     console.error("TTS error:", e);
   } finally {
+    currentAudio = null;
+    currentObjectUrl = null;
     speaking = false;
   }
 }

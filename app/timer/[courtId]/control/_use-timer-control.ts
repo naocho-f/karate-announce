@@ -34,6 +34,7 @@ import type { TimerPreset, Fighter } from "@/lib/types";
 import {
   announceMatchStart,
   announceWinner,
+  stopSpeech,
   buildMatchStartText,
   prefetchTts,
   DEFAULT_TEMPLATES,
@@ -452,8 +453,9 @@ export function useTimerControl() {
     return () => window.removeEventListener("beforeunload", handler);
   }, []);
 
-  // キーボードショートカット
+  // キーボードショートカット（アナウンス再生中は無効化）
   useEffect(() => {
+    if (isPlaying) return;
     const actionMap = buildKeyActionMap(update, stateRef, setIpponConfirmSide, setBuzzerWarning);
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
@@ -467,7 +469,7 @@ export function useTimerControl() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [update]);
+  }, [update, isPlaying]);
 
   // ── ルール→タイマーマッピング ──
   const [rulePresetMap, setRulePresetMap] = useState<Record<string, string>>({});
@@ -686,6 +688,11 @@ export function useTimerControl() {
     }
   };
 
+  const handleStopSpeech = useCallback(() => {
+    stopSpeech();
+    setIsPlaying(false);
+  }, []);
+
   return {
     courtId,
     state,
@@ -721,6 +728,7 @@ export function useTimerControl() {
     handleWriteBack,
     handleAnnounceStart,
     handleAnnounceWinner,
+    handleStopSpeech,
     setShouldScrollToNext,
   };
 }

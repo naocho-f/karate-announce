@@ -27,16 +27,14 @@ vi.stubGlobal("localStorage", localStorageMock);
 
 const {
   renderTemplate,
-  normalizeMatchLabelForTts,
   getTtsSettings,
   saveTtsSettings,
-  buildAffiliationForTts,
-  splitAffiliationParts,
   buildMatchStartText,
   prefetchTts,
   announceMatchStart,
   announceWinner,
   announceCustom,
+  stopSpeech,
   DEFAULT_TEMPLATES,
   TTS_VOICES,
   MATCH_VARS,
@@ -65,57 +63,57 @@ describe("renderTemplate", () => {
   });
 });
 
-describe("normalizeMatchLabelForTts", () => {
-  it("「決勝」を読み仮名に変換", () => {
-    expect(normalizeMatchLabelForTts("決勝")).toBe("けっしょう");
+describe("試合ラベル読み仮名変換（buildMatchStartText経由）", () => {
+  it("「決勝」→ けっしょう", () => {
+    expect(buildMatchStartText("A", "", "B", "", "決勝")).toContain("けっしょう");
   });
 
-  it("「準決勝」を読み仮名に変換", () => {
-    expect(normalizeMatchLabelForTts("準決勝")).toBe("じゅんけっしょう");
+  it("「準決勝」→ じゅんけっしょう", () => {
+    expect(buildMatchStartText("A", "", "B", "", "準決勝")).toContain("じゅんけっしょう");
   });
 
-  it("「準々決勝」を読み仮名に変換", () => {
-    expect(normalizeMatchLabelForTts("準々決勝")).toBe("じゅんじゅんけっしょう");
+  it("「準々決勝」→ じゅんじゅんけっしょう", () => {
+    expect(buildMatchStartText("A", "", "B", "", "準々決勝")).toContain("じゅんじゅんけっしょう");
   });
 
-  it("「3位決定戦」を読み仮名に変換", () => {
-    expect(normalizeMatchLabelForTts("3位決定戦")).toBe("さんいけっていせん");
+  it("「3位決定戦」→ さんいけっていせん", () => {
+    expect(buildMatchStartText("A", "", "B", "", "3位決定戦")).toContain("さんいけっていせん");
   });
 
-  it("「第1試合」を読み仮名に変換", () => {
-    expect(normalizeMatchLabelForTts("第1試合")).toBe("だいいちしあい");
+  it("「第1試合」→ だいいちしあい", () => {
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第1試合")).toContain("だいいちしあい");
   });
 
-  it("「第5試合」を読み仮名に変換", () => {
-    expect(normalizeMatchLabelForTts("第5試合")).toBe("だいごしあい");
+  it("「第5試合」→ だいごしあい", () => {
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第5試合")).toContain("だいごしあい");
   });
 
-  it("「第10試合」を読み仮名に変換", () => {
-    expect(normalizeMatchLabelForTts("第10試合")).toBe("だいじゅうしあい");
+  it("「第10試合」→ だいじゅうしあい", () => {
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第10試合")).toContain("だいじゅうしあい");
   });
 
-  it("漢数字「第一試合」を読み仮名に変換", () => {
-    expect(normalizeMatchLabelForTts("第一試合")).toBe("だいいちしあい");
+  it("漢数字「第一試合」→ だいいちしあい", () => {
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第一試合")).toContain("だいいちしあい");
   });
 
-  it("全角数字「第１試合」を読み仮名に変換", () => {
-    expect(normalizeMatchLabelForTts("第１試合")).toBe("だいいちしあい");
+  it("全角数字「第１試合」→ だいいちしあい", () => {
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第１試合")).toContain("だいいちしあい");
   });
 
-  it("「第2回戦」を読み仮名に変換", () => {
-    expect(normalizeMatchLabelForTts("第2回戦")).toBe("だいにかいせん");
+  it("「第2回戦」→ だいにかいせん", () => {
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第2回戦")).toContain("だいにかいせん");
   });
 
-  it("「1回戦」（第なし）を読み仮名に変換", () => {
-    expect(normalizeMatchLabelForTts("1回戦")).toBe("いっかいせん");
+  it("「1回戦」（第なし）→ いっかいせん", () => {
+    expect(buildMatchStartText("A", "", "B", "", "1回戦")).toContain("いっかいせん");
   });
 
-  it("「第1回戦」を促音付きで読み仮名に変換", () => {
-    expect(normalizeMatchLabelForTts("第1回戦")).toBe("だいいっかいせん");
+  it("「第1回戦」→ だいいっかいせん（促音）", () => {
+    expect(buildMatchStartText("A", "", "B", "", "", null, null, null, null, "第1回戦")).toContain("だいいっかいせん");
   });
 
-  it("未知のラベルはそのまま返す", () => {
-    expect(normalizeMatchLabelForTts("エキシビション")).toBe("エキシビション");
+  it("未知のラベルはそのまま", () => {
+    expect(buildMatchStartText("A", "", "B", "", "エキシビション")).toContain("エキシビション");
   });
 });
 
@@ -173,43 +171,6 @@ describe("定数エクスポート", () => {
     expect(SAMPLE_TEXT).toBe(
       "Aコート、男子一般部、準決勝。極真会所属、山田太郎選手。対。正道会館所属、鈴木一郎選手。これより試合を開始します。",
     );
-  });
-});
-
-describe("buildAffiliationForTts", () => {
-  it("全角スペース区切りを読点に変換する", () => {
-    expect(buildAffiliationForTts("柔空会　本部道場")).toBe("柔空会、本部道場");
-  });
-
-  it("空文字列は空文字列を返す", () => {
-    expect(buildAffiliationForTts("")).toBe("");
-  });
-
-  it("スペースなしの単一文字列はそのまま返す", () => {
-    expect(buildAffiliationForTts("柔空会")).toBe("柔空会");
-  });
-});
-
-describe("splitAffiliationParts", () => {
-  it("全角スペース区切りを流派と道場に分割する", () => {
-    expect(splitAffiliationParts("柔空会　本部道場")).toEqual({
-      school: "柔空会",
-      dojo: "本部道場",
-    });
-  });
-
-  it("道場なしの場合は dojo が空文字", () => {
-    expect(splitAffiliationParts("柔空会")).toEqual({
-      school: "柔空会",
-      dojo: "",
-    });
-  });
-
-  it("空文字列の場合は両方空文字", () => {
-    expect(splitAffiliationParts("")).toEqual({
-      school: "",
-      dojo: "",
-    });
   });
 });
 
@@ -281,24 +242,50 @@ describe("buildMatchStartText", () => {
     );
     expect(text).toBe("山田太郎 対 鈴木一郎");
   });
+
+  it("所属の全角スペースが読点に変換される", () => {
+    const text = buildMatchStartText("A", "柔空会　本部道場", "B", "", "決勝");
+    expect(text).toContain("柔空会、本部道場");
+  });
+
+  it("所属にスペースがなければそのまま", () => {
+    const text = buildMatchStartText("A", "正道会館", "B", "", "決勝");
+    expect(text).toContain("正道会館");
+  });
+
+  it("流派・道場がテンプレート変数で分離される", () => {
+    const templates = {
+      matchStart: "流派:{{選手1流派}} 道場:{{選手1道場}}",
+      winner: "",
+    };
+    const text = buildMatchStartText(
+      "A",
+      "柔空会　本部道場",
+      "B",
+      "",
+      "決勝",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      templates,
+    );
+    expect(text).toBe("流派:柔空会 道場:本部道場");
+  });
+
+  it("道場なしの場合は道場変数が空", () => {
+    const templates = {
+      matchStart: "流派:{{選手1流派}} 道場:{{選手1道場}}",
+      winner: "",
+    };
+    const text = buildMatchStartText("A", "柔空会", "B", "", "決勝", null, null, null, null, null, null, templates);
+    expect(text).toBe("流派:柔空会 道場:");
+  });
 });
 
 describe("announceWinner テンプレート展開", () => {
-  it("デフォルトテンプレートで勝者アナウンステキストが生成される", () => {
-    const { winner } = DEFAULT_TEMPLATES;
-    const name = "やまだたろう";
-    const aff = buildAffiliationForTts("極真会　本部道場");
-    const parts = splitAffiliationParts("極真会　本部道場");
-    const text = renderTemplate(winner, {
-      勝者名前: name,
-      "勝者流派＋道場": aff,
-      勝者流派: parts.school,
-      勝者道場: parts.dojo,
-    });
-    expect(text).toContain("やまだたろう");
-    expect(text).toContain("極真会、本部道場");
-  });
-
   it("カスタムテンプレートで変数が展開される", () => {
     const template = "{{勝者名前}}選手の勝ちです。所属、{{勝者流派}}。";
     const text = renderTemplate(template, {
@@ -476,6 +463,16 @@ describe("announceCustom", () => {
     const callBody = JSON.parse((deps.fetchSpy.mock.calls[0][1] as RequestInit).body as string);
     expect(callBody.text).toBe("テスト音声です");
     deps.cleanup();
+  });
+});
+
+describe("stopSpeech", () => {
+  it("再生中でない場合は何もしない", () => {
+    expect(() => stopSpeech()).not.toThrow();
+  });
+
+  it("stopSpeech が関数としてエクスポートされている", () => {
+    expect(typeof stopSpeech).toBe("function");
   });
 });
 

@@ -251,6 +251,33 @@ renderTemplate(template: string, vars: Record<string, string>): string
 - Object URL は再生完了後に `revokeObjectURL()` で解放
 - 同時再生防止: 再生中は新しい再生要求を無視（`speaking` フラグで排他制御）
 
+### 7.4 再生中断 (stopSpeech)
+
+```typescript
+export function stopSpeech(): void;
+```
+
+- 再生中の Audio 要素を即座に停止（`audio.pause()`）し、Object URL を解放
+- `speaking` フラグを `false` にリセット
+- 再生中でない場合は何もしない
+
+### 7.5 再生中オーバーレイ（操作画面）
+
+アナウンス再生中（`isPlaying === true`）に操作画面全体を覆う半透明オーバーレイを表示し、誤操作を防止する。
+
+**表示内容**:
+
+- 半透明黒背景（`bg-black/70`）で全画面を覆う
+- 画面中央に「アナウンス再生中」テキスト（大きめ）
+- その下に「再生停止」ボタン（テキストの半分程度のサイズ）
+
+**動作**:
+
+- オーバーレイ表示中はキーボードショートカットを無効化（スペースキー含む）
+- オーバーレイ表示中は背面のボタン・入力要素への操作が不可
+- 「再生停止」ボタン押下 → `stopSpeech()` 呼び出し → 即座に再生停止 → `isPlaying = false` → オーバーレイ消去
+- アナウンス再生が正常に完了した場合も `isPlaying = false` → オーバーレイ消去
+
 ---
 
 ## 8. ミュート制御

@@ -124,6 +124,18 @@ export default function TimerControlPage() {
 
         <ShortcutPanel />
       </div>
+
+      {tc.isPlaying && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70">
+          <p className="text-white text-4xl font-bold">アナウンス再生中</p>
+          <button
+            onClick={tc.handleStopSpeech}
+            className="mt-6 px-6 py-3 text-xl font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white"
+          >
+            再生停止
+          </button>
+        </div>
+      )}
     </div>
   );
 }
