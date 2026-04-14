@@ -1,5 +1,4 @@
 /// <reference lib="webworker" />
-import { defaultCache } from "@serwist/turbopack/worker";
 import { Serwist, NetworkOnly, type SerwistGlobalConfig } from "serwist";
 
 declare global {
@@ -9,6 +8,8 @@ declare global {
 }
 
 declare const self: ServiceWorkerGlobalScope;
+
+const SW_CACHE_VERSION = "v2";
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
@@ -26,8 +27,8 @@ const serwist = new Serwist({
       matcher: ({ url }: { url: URL }) => url.pathname.startsWith("/api/"),
       handler: new NetworkOnly(),
     },
-    // その他はデフォルトキャッシュ戦略
-    ...defaultCache,
+    // defaultCache は使用しない。JSチャンクのキャッシュがデプロイ後も古いコードを配信する問題を防止。
+    // ブラウザの通常HTTPキャッシュに任せる。
   ],
   fallbacks: {
     entries: [
@@ -40,3 +41,16 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
+
+// 古いランタイムキャッシュを全削除（defaultCache廃止に伴う掃除）
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => !key.includes(SW_CACHE_VERSION) && !key.startsWith("serwist-precache"))
+          .map((key) => caches.delete(key)),
+      ),
+    ),
+  );
+});
