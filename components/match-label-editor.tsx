@@ -252,7 +252,7 @@ export function MatchLabelEditor({
       const court = d.matchToCourtMap[id];
       if (!court) continue;
       courtCounters[court] = (courtCounters[court] ?? 0) + 1;
-      labels[id] = `${getCourtLabel(court, courtNames)}第${courtCounters[court]}試合`;
+      labels[id] = `第${courtCounters[court]}試合`;
     }
     await fetch("/api/admin/matches/batch", {
       method: "POST",
