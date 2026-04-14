@@ -125,7 +125,7 @@ function TimerDigits({ text, style }: { text: string; style: React.CSSProperties
   return (
     <span className="font-bold leading-none tabular-nums" style={style}>
       {before}
-      <span style={{ position: "relative", bottom: "0.06em" }}>:</span>
+      :
       {after}
     </span>
   );
