@@ -223,18 +223,20 @@ function DojoList({
   return (
     <ul className="space-y-2">
       {dojos.map((d) => (
-        <li key={d.id} className={`bg-gray-800 rounded-lg px-4 py-3 ${isDeletePending(d) ? "opacity-20" : ""}`}>
-          <div className="flex items-center justify-between mb-1">
+        <li key={d.id} className="bg-gray-800 rounded-lg px-4 py-3">
+          <div className={`flex items-center justify-between mb-1 ${isDeletePending(d) ? "opacity-20" : ""}`}>
             <span className="font-medium">{d.name}</span>
-            {isDeletePending(d) ? (
-              <DeletePendingBar
-                deletedAt={d.deleted_at ?? ""}
-                onRestore={(id) => void onRestore(id)}
-                onExpire={onExpire}
-                restoringId={restoringId}
-                itemId={d.id}
-              />
-            ) : (
+          </div>
+          {isDeletePending(d) ? (
+            <DeletePendingBar
+              deletedAt={d.deleted_at ?? ""}
+              onRestore={(id) => void onRestore(id)}
+              onExpire={onExpire}
+              restoringId={restoringId}
+              itemId={d.id}
+            />
+          ) : (
+            <div className="flex items-center justify-end mb-1">
               <button
                 onClick={() => onRemove(d.id)}
                 disabled={removingId === d.id}
@@ -242,8 +244,8 @@ function DojoList({
               >
                 {removingId === d.id ? "削除中..." : "削除"}
               </button>
-            )}
-          </div>
+            </div>
+          )}
           {!isDeletePending(d) && (
             <ReadingInput
               value={d.name_reading ?? ""}
@@ -586,8 +588,8 @@ function RuleItem({
   const deleted = isDeletePending(r);
   const linkedPreset = r.timer_preset_id ? presets.find((p) => p.id === r.timer_preset_id) : null;
   return (
-    <li className={`bg-gray-800 rounded-lg px-4 py-3 ${deleted ? "opacity-20" : ""}`}>
-      <div className="flex items-center justify-between mb-1">
+    <li className="bg-gray-800 rounded-lg px-4 py-3">
+      <div className={`flex items-center justify-between mb-1 ${deleted ? "opacity-20" : ""}`}>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium">{r.name}</span>
           {!deleted && (
@@ -601,15 +603,17 @@ function RuleItem({
             />
           )}
         </div>
-        {deleted ? (
-          <DeletePendingBar
-            deletedAt={r.deleted_at ?? ""}
-            onRestore={(id) => void onRestore(id)}
-            onExpire={onExpire}
-            restoringId={restoringId}
-            itemId={r.id}
-          />
-        ) : (
+      </div>
+      {deleted ? (
+        <DeletePendingBar
+          deletedAt={r.deleted_at ?? ""}
+          onRestore={(id) => void onRestore(id)}
+          onExpire={onExpire}
+          restoringId={restoringId}
+          itemId={r.id}
+        />
+      ) : (
+        <div className="flex items-center justify-end mb-1">
           <button
             onClick={() => onRemove(r.id)}
             disabled={removingId === r.id}
@@ -617,8 +621,8 @@ function RuleItem({
           >
             {removingId === r.id ? "削除中..." : "削除"}
           </button>
-        )}
-      </div>
+        </div>
+      )}
       {!deleted && isSelecting && (
         <PresetSelector
           ruleId={r.id}

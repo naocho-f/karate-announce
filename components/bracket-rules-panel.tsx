@@ -355,8 +355,8 @@ function BracketRuleCard({
   const deleted = isDeletePending(rule);
   const summary = buildRuleSummary(rule, rules, getCourtLabel);
   return (
-    <div className={`bg-gray-800/50 border border-gray-700 rounded-lg p-3 space-y-2 ${deleted ? "opacity-20" : ""}`}>
-      <div className="flex items-center gap-2">
+    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 space-y-2">
+      <div className={`flex items-center gap-2 ${deleted ? "opacity-20" : ""}`}>
         {!deleted && (
           <div className="flex flex-col gap-0.5">
             <button
@@ -383,32 +383,32 @@ function BracketRuleCard({
             ))}
           </div>
         </div>
-        {deleted ? (
-          <DeletePendingBar
-            deletedAt={rule.deleted_at ?? ""}
-            onRestore={(id) => void onRestore(id)}
-            onExpire={onExpire}
-            restoringId={restoringId}
-            itemId={rule.id}
-          />
-        ) : (
-          <>
-            <button onClick={() => onDuplicate(rule)} className="text-xs text-green-400 hover:text-green-300">
-              複製
-            </button>
-            <button onClick={() => onEdit(rule)} className="text-xs text-blue-400 hover:text-blue-300">
-              編集
-            </button>
-            <button
-              onClick={() => onDelete(rule.id)}
-              disabled={deletingId === rule.id}
-              className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
-            >
-              {deletingId === rule.id ? "削除中..." : "削除"}
-            </button>
-          </>
-        )}
       </div>
+      {deleted ? (
+        <DeletePendingBar
+          deletedAt={rule.deleted_at ?? ""}
+          onRestore={(id) => void onRestore(id)}
+          onExpire={onExpire}
+          restoringId={restoringId}
+          itemId={rule.id}
+        />
+      ) : (
+        <div className="flex items-center gap-2 justify-end">
+          <button onClick={() => onDuplicate(rule)} className="text-xs text-green-400 hover:text-green-300">
+            複製
+          </button>
+          <button onClick={() => onEdit(rule)} className="text-xs text-blue-400 hover:text-blue-300">
+            編集
+          </button>
+          <button
+            onClick={() => onDelete(rule.id)}
+            disabled={deletingId === rule.id}
+            className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
+          >
+            {deletingId === rule.id ? "削除中..." : "削除"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

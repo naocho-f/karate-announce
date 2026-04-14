@@ -1035,7 +1035,7 @@ function EntryTableRow({
   const memoOpen = openMemoId === entry.id;
   const appMemoOpen = openAppMemoId === entry.id;
   const rowBg = isDeletePending(entry)
-    ? "opacity-20 bg-gray-900/40"
+    ? "opacity-50 bg-gray-900/40"
     : entry.is_withdrawn
       ? "opacity-50 bg-gray-900/40"
       : memoOpen || appMemoOpen

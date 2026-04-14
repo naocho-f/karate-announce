@@ -553,18 +553,22 @@ function EventCard({
   const deleted = isDeletePending(e);
   return (
     <li
-      className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active && !deleted ? "ring-2 ring-green-500" : ""} ${deleted ? "opacity-20" : ""}`}
+      className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active && !deleted ? "ring-2 ring-green-500" : ""}`}
     >
-      <div className="flex items-center gap-2 min-w-0">
-        {e.is_active && !deleted && (
-          <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold shrink-0">● 進行中</span>
-        )}
-        {e.status === "finished" && !deleted && (
-          <span className="text-xs bg-gray-600 text-gray-300 px-2 py-0.5 rounded-full shrink-0">完了</span>
-        )}
-        <span className="font-medium truncate">{e.name}</span>
-        {e.event_date && <span className="text-xs text-gray-400 shrink-0">{e.event_date.replace(/-/g, "/")}</span>}
-        <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded shrink-0">{e.court_count}コート</span>
+      <div className={deleted ? "opacity-20" : ""}>
+        <div className="flex items-center gap-2 min-w-0">
+          {e.is_active && !deleted && (
+            <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold shrink-0">
+              ● 進行中
+            </span>
+          )}
+          {e.status === "finished" && !deleted && (
+            <span className="text-xs bg-gray-600 text-gray-300 px-2 py-0.5 rounded-full shrink-0">完了</span>
+          )}
+          <span className="font-medium truncate">{e.name}</span>
+          {e.event_date && <span className="text-xs text-gray-400 shrink-0">{e.event_date.replace(/-/g, "/")}</span>}
+          <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded shrink-0">{e.court_count}コート</span>
+        </div>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
         {deleted ? (

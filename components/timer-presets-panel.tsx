@@ -42,10 +42,8 @@ function PresetListItem({
   onExpire: (id: string) => Promise<void>;
 }) {
   return (
-    <div
-      className={`flex items-center justify-between bg-gray-900 border border-gray-800 rounded-lg p-3 ${isDeletePending(p) ? "opacity-20" : ""}`}
-    >
-      <div>
+    <div className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-lg p-3">
+      <div className={isDeletePending(p) ? "opacity-20" : ""}>
         <p className="font-bold">{p.name}</p>
         <p className="text-xs text-gray-500">{presetSummary(p)}</p>
       </div>
