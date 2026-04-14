@@ -8,7 +8,14 @@ import { createInitialState, getDisplayMs, getNewazaElapsedMs, getNewazaDisplayM
 import { resolveLayout } from "@/lib/timer-layout";
 import type { LayoutRow, LayoutAlignment, LayoutVerticalAlign, TimerPreset, KouryuukaiFontSizes } from "@/lib/types";
 import { DEFAULT_KOURYUUKAI_FONT_SIZES } from "@/lib/types";
-import { matchLabelToShort } from "@/lib/match-utils";
+
+
+/** コート名の頭文字 + match_number で短縮試合番号を生成（例: 「Bコート」+ 5 → 「B-5」） */
+function shortMatchId(state: TimerState): string {
+  if (!state.matchNumber) return state.matchLabel || "--";
+  const prefix = state.courtDisplayName?.charAt(0) || "";
+  return prefix ? `${prefix}-${state.matchNumber}` : `${state.matchNumber}`;
+}
 
 // ── フォーマット ──────────────────────────────────────────────
 
@@ -415,7 +422,7 @@ function TimerRowMatchInfo({
   if (!theme.p?.show_match_number && state.extensionCount === 0) return null;
   return (
     <div className="text-gray-500" style={{ ...bs, fontSize: `${row.fontSize}vh` }}>
-      {theme.p?.show_match_number && toFullWidthDigits(state.matchLabel)}
+      {theme.p?.show_match_number && toFullWidthDigits(shortMatchId(state))}
       {theme.p?.show_match_number && state.totalMatches > 0 && toFullWidthDigits(` / 全${state.totalMatches}試合`)}
       {state.extensionCount > 0 && <span className="ml-2 text-yellow-400 font-bold">延長戦</span>}
     </div>
@@ -550,7 +557,7 @@ function CenterMatchInfo({
         試合番号
       </span>
       <span className="font-bold tabular-nums" style={{ fontSize: `${row.fontSize * 0.5}vh`, color: "#E1D200" }}>
-        {state.matchLabel || "--"}
+        {shortMatchId(state)}
       </span>
     </div>
   );
@@ -1305,7 +1312,7 @@ export function KouryuukaiLayout({
               className="font-bold tabular-nums"
               style={{ fontSize: sz(fs.matchNumber), color: "#E1D200", lineHeight: 1 }}
             >
-              {matchLabelToShort(state.matchLabel) || "--"}
+              {shortMatchId(state)}
             </span>
           </KouryuukaiCell>
 

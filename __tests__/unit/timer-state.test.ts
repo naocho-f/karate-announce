@@ -136,6 +136,7 @@ function readyState(presetOverrides: Partial<TimerPreset> = {}): TimerState {
     rulesReading: null,
     matchNumber: 1,
     totalMatches: 4,
+    courtDisplayName: "Aコート",
   });
 }
 

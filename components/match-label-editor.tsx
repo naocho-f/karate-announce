@@ -248,16 +248,24 @@ export function MatchLabelEditor({
     const allMatches = d.tournaments.flatMap((t) => t.matches.map((m) => ({ id: m.id, court: t.court })));
     const courtCounters: Record<string, number> = {};
     const labels: Record<string, string> = {};
+    const numbers: Record<string, number> = {};
     for (const id of d.order) {
       const court = d.matchToCourtMap[id];
       if (!court) continue;
       courtCounters[court] = (courtCounters[court] ?? 0) + 1;
       labels[id] = `第${courtCounters[court]}試合`;
+      numbers[id] = courtCounters[court];
     }
     await fetch("/api/admin/matches/batch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ updates: allMatches.map((m) => ({ id: m.id, match_label: labels[m.id] ?? null })) }),
+      body: JSON.stringify({
+        updates: allMatches.map((m) => ({
+          id: m.id,
+          match_label: labels[m.id] ?? null,
+          match_number: numbers[m.id] ?? 0,
+        })),
+      }),
     });
     d.setSaving(false);
     d.setSaved(true);

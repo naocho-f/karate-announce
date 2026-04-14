@@ -220,7 +220,7 @@ function NewazaControls({
           className={`w-1/2 py-3 rounded-lg font-bold text-lg transition ${state.newaza.active ? "bg-cyan-700 hover:bg-cyan-600 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}
           disabled={isDisabled}
         >
-          {label} [G]
+          {label}
         </button>
         {p.newaza_limit_type === "limited" && (
           <span className="text-xs text-gray-500">残り{p.newaza_max_count - state.newaza.usedCount}回</span>
@@ -323,7 +323,7 @@ function SubControls({ props: { state, phase, p, onUpdate, onSetBuzzerWarning } 
           }
           className={`py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition ${canAdjust ? "" : "col-span-5"}`}
         >
-          ブザー [B]
+          ブザー
         </button>
         {canAdjust && (
           <>
@@ -331,7 +331,7 @@ function SubControls({ props: { state, phase, p, onUpdate, onSetBuzzerWarning } 
               onClick={() => onUpdate((s) => adjustTime(s, -10000))}
               className="py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition"
             >
-              -10秒 [←]
+              -10秒
             </button>
             <button
               onClick={() => onUpdate((s) => adjustTime(s, -1000))}
@@ -349,7 +349,7 @@ function SubControls({ props: { state, phase, p, onUpdate, onSetBuzzerWarning } 
               onClick={() => onUpdate((s) => adjustTime(s, 10000))}
               className="py-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition"
             >
-              +10秒 [→]
+              +10秒
             </button>
           </>
         )}
@@ -418,13 +418,7 @@ function WithdrawSection({ props: { phase, onUpdate } }: { props: MatchOperation
   );
 }
 
-function UndoButton({
-  state,
-  onUndo,
-}: {
-  state: TimerState;
-  onUndo: () => void;
-}) {
+function UndoButton({ state, onUndo }: { state: TimerState; onUndo: () => void }) {
   if (state.undoStack.length === 0) return null;
   const lastAction = state.undoStack[state.undoStack.length - 1];
   return (

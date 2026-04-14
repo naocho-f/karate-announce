@@ -218,6 +218,7 @@ describe("一本操作に confirm 不要 (#2)", () => {
       rulesReading: null,
       matchNumber: 1,
       totalMatches: 1,
+      courtDisplayName: "Aコート",
     });
     // running 状態にする
     const running = { ...ready, phase: "running" as const, timerStartedAt: Date.now(), timerBaseMs: ready.timerMs };

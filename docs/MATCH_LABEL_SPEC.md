@@ -34,6 +34,10 @@
 
 `matches` テーブルの `match_label` カラム（text, nullable）に格納。
 
+### 2.1.1 match_number カラム
+
+`matches` テーブルの `match_number` カラム（integer, NOT NULL, DEFAULT 0）。試合番号の数値のみを保持する。`match_label` の保存と同時に設定される。タイマー画面での短縮表示（「B-5」形式）に使用。
+
 ### 2.2 ラベル形式
 
 ```
@@ -257,12 +261,12 @@ Supabase RPC `swap_match_positions` を使用。
 
 ### 10.1 POST `/api/admin/matches/batch`
 
-| 項目       | 内容                                                                |
-| ---------- | ------------------------------------------------------------------- |
-| 認証       | `verifyAdminAuth()`                                                 |
-| リクエスト | `{ updates: { id: string; match_label: string \| null }[] }`        |
-| 処理       | 各 match を並列で `UPDATE matches SET match_label = ? WHERE id = ?` |
-| レスポンス | `{ ok: true }`                                                      |
+| 項目       | 内容                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------- |
+| 認証       | `verifyAdminAuth()`                                                                   |
+| リクエスト | `{ updates: { id: string; match_label: string \| null; match_number?: number }[] }`   |
+| 処理       | 各 match を並列で `UPDATE matches SET match_label = ?, match_number = ? WHERE id = ?` |
+| レスポンス | `{ ok: true }`                                                                        |
 
 ### 10.2 POST `/api/admin/matches/swap`
 

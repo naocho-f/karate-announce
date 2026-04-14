@@ -22,7 +22,6 @@ type IdlePanelProps = {
   swapping: boolean;
   onSwapSides: () => void;
   onSelectMatch: (candidate: MatchCandidate) => void;
-  onQuickMatch: () => void;
   matchItemRefs: MutableRefObject<Record<string, HTMLButtonElement | null>>;
   matchListTopRef: MutableRefObject<HTMLDivElement | null>;
 };
@@ -37,7 +36,6 @@ export default function IdlePanel({
   swapping,
   onSwapSides,
   onSelectMatch,
-  onQuickMatch,
   matchItemRefs,
   matchListTopRef,
 }: IdlePanelProps) {
@@ -91,16 +89,6 @@ export default function IdlePanel({
         matchListTopRef={matchListTopRef}
         onSelectMatch={onSelectMatch}
       />
-
-      {/* テスト用 */}
-      <div className="border-t border-gray-800 pt-3">
-        <button
-          onClick={onQuickMatch}
-          className="w-full py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 text-sm transition"
-        >
-          クイック試合（テスト）
-        </button>
-      </div>
     </section>
   );
 }

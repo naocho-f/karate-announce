@@ -471,8 +471,9 @@ export function useTimerControl() {
         matchLabel: candidate.match.match_label ?? "",
         rules: candidate.match.rules ?? candidate.tournament.default_rules ?? null,
         rulesReading: null,
-        matchNumber: 0,
+        matchNumber: candidate.match.match_number ?? 0,
         totalMatches: 0,
+        courtDisplayName,
       });
       if (swapSides && next.preset) return { ...next, preset: { ...next.preset, swap_sides: true } };
       return next;
@@ -507,26 +508,6 @@ export function useTimerControl() {
       candidate.tournament.name,
     );
     void prefetchTts(ttsText);
-  };
-
-  const handleQuickMatch = () => {
-    const preset = presets.find((p) => p.id === selectedPresetId) ?? DEFAULT_PRESET;
-    update((s) => {
-      const next = setMatch(s, {
-        matchId: null,
-        tournamentId: null,
-        preset,
-        red: { id: "red-1", name: "選手A", nameReading: null, affiliation: "道場A", affiliationReading: null },
-        white: { id: "white-1", name: "選手B", nameReading: null, affiliation: "道場B", affiliationReading: null },
-        matchLabel: "第1試合",
-        rules: null,
-        rulesReading: null,
-        matchNumber: 1,
-        totalMatches: 1,
-      });
-      if (swapSides && next.preset) return { ...next, preset: { ...next.preset, swap_sides: true } };
-      return next;
-    });
   };
 
   // ── 結果書き戻し ──
@@ -675,7 +656,6 @@ export function useTimerControl() {
     update,
     loadTournamentData,
     handleSelectMatch,
-    handleQuickMatch,
     handleWriteBack,
     handleAnnounceStart,
     handleAnnounceWinner,

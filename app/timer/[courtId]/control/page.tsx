@@ -87,7 +87,6 @@ export default function TimerControlPage() {
                 void new Promise<void>((r) => setTimeout(r, 300)).then(() => tc.setSwapping(false));
               }}
               onSelectMatch={tc.handleSelectMatch}
-              onQuickMatch={tc.handleQuickMatch}
               matchItemRefs={tc.matchItemRefs}
               matchListTopRef={tc.matchListTopRef}
             />

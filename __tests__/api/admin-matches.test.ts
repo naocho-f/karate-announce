@@ -70,8 +70,8 @@ describe("/api/admin/matches/batch", () => {
     const req = createAdminRequest("POST", "/api/admin/matches/batch", {
       body: {
         updates: [
-          { id: "m1", match_label: "第1試合" },
-          { id: "m2", match_label: "第2試合" },
+          { id: "m1", match_label: "第1試合", match_number: 1 },
+          { id: "m2", match_label: "第2試合", match_number: 2 },
         ],
       },
     });

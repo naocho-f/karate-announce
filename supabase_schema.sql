@@ -216,7 +216,8 @@ create table matches (
   result_method text,
   result_detail jsonb,
   updated_at timestamptz default now(),
-  tenant_id uuid not null references tenants(id)
+  tenant_id uuid not null references tenants(id),
+  match_number integer not null default 0
 );
 
 create table rules (

@@ -266,6 +266,7 @@ export type Match = {
   winner_id: string | null;
   status: "waiting" | "ready" | "ongoing" | "done";
   match_label: string | null;
+  match_number: number;
   rules: string | null;
   result_method: string | null;
   result_detail: ResultDetail | null;

@@ -1352,7 +1352,7 @@ function TournamentListItem({
 // ── ExistingTournamentSection ──────────────────────────────
 
 const MATCH_SELECT =
-  "id, round, position, fighter1_id, fighter2_id, winner_id, status, match_label, rules, result_method, result_detail";
+  "id, round, position, fighter1_id, fighter2_id, winner_id, status, match_label, match_number, rules, result_method, result_detail";
 
 function useTournamentMatches(tournamentId: string, entries: Entry[]) {
   const [matches, setMatches] = useState<MatchRow[]>([]);

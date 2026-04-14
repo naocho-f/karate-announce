@@ -64,6 +64,7 @@ export interface TimerState {
   rulesReading: string | null;
   matchNumber: number;
   totalMatches: number;
+  courtDisplayName: string;
   extensionCount: number;
 
   // ── 選手 ──
@@ -150,6 +151,7 @@ export function createInitialState(): TimerState {
     rulesReading: null,
     matchNumber: 0,
     totalMatches: 0,
+    courtDisplayName: "",
     extensionCount: 0,
     red: { ...EMPTY_FIGHTER },
     white: { ...EMPTY_FIGHTER },
@@ -234,6 +236,7 @@ export function setMatch(
     rulesReading: string | null;
     matchNumber: number;
     totalMatches: number;
+    courtDisplayName: string;
   },
 ): TimerState {
   const s = createInitialState();
@@ -248,6 +251,7 @@ export function setMatch(
   s.rulesReading = opts.rulesReading;
   s.matchNumber = opts.matchNumber;
   s.totalMatches = opts.totalMatches;
+  s.courtDisplayName = opts.courtDisplayName;
   s.durationMs = opts.preset.match_duration * 1000;
   s.timerMs = opts.preset.timer_direction === "countdown" ? s.durationMs : 0;
   s.timerBaseMs = s.timerMs;
