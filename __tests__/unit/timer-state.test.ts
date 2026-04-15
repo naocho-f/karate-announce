@@ -1088,6 +1088,42 @@ describe("timer-state", () => {
       expect(st.newaza.rounds).toHaveLength(1);
       expect(st.newaza.rounds[0]).toBe(30000);
     });
+
+    it("無消費解除時はroundsに記録されない", () => {
+      const s = readyState({ newaza_enabled: true, newaza_duration: 120, newaza_free_release: 5 });
+      let st = startTimer(s);
+      st = toggleNewaza(st); // 1回目開始
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 3000 } }; // 3秒（freeRelease=5秒以内）
+      st = toggleNewaza(st); // 解除 → 無消費
+      expect(st.newaza.usedCount).toBe(0);
+      expect(st.newaza.rounds).toHaveLength(0); // roundsに記録されない
+    });
+
+    it("累積モードで無消費解除時はroundsに記録されない", () => {
+      const s = readyState({ ...accumPreset, newaza_free_release: 10 });
+      let st = startTimer(s);
+      // 1回目: 30秒使用 → 消費確定
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 30000 } };
+      st = toggleNewaza(st);
+      expect(st.newaza.usedCount).toBe(1);
+      expect(st.newaza.rounds).toHaveLength(1);
+      // 2回目: 3秒で解除 → 無消費（区間判定）
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 3000 } };
+      st = toggleNewaza(st);
+      expect(st.newaza.usedCount).toBe(1); // 変わらず
+      expect(st.newaza.rounds).toHaveLength(1); // 追加されない
+    });
+
+    it("タイムアップ時にfreeRelease以内でもroundsに記録されない", () => {
+      let s = startTimer(readyState({ newaza_enabled: true, newaza_free_release: 30 }));
+      s = toggleNewaza(s);
+      s = { ...s, newaza: { ...s.newaza, elapsedMs: 0, startedAt: Date.now() } };
+      s = timeUp(s);
+      expect(s.newaza.usedCount).toBe(0); // freeRelease内なので消費なし
+      expect(s.newaza.rounds).toHaveLength(0); // roundsにも記録されない
+    });
   });
 
   // ── 注意(caution)テスト ──

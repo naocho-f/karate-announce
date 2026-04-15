@@ -325,7 +325,7 @@ export function timeUp(state: TimerState): TimerState {
       elapsedMs: newazaElapsed,
       startedAt: null,
       usedCount: newazaElapsed <= freeRelease ? s.newaza.usedCount : s.newaza.usedCount + 1,
-      rounds: [...s.newaza.rounds, segmentElapsed],
+      rounds: newazaElapsed <= freeRelease ? s.newaza.rounds : [...s.newaza.rounds, segmentElapsed],
     };
   }
   log(s, "time_up");
@@ -569,6 +569,30 @@ export function addCaution(state: TimerState, side: FighterSide): TimerState {
 
 // ── 寝技 ──────────────────────────────────────────────────────
 
+function releaseNewaza(state: TimerState, s: TimerState, p: TimerPreset): void {
+  const totalElapsed = getNewazaElapsedMs(state);
+  const freeMs = p.newaza_free_release * 1000;
+  // 累積モード: 今回区間の経過時間で無消費判定。非累積: 累積合計で判定
+  const segmentElapsed =
+    p.newaza_accumulate && state.newaza.startedAt ? Date.now() - state.newaza.startedAt : totalElapsed;
+  const consumed = segmentElapsed > freeMs;
+  s.newaza = {
+    active: false,
+    elapsedMs: p.newaza_accumulate ? totalElapsed : 0,
+    startedAt: null,
+    usedCount: consumed ? s.newaza.usedCount + 1 : s.newaza.usedCount,
+    exhausted: false,
+    rounds: consumed ? [...s.newaza.rounds, segmentElapsed] : s.newaza.rounds,
+  };
+  // 寝技解除時にメインタイマーも停止
+  if (p.newaza_stops_main) {
+    s.timerMs = getMainElapsedMs(state);
+    s.timerStartedAt = null;
+    s.phase = "paused";
+  }
+  log(s, "newaza_release", { elapsed: totalElapsed, consumed });
+}
+
 export function toggleNewaza(state: TimerState): TimerState {
   if (state.phase !== "running") return state;
   const p = state.preset;
@@ -577,28 +601,7 @@ export function toggleNewaza(state: TimerState): TimerState {
   const s = { ...state };
 
   if (s.newaza.active) {
-    // 解除
-    const totalElapsed = getNewazaElapsedMs(state);
-    const freeMs = p.newaza_free_release * 1000;
-    // 累積モード: 今回区間の経過時間で無消費判定。非累積: 累積合計で判定
-    const segmentElapsed =
-      p.newaza_accumulate && state.newaza.startedAt ? Date.now() - state.newaza.startedAt : totalElapsed;
-    const consumed = segmentElapsed > freeMs;
-    s.newaza = {
-      active: false,
-      elapsedMs: p.newaza_accumulate ? totalElapsed : 0,
-      startedAt: null,
-      usedCount: consumed ? s.newaza.usedCount + 1 : s.newaza.usedCount,
-      exhausted: false,
-      rounds: [...s.newaza.rounds, segmentElapsed],
-    };
-    // 寝技解除時にメインタイマーも停止
-    if (p.newaza_stops_main) {
-      s.timerMs = getMainElapsedMs(state);
-      s.timerStartedAt = null;
-      s.phase = "paused";
-    }
-    log(s, "newaza_release", { elapsed: totalElapsed, consumed });
+    releaseNewaza(state, s, p);
   } else {
     // 開始チェック
     if (p.newaza_accumulate && s.newaza.exhausted) return state;

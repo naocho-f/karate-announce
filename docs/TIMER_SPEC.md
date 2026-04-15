@@ -245,7 +245,7 @@ type LayoutRow = {
 **timer_with_newaza 行の詳細:**
 
 - 左側（timerRatio、デフォルト75%）: メインタイマー（大フォント）
-- 右側: 寝技タイマー2段表示（寝1/寝2）。寝技1回目・2回目をそれぞれ個別の経過時間で表示。NewazaStateの`rounds`配列で各回の経過時間を記録
+- 右側: 寝技タイマー2段表示（寝1/寝2）。寝技1回目・2回目をそれぞれ個別の経過時間で表示。NewazaStateの`rounds`配列で各回の経過時間を記録。**無消費解除（freeRelease以内の解除）はroundsに記録しない**（消費確定した回のみ記録）
 
 **scores 行の scoreCenterMode:**
 
