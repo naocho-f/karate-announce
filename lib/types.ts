@@ -44,19 +44,19 @@ export type KouryuukaiFontSizes = {
 };
 
 export const DEFAULT_KOURYUUKAI_FONT_SIZES: KouryuukaiFontSizes = {
-  timer: 28,
-  newaza: 4,
-  newazaLabel: 2,
-  newazaNumber: 1.5,
-  playerName: 2,
-  points: 18,
-  matchNumber: 12,
-  matchNumberLabel: 2,
-  foulLabel: 1.5,
-  foulCell: 2,
-  cautionCell: 1.5,
-  wazaariLabel: 1.5,
-  wazaariCell: 2.5,
+  timer: 40,
+  newaza: 20,
+  newazaLabel: 8,
+  newazaNumber: 8,
+  playerName: 3.5,
+  points: 28,
+  matchNumber: 22,
+  matchNumberLabel: 6,
+  foulLabel: 4,
+  foulCell: 4,
+  cautionCell: 3.5,
+  wazaariLabel: 4,
+  wazaariCell: 8,
   borderWidth: 1,
 };
 

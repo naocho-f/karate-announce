@@ -40,9 +40,7 @@ export default function HistoryPanel({
             <div
               key={`${i}-${entry.action}`}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
-                removingIdx === i
-                  ? "opacity-0 translate-x-8 scale-95"
-                  : "opacity-100 translate-x-0 scale-100"
+                removingIdx === i ? "opacity-0 translate-x-8 scale-95" : "opacity-100 translate-x-0 scale-100"
               } ${entry.action.startsWith("red") ? "bg-red-950/50 text-red-300" : entry.action.startsWith("white") ? "bg-blue-950/50 text-blue-300" : "bg-gray-800/50 text-gray-300"}`}
             >
               <span className="text-xs text-gray-500 font-mono w-5 shrink-0">{i + 1}</span>

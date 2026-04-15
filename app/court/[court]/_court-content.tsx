@@ -161,7 +161,15 @@ export default function CourtContent({
     allMatches.length > 0 &&
     allMatches.every((m) => m.status === "done" || (m.round === 1 && m.fighter1_id && !m.fighter2_id));
 
-  usePrefetchNextMatchTts(courtNextMatch, fighters, tournaments, matchesMap, announceTemplates, rulesReadingMap, courtDisplayName);
+  usePrefetchNextMatchTts(
+    courtNextMatch,
+    fighters,
+    tournaments,
+    matchesMap,
+    announceTemplates,
+    rulesReadingMap,
+    courtDisplayName,
+  );
 
   return (
     <div className="space-y-8">

@@ -124,9 +124,7 @@ function TimerDigits({ text, style }: { text: string; style: React.CSSProperties
   const after = text.slice(colonIdx + 1);
   return (
     <span className="font-bold leading-none tabular-nums" style={style}>
-      {before}
-      :
-      {after}
+      {before}:{after}
     </span>
   );
 }

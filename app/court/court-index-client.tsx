@@ -246,7 +246,16 @@ function useCourtIndexActions(
     await load();
     endP(mId);
     if (!mutedMatchIds.has(mId))
-      doStartAnnounceIndex(match, rounds, tId, fighters, tournaments, announceTemplates, rulesReadingMap, courtDisplayName);
+      doStartAnnounceIndex(
+        match,
+        rounds,
+        tId,
+        fighters,
+        tournaments,
+        announceTemplates,
+        rulesReadingMap,
+        courtDisplayName,
+      );
   };
   const setWinner = async (tId: string, mId: string, wId: string) => {
     const { match, rounds } = getCtx(tId, mId);
@@ -320,7 +329,17 @@ function useCourtIndexActions(
   };
   const reannounceStart = async (tId: string, mId: string) => {
     const { match, rounds } = getCtx(tId, mId);
-    if (match) doStartAnnounceIndex(match, rounds, tId, fighters, tournaments, announceTemplates, rulesReadingMap, courtDisplayName);
+    if (match)
+      doStartAnnounceIndex(
+        match,
+        rounds,
+        tId,
+        fighters,
+        tournaments,
+        announceTemplates,
+        rulesReadingMap,
+        courtDisplayName,
+      );
   };
   const reannounceWinner = async (tId: string, mId: string) => {
     const { match } = getCtx(tId, mId);

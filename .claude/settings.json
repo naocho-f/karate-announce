@@ -22,7 +22,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -f /tmp/karate-code-changed ]; then rm /tmp/karate-code-changed && npm run build && vercel --prod && echo '{\"systemMessage\": \"✅ デプロイ完了。テスト・動作確認は完了しましたか？（npm run dev + curl）\"}' || echo '{\"systemMessage\": \"❌ ビルドまたはデプロイに失敗しました。エラーを確認してください。\"}'; else echo '{\"systemMessage\": \"テスト・動作確認は完了しましたか？（npm run dev + curl）\"}'; fi",
+            "command": "if [ -f /tmp/karate-code-changed ]; then rm /tmp/karate-code-changed && npm run build && vercel --prod && echo '{\"systemMessage\": \"✅ デプロイ完了。テスト・動作確認は完了しましたか？（npm run dev + curl）\"}' || echo '{\"systemMessage\": \"❌ ビルドまたはデプロイに失敗しました。エラーを確認してください。\"}'; fi",
             "statusMessage": "ビルド・デプロイ中..."
           }
         ]

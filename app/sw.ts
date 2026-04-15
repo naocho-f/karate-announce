@@ -45,12 +45,14 @@ serwist.addEventListeners();
 // 古いランタイムキャッシュを全削除（defaultCache廃止に伴う掃除）
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => !key.includes(SW_CACHE_VERSION) && !key.startsWith("serwist-precache"))
-          .map((key) => caches.delete(key)),
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => !key.includes(SW_CACHE_VERSION) && !key.startsWith("serwist-precache"))
+            .map((key) => caches.delete(key)),
+        ),
       ),
-    ),
   );
 });
