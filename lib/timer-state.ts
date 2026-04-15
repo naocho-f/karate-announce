@@ -311,23 +311,13 @@ export function resumeTimer(state: TimerState): TimerState {
 export function timeUp(state: TimerState): TimerState {
   if (state.phase !== "running") return state;
   const s = { ...state };
-  s.phase = "time_up";
   s.timerMs = s.preset?.timer_direction === "countdown" ? 0 : s.durationMs;
   s.timerStartedAt = null;
-  // 寝技も停止
-  if (s.newaza.active) {
-    const newazaElapsed = getNewazaElapsedMs(state);
-    const segmentElapsed = state.newaza.startedAt ? Date.now() - state.newaza.startedAt : newazaElapsed;
-    const freeRelease = (s.preset?.newaza_free_release ?? 0) * 1000;
-    s.newaza = {
-      ...s.newaza,
-      active: false,
-      elapsedMs: newazaElapsed,
-      startedAt: null,
-      usedCount: newazaElapsed <= freeRelease ? s.newaza.usedCount : s.newaza.usedCount + 1,
-      rounds: newazaElapsed <= freeRelease ? s.newaza.rounds : [...s.newaza.rounds, segmentElapsed],
-    };
+  // 寝技アクティブなら通常解除処理（無消費判定・回数消費・rounds記録）
+  if (s.newaza.active && state.preset) {
+    releaseNewaza(state, s, state.preset);
   }
+  s.phase = "time_up"; // releaseNewazaがnewaza_stops_mainでpausedに設定する可能性があるため、最後に設定
   log(s, "time_up");
   return s;
 }
@@ -471,9 +461,9 @@ function finishAuto(state: TimerState, winner: FighterSide, method: ResultMethod
   const s = { ...state };
   s.timerMs = getMainElapsedMs(state);
   s.timerStartedAt = null;
-  // 寝技停止
-  if (s.newaza.active) {
-    s.newaza = { ...s.newaza, active: false, elapsedMs: getNewazaElapsedMs(state), startedAt: null };
+  // 寝技アクティブなら通常解除処理（無消費判定・回数消費・rounds記録）
+  if (s.newaza.active && state.preset) {
+    releaseNewaza(state, s, state.preset);
   }
   s.phase = "finished";
   s.winnerSide = winner;

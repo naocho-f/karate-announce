@@ -830,12 +830,43 @@ describe("timer-state", () => {
       expect(finished.newaza.startedAt).toBeNull();
     });
 
-    it("自動判定: 寝技アクティブ中に一本勝ちすると寝技も停止", () => {
-      let s = startTimer(readyState({ ippon_wins: true, newaza_enabled: true }));
+    it("自動判定: 寝技アクティブ中に一本勝ちすると寝技も停止し回数消費・rounds記録される", () => {
+      let s = startTimer(readyState({ ippon_wins: true, newaza_enabled: true, newaza_free_release: 5 }));
       s = toggleNewaza(s);
+      s = { ...s, newaza: { ...s.newaza, startedAt: Date.now() - 10000 } }; // 10秒経過（freeRelease超え）
       const finished = addIppon(s, "red");
       expect(finished.phase).toBe("finished");
       expect(finished.newaza.active).toBe(false);
+      expect(finished.newaza.usedCount).toBe(1); // 回数消費
+      expect(finished.newaza.rounds).toHaveLength(1); // rounds記録
+    });
+
+    it("自動判定: 寝技がfreeRelease以内なら回数消費なし", () => {
+      let s = startTimer(readyState({ ippon_wins: true, newaza_enabled: true, newaza_free_release: 10 }));
+      s = toggleNewaza(s);
+      s = { ...s, newaza: { ...s.newaza, startedAt: Date.now() - 3000 } }; // 3秒（freeRelease内）
+      const finished = addIppon(s, "red");
+      expect(finished.phase).toBe("finished");
+      expect(finished.newaza.active).toBe(false);
+      expect(finished.newaza.usedCount).toBe(0); // 無消費
+      expect(finished.newaza.rounds).toHaveLength(0); // rounds記録なし
+    });
+
+    it("timeUp: 累積モードで区間判定が適用される", () => {
+      let s = startTimer(
+        readyState({ newaza_enabled: true, newaza_free_release: 10, newaza_accumulate: true, newaza_duration: 120 }),
+      );
+      s = toggleNewaza(s);
+      // 1回目: 30秒使用 → 消費確定
+      s = { ...s, newaza: { ...s.newaza, startedAt: Date.now() - 30000 } };
+      s = toggleNewaza(s);
+      expect(s.newaza.usedCount).toBe(1);
+      // 2回目: 3秒使用中にtimeUp → 累積合計は33秒だが区間は3秒（freeRelease内）
+      s = toggleNewaza(s);
+      s = { ...s, newaza: { ...s.newaza, startedAt: Date.now() - 3000 } };
+      s = timeUp(s);
+      expect(s.newaza.usedCount).toBe(1); // 区間判定で無消費
+      expect(s.newaza.rounds).toHaveLength(1); // 追加されない
     });
   });
 
