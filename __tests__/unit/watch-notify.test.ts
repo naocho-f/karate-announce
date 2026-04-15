@@ -25,39 +25,27 @@ describe("checkWatchNotifications", () => {
   });
 
   it("白側の選手も正しく通知される", () => {
-    const matches: WatchMatch[] = [
-      makeMatch("m1", "第1試合", "ongoing", "A", "B"),
-      makeMatch("m4", "第4試合", "ready", "C", "山田"),
-    ];
+    const matches: WatchMatch[] = [makeMatch("m1", "第1試合", "ongoing", "A", "B"), makeMatch("m4", "第4試合", "ready", "C", "山田")];
     const result = checkWatchNotifications([{ courtLabel: "Bコート", matches }], ["山田"], new Set());
     expect(result).toHaveLength(1);
     expect(result[0].message).toContain("Bコート白");
   });
 
   it("まだ3試合前でなければ通知しない", () => {
-    const matches: WatchMatch[] = [
-      makeMatch("m1", "第1試合", "ongoing", "A", "B"),
-      makeMatch("m8", "第8試合", "ready", "山田", "C"),
-    ];
+    const matches: WatchMatch[] = [makeMatch("m1", "第1試合", "ongoing", "A", "B"), makeMatch("m8", "第8試合", "ready", "山田", "C")];
     const result = checkWatchNotifications([{ courtLabel: "Aコート", matches }], ["山田"], new Set());
     // 第8試合 - 3 = 第5試合。第1試合が ongoing だが 1 < 5 なので通知しない
     expect(result).toHaveLength(0);
   });
 
   it("試合番号が未設定の場合は通知しない", () => {
-    const matches: WatchMatch[] = [
-      makeMatch("m1", "第1試合", "ongoing", "A", "B"),
-      makeMatch("m2", null, "ready", "山田", "C"),
-    ];
+    const matches: WatchMatch[] = [makeMatch("m1", "第1試合", "ongoing", "A", "B"), makeMatch("m2", null, "ready", "山田", "C")];
     const result = checkWatchNotifications([{ courtLabel: "Aコート", matches }], ["山田"], new Set());
     expect(result).toHaveLength(0);
   });
 
   it("通知済みの試合は再通知しない", () => {
-    const matches: WatchMatch[] = [
-      makeMatch("m1", "第1試合", "ongoing", "A", "B"),
-      makeMatch("m4", "第4試合", "ready", "山田", "C"),
-    ];
+    const matches: WatchMatch[] = [makeMatch("m1", "第1試合", "ongoing", "A", "B"), makeMatch("m4", "第4試合", "ready", "山田", "C")];
     const notified = new Set(["m4"]);
     const result = checkWatchNotifications([{ courtLabel: "Aコート", matches }], ["山田"], notified);
     expect(result).toHaveLength(0);
@@ -82,14 +70,8 @@ describe("checkWatchNotifications", () => {
   });
 
   it("複数コートで複数選手の通知が同時に発生する", () => {
-    const courtA: WatchMatch[] = [
-      makeMatch("a1", "第3試合", "ongoing", "A", "B"),
-      makeMatch("a6", "第6試合", "ready", "山田", "C"),
-    ];
-    const courtB: WatchMatch[] = [
-      makeMatch("b2", "第2試合", "ongoing", "D", "E"),
-      makeMatch("b5", "第5試合", "ready", "F", "鈴木"),
-    ];
+    const courtA: WatchMatch[] = [makeMatch("a1", "第3試合", "ongoing", "A", "B"), makeMatch("a6", "第6試合", "ready", "山田", "C")];
+    const courtB: WatchMatch[] = [makeMatch("b2", "第2試合", "ongoing", "D", "E"), makeMatch("b5", "第5試合", "ready", "F", "鈴木")];
     const result = checkWatchNotifications(
       [
         { courtLabel: "Aコート", matches: courtA },

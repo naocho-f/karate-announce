@@ -17,9 +17,7 @@ export function verifyAdminAuth(request: NextRequest): boolean {
     }
     // Development mode: use default dev password
     if (!devPasswordWarningLogged) {
-      console.warn(
-        "[admin-auth] ADMIN_PASSWORD is not set. Using default dev password 'dev'. Do NOT use in production.",
-      );
+      console.warn("[admin-auth] ADMIN_PASSWORD is not set. Using default dev password 'dev'. Do NOT use in production.");
       devPasswordWarningLogged = true;
     }
     password = "dev";

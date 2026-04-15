@@ -24,8 +24,7 @@ function EmailTemplateVariables() {
         ))}
       </div>
       <p className="text-xs text-gray-500 mt-1">
-        ※ {"{{#開催日}}...{{/開催日}}"} のように囲むと、その情報がある場合のみ表示されます（例:
-        開催日が未設定なら非表示）
+        ※ {"{{#開催日}}...{{/開催日}}"} のように囲むと、その情報がある場合のみ表示されます（例: 開催日が未設定なら非表示）
       </p>
     </div>
   );
@@ -142,9 +141,7 @@ export function EmailSettingsPanel({ event, onUpdate }: { event: Event; onUpdate
 export function EmailStatusBadge({ event }: { event: Event }) {
   const hasTemplate = !!(event.email_subject_template || event.email_body_template);
   return (
-    <span
-      className={`text-xs px-2 py-0.5 rounded ${hasTemplate ? "bg-green-900 text-green-300" : "bg-gray-700 text-gray-400"}`}
-    >
+    <span className={`text-xs px-2 py-0.5 rounded ${hasTemplate ? "bg-green-900 text-green-300" : "bg-gray-700 text-gray-400"}`}>
       {hasTemplate ? "設定済み" : "デフォルト"}
     </span>
   );
@@ -171,16 +168,11 @@ export function EmailConfigCard({
           <span className="text-sm font-semibold text-gray-200">メール設定</span>
           <EmailStatusBadge event={event} />
         </div>
-        <span className={`text-gray-500 text-xs transition-transform ${entrySubTab === "email" ? "rotate-180" : ""}`}>
-          ▼
-        </span>
+        <span className={`text-gray-500 text-xs transition-transform ${entrySubTab === "email" ? "rotate-180" : ""}`}>▼</span>
       </button>
       {entrySubTab === "email" && (
         <div className="border-t border-gray-700">
-          <EmailSettingsPanel
-            event={event}
-            onUpdate={(updates) => onSetEvent((prev) => (prev ? { ...prev, ...updates } : prev))}
-          />
+          <EmailSettingsPanel event={event} onUpdate={(updates) => onSetEvent((prev) => (prev ? { ...prev, ...updates } : prev))} />
         </div>
       )}
     </div>

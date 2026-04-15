@@ -340,10 +340,7 @@ describe("試合一覧の表示スタイル", () => {
 
 describe("スコア表示ロジック（show_points / show_wazaari）", () => {
   // 表示画面のスコア行レンダリングロジックを再実装
-  function getScoreDisplayMode(
-    showPoints: boolean,
-    showWazaari: boolean,
-  ): "points_only" | "wazaari_only" | "both" | "none" {
+  function getScoreDisplayMode(showPoints: boolean, showWazaari: boolean): "points_only" | "wazaari_only" | "both" | "none" {
     if (showPoints && showWazaari) return "both";
     if (showPoints) return "points_only";
     if (showWazaari) return "wazaari_only";
@@ -464,14 +461,9 @@ function formatDetailResult(m: string, d: Record<string, number> | null): string
   return null;
 }
 
-function resultDisplayText(state: {
-  resultMethod: string | null;
-  resultDetail: Record<string, number> | null;
-}): string {
+function resultDisplayText(state: { resultMethod: string | null; resultDetail: Record<string, number> | null }): string {
   if (!state.resultMethod) return "";
-  return (
-    formatDetailResult(state.resultMethod, state.resultDetail) ?? resultMethodLabel(state.resultMethod as ResultMethod)
-  );
+  return formatDetailResult(state.resultMethod, state.resultDetail) ?? resultMethodLabel(state.resultMethod as ResultMethod);
 }
 
 describe("勝利オーバーレイの表示ロジック", () => {
@@ -519,9 +511,9 @@ describe("勝利オーバーレイの表示ロジック", () => {
   });
 
   it("合わせ一本の resultDisplayText", () => {
-    expect(
-      resultDisplayText({ resultMethod: "combined_ippon", resultDetail: { red_wazaari: 2, white_wazaari: 0 } }),
-    ).toBe("合わせ一本 (技2)");
+    expect(resultDisplayText({ resultMethod: "combined_ippon", resultDetail: { red_wazaari: 2, white_wazaari: 0 } })).toBe(
+      "合わせ一本 (技2)",
+    );
   });
 
   it("ポイントの resultDisplayText", () => {
@@ -534,9 +526,7 @@ describe("勝利オーバーレイの表示ロジック", () => {
   });
 
   it("技あり優勢の resultDisplayText", () => {
-    expect(resultDisplayText({ resultMethod: "wazaari", resultDetail: { red_wazaari: 1, white_wazaari: 0 } })).toBe(
-      "技あり優勢 (技1-0)",
-    );
+    expect(resultDisplayText({ resultMethod: "wazaari", resultDetail: { red_wazaari: 1, white_wazaari: 0 } })).toBe("技あり優勢 (技1-0)");
   });
 
   it("null の resultMethod は空文字", () => {

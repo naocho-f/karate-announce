@@ -19,11 +19,7 @@ describe("新規トーナメントの sort_order 採番", () => {
   // page.tsx の confirm() 内のロジックを再現:
   // sortOrder: editingSortOrder ?? (Math.max(0, ...tournaments.map(t => t.sort_order)) + groupIndex + 1)
 
-  function calcSortOrder(
-    editingSortOrder: number | null,
-    tournaments: { sort_order: number }[],
-    groupIndex: number,
-  ): number {
+  function calcSortOrder(editingSortOrder: number | null, tournaments: { sort_order: number }[], groupIndex: number): number {
     return editingSortOrder ?? Math.max(0, ...tournaments.map((t) => t.sort_order)) + groupIndex + 1;
   }
 

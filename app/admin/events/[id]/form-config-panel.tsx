@@ -23,15 +23,7 @@ function Spinner({ className = "" }: { className?: string }) {
 }
 
 // ── インラインラベル編集 ──
-function InlineLabelEditor({
-  value,
-  placeholder,
-  onChange,
-}: {
-  value: string;
-  placeholder: string;
-  onChange: (v: string) => void;
-}) {
+function InlineLabelEditor({ value, placeholder, onChange }: { value: string; placeholder: string; onChange: (v: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -199,9 +191,7 @@ function useNoticesAndImages(setDirty: (v: boolean) => void) {
     setDirty(true);
   }
   function deleteImage(imageId: string, noticeId: string) {
-    setNotices((prev) =>
-      prev.map((n) => (n.id === noticeId ? { ...n, images: (n.images ?? []).filter((img) => img.id !== imageId) } : n)),
-    );
+    setNotices((prev) => prev.map((n) => (n.id === noticeId ? { ...n, images: (n.images ?? []).filter((img) => img.id !== imageId) } : n)));
     setDeletedImageIds((prev) => [...prev, imageId]);
     setDirty(true);
   }
@@ -254,10 +244,7 @@ function useCustomFieldActions(
     if (!src || !sc) return;
     const nk = `custom_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
     const no = Math.max(...fields.map((f) => f.sort_order)) + 1;
-    setCustomFieldDefs((p) => [
-      ...p,
-      buildCustomFieldDef(config.id, nk, `${src.label}(コピー)`, src.field_type, src.choices, no),
-    ]);
+    setCustomFieldDefs((p) => [...p, buildCustomFieldDef(config.id, nk, `${src.label}(コピー)`, src.field_type, src.choices, no)]);
     setFields((p) => [
       ...p,
       buildFieldConfig(config.id, nk, no, {
@@ -404,16 +391,7 @@ function useFormConfig(eventId: string) {
   const addNotice = (anchorType: "form_start" | "field" | "form_end", k?: string) => {
     if (config) ni.addNotice(config.id, anchorType, k);
   };
-  const cf = useCustomFieldActions(
-    config,
-    fields,
-    customFieldDefs,
-    setFields,
-    setCustomFieldDefs,
-    setDeletedCustomFieldKeys,
-    setDirty,
-    ni,
-  );
+  const cf = useCustomFieldActions(config, fields, customFieldDefs, setFields, setCustomFieldDefs, setDeletedCustomFieldKeys, setDirty, ni);
   return {
     config,
     fields,
@@ -549,9 +527,7 @@ function FormConfigHeader({ state }: { state: ReturnType<typeof useFormConfig> }
           )}
         </button>
         {state.saveMessage && (
-          <span
-            className={`text-xs animate-pulse ${state.saveMessage === "保存しました" ? "text-green-400" : "text-gray-400"}`}
-          >
+          <span className={`text-xs animate-pulse ${state.saveMessage === "保存しました" ? "text-green-400" : "text-gray-400"}`}>
             {state.saveMessage}
           </span>
         )}
@@ -566,15 +542,12 @@ function FormPreviewBody({ state }: { state: ReturnType<typeof useFormConfig> })
   const mainFields = sorted.filter((f) => !isKanaField(f.field_key) && f.field_key !== "age");
   const formStartNotices = state.notices.filter((n) => n.anchor_type === "form_start");
   const formEndNotices = state.notices.filter((n) => n.anchor_type === "form_end");
-  const fieldNoticesMap = (key: string) =>
-    state.notices.filter((n) => n.anchor_type === "field" && n.anchor_field_key === key);
+  const fieldNoticesMap = (key: string) => state.notices.filter((n) => n.anchor_type === "field" && n.anchor_field_key === key);
 
   return (
     <div className="bg-gray-800 rounded-xl overflow-hidden">
       <div className="px-4 py-2.5 border-b border-gray-700 bg-gray-750">
-        <p className="text-xs text-gray-400">
-          実際のフォームに近い見た目で表示しています。トグルで表示/非表示を切り替えできます。
-        </p>
+        <p className="text-xs text-gray-400">実際のフォームに近い見た目で表示しています。トグルで表示/非表示を切り替えできます。</p>
       </div>
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
         <div className="text-center pb-2">
@@ -590,21 +563,12 @@ function FormPreviewBody({ state }: { state: ReturnType<typeof useFormConfig> })
           onUploadImage={(id, file) => void state.uploadImage(id, file)}
           onDeleteImage={state.deleteImage}
         />
-        <button
-          onClick={() => state.addNotice("form_start")}
-          className="text-xs text-blue-400 hover:text-blue-300 block"
-        >
+        <button onClick={() => state.addNotice("form_start")} className="text-xs text-blue-400 hover:text-blue-300 block">
           + フォーム先頭に注意書きを追加
         </button>
 
         {mainFields.map((f) => (
-          <FieldPreviewCardWrapper
-            key={f.id}
-            field={f}
-            mainFields={mainFields}
-            state={state}
-            fieldNotices={fieldNoticesMap(f.field_key)}
-          />
+          <FieldPreviewCardWrapper key={f.id} field={f} mainFields={mainFields} state={state} fieldNotices={fieldNoticesMap(f.field_key)} />
         ))}
 
         <AddCustomFieldForm onAdd={state.addCustomField} />
@@ -759,9 +723,9 @@ function FieldPreviewCard(props: FieldPreviewCardProps) {
   const { field, def, kanaField, ageField, notices, allFields, onUpdate, busyNotices, rules } = props;
   const [expanded, setExpanded] = useState(false);
   const key = def.key;
-  const choices = (
-    field.custom_choices?.length ? field.custom_choices : (def.fixedChoices ?? def.defaultChoices ?? [])
-  ).filter((c) => c.value !== "__single_select__");
+  const choices = (field.custom_choices?.length ? field.custom_choices : (def.fixedChoices ?? def.defaultChoices ?? [])).filter(
+    (c) => c.value !== "__single_select__",
+  );
   const isHidden = !field.visible;
 
   return (
@@ -769,9 +733,7 @@ function FieldPreviewCard(props: FieldPreviewCardProps) {
       <CardHeader {...props} />
       <div
         className={`border rounded-b-xl transition relative ${
-          isHidden
-            ? "border-gray-600/40 bg-gray-900/40 px-3 py-2"
-            : "border-gray-500 bg-gray-800/40 px-3 py-3 space-y-2"
+          isHidden ? "border-gray-600/40 bg-gray-900/40 px-3 py-2" : "border-gray-500 bg-gray-800/40 px-3 py-3 space-y-2"
         }`}
       >
         {isHidden ? (
@@ -781,22 +743,9 @@ function FieldPreviewCard(props: FieldPreviewCardProps) {
         ) : (
           <>
             <FieldLabel field={field} def={def} kanaField={kanaField} ageField={ageField} />
-            <InputPreview
-              fieldKey={key}
-              def={def}
-              choices={choices}
-              field={field}
-              kanaField={kanaField}
-              rules={rules}
-            />
+            <InputPreview fieldKey={key} def={def} choices={choices} field={field} kanaField={kanaField} rules={rules} />
             {expanded && (
-              <FieldDetailEditor
-                field={field}
-                def={def}
-                allFields={allFields}
-                onUpdate={onUpdate}
-                onClose={() => setExpanded(false)}
-              />
+              <FieldDetailEditor field={field} def={def} allFields={allFields} onUpdate={onUpdate} onClose={() => setExpanded(false)} />
             )}
             {notices
               .sort((a, b) => a.sort_order - b.sort_order)
@@ -865,11 +814,7 @@ function CardHeader(props: FieldPreviewCardProps) {
     !dbManagedFields.includes(key);
 
   return (
-    <div
-      className={`rounded-t-xl border border-b-0 ${
-        isHidden ? "border-gray-600/40 bg-gray-800/40" : "border-gray-500 bg-gray-700/30"
-      }`}
-    >
+    <div className={`rounded-t-xl border border-b-0 ${isHidden ? "border-gray-600/40 bg-gray-800/40" : "border-gray-500 bg-gray-700/30"}`}>
       <CardHeaderRow1
         field={field}
         fieldKey={key}
@@ -1134,10 +1079,7 @@ function CardHeaderRow2({
         </label>
       )}
       {fieldKey === "rule_preference" && <RulePreferenceSelector field={field} onUpdate={onUpdate} />}
-      <button
-        onClick={onAddNotice}
-        className="px-2 py-0.5 text-[10px] rounded bg-gray-600 text-gray-300 hover:bg-gray-500 transition"
-      >
+      <button onClick={onAddNotice} className="px-2 py-0.5 text-[10px] rounded bg-gray-600 text-gray-300 hover:bg-gray-500 transition">
         + 注意書き
       </button>
     </div>
@@ -1147,19 +1089,12 @@ function CardHeaderRow2({
 // ── ルール希望の選択タイプ切り替え ──
 
 /** custom_choices 配列から特定マーカーを除外して返す */
-function withoutMarker(
-  choices: { label: string; value: string }[] | null,
-  marker: string,
-): { label: string; value: string }[] {
+function withoutMarker(choices: { label: string; value: string }[] | null, marker: string): { label: string; value: string }[] {
   return (choices ?? []).filter((c) => c.value !== marker);
 }
 
 /** custom_choices 配列にマーカーを追加（既に存在する場合は更新）して返す。空配列なら null */
-function withMarker(
-  choices: { label: string; value: string }[] | null,
-  marker: string,
-  label: string,
-): { label: string; value: string }[] {
+function withMarker(choices: { label: string; value: string }[] | null, marker: string, label: string): { label: string; value: string }[] {
   const filtered = withoutMarker(choices, marker);
   return [...filtered, { label, value: marker }];
 }
@@ -1569,8 +1504,7 @@ function NoticePreview({
   onEdit: () => void;
   onDelete: (id: string) => void;
 }) {
-  const hasContent =
-    notice.text_content || notice.scrollable_text || notice.link_url || (notice.images?.length ?? 0) > 0;
+  const hasContent = notice.text_content || notice.scrollable_text || notice.link_url || (notice.images?.length ?? 0) > 0;
   return (
     <div className="bg-gray-800/60 border border-dashed border-gray-600 rounded-lg p-2.5 group/notice relative">
       {busy && (
@@ -1579,10 +1513,7 @@ function NoticePreview({
         </div>
       )}
       <div className="absolute -top-1.5 right-1 flex gap-1 opacity-0 group-hover/notice:opacity-100 transition">
-        <button
-          onClick={onEdit}
-          className="px-2 py-0.5 text-[10px] bg-gray-700 text-gray-300 hover:bg-gray-600 rounded shadow"
-        >
+        <button onClick={onEdit} className="px-2 py-0.5 text-[10px] bg-gray-700 text-gray-300 hover:bg-gray-600 rounded shadow">
           編集
         </button>
         <button
@@ -1593,10 +1524,7 @@ function NoticePreview({
         </button>
       </div>
       {!hasContent && (
-        <button
-          onClick={onEdit}
-          className="text-xs text-gray-500 italic hover:text-blue-400 transition w-full text-left"
-        >
+        <button onClick={onEdit} className="text-xs text-gray-500 italic hover:text-blue-400 transition w-full text-left">
           空の注意書き — クリックして編集
         </button>
       )}
@@ -1639,10 +1567,7 @@ function NoticeImages({ images }: { images: (FormNoticeImage & { public_url?: st
       {images.map((img) => (
         <Image
           key={img.id}
-          src={
-            img.public_url ??
-            `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${img.storage_path}`
-          }
+          src={img.public_url ?? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${img.storage_path}`}
           alt=""
           className="w-full rounded-lg"
           width={800}
@@ -1697,12 +1622,7 @@ function NoticeEditForm({
       <NoticeEditHeader onSave={saveAll} onClose={onClose} />
       <NoticeTextFields localText={localText} setLocalText={setLocalText} />
       <NoticeImageEditor notice={notice} onUploadImage={onUploadImage} onDeleteImage={onDeleteImage} />
-      <NoticeLinksFields
-        localUrl={localUrl}
-        setLocalUrl={setLocalUrl}
-        localUrlLabel={localUrlLabel}
-        setLocalUrlLabel={setLocalUrlLabel}
-      />
+      <NoticeLinksFields localUrl={localUrl} setLocalUrl={setLocalUrl} localUrlLabel={localUrlLabel} setLocalUrlLabel={setLocalUrlLabel} />
       <details className="text-xs">
         <summary className="text-gray-500 cursor-pointer hover:text-gray-400">規約テキスト（スクロール表示）</summary>
         <label htmlFor="notice-scrollable" className="sr-only">
@@ -1794,8 +1714,7 @@ function NoticeImageEditor({
           <div key={img.id} className="relative group/img">
             <Image
               src={
-                img.public_url ??
-                `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${img.storage_path}`
+                img.public_url ?? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${img.storage_path}`
               }
               alt=""
               className="h-16 rounded border border-gray-600"
@@ -2010,10 +1929,7 @@ function AddCustomFieldFormBody({
           />
         </div>
       )}
-      <button
-        onClick={handleAdd}
-        className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 rounded-lg transition font-medium"
-      >
+      <button onClick={handleAdd} className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 rounded-lg transition font-medium">
         追加する
       </button>
     </div>
@@ -2036,10 +1952,7 @@ function CopyModal({
   copying?: boolean;
 }) {
   return (
-    <div
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-      onClick={copying ? undefined : onClose}
-    >
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={copying ? undefined : onClose}>
       <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
         <h3 className="font-semibold text-lg">過去の大会から読み込む</h3>
         <p className="text-sm text-gray-400">フォーム設定をコピーします。現在の設定は上書きされます。</p>
@@ -2053,8 +1966,7 @@ function CopyModal({
               <button
                 key={e.id}
                 onClick={() => {
-                  if (confirm(`「${e.name}」のフォーム設定をコピーしますか？\n現在の設定は上書きされます。`))
-                    onCopy(e.id);
+                  if (confirm(`「${e.name}」のフォーム設定をコピーしますか？\n現在の設定は上書きされます。`)) onCopy(e.id);
                 }}
                 disabled={copying}
                 className="w-full text-left px-4 py-2.5 bg-gray-700/50 hover:bg-gray-700 rounded-lg text-sm transition disabled:opacity-50"

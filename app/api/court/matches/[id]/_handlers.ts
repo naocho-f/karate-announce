@@ -2,18 +2,11 @@ import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** 楽観ロックチェック: matchUpdatedAt が指定されている場合、DB の updated_at と比較 */
-async function checkOptimisticLock(
-  supabaseAdmin: SupabaseClient,
-  matchId: string,
-  matchUpdatedAt?: string,
-): Promise<NextResponse | null> {
+async function checkOptimisticLock(supabaseAdmin: SupabaseClient, matchId: string, matchUpdatedAt?: string): Promise<NextResponse | null> {
   if (!matchUpdatedAt) return null; // 後方互換: 指定なしはチェックスキップ
   const { data } = await supabaseAdmin.from("matches").select("updated_at").eq("id", matchId).single();
   if (data && data.updated_at !== matchUpdatedAt) {
-    return NextResponse.json(
-      { error: "試合結果は既に更新されています。画面を再読み込みしてください。" },
-      { status: 409 },
-    );
+    return NextResponse.json({ error: "試合結果は既に更新されています。画面を再読み込みしてください。" }, { status: 409 });
   }
   return null;
 }
@@ -46,11 +39,7 @@ export async function handleStart(id: string, body: MatchBody, supabaseAdmin: Su
   return NextResponse.json({ ok: true });
 }
 
-export async function handleSetWinner(
-  id: string,
-  body: MatchBody,
-  supabaseAdmin: SupabaseClient,
-): Promise<NextResponse> {
+export async function handleSetWinner(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
   const { winnerId, tournamentId, round, rounds, position } = body;
@@ -100,11 +89,7 @@ export async function handleEdit(id: string, body: MatchBody, supabaseAdmin: Sup
   return NextResponse.json({ ok: true });
 }
 
-export async function handleCorrectWinner(
-  id: string,
-  body: MatchBody,
-  supabaseAdmin: SupabaseClient,
-): Promise<NextResponse> {
+export async function handleCorrectWinner(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
   const { winnerId, tournamentId, round, rounds, position } = body;
@@ -143,11 +128,7 @@ async function fetchMatchMeta(supabaseAdmin: SupabaseClient, matchId: string, to
   return { round, position, rounds };
 }
 
-export async function handleFinishTimer(
-  id: string,
-  body: MatchBody,
-  supabaseAdmin: SupabaseClient,
-): Promise<NextResponse> {
+export async function handleFinishTimer(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
   const { winnerId, tournamentId, resultMethod, resultDetail } = body;
@@ -187,11 +168,7 @@ export async function handleFinishTimer(
   return NextResponse.json({ ok: true });
 }
 
-export async function handleSwapWith(
-  id: string,
-  body: MatchBody,
-  supabaseAdmin: SupabaseClient,
-): Promise<NextResponse> {
+export async function handleSwapWith(id: string, body: MatchBody, supabaseAdmin: SupabaseClient): Promise<NextResponse> {
   const conflict = await checkOptimisticLock(supabaseAdmin, id, body.matchUpdatedAt);
   if (conflict) return conflict;
   const { otherMatchId } = body;

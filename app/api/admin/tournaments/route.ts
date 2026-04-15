@@ -82,11 +82,7 @@ async function checkOneMatchDuplicate(eventId: string, pair: PairInput): Promise
     const ids = new Set([m.fighter1_id, m.fighter2_id]);
     return ids.has(f1) && ids.has(f2);
   });
-  if (hasDupe)
-    return NextResponse.json(
-      { error: "同じルール内で同じ対戦相手の組み合わせが既に登録されています" },
-      { status: 409 },
-    );
+  if (hasDupe) return NextResponse.json({ error: "同じルール内で同じ対戦相手の組み合わせが既に登録されています" }, { status: 409 });
   return null;
 }
 
@@ -101,12 +97,7 @@ async function resolvePairs(pairs: PairInput[]): Promise<ResolvedPair[]> {
   );
 }
 
-function buildLaterRoundMatches(
-  tournamentId: string,
-  pairCount: number,
-  totalRounds: number,
-  defaultRuleName: string | null,
-) {
+function buildLaterRoundMatches(tournamentId: string, pairCount: number, totalRounds: number, defaultRuleName: string | null) {
   const rows = [];
   for (let r = 2; r <= totalRounds; r++) {
     let matchCount = pairCount;
@@ -205,11 +196,7 @@ export async function POST(request: NextRequest) {
     if (dupeErr) return dupeErr;
   }
 
-  const { data: t, error: tErr } = await supabaseAdmin
-    .from("tournaments")
-    .insert(buildTournamentInsert(body))
-    .select()
-    .single();
+  const { data: t, error: tErr } = await supabaseAdmin.from("tournaments").insert(buildTournamentInsert(body)).select().single();
   if (tErr || !t) return dbError(tErr, "トーナメントの作成に失敗しました");
 
   const resolvedPairs = await resolvePairs(body.pairs);

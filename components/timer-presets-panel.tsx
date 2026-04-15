@@ -177,10 +177,7 @@ export function TimerPresetsPanel() {
     <>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold">タイマー管理</h1>
-        <button
-          onClick={startNewPreset}
-          className="px-3 py-1.5 rounded bg-blue-700 hover:bg-blue-600 text-sm text-white transition"
-        >
+        <button onClick={startNewPreset} className="px-3 py-1.5 rounded bg-blue-700 hover:bg-blue-600 text-sm text-white transition">
           新規作成
         </button>
       </div>

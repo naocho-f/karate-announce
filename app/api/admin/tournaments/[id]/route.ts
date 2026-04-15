@@ -89,12 +89,7 @@ async function resolvePairs(pairs: PairInput[]): Promise<ResolvedPair[]> {
   );
 }
 
-function buildLaterRoundMatches(
-  tournamentId: string,
-  pairCount: number,
-  totalRounds: number,
-  defaultRuleName: string | null,
-) {
+function buildLaterRoundMatches(tournamentId: string, pairCount: number, totalRounds: number, defaultRuleName: string | null) {
   const rows = [];
   for (let r = 2; r <= totalRounds; r++) {
     let matchCount = pairCount;

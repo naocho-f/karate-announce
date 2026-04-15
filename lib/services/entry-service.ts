@@ -25,11 +25,7 @@ export type SubmitEntryResult = {
 // ── エントリー締め切りチェック ──
 
 export async function checkEntryClosed(eventId: string): Promise<boolean> {
-  const { data: ev } = await supabaseAdmin
-    .from("events")
-    .select("entry_closed, entry_close_at")
-    .eq("id", eventId)
-    .single();
+  const { data: ev } = await supabaseAdmin.from("events").select("entry_closed, entry_close_at").eq("id", eventId).single();
   return !!(ev?.entry_closed || (ev?.entry_close_at && new Date(ev.entry_close_at) <= new Date()));
 }
 
@@ -50,8 +46,7 @@ export async function recalculateAge(entry: Record<string, unknown>): Promise<vo
   const birth = new Date(birthDate);
   let age = refDate.getFullYear() - birth.getFullYear();
   const hasBday =
-    refDate.getMonth() > birth.getMonth() ||
-    (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
+    refDate.getMonth() > birth.getMonth() || (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
   if (!hasBday) age--;
   entry.age = age;
 }
@@ -61,10 +56,7 @@ export async function recalculateAge(entry: Record<string, unknown>): Promise<vo
 export async function upsertDojo(schoolName: string, schoolNameReading?: string | null): Promise<void> {
   await supabaseAdmin
     .from("dojos")
-    .upsert(
-      { name: schoolName, name_reading: schoolNameReading ?? null },
-      { onConflict: "name", ignoreDuplicates: true },
-    );
+    .upsert({ name: schoolName, name_reading: schoolNameReading ?? null }, { onConflict: "name", ignoreDuplicates: true });
 }
 
 // ── エントリー登録 ──
@@ -84,10 +76,7 @@ export async function linkEntryRules(entryId: string, ruleIds: string[]): Promis
 
 // ── 確認メール送信 ──
 
-async function resolveRuleNamesForEmail(
-  extra: Record<string, unknown>,
-  ruleIds: string[] | undefined,
-): Promise<string[]> {
+async function resolveRuleNamesForEmail(extra: Record<string, unknown>, ruleIds: string[] | undefined): Promise<string[]> {
   if (extra.rule_any === true) return [(extra.rule_any_label as string) || "どちらでも良い"];
   return fetchRuleNames(ruleIds);
 }
@@ -137,10 +126,7 @@ async function buildFieldMappings(eventId: string): Promise<FieldMapping> {
   if (!formConfigId) return mapping;
 
   const [{ data: fieldConfigs }, { data: customDefs }] = await Promise.all([
-    supabaseAdmin
-      .from("form_field_configs")
-      .select("field_key, custom_label, custom_choices")
-      .eq("form_config_id", formConfigId),
+    supabaseAdmin.from("form_field_configs").select("field_key, custom_label, custom_choices").eq("form_config_id", formConfigId),
     supabaseAdmin.from("custom_field_defs").select("field_key, label, choices").eq("form_config_id", formConfigId),
   ]);
 
@@ -176,11 +162,7 @@ function buildEmailVariables(
   };
 }
 
-export async function sendConfirmationEmail(
-  entry: Record<string, unknown>,
-  entryId: string,
-  ruleIds: string[] | undefined,
-): Promise<void> {
+export async function sendConfirmationEmail(entry: Record<string, unknown>, entryId: string, ruleIds: string[] | undefined): Promise<void> {
   const resend = getResend();
   if (!resend) return;
 

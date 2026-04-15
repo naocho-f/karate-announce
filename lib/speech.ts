@@ -59,13 +59,9 @@ export const WINNER_VARS: { key: string; desc: string; sample: string }[] = [
 ];
 
 /** サンプル値（設定画面のプレビュー用） */
-export const SAMPLE_MATCH_VARS: Record<string, string> = Object.fromEntries(
-  MATCH_VARS.map(({ key, sample }) => [key, sample]),
-);
+export const SAMPLE_MATCH_VARS: Record<string, string> = Object.fromEntries(MATCH_VARS.map(({ key, sample }) => [key, sample]));
 
-export const SAMPLE_WINNER_VARS: Record<string, string> = Object.fromEntries(
-  WINNER_VARS.map(({ key, sample }) => [key, sample]),
-);
+export const SAMPLE_WINNER_VARS: Record<string, string> = Object.fromEntries(WINNER_VARS.map(({ key, sample }) => [key, sample]));
 
 /** 試し聞き用サンプルテキスト */
 export const SAMPLE_TEXT =

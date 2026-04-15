@@ -17,12 +17,7 @@ function shortMatchId(state: TimerState): string {
 }
 
 /** 寝技N回目の表示時間を返す（カウントダウン: 残り時間、カウントアップ: 経過時間） */
-function newazaRoundDisplayMs(
-  state: TimerState,
-  roundIndex: number,
-  newazaDispMs: number,
-  newazaDur: number,
-): number | null {
+function newazaRoundDisplayMs(state: TimerState, roundIndex: number, newazaDispMs: number, newazaDur: number): number | null {
   const isActive = state.newaza.active && state.newaza.usedCount === roundIndex;
   const recorded = state.newaza.rounds[roundIndex];
   if (isActive) return newazaDispMs;
@@ -240,14 +235,7 @@ export default function TimerDisplayPage() {
 
   if (theme.layout.templateId === "kouryuukai") {
     return (
-      <KouryuukaiLayout
-        state={state}
-        theme={theme}
-        sides={sides}
-        displayMs={displayMs}
-        newazaDispMs={newazaDispMs}
-        onClick={handleClick}
-      />
+      <KouryuukaiLayout state={state} theme={theme} sides={sides} displayMs={displayMs} newazaDispMs={newazaDispMs} onClick={handleClick} />
     );
   }
 
@@ -385,12 +373,7 @@ function resolveSides(state: TimerState): TimerSides {
 
 // ── 行レンダリング ──
 
-function rowBaseStyle(
-  row: LayoutRow,
-  idx: number,
-  dividerThickness: number,
-  dividerColor: string,
-): React.CSSProperties {
+function rowBaseStyle(row: LayoutRow, idx: number, dividerThickness: number, dividerColor: string): React.CSSProperties {
   return {
     height: row.height > 0 ? `${row.height}vh` : undefined,
     flex: row.height === 0 ? 1 : undefined,
@@ -413,17 +396,7 @@ type TimerRowProps = {
   newazaMs: number;
 };
 
-function TimerRowTimer({
-  row,
-  bs,
-  theme,
-  displayMs,
-}: {
-  row: LayoutRow;
-  bs: React.CSSProperties;
-  theme: TimerTheme;
-  displayMs: number;
-}) {
+function TimerRowTimer({ row, bs, theme, displayMs }: { row: LayoutRow; bs: React.CSSProperties; theme: TimerTheme; displayMs: number }) {
   return (
     <div style={bs}>
       <TimerDigits
@@ -434,17 +407,7 @@ function TimerRowTimer({
   );
 }
 
-function TimerRowMatchInfo({
-  row,
-  bs,
-  state,
-  theme,
-}: {
-  row: LayoutRow;
-  bs: React.CSSProperties;
-  state: TimerState;
-  theme: TimerTheme;
-}) {
+function TimerRowMatchInfo({ row, bs, state, theme }: { row: LayoutRow; bs: React.CSSProperties; state: TimerState; theme: TimerTheme }) {
   if (!theme.p?.show_match_number && state.extensionCount === 0) return null;
   return (
     <div className="text-gray-500" style={{ ...bs, fontSize: `${row.fontSize}vh` }}>
@@ -589,29 +552,11 @@ const ROW_RENDERERS: Record<string, (p: TimerRowProps & { bs: React.CSSPropertie
   timer: (p) => <TimerRowTimer row={p.row} bs={p.bs} theme={p.theme} displayMs={p.displayMs} />,
   match_info: (p) => <TimerRowMatchInfo row={p.row} bs={p.bs} state={p.state} theme={p.theme} />,
   timer_with_newaza: (p) => (
-    <TimerWithNewazaRow
-      row={p.row}
-      bs={p.bs}
-      theme={p.theme}
-      state={p.state}
-      displayMs={p.displayMs}
-      newazaDispMs={p.newazaDispMs}
-    />
+    <TimerWithNewazaRow row={p.row} bs={p.bs} theme={p.theme} state={p.state} displayMs={p.displayMs} newazaDispMs={p.newazaDispMs} />
   ),
-  newaza: (p) => (
-    <NewazaRow
-      row={p.row}
-      bs={p.bs}
-      theme={p.theme}
-      state={p.state}
-      newazaDispMs={p.newazaDispMs}
-      newazaMs={p.newazaMs}
-    />
-  ),
+  newaza: (p) => <NewazaRow row={p.row} bs={p.bs} theme={p.theme} state={p.state} newazaDispMs={p.newazaDispMs} newazaMs={p.newazaMs} />,
   player_names: (p) => <PlayerNamesRow row={p.row} bs={p.bs} theme={p.theme} sides={p.sides} />,
-  scores: (p) => (
-    <ScoresRow row={p.row} bs={p.bs} state={p.state} theme={p.theme} sides={p.sides} newazaDispMs={p.newazaDispMs} />
-  ),
+  scores: (p) => <ScoresRow row={p.row} bs={p.bs} state={p.state} theme={p.theme} sides={p.sides} newazaDispMs={p.newazaDispMs} />,
   spacer: (p) => <div style={p.bs} />,
 };
 
@@ -660,17 +605,7 @@ function NewazaRow({
   );
 }
 
-function PlayerNamesRow({
-  row,
-  bs,
-  theme,
-  sides,
-}: {
-  row: LayoutRow;
-  bs: React.CSSProperties;
-  theme: TimerTheme;
-  sides: TimerSides;
-}) {
+function PlayerNamesRow({ row, bs, theme, sides }: { row: LayoutRow; bs: React.CSSProperties; theme: TimerTheme; sides: TimerSides }) {
   if (!theme.p?.show_player_names) return null;
   return (
     <div style={{ ...bs, gap: `${theme.layout.scoreGap}px` }}>
@@ -731,12 +666,7 @@ function ScoresRow({
         foulSide="left"
       />
       {row.scoreCenterMode === "match_info" ? (
-        <CenterMatchInfo
-          row={row}
-          state={state}
-          dividerColor={theme.dividerColor}
-          dividerThickness={theme.layout.dividerThickness}
-        />
+        <CenterMatchInfo row={row} state={state} dividerColor={theme.dividerColor} dividerThickness={theme.layout.dividerThickness} />
       ) : (
         <CenterNewaza
           row={row}
@@ -763,11 +693,7 @@ function ScoresRow({
         foulRight
       />
       {hasWinner && (
-        <VictoryOverlay
-          color={leftWins ? colorLeft : colorRight}
-          text={resultDisplayText(state, p)}
-          maxFontSizeVh={row.fontSize * 0.45}
-        />
+        <VictoryOverlay color={leftWins ? colorLeft : colorRight} text={resultDisplayText(state, p)} maxFontSizeVh={row.fontSize * 0.45} />
       )}
     </div>
   );
@@ -902,10 +828,7 @@ function ScoreContent({
         </span>
       )}
       {showWazaari && (
-        <div
-          className="flex items-baseline justify-center gap-1"
-          style={{ marginTop: showPoints ? `${rowFontSize * 0.05}vh` : undefined }}
-        >
+        <div className="flex items-baseline justify-center gap-1" style={{ marginTop: showPoints ? `${rowFontSize * 0.05}vh` : undefined }}>
           <span className="text-gray-500 font-bold" style={{ fontSize: `${wazaariFsVh * 0.35}vh` }}>
             技
           </span>
@@ -1164,15 +1087,7 @@ function KouryuukaiFoulCells({
   );
 }
 
-function KouryuukaiWazaariCells({
-  score,
-  fs,
-  sz,
-}: {
-  score: { wazaari: number };
-  fs: KouryuukaiFontSizes;
-  sz: (v: number) => string;
-}) {
+function KouryuukaiWazaariCells({ score, fs, sz }: { score: { wazaari: number }; fs: KouryuukaiFontSizes; sz: (v: number) => string }) {
   const LIGHT_COLOR = "#008CFF"; // 画像指定の共通点灯色 R0/G140/B255
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
@@ -1362,10 +1277,7 @@ export function KouryuukaiLayout({
             <span className="font-bold" style={{ fontSize: sz(fs.matchNumberLabel), lineHeight: 1, color: "#E1D200" }}>
               試合番号
             </span>
-            <span
-              className="font-bold tabular-nums"
-              style={{ fontSize: sz(fs.matchNumber), color: "#E1D200", lineHeight: 1 }}
-            >
+            <span className="font-bold tabular-nums" style={{ fontSize: sz(fs.matchNumber), color: "#E1D200", lineHeight: 1 }}>
               {shortMatchId(state)}
             </span>
           </KouryuukaiCell>

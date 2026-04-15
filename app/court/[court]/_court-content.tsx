@@ -74,15 +74,7 @@ function usePrefetchNextMatchTts(
     }
     if (prefetchedRef.current === courtNextMatch.id) return;
     prefetchedRef.current = courtNextMatch.id;
-    const text = buildPrefetchText(
-      courtNextMatch,
-      fighters,
-      tournaments,
-      matchesMap,
-      announceTemplates,
-      rulesReadingMap,
-      courtDisplayName,
-    );
+    const text = buildPrefetchText(courtNextMatch, fighters, tournaments, matchesMap, announceTemplates, rulesReadingMap, courtDisplayName);
     if (text) void prefetchTts(text);
   }, [courtNextMatch, fighters, tournaments, matchesMap, announceTemplates, rulesReadingMap, courtDisplayName]);
 }
@@ -131,9 +123,7 @@ export default function CourtContent({
   onToggleMute,
 }: CourtContentProps) {
   const nameMap = Object.fromEntries(Object.entries(fighters).map(([id, f]) => [id, fighterFullName(f)]));
-  const affiliationMap = Object.fromEntries(
-    Object.entries(fighters).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""]),
-  );
+  const affiliationMap = Object.fromEntries(Object.entries(fighters).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""]));
 
   const allMatches = tournaments.flatMap((t) => matchesMap[t.id] ?? []);
   const courtOngoing = allMatches.find((m) => m.status === "ongoing") ?? null;
@@ -158,18 +148,9 @@ export default function CourtContent({
         })[0] ?? null);
 
   const courtAllDone =
-    allMatches.length > 0 &&
-    allMatches.every((m) => m.status === "done" || (m.round === 1 && m.fighter1_id && !m.fighter2_id));
+    allMatches.length > 0 && allMatches.every((m) => m.status === "done" || (m.round === 1 && m.fighter1_id && !m.fighter2_id));
 
-  usePrefetchNextMatchTts(
-    courtNextMatch,
-    fighters,
-    tournaments,
-    matchesMap,
-    announceTemplates,
-    rulesReadingMap,
-    courtDisplayName,
-  );
+  usePrefetchNextMatchTts(courtNextMatch, fighters, tournaments, matchesMap, announceTemplates, rulesReadingMap, courtDisplayName);
 
   return (
     <div className="space-y-8">
@@ -249,15 +230,7 @@ function CourtStatusBanner({
   );
 }
 
-function MatchStatusBar({
-  match,
-  nameMap,
-  variant,
-}: {
-  match: Match;
-  nameMap: Record<string, string>;
-  variant: "ongoing" | "next";
-}) {
+function MatchStatusBar({ match, nameMap, variant }: { match: Match; nameMap: Record<string, string>; variant: "ongoing" | "next" }) {
   const isOngoing = variant === "ongoing";
   const bgClass = isOngoing ? "bg-yellow-950 border-yellow-700" : "bg-blue-950 border-blue-700";
   const icon = isOngoing ? (

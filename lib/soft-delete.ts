@@ -33,11 +33,7 @@ export async function restoreRecord(table: string, id: string): Promise<NextResp
  * 「今すぐ消す」: deleted_at を現在時刻に更新して即座に非表示にする。
  */
 export async function expireRecord(table: string, id: string): Promise<NextResponse> {
-  const { error } = await supabaseAdmin
-    .from(table)
-    .update({ deleted_at: deletedAtNow() })
-    .eq("id", id)
-    .not("deleted_at", "is", null);
+  const { error } = await supabaseAdmin.from(table).update({ deleted_at: deletedAtNow() }).eq("id", id).not("deleted_at", "is", null);
 
   if (error) return dbError(error);
   return NextResponse.json({ ok: true });

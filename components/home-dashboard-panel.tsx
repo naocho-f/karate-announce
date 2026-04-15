@@ -15,11 +15,7 @@ function useDashboardData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  function processData(
-    evts: Event[] | null,
-    entries: { event_id: string }[] | null,
-    tournaments: { event_id: string }[] | null,
-  ) {
+  function processData(evts: Event[] | null, entries: { event_id: string }[] | null, tournaments: { event_id: string }[] | null) {
     setEvents(evts ?? []);
     const counts: Record<string, number> = {};
     for (const e of entries ?? []) counts[e.event_id] = (counts[e.event_id] ?? 0) + 1;
@@ -101,10 +97,7 @@ export function HomeDashboardPanel({ onNavigate }: { onNavigate: (tab: AdminTab)
     return (
       <div className="text-center py-12 space-y-3">
         <p className="text-gray-400 text-sm">読み込みに失敗しました</p>
-        <button
-          onClick={dd.load}
-          className="text-xs bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-        >
+        <button onClick={dd.load} className="text-xs bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
           再試行
         </button>
       </div>
@@ -226,10 +219,7 @@ function ActionNeededList({ events, entryCounts }: { events: Event[]; entryCount
       <h2 className="text-xs font-semibold text-yellow-400 uppercase tracking-wider mb-2">要対応</h2>
       <div className="space-y-2">
         {events.map((e) => (
-          <div
-            key={e.id}
-            className="bg-gray-800 border border-yellow-700/50 rounded-xl p-4 flex items-start justify-between gap-3"
-          >
+          <div key={e.id} className="bg-gray-800 border border-yellow-700/50 rounded-xl p-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="font-medium text-white truncate">{e.name}</p>
               <p className="text-xs text-yellow-400 mt-1">⚠ 参加者 {entryCounts[e.id]} 名あり・対戦表が未作成</p>
@@ -309,9 +299,7 @@ function ActiveDashboard({
           {e.event_date && <span>{e.event_date.replace(/-/g, "/")}</span>}
           <span>{e.court_count} コート</span>
           <span>{entryCount} 名参加</span>
-          <span className={isEntryClosed ? "text-gray-500" : "text-green-400"}>
-            {isEntryClosed ? "受付終了" : "受付中"}
-          </span>
+          <span className={isEntryClosed ? "text-gray-500" : "text-green-400"}>{isEntryClosed ? "受付終了" : "受付中"}</span>
         </div>
       </div>
       <CourtOperationCards event={e} />
@@ -368,15 +356,7 @@ function CourtOperationCards({ event: e }: { event: Event }) {
   );
 }
 
-function QuickLinks({
-  eventId,
-  liveCopied,
-  setLiveCopied,
-}: {
-  eventId: string;
-  liveCopied: boolean;
-  setLiveCopied: (v: boolean) => void;
-}) {
+function QuickLinks({ eventId, liveCopied, setLiveCopied }: { eventId: string; liveCopied: boolean; setLiveCopied: (v: boolean) => void }) {
   return (
     <section>
       <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">リンク</h2>
@@ -410,13 +390,7 @@ function QuickLinks({
   );
 }
 
-function OperationGuide({
-  openGuide,
-  setOpenGuide,
-}: {
-  openGuide: string | null;
-  setOpenGuide: (id: string | null) => void;
-}) {
+function OperationGuide({ openGuide, setOpenGuide }: { openGuide: string | null; setOpenGuide: (id: string | null) => void }) {
   return (
     <section>
       <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">操作ガイド</h2>
@@ -428,9 +402,7 @@ function OperationGuide({
               className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-gray-300 hover:text-white transition"
             >
               <span>{g.title}</span>
-              <span className={`text-gray-500 text-xs transition-transform ${openGuide === g.id ? "rotate-180" : ""}`}>
-                ▼
-              </span>
+              <span className={`text-gray-500 text-xs transition-transform ${openGuide === g.id ? "rotate-180" : ""}`}>▼</span>
             </button>
             {openGuide === g.id && (
               <ul className="px-3 pb-3 space-y-1.5">

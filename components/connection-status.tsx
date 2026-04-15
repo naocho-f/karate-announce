@@ -21,10 +21,7 @@ interface UseConnectionStatusReturn {
   wrappedFetch: () => Promise<void>;
 }
 
-export function useConnectionStatus(
-  fetchFn: () => Promise<void>,
-  options?: UseConnectionStatusOptions,
-): UseConnectionStatusReturn {
+export function useConnectionStatus(fetchFn: () => Promise<void>, options?: UseConnectionStatusOptions): UseConnectionStatusReturn {
   const baseInterval = options?.baseInterval ?? 3000;
   const enabled = options?.enabled ?? true;
   const onReconnectRef = useRef(options?.onReconnect);

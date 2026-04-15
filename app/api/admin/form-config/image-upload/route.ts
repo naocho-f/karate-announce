@@ -54,10 +54,7 @@ export async function POST(request: NextRequest) {
   // Server-side magic number validation (client-provided file.type can be spoofed)
   const detectedType = validateMagicNumber(buffer);
   if (!detectedType || !ALLOWED_TYPES.includes(detectedType)) {
-    return NextResponse.json(
-      { error: "ファイルの内容が許可された画像形式（JPEG, PNG, WebP）と一致しません" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "ファイルの内容が許可された画像形式（JPEG, PNG, WebP）と一致しません" }, { status: 400 });
   }
 
   const { error: uploadError } = await supabaseAdmin.storage
@@ -87,11 +84,7 @@ export async function DELETE(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { image_id } = await request.json();
 
-  const { data: img } = await supabaseAdmin
-    .from("form_notice_images")
-    .select("storage_path")
-    .eq("id", image_id)
-    .single();
+  const { data: img } = await supabaseAdmin.from("form_notice_images").select("storage_path").eq("id", image_id).single();
 
   if (img) {
     await supabaseAdmin.storage.from("form-notice-images").remove([img.storage_path]);

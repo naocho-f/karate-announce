@@ -24,9 +24,7 @@ import { ADMIN_USER, ADMIN_PASS } from "./helpers";
 async function adminLogin(page: Page) {
   await page.goto("/admin");
   // ログインフォームが表示される場合
-  const usernameInput = page
-    .locator('input[name="username"], input[placeholder*="ユーザー"], input[type="text"]')
-    .first();
+  const usernameInput = page.locator('input[name="username"], input[placeholder*="ユーザー"], input[type="text"]').first();
   const passwordInput = page.locator('input[type="password"]').first();
 
   if (await usernameInput.isVisible({ timeout: 3000 }).catch(() => false)) {

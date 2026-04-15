@@ -224,11 +224,7 @@ function NewazaControls({
           <span className="text-xs text-gray-500">残り{p.newaza_max_count - state.newaza.usedCount}回</span>
         )}
       </div>
-      {showTimer && (
-        <div className="mt-2 text-center text-cyan-400 text-lg font-bold tabular-nums">
-          寝技: {formatTime(newazaDispMs)}
-        </div>
-      )}
+      {showTimer && <div className="mt-2 text-center text-cyan-400 text-lg font-bold tabular-nums">寝技: {formatTime(newazaDispMs)}</div>}
     </>
   );
 }
@@ -250,11 +246,7 @@ function WinnerAnnounce({ props: { isMuted, isPlaying, onAnnounceWinner } }: { p
   );
 }
 
-function IpponConfirmDialog({
-  props: { state, ipponConfirmSide, onUpdate, onSetIpponConfirmSide },
-}: {
-  props: MatchOperationsProps;
-}) {
+function IpponConfirmDialog({ props: { state, ipponConfirmSide, onUpdate, onSetIpponConfirmSide } }: { props: MatchOperationsProps }) {
   if (!ipponConfirmSide) return null;
   const sideLabel = ipponConfirmSide === "red" ? "赤" : "白";
   const sideName = ipponConfirmSide === "red" ? state.red.name || "赤" : state.white.name || "白";
@@ -290,12 +282,7 @@ function RulesDisplay({ phase, p }: { phase: string; p: TimerPreset | null }) {
   if (!(phase === "running" || phase === "paused" || phase === "time_up") || !p) return null;
   return (
     <section className="text-xs text-gray-600 space-y-0.5">
-      <p>
-        反則:{" "}
-        {p.foul_to_point_start > 0
-          ? `${p.foul_to_point_start}回で相手に${p.foul_point_value}点`
-          : "反則→ポイント変換: 無効"}
-      </p>
+      <p>反則: {p.foul_to_point_start > 0 ? `${p.foul_to_point_start}回で相手に${p.foul_point_value}点` : "反則→ポイント変換: 無効"}</p>
       {p.foul_loss_count > 0 && <p>反則負け: {p.foul_loss_count}回</p>}
       {p.point_win_threshold > 0 && <p>ポイント先取: {p.point_win_threshold}pt</p>}
     </section>
@@ -311,11 +298,7 @@ function SubControls({ props: { state, phase, p, onUpdate, onSetBuzzerWarning } 
       <div className="grid grid-cols-5 gap-2">
         <button
           onClick={() =>
-            void playBuzzer(
-              p?.buzzer_sound ?? "mid-square-single",
-              p?.buzzer_duration ?? 1.5,
-              p?.buzzer_repeat ?? 1,
-            ).then((r) => {
+            void playBuzzer(p?.buzzer_sound ?? "mid-square-single", p?.buzzer_duration ?? 1.5, p?.buzzer_repeat ?? 1).then((r) => {
               if (r === "fallback") onSetBuzzerWarning(true);
             })
           }

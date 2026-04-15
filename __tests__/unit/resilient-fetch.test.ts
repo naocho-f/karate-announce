@@ -107,9 +107,7 @@ describe("resilientFetch", () => {
 
     // リアルタイマーで実行（バックオフの待機時間をモック側で短縮）
     // maxRetries: 0 で即座に失敗させる
-    await expect(resilientFetch("/api/test", { method: "PATCH" }, { maxRetries: 0, timeout: 5000 })).rejects.toThrow(
-      "after 0 retries",
-    );
+    await expect(resilientFetch("/api/test", { method: "PATCH" }, { maxRetries: 0, timeout: 5000 })).rejects.toThrow("after 0 retries");
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 

@@ -62,14 +62,6 @@ export function getGradeOptions(ageCategories?: AgeCategory[]): GradeOption[] {
 }
 
 /**
- * ラベルが年齢ベース区分かどうか判定する
- */
-export function isAgeCategoryLabel(label: string, ageCategories?: AgeCategory[]): boolean {
-  const cats = ageCategories ?? DEFAULT_AGE_CATEGORIES;
-  return cats.some((cat) => cat.label === label);
-}
-
-/**
  * ラベルから年齢ベース区分を検索して返す（見つからなければ null）
  */
 export function findAgeCategory(label: string, ageCategories?: AgeCategory[]): AgeCategory | null {
@@ -149,11 +141,7 @@ const FISCAL_DIFF_TO_GRADE: Record<number, string> = {
  * 生年月日と大会日から年度ベースで学年・年代区分を判定する。
  * 自動選択後もユーザーが変更可能にするための参考値。
  */
-export function gradeFromBirthDate(
-  birthDate: string,
-  eventDate: string | null,
-  ageCategories?: AgeCategory[],
-): string | null {
+export function gradeFromBirthDate(birthDate: string, eventDate: string | null, ageCategories?: AgeCategory[]): string | null {
   const birth = new Date(birthDate);
   const event = eventDate ? new Date(eventDate) : new Date();
 
@@ -168,9 +156,7 @@ export function gradeFromBirthDate(
   const cats = ageCategories ?? DEFAULT_AGE_CATEGORIES;
   // 大会日時点の年齢を計算
   let age = event.getFullYear() - birth.getFullYear();
-  const hasBday =
-    event.getMonth() > birth.getMonth() ||
-    (event.getMonth() === birth.getMonth() && event.getDate() >= birth.getDate());
+  const hasBday = event.getMonth() > birth.getMonth() || (event.getMonth() === birth.getMonth() && event.getDate() >= birth.getDate());
   if (!hasBday) age--;
 
   for (const cat of cats) {

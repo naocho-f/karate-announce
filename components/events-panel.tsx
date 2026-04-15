@@ -470,15 +470,10 @@ function EventCopyModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <div
-        className="bg-gray-800 rounded-2xl p-6 w-full max-w-md mx-4 space-y-4"
-        onClick={(ev) => ev.stopPropagation()}
-      >
+      <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-md mx-4 space-y-4" onClick={(ev) => ev.stopPropagation()}>
         <h3 className="text-lg font-bold">大会を複製</h3>
         <p className="text-xs text-gray-400">コピー元: {events.find((e) => e.id === copySourceId)?.name}</p>
-        <p className="text-xs text-gray-500">
-          大会名、コート設定、体重差/身長差上限、ルール、フォーム設定がコピーされます。
-        </p>
+        <p className="text-xs text-gray-500">大会名、コート設定、体重差/身長差上限、ルール、フォーム設定がコピーされます。</p>
         <div className="space-y-1">
           <label htmlFor="copy-event-name" className="text-xs text-gray-400">
             大会名
@@ -522,10 +517,7 @@ function EventCopyModal({
           )}
         </div>
         <div className="flex gap-2 pt-2">
-          <button
-            onClick={onClose}
-            className="flex-1 bg-gray-700 hover:bg-gray-600 py-2 rounded-lg text-sm font-medium transition"
-          >
+          <button onClick={onClose} className="flex-1 bg-gray-700 hover:bg-gray-600 py-2 rounded-lg text-sm font-medium transition">
             キャンセル
           </button>
           <button
@@ -552,15 +544,11 @@ function EventCard({
 }) {
   const deleted = isDeletePending(e);
   return (
-    <li
-      className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active && !deleted ? "ring-2 ring-green-500" : ""}`}
-    >
+    <li className={`bg-gray-800 rounded-xl px-4 py-3 space-y-2 ${e.is_active && !deleted ? "ring-2 ring-green-500" : ""}`}>
       <div className={deleted ? "opacity-20" : ""}>
         <div className="flex items-center gap-2 min-w-0">
           {e.is_active && !deleted && (
-            <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold shrink-0">
-              ● 進行中
-            </span>
+            <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold shrink-0">● 進行中</span>
           )}
           {e.status === "finished" && !deleted && (
             <span className="text-xs bg-gray-600 text-gray-300 px-2 py-0.5 rounded-full shrink-0">完了</span>
@@ -593,10 +581,7 @@ function EventCard({
               管理画面を開く →
             </Link>
             {e.is_active && (
-              <Link
-                href="/"
-                className="text-xs px-3 py-1.5 rounded-lg font-medium bg-green-700 hover:bg-green-600 text-white transition"
-              >
+              <Link href="/" className="text-xs px-3 py-1.5 rounded-lg font-medium bg-green-700 hover:bg-green-600 text-white transition">
                 アナウンス画面
               </Link>
             )}

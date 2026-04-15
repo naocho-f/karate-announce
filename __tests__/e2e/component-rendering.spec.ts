@@ -107,8 +107,8 @@ test.describe("TimerPresetEditor コンポーネント", () => {
     await expect(createBtn).toBeVisible({ timeout: 10_000 });
     await createBtn.click();
     // TimerPresetEditor のフォームが表示される（プリセット名入力フィールド）
-    await expect(
-      page.locator("input[placeholder*='プリセット名']").or(page.locator("label", { hasText: "プリセット名" })),
-    ).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator("input[placeholder*='プリセット名']").or(page.locator("label", { hasText: "プリセット名" }))).toBeVisible({
+      timeout: 5_000,
+    });
   });
 });

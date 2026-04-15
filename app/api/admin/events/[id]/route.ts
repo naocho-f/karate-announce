@@ -28,10 +28,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   // 受付開始（entry_closed=false）時にフォームを自動公開
   if (body.entry_closed === false) {
-    await supabaseAdmin
-      .from("form_configs")
-      .update({ is_ready: true, updated_at: new Date().toISOString() })
-      .eq("event_id", id);
+    await supabaseAdmin.from("form_configs").update({ is_ready: true, updated_at: new Date().toISOString() }).eq("event_id", id);
   }
 
   // is_active 以外のフィールドがあれば更新

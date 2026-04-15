@@ -74,10 +74,7 @@ function formatDetailedResult(method: string, d: NonNullable<BracketMatch["resul
 }
 
 /** 勝利方法を表示テキストに変換 */
-export function formatResultMethod(
-  method: string | null | undefined,
-  detail: BracketMatch["result_detail"],
-): string | null {
+export function formatResultMethod(method: string | null | undefined, detail: BracketMatch["result_detail"]): string | null {
   if (!method) return null;
   if (RESULT_METHOD_LABELS[method]) return RESULT_METHOD_LABELS[method];
   return formatDetailedResult(method, detail ?? {});
@@ -125,17 +122,8 @@ function fighterNameClass(isWinner: boolean, isWithdrawn: boolean, fighterId: st
 }
 
 function fighterSlotClickHandler(props: FighterSlotProps): (() => void) | undefined {
-  const {
-    fighterId,
-    isWithdrawn,
-    matchId,
-    matchStatus,
-    isCorrecting,
-    timerControlActive,
-    onSetWinner,
-    onCorrectWinner,
-    onCorrectionDone,
-  } = props;
+  const { fighterId, isWithdrawn, matchId, matchStatus, isCorrecting, timerControlActive, onSetWinner, onCorrectWinner, onCorrectionDone } =
+    props;
   if (isCorrecting && onCorrectWinner && fighterId && !isWithdrawn) {
     return () => {
       onCorrectWinner(matchId, fighterId);
@@ -167,8 +155,7 @@ function WithdrawnToggleButton({ props }: { props: FighterSlotProps }) {
 }
 
 function FighterSlot(props: FighterSlotProps) {
-  const { name, aff, fighterId, isWinner, isWithdrawn, borderBottom, isRed, showResult, resultText, isCorrected } =
-    props;
+  const { name, aff, fighterId, isWinner, isWithdrawn, borderBottom, isRed, showResult, resultText, isCorrected } = props;
 
   return (
     <div
@@ -367,9 +354,7 @@ function matchCardBorder(
   assignedNum: number | undefined,
 ): string {
   if (isNumberingMode && !isByeMatch) {
-    return assignedNum != null
-      ? "border-blue-500 cursor-pointer"
-      : "border-gray-500 hover:border-blue-400 cursor-pointer";
+    return assignedNum != null ? "border-blue-500 cursor-pointer" : "border-gray-500 hover:border-blue-400 cursor-pointer";
   }
   if (isCorrectingThis) return "border-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]";
   if (m.status === "done") return "border-green-800/70";
@@ -583,10 +568,7 @@ function BracketMatchCardFooter({
       {isCorrectingThis ? (
         <>
           <span className="text-[9px] text-orange-400 font-medium truncate">タップで勝者を訂正</span>
-          <button
-            onClick={() => setCorrectionMatchId(null)}
-            className={`ml-auto ${FOOTER_BTN} text-gray-500 hover:text-gray-300`}
-          >
+          <button onClick={() => setCorrectionMatchId(null)} className={`ml-auto ${FOOTER_BTN} text-gray-500 hover:text-gray-300`}>
             キャンセル
           </button>
         </>
@@ -658,8 +640,7 @@ function resolveMatchFlags(m: BracketMatch, props: BracketMatchCardProps) {
     isMuted: mutedMatchIds?.has(m.id) ?? false,
     isByeMatch: isByeFn(m),
     assignedNum: assignedNumbers?.[m.id],
-    isDimmed:
-      status.isReady && !isNextMatch && !status.isOngoing && !status.isDone && !isNumberingMode && hasOngoingMatch,
+    isDimmed: status.isReady && !isNextMatch && !status.isOngoing && !status.isDone && !isNumberingMode && hasOngoingMatch,
     canSwap: !status.isDone && !status.isOngoing && roundList.indexOf(m.id) < roundList.length - 1 && !!onSwapWithNext,
   };
 }
@@ -734,11 +715,7 @@ function BracketMatchCard(props: BracketMatchCardProps) {
         isRed={false}
         showResult={flags.isDone && !flags.isDraw && f2.isWinner}
       />
-      <NumberingOverlay
-        isNumberingMode={flags.isNumberingMode}
-        isByeMatch={flags.isByeMatch}
-        assignedNum={flags.assignedNum}
-      />
+      <NumberingOverlay isNumberingMode={flags.isNumberingMode} isByeMatch={flags.isByeMatch} assignedNum={flags.assignedNum} />
       <StartOverlay
         isReady={flags.isReady}
         isProcessing={flags.isProcessing}
@@ -819,20 +796,9 @@ function ConnectorLines({
   totalHeight: number;
 }) {
   return (
-    <svg
-      className="absolute inset-0 pointer-events-none"
-      width={totalWidth}
-      height={totalHeight}
-      style={{ overflow: "visible" }}
-    >
+    <svg className="absolute inset-0 pointer-events-none" width={totalWidth} height={totalHeight} style={{ overflow: "visible" }}>
       {connectors.map((c) => (
-        <path
-          key={c.key}
-          d={`M ${c.x1} ${c.y1} H ${c.xMid} V ${c.y2} H ${c.x2}`}
-          fill="none"
-          stroke="#4b5563"
-          strokeWidth={1.5}
-        />
+        <path key={c.key} d={`M ${c.x1} ${c.y1} H ${c.xMid} V ${c.y2} H ${c.x2}`} fill="none" stroke="#4b5563" strokeWidth={1.5} />
       ))}
     </svg>
   );

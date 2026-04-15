@@ -9,8 +9,7 @@ function computeAgeFromBirthDate(birthDateStr: string, eventDate: string | null 
   const birth = new Date(birthDateStr);
   let age = refDate.getFullYear() - birth.getFullYear();
   const hasBday =
-    refDate.getMonth() > birth.getMonth() ||
-    (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
+    refDate.getMonth() > birth.getMonth() || (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
   if (!hasBday) age--;
   return age;
 }
@@ -112,8 +111,7 @@ export default function BirthdayField({
   const label = config.custom_label || def.label;
   const showAge = !!formConfig?.fields?.find((f) => f.field_key === "age" && f.visible);
   const computedAge = values["birthday"] ? computeAgeFromBirthDate(values["birthday"], event?.event_date) : null;
-  const onDateChange = (val: string) =>
-    handleBirthDateChange(val, showAge, event?.event_date, ageCategories, onSetValue);
+  const onDateChange = (val: string) => handleBirthDateChange(val, showAge, event?.event_date, ageCategories, onSetValue);
 
   return (
     <div id={`field-${key}`} className="space-y-2">

@@ -177,11 +177,7 @@ export function createRequest(
 }
 
 /** 管理者認証済みのリクエストを生成 */
-export function createAdminRequest(
-  method: string,
-  url: string,
-  options?: { body?: unknown; headers?: Record<string, string> },
-) {
+export function createAdminRequest(method: string, url: string, options?: { body?: unknown; headers?: Record<string, string> }) {
   // admin-auth.ts の SALT = "karate-announce-v1"
   // テスト用パスワード "test-password" のハッシュ
   const crypto = require("crypto");

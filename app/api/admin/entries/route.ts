@@ -17,9 +17,7 @@ export async function POST(request: NextRequest) {
   if (error || !created) return dbError(error, "Failed");
 
   if (rule_ids && rule_ids.length > 0) {
-    await supabaseAdmin
-      .from("entry_rules")
-      .insert(rule_ids.map((rid: string) => ({ entry_id: created.id, rule_id: rid })));
+    await supabaseAdmin.from("entry_rules").insert(rule_ids.map((rid: string) => ({ entry_id: created.id, rule_id: rid })));
   }
 
   return NextResponse.json({ id: created.id });

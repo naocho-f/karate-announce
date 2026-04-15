@@ -73,11 +73,7 @@ export async function DELETE(request: NextRequest) {
     .update({ deleted_at: deletedAtFuture() })
     .eq("form_config_id", form_config_id)
     .eq("field_key", field_key);
-  await supabaseAdmin
-    .from("form_field_configs")
-    .delete()
-    .eq("form_config_id", form_config_id)
-    .eq("field_key", field_key);
+  await supabaseAdmin.from("form_field_configs").delete().eq("form_config_id", form_config_id).eq("field_key", field_key);
 
   return NextResponse.json({ ok: true });
 }

@@ -73,12 +73,7 @@ describe("groupEntriesByRules", () => {
   });
 
   it("年齢範囲で振り分け", () => {
-    const entries = [
-      makeEntry("A", { age: 8 }),
-      makeEntry("B", { age: 10 }),
-      makeEntry("C", { age: 25 }),
-      makeEntry("D", { age: 30 }),
-    ];
+    const entries = [makeEntry("A", { age: 8 }), makeEntry("B", { age: 10 }), makeEntry("C", { age: 25 }), makeEntry("D", { age: 30 })];
     const rules = [
       makeRule("R1", { name: "小学生", min_age: 6, max_age: 12, sort_order: 0 }),
       makeRule("R2", { name: "大人", min_age: 18, max_age: null, sort_order: 1 }),
@@ -114,11 +109,7 @@ describe("groupEntriesByRules", () => {
   });
 
   it("性別で振り分け", () => {
-    const entries = [
-      makeEntry("A", { sex: "male" }),
-      makeEntry("B", { sex: "female" }),
-      makeEntry("C", { sex: "male" }),
-    ];
+    const entries = [makeEntry("A", { sex: "male" }), makeEntry("B", { sex: "female" }), makeEntry("C", { sex: "male" })];
     const rules = [
       makeRule("R1", { name: "男子", sex_filter: "male", sort_order: 0 }),
       makeRule("R2", { name: "女子", sex_filter: "female", sort_order: 1 }),
@@ -284,9 +275,7 @@ describe("groupEntriesByRules", () => {
       makeEntry("C", { grade: "小5" }),
       makeEntry("D", { grade: "小6" }),
     ];
-    const rules = [
-      makeRule("R1", { name: "小学生", min_grade: "小1", max_grade: "小6", max_grade_diff: 1, sort_order: 0 }),
-    ];
+    const rules = [makeRule("R1", { name: "小学生", min_grade: "小1", max_grade: "小6", max_grade_diff: 1, sort_order: 0 })];
     const groups = groupEntriesByRules(entries, rules, {});
     // 4人が年代範囲にマッチし、学年差1でサブグループ分割
     expect(groups).toHaveLength(2);

@@ -64,12 +64,7 @@ function useCourtPanelData(courtNum: string): CourtPanelData & { load: () => Pro
   const prevDataRef = useRef<string>("");
 
   const load = useCallback(async () => {
-    const { data: tourns } = await supabase
-      .from("tournaments")
-      .select("*")
-      .eq("court", courtNum)
-      .order("sort_order")
-      .order("created_at");
+    const { data: tourns } = await supabase.from("tournaments").select("*").eq("court", courtNum).order("sort_order").order("created_at");
     if (!tourns?.length) {
       setTournaments([]);
       setMatchesMap({});
@@ -77,12 +72,7 @@ function useCourtPanelData(courtNum: string): CourtPanelData & { load: () => Pro
     }
     setTournaments(tourns);
     const tournIds = tourns.map((t) => t.id);
-    const { data: allMatches } = await supabase
-      .from("matches")
-      .select("*")
-      .in("tournament_id", tournIds)
-      .order("round")
-      .order("position");
+    const { data: allMatches } = await supabase.from("matches").select("*").in("tournament_id", tournIds).order("round").order("position");
     const allFighterIds = new Set<string>();
     (allMatches ?? []).forEach((m) => {
       if (m.fighter1_id) allFighterIds.add(m.fighter1_id);
@@ -229,14 +219,7 @@ function useCourtIndexActions(
   };
   const startMatch = async (tId: string, mId: string) => {
     const { match, rounds } = getCtx(tId, mId);
-    if (
-      !match ||
-      !match.fighter1_id ||
-      !match.fighter2_id ||
-      !fighters[match.fighter1_id] ||
-      !fighters[match.fighter2_id]
-    )
-      return;
+    if (!match || !match.fighter1_id || !match.fighter2_id || !fighters[match.fighter1_id] || !fighters[match.fighter2_id]) return;
     startP(mId);
     const r = await callMatchApi(mId, { action: "start", tournamentId: tId }, offlineMode, "court-index");
     if (r !== "ok") {
@@ -246,16 +229,7 @@ function useCourtIndexActions(
     await load();
     endP(mId);
     if (!mutedMatchIds.has(mId))
-      doStartAnnounceIndex(
-        match,
-        rounds,
-        tId,
-        fighters,
-        tournaments,
-        announceTemplates,
-        rulesReadingMap,
-        courtDisplayName,
-      );
+      doStartAnnounceIndex(match, rounds, tId, fighters, tournaments, announceTemplates, rulesReadingMap, courtDisplayName);
   };
   const setWinner = async (tId: string, mId: string, wId: string) => {
     const { match, rounds } = getCtx(tId, mId);
@@ -329,17 +303,7 @@ function useCourtIndexActions(
   };
   const reannounceStart = async (tId: string, mId: string) => {
     const { match, rounds } = getCtx(tId, mId);
-    if (match)
-      doStartAnnounceIndex(
-        match,
-        rounds,
-        tId,
-        fighters,
-        tournaments,
-        announceTemplates,
-        rulesReadingMap,
-        courtDisplayName,
-      );
+    if (match) doStartAnnounceIndex(match, rounds, tId, fighters, tournaments, announceTemplates, rulesReadingMap, courtDisplayName);
   };
   const reannounceWinner = async (tId: string, mId: string) => {
     const { match } = getCtx(tId, mId);
@@ -409,9 +373,7 @@ function CourtPanel({
   const actions = useCourtIndexActions(data, announceTemplates, rulesReadingMap, courtDisplayName);
   const { tournaments, matchesMap, fighters, withdrawnFighterIds, fighterEntryMap } = data;
   const nameMap = Object.fromEntries(Object.entries(fighters).map(([id, f]) => [id, fighterFullName(f)]));
-  const affiliationMap = Object.fromEntries(
-    Object.entries(fighters).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""]),
-  );
+  const affiliationMap = Object.fromEntries(Object.entries(fighters).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""]));
 
   return (
     <div className="space-y-4">

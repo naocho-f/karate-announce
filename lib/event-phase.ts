@@ -32,8 +32,7 @@ export function getEventPhase(
     return { label: "試合準備中", color: "bg-yellow-900 text-yellow-300", stepHighlight: 3 };
   }
   // 対戦表作成中: entry_closed かつトーナメント未作成 or 未確定
-  const isEntryClosed =
-    event.entry_closed || (event.entry_close_at ? new Date(event.entry_close_at) <= new Date() : false);
+  const isEntryClosed = event.entry_closed || (event.entry_close_at ? new Date(event.entry_close_at) <= new Date() : false);
   if (isEntryClosed) {
     return { label: "対戦表作成中", color: "bg-blue-900 text-blue-300", stepHighlight: 2 };
   }

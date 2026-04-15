@@ -6,14 +6,7 @@
  * - /api/admin/events/[id] (PATCH, DELETE)
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  createMockSupabase,
-  mockResult,
-  createAdminRequest,
-  createParams,
-  resetAll,
-  getCallsFor,
-} from "../helpers/supabase-mock";
+import { createMockSupabase, mockResult, createAdminRequest, createParams, resetAll, getCallsFor } from "../helpers/supabase-mock";
 
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: createMockSupabase() }));
 vi.mock("@/lib/admin-auth", async (importOriginal) => {

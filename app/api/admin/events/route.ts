@@ -144,28 +144,17 @@ async function copyNotices(sourceConfigId: string, newConfigId: string) {
 // ── 複製: フォーム設定 ──
 
 async function copyFormConfig(sourceId: string, newEventId: string) {
-  const { data: sourceConfig } = await supabaseAdmin
-    .from("form_configs")
-    .select("id")
-    .eq("event_id", sourceId)
-    .maybeSingle();
+  const { data: sourceConfig } = await supabaseAdmin.from("form_configs").select("id").eq("event_id", sourceId).maybeSingle();
   if (!sourceConfig) return;
 
-  const { data: newConfig, error: cfgErr } = await supabaseAdmin
-    .from("form_configs")
-    .insert({ event_id: newEventId })
-    .select()
-    .single();
+  const { data: newConfig, error: cfgErr } = await supabaseAdmin.from("form_configs").insert({ event_id: newEventId }).select().single();
   if (cfgErr || !newConfig) throw new Error(`フォーム設定の作成に失敗: ${cfgErr?.message}`);
 
   await copyFieldConfigs(sourceConfig.id, newConfig.id);
   await copyNotices(sourceConfig.id, newConfig.id);
 
   // カスタムフィールド定義をコピー
-  const { data: sourceCustomFields } = await supabaseAdmin
-    .from("custom_field_defs")
-    .select("*")
-    .eq("form_config_id", sourceConfig.id);
+  const { data: sourceCustomFields } = await supabaseAdmin.from("custom_field_defs").select("*").eq("form_config_id", sourceConfig.id);
   if (sourceCustomFields?.length) {
     await insertOrThrow(
       "custom_field_defs",
@@ -185,11 +174,7 @@ async function copyFormConfig(sourceId: string, newEventId: string) {
 // ── 複製: 振り分けルール ──
 
 async function copyBracketRules(sourceId: string, newEventId: string) {
-  const { data: sourceRules } = await supabaseAdmin
-    .from("bracket_rules")
-    .select("*")
-    .eq("event_id", sourceId)
-    .order("sort_order");
+  const { data: sourceRules } = await supabaseAdmin.from("bracket_rules").select("*").eq("event_id", sourceId).order("sort_order");
   if (!sourceRules?.length) return;
   await insertOrThrow(
     "bracket_rules",
@@ -279,11 +264,7 @@ async function copyFighters(sourceId: string, newEventId: string): Promise<Map<s
   }
 
   for (const [oldId, newId] of fighterIdMap) {
-    await supabaseAdmin
-      .from("entries")
-      .update({ fighter_id: newId })
-      .eq("event_id", newEventId)
-      .eq("fighter_id", oldId);
+    await supabaseAdmin.from("entries").update({ fighter_id: newId }).eq("event_id", newEventId).eq("fighter_id", oldId);
   }
 
   return fighterIdMap;
@@ -294,11 +275,7 @@ async function copyFighters(sourceId: string, newEventId: string): Promise<Map<s
 async function copyTournamentsAndMatches(sourceId: string, newEventId: string) {
   const fighterIdMap = await copyFighters(sourceId, newEventId);
 
-  const { data: sourceTournaments } = await supabaseAdmin
-    .from("tournaments")
-    .select("*")
-    .eq("event_id", sourceId)
-    .order("sort_order");
+  const { data: sourceTournaments } = await supabaseAdmin.from("tournaments").select("*").eq("event_id", sourceId).order("sort_order");
   if (!sourceTournaments?.length) return;
 
   for (const t of sourceTournaments) {
@@ -360,10 +337,7 @@ async function copyEntries(sourceId: string, newEventId: string) {
   if (!sourceEntries?.length) return;
 
   const sourceEntryIds = sourceEntries.map((e) => e.id);
-  const { data: allEntryRules } = await supabaseAdmin
-    .from("entry_rules")
-    .select("entry_id, rule_id")
-    .in("entry_id", sourceEntryIds);
+  const { data: allEntryRules } = await supabaseAdmin.from("entry_rules").select("entry_id, rule_id").in("entry_id", sourceEntryIds);
   const entryRulesMap = new Map<string, { rule_id: string }[]>();
   for (const r of allEntryRules ?? []) {
     const list = entryRulesMap.get(r.entry_id) ?? [];
@@ -442,10 +416,7 @@ async function cleanupNewEvent(newEventId: string) {
     await supabaseAdmin.from("tournaments").delete().eq("event_id", newEventId);
   }
   // 対戦者の削除
-  const { data: eventFighters } = await supabaseAdmin
-    .from("event_fighters")
-    .select("fighter_id")
-    .eq("event_id", newEventId);
+  const { data: eventFighters } = await supabaseAdmin.from("event_fighters").select("fighter_id").eq("event_id", newEventId);
   await supabaseAdmin.from("event_fighter_rules").delete().eq("event_id", newEventId);
   await supabaseAdmin.from("event_fighters").delete().eq("event_id", newEventId);
   if (eventFighters?.length) {
@@ -476,12 +447,7 @@ async function cleanupNewEvent(newEventId: string) {
 
 // ── 複製メイン ──
 
-async function duplicateEvent(
-  name: string,
-  event_date: string | null,
-  copy_from_event_id: string,
-  copy_entries: boolean,
-) {
+async function duplicateEvent(name: string, event_date: string | null, copy_from_event_id: string, copy_entries: boolean) {
   const { data: source } = await supabaseAdmin.from("events").select("*").eq("id", copy_from_event_id).single();
   if (!source) return NextResponse.json({ error: "コピー元の大会が見つかりません" }, { status: 404 });
 
@@ -528,8 +494,7 @@ async function duplicateEvent(
 
 export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized();
-  const { name, event_date, court_count, court_names, rule_ids, copy_from_event_id, copy_entries } =
-    await request.json();
+  const { name, event_date, court_count, court_names, rule_ids, copy_from_event_id, copy_entries } = await request.json();
 
   if (event_date && !copy_from_event_id) {
     const today = new Date().toISOString().slice(0, 10);

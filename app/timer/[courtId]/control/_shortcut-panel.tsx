@@ -3,13 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { undo, undoActionLabel, type TimerState, type UndoEntry } from "@/lib/timer-state";
 
-export default function HistoryPanel({
-  state,
-  onUpdate,
-}: {
-  state: TimerState;
-  onUpdate: (fn: (s: TimerState) => TimerState) => void;
-}) {
+export default function HistoryPanel({ state, onUpdate }: { state: TimerState; onUpdate: (fn: (s: TimerState) => TimerState) => void }) {
   const [removingIdx, setRemovingIdx] = useState<number | null>(null);
   const listEndRef = useRef<HTMLDivElement>(null);
   const entries = state.undoStack;

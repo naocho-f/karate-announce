@@ -96,13 +96,7 @@ export async function POST(request: NextRequest) {
   const nextOrder = await getNextSortOrder(form_config_id);
   const copyLabel = `${source.label}(コピー)`;
 
-  const { data: def, error: defErr } = await insertDuplicateDef(
-    form_config_id,
-    newFieldKey,
-    copyLabel,
-    nextOrder,
-    source,
-  );
+  const { data: def, error: defErr } = await insertDuplicateDef(form_config_id, newFieldKey, copyLabel, nextOrder, source);
   if (defErr) return dbError(defErr);
 
   const { data: fieldConfig, error: fcErr } = await insertDuplicateFieldConfig(

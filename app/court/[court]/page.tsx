@@ -85,11 +85,7 @@ function useCourtPageLoader(court: string, d: ReturnType<typeof useCourtPageData
 
   const loadEvent = useCallback(async () => {
     const dc = dRef.current;
-    const { data: ev, error } = await supabase
-      .from("events")
-      .select("id, court_names, is_active")
-      .eq("is_active", true)
-      .maybeSingle();
+    const { data: ev, error } = await supabase.from("events").select("id, court_names, is_active").eq("is_active", true).maybeSingle();
     if (error) {
       dc.setFetchError(true);
       return null;
@@ -237,22 +233,20 @@ type Props = { params: Promise<{ court: string }> };
 export default function CourtPage({ params }: Props) {
   const { court } = use(params);
   const d = useCourtPageData();
-  const { load, offlineMode, pendingCount, quality, showRecoveryPrompt, acceptRecovery, declineRecovery } =
-    useCourtPageLoader(court, d);
-  const { startMatch, setWinner, correctWinner, reannounceStart, reannounceWinner, toggleWithdrawal, swapWithNext } =
-    useCourtActions({
-      matchesMap: d.matchesMap,
-      fighters: d.fighters,
-      tournaments: d.tournaments,
-      mutedMatchIds: d.mutedMatchIds,
-      announceTemplates: d.announceTemplates,
-      rulesReadingMap: d.rulesReadingMap,
-      courtDisplayName: d.courtDisplayName || `${court}コート`,
-      offlineMode,
-      startProcessing: d.startProcessing,
-      endProcessing: d.endProcessing,
-      load,
-    });
+  const { load, offlineMode, pendingCount, quality, showRecoveryPrompt, acceptRecovery, declineRecovery } = useCourtPageLoader(court, d);
+  const { startMatch, setWinner, correctWinner, reannounceStart, reannounceWinner, toggleWithdrawal, swapWithNext } = useCourtActions({
+    matchesMap: d.matchesMap,
+    fighters: d.fighters,
+    tournaments: d.tournaments,
+    mutedMatchIds: d.mutedMatchIds,
+    announceTemplates: d.announceTemplates,
+    rulesReadingMap: d.rulesReadingMap,
+    courtDisplayName: d.courtDisplayName || `${court}コート`,
+    offlineMode,
+    startProcessing: d.startProcessing,
+    endProcessing: d.endProcessing,
+    load,
+  });
   const toggleMute = (mId: string) => {
     d.setMutedMatchIds((p) => {
       const n = new Set(p);

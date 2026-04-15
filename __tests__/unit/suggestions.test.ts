@@ -52,10 +52,7 @@ describe("computeBalance（computeSuggestions経由で検証）", () => {
   });
 
   it("偏った分割は✕を返す", () => {
-    const entries = [
-      ...Array.from({ length: 10 }, (_, i) => makeEntry(`m${i}`, { sex: "male" })),
-      makeEntry("f1", { sex: "female" }),
-    ];
+    const entries = [...Array.from({ length: 10 }, (_, i) => makeEntry(`m${i}`, { sex: "male" })), makeEntry("f1", { sex: "female" })];
     const result = computeSuggestions(entries);
     const sexSuggestion = result.find((s) => s.axis === "sex");
     expect(sexSuggestion?.balance).toBe("✕");

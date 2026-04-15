@@ -49,11 +49,7 @@ export async function ensureFighterFromEntry(entry: Entry): Promise<string | nul
   const dojoId = await ensureDojoId(dojoName);
   if (!dojoId) return null;
 
-  const { data: fighter } = await supabaseAdmin
-    .from("fighters")
-    .insert(buildFighterFields(entry, dojoId))
-    .select("id")
-    .single();
+  const { data: fighter } = await supabaseAdmin.from("fighters").insert(buildFighterFields(entry, dojoId)).select("id").single();
 
   if (!fighter) return null;
   await supabaseAdmin.from("entries").update({ fighter_id: fighter.id }).eq("id", entry.id);

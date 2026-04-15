@@ -56,9 +56,7 @@ function useEntryFormState(eventId: string) {
   const DRAFT_KEY = `entry-draft-${eventId}`;
 
   const [values, setValues] = useState<Record<string, string>>(() => loadDraft(DRAFT_KEY)?.values ?? {});
-  const [multiValues, setMultiValues] = useState<Record<string, Set<string>>>(() =>
-    restoreMultiValues(loadDraft(DRAFT_KEY)?.multiValues),
-  );
+  const [multiValues, setMultiValues] = useState<Record<string, Set<string>>>(() => restoreMultiValues(loadDraft(DRAFT_KEY)?.multiValues));
   const [otherValues, setOtherValues] = useState<Record<string, string>>(() => loadDraft(DRAFT_KEY)?.otherValues ?? {});
   const [consents, setConsents] = useState<Record<string, boolean>>(() => loadDraft(DRAFT_KEY)?.consents ?? {});
   const [selectedRules, setSelectedRules] = useState<Set<string>>(() => new Set(loadDraft(DRAFT_KEY)?.selectedRules));
@@ -181,12 +179,7 @@ function useEntryPageData(eventId: string) {
 
   useEffect(() => {
     async function load() {
-      const { data: e } = await supabase
-        .from("events")
-        .select("*")
-        .eq("id", eventId)
-        .is("deleted_at", null)
-        .maybeSingle();
+      const { data: e } = await supabase.from("events").select("*").eq("id", eventId).is("deleted_at", null).maybeSingle();
       setEvent(e ?? null);
       if (!e) return;
       const [{ data: er }, { data: settingsRow }] = await Promise.all([
@@ -234,10 +227,7 @@ function useEntryPageData(eventId: string) {
 
 // ── 必須チェックヘルパー ──
 
-function isKanaOptional(
-  def: FieldPoolItem,
-  visibleFields: Array<{ config: FormFieldConfig; def: FieldPoolItem }>,
-): boolean {
+function isKanaOptional(def: FieldPoolItem, visibleFields: Array<{ config: FormFieldConfig; def: FieldPoolItem }>): boolean {
   if (!def.kanaParent) return false;
   const parentConfig = visibleFields.find((f) => f.def.key === def.kanaParent);
   return !!parentConfig && !parentConfig.config.required;
@@ -293,8 +283,7 @@ function computeCanSubmit(
     if (!isFieldFilled(config, def)) return false;
   }
   const emailField = visibleFields.find((f) => f.def.key === "email");
-  if (emailField?.config.required && emailField.def.hasConfirmInput && (!emailConfirm.trim() || emailMismatch))
-    return false;
+  if (emailField?.config.required && emailField.def.hasConfirmInput && (!emailConfirm.trim() || emailMismatch)) return false;
   return !notices.some((n) => n.require_consent && !consents[n.id]);
 }
 
@@ -342,9 +331,7 @@ function useEntrySubmit(opts: {
     });
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
-      document
-        .getElementById(`field-${Object.keys(errors)[0]}`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      document.getElementById(`field-${Object.keys(errors)[0]}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     setSubmitting(true);
@@ -358,14 +345,7 @@ function useEntrySubmit(opts: {
       formConfig: data.formConfig,
       event: data.event ?? null,
     });
-    const { ruleIds, isAny } = resolveRuleIds(
-      hasRuleField,
-      visibleFields,
-      values,
-      multiValues,
-      selectedRules,
-      data.eventRules,
-    );
+    const { ruleIds, isAny } = resolveRuleIds(hasRuleField, visibleFields, values, multiValues, selectedRules, data.eventRules);
     if (isAny) {
       const rpConfig = visibleFields.find((f) => f.def.key === "rule_preference")?.config;
       const anyLabel = rpConfig?.custom_choices?.find((c) => c.value === "__any__")?.label ?? "どちらでも良い";
@@ -478,17 +458,7 @@ export default function EntryPage({ params }: Props) {
   const hasRuleField = visibleFields.some((f) => f.def.key === "rule_preference");
 
   const canSubmit = useMemo(
-    () =>
-      computeCanSubmit(
-        submitting,
-        ageConflict,
-        emailMismatch,
-        visibleFields,
-        isFieldFilled,
-        emailConfirm,
-        notices,
-        consents,
-      ),
+    () => computeCanSubmit(submitting, ageConflict, emailMismatch, visibleFields, isFieldFilled, emailConfirm, notices, consents),
     [isFieldFilled, consents, submitting, ageConflict, emailMismatch, emailConfirm, visibleFields, notices],
   );
 
@@ -507,16 +477,10 @@ export default function EntryPage({ params }: Props) {
   // 早期リターン
   if (data.event === undefined || data.formLoading) return <LoadingScreen />;
   if (data.event === null) return <NotFoundScreen />;
-  const isClosed =
-    data.event.entry_closed || (data.event.entry_close_at && new Date(data.event.entry_close_at) <= new Date());
+  const isClosed = data.event.entry_closed || (data.event.entry_close_at && new Date(data.event.entry_close_at) <= new Date());
   if (isClosed) return <ClosedScreen event={data.event} />;
   if (!data.formConfig?.ready)
-    return (
-      <NotReadyScreen
-        event={data.event}
-        isFetchError={(data.formConfig as Record<string, unknown>)?.fetchError === true}
-      />
-    );
+    return <NotReadyScreen event={data.event} isFetchError={(data.formConfig as Record<string, unknown>)?.fetchError === true} />;
   if (submitted)
     return (
       <SubmittedScreen
@@ -596,11 +560,9 @@ function useAgeConflict(values: Record<string, string>, event: Event | null | un
     const birth = new Date(birthday);
     let expected = refDate.getFullYear() - birth.getFullYear();
     const hasBd =
-      refDate.getMonth() > birth.getMonth() ||
-      (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
+      refDate.getMonth() > birth.getMonth() || (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
     if (!hasBd) expected--;
-    if (expected !== enteredAge)
-      return `生年月日から計算した年齢は ${expected} 歳です（${event?.event_date ? "開催日" : "本日"}時点）`;
+    if (expected !== enteredAge) return `生年月日から計算した年齢は ${expected} 歳です（${event?.event_date ? "開催日" : "本日"}時点）`;
     return null;
   }, [values, event]);
 }
@@ -740,9 +702,7 @@ function EntryFormView({
               canSubmit ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-600 hover:bg-gray-500 text-gray-300"
             } disabled:opacity-50`}
           >
-            {submitting && (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-            )}
+            {submitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
             {submitting ? "送信中..." : "申し込む"}
           </button>
         </form>
@@ -768,11 +728,7 @@ function ValidationBanner({ fieldErrors, onClear }: { fieldErrors: Record<string
               </p>
             ))}
           </div>
-          <button
-            onClick={onClear}
-            className="text-red-300 hover:text-white text-lg leading-none shrink-0 mt-0.5"
-            aria-label="閉じる"
-          >
+          <button onClick={onClear} className="text-red-300 hover:text-white text-lg leading-none shrink-0 mt-0.5" aria-label="閉じる">
             ×
           </button>
         </div>

@@ -103,8 +103,7 @@ function PreviewResults({
           <div className="flex items-center justify-between mb-1">
             <span className="text-sm font-medium text-white">{group.name}</span>
             <span className="text-xs text-gray-400">
-              {group.courtNum ? getCourtLabel(group.courtNum) : "コート未定"} / {group.entries.length}名 /{" "}
-              {group.pairs.length}対戦
+              {group.courtNum ? getCourtLabel(group.courtNum) : "コート未定"} / {group.entries.length}名 / {group.pairs.length}対戦
             </span>
           </div>
           <div className="text-xs text-gray-400 flex flex-wrap gap-1">
@@ -120,16 +119,7 @@ function PreviewResults({
   );
 }
 
-export function AutoCreateDialog({
-  eventId,
-  entries,
-  entryRuleIds,
-  rules,
-  courtCount,
-  courtNames,
-  onExecute,
-  onClose,
-}: Props) {
+export function AutoCreateDialog({ eventId, entries, entryRuleIds, rules, courtCount, courtNames, onExecute, onClose }: Props) {
   const [bracketRules, setBracketRules] = useState<BracketRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [enabledIds, setEnabledIds] = useState<Set<string>>(new Set());
@@ -233,12 +223,7 @@ export function AutoCreateDialog({
 
         {preview && (
           <div className="space-y-3">
-            <PreviewResults
-              preview={preview}
-              courtCount={courtCount}
-              courtMatchCounts={courtMatchCounts}
-              getCourtLabel={getCourtLabel}
-            />
+            <PreviewResults preview={preview} courtCount={courtCount} courtMatchCounts={courtMatchCounts} getCourtLabel={getCourtLabel} />
 
             {/* 実行ボタン */}
             <button

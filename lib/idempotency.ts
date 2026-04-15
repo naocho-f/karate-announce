@@ -35,11 +35,7 @@ export async function checkIdempotencyKey(request: NextRequest): Promise<NextRes
 
   // 2. DB チェック（コールドスタート対策）
   try {
-    const { data } = await supabaseAdmin
-      .from("idempotency_keys")
-      .select("response_status, response_body")
-      .eq("key", key)
-      .maybeSingle();
+    const { data } = await supabaseAdmin.from("idempotency_keys").select("response_status, response_body").eq("key", key).maybeSingle();
 
     if (data) {
       // インメモリにも載せる

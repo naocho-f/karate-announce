@@ -7,7 +7,6 @@ import { describe, it, expect } from "vitest";
 import {
   getGradeOptions,
   gradeToNumber,
-  isAgeCategoryLabel,
   findAgeCategory,
   gradeFromBirthDate,
   FIXED_GRADE_OPTIONS,
@@ -200,30 +199,6 @@ describe("gradeToNumber", () => {
     expect(isInGradeRange("小2", 0, 2)).toBe(true);
     expect(isInGradeRange("年中", 0, 2)).toBe(false);
     expect(isInGradeRange("小3", 0, 2)).toBe(false);
-  });
-});
-
-// ──────────────────────────────────────────────
-// isAgeCategoryLabel
-// ──────────────────────────────────────────────
-
-describe("isAgeCategoryLabel", () => {
-  it("should return true for default age category labels", () => {
-    expect(isAgeCategoryLabel("18歳未満")).toBe(true);
-    expect(isAgeCategoryLabel("一般")).toBe(true);
-    expect(isAgeCategoryLabel("シニア")).toBe(true);
-  });
-
-  it("should return false for grade-based labels", () => {
-    expect(isAgeCategoryLabel("小1")).toBe(false);
-    expect(isAgeCategoryLabel("中3")).toBe(false);
-    expect(isAgeCategoryLabel("年少")).toBe(false);
-  });
-
-  it("should use custom age categories when provided", () => {
-    const custom: AgeCategory[] = [{ label: "ジュニア", minAge: 15, maxAge: 17 }];
-    expect(isAgeCategoryLabel("ジュニア", custom)).toBe(true);
-    expect(isAgeCategoryLabel("一般", custom)).toBe(false);
   });
 });
 

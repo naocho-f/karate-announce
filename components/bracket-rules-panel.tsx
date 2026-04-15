@@ -136,9 +136,7 @@ function useBracketRulesData(eventId: string) {
     try {
       const url = editingId ? `/api/admin/bracket-rules/${editingId}` : "/api/admin/bracket-rules";
       const method = editingId ? "PUT" : "POST";
-      const sortOrder = editingId
-        ? (bracketRules.find((r) => r.id === editingId)?.sort_order ?? 0)
-        : bracketRules.length;
+      const sortOrder = editingId ? (bracketRules.find((r) => r.id === editingId)?.sort_order ?? 0) : bracketRules.length;
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -233,10 +231,7 @@ export function BracketRulesPanel({ eventId, rules, courtCount, courtNames, ageC
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-gray-300">振り分けルール</h3>
-        <button
-          onClick={d.startCreate}
-          className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded transition"
-        >
+        <button onClick={d.startCreate} className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded transition">
           ＋ 新規作成
         </button>
       </div>
@@ -491,22 +486,10 @@ function BracketRuleForm({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <FormField label="年齢下限">
-          <input
-            type="number"
-            className={inputCls}
-            value={form.min_age}
-            onChange={upd("min_age")}
-            placeholder="例: 6"
-          />
+          <input type="number" className={inputCls} value={form.min_age} onChange={upd("min_age")} placeholder="例: 6" />
         </FormField>
         <FormField label="年齢上限">
-          <input
-            type="number"
-            className={inputCls}
-            value={form.max_age}
-            onChange={upd("max_age")}
-            placeholder="例: 12"
-          />
+          <input type="number" className={inputCls} value={form.max_age} onChange={upd("max_age")} placeholder="例: 12" />
         </FormField>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -534,31 +517,13 @@ function BracketRuleForm({
       </FormField>
       <div className="grid grid-cols-3 gap-3">
         <FormField label="最大学年差">
-          <input
-            type="number"
-            className={inputCls}
-            value={form.max_grade_diff}
-            onChange={upd("max_grade_diff")}
-            placeholder="例: 1"
-          />
+          <input type="number" className={inputCls} value={form.max_grade_diff} onChange={upd("max_grade_diff")} placeholder="例: 1" />
         </FormField>
         <FormField label="最大体重差 (kg)">
-          <input
-            type="number"
-            className={inputCls}
-            value={form.max_weight_diff}
-            onChange={upd("max_weight_diff")}
-            placeholder="例: 10"
-          />
+          <input type="number" className={inputCls} value={form.max_weight_diff} onChange={upd("max_weight_diff")} placeholder="例: 10" />
         </FormField>
         <FormField label="最大身長差 (cm)">
-          <input
-            type="number"
-            className={inputCls}
-            value={form.max_height_diff}
-            onChange={upd("max_height_diff")}
-            placeholder="例: 15"
-          />
+          <input type="number" className={inputCls} value={form.max_height_diff} onChange={upd("max_height_diff")} placeholder="例: 15" />
         </FormField>
       </div>
       <FormField label="割り当てコート">

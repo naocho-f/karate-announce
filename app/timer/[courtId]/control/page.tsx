@@ -59,13 +59,8 @@ export default function TimerControlPage() {
 
       {tc.buzzerWarning && (
         <div className="bg-yellow-900 border-b border-yellow-700 px-4 py-2 flex items-center justify-between">
-          <p className="text-yellow-200 text-sm font-medium">
-            カスタム音源の読み込みに失敗しました。デフォルト音源を使用しています。
-          </p>
-          <button
-            onClick={() => tc.setBuzzerWarning(false)}
-            className="text-yellow-400 hover:text-yellow-200 text-sm ml-4"
-          >
+          <p className="text-yellow-200 text-sm font-medium">カスタム音源の読み込みに失敗しました。デフォルト音源を使用しています。</p>
+          <button onClick={() => tc.setBuzzerWarning(false)} className="text-yellow-400 hover:text-yellow-200 text-sm ml-4">
             ✕
           </button>
         </div>

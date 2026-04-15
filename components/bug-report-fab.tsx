@@ -93,13 +93,7 @@ export function BugReportFab() {
           <h3 className="font-bold text-sm text-white">不具合を報告</h3>
           <p className="text-[10px] text-gray-500">URL・端末情報・バージョンは自動で記録されます</p>
 
-          <BugTextField
-            label="何をした？"
-            required
-            value={whatDid}
-            onChange={setWhatDid}
-            placeholder="例: 自由設問を追加した"
-          />
+          <BugTextField label="何をした？" required value={whatDid} onChange={setWhatDid} placeholder="例: 自由設問を追加した" />
           <BugTextField
             label="どうなった？ / 何が気になった？"
             required

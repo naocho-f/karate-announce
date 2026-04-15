@@ -15,10 +15,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (body.matchUpdatedAt) {
     const { data } = await supabaseAdmin.from("matches").select("updated_at").eq("id", id).single();
     if (data && data.updated_at !== body.matchUpdatedAt) {
-      return NextResponse.json(
-        { error: "試合結果は既に更新されています。画面を再読み込みしてください。" },
-        { status: 409 },
-      );
+      return NextResponse.json({ error: "試合結果は既に更新されています。画面を再読み込みしてください。" }, { status: 409 });
     }
     // matchUpdatedAt は DB カラムではないので除外
     delete body.matchUpdatedAt;

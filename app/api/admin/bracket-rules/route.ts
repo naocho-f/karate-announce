@@ -58,11 +58,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "event_id and name required" }, { status: 400 });
   }
 
-  const { data, error } = await supabaseAdmin
-    .from("bracket_rules")
-    .insert(buildBracketRuleInsert(body))
-    .select()
-    .single();
+  const { data, error } = await supabaseAdmin.from("bracket_rules").insert(buildBracketRuleInsert(body)).select().single();
 
   if (error) return dbError(error);
   return NextResponse.json(data);

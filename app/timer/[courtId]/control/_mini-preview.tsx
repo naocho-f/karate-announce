@@ -82,16 +82,7 @@ function resolveSides(state: TimerState, swapSides: boolean) {
   };
 }
 
-export default function MiniPreview({
-  state,
-  p,
-  displayMs,
-  swapSides,
-  isMuted,
-  courtId,
-  badge,
-  onToggleMute,
-}: MiniPreviewProps) {
+export default function MiniPreview({ state, p, displayMs, swapSides, isMuted, courtId, badge, onToggleMute }: MiniPreviewProps) {
   const { leftName, rightName, leftScore, rightScore, leftColor, rightColor } = resolveSides(state, swapSides);
   return (
     <div className="bg-black border-b border-gray-800 p-3">

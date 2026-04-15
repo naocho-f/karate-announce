@@ -29,18 +29,13 @@ export function Section({
   const isOpen = openIds.has(id);
   return (
     <div className={`border-l-4 ${color} bg-gray-800 rounded-r-xl overflow-hidden`}>
-      <button
-        onClick={() => toggle(id)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-750 transition"
-      >
+      <button onClick={() => toggle(id)} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-750 transition">
         <span className="bg-gray-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">
           {num}
         </span>
         <span className="font-semibold text-sm text-white flex-1">{title}</span>
         {badge && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${badgeColor ?? "bg-gray-600 text-gray-300"}`}>
-            {badge}
-          </span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${badgeColor ?? "bg-gray-600 text-gray-300"}`}>{badge}</span>
         )}
         <span className={`text-xs text-gray-500 shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`}>▶</span>
       </button>
@@ -66,11 +61,7 @@ export function Steps({ steps }: { steps: string[] }) {
   );
 }
 
-export function FieldTable({
-  fields,
-}: {
-  fields: Array<{ name: string; required: boolean; example: string; note: string }>;
-}) {
+export function FieldTable({ fields }: { fields: Array<{ name: string; required: boolean; example: string; note: string }> }) {
   return (
     <div className="space-y-1.5 mt-1">
       <p className="text-xs font-medium text-gray-300">入力項目:</p>
@@ -78,11 +69,7 @@ export function FieldTable({
         <div key={f.name} className="bg-gray-900 rounded px-3 py-2 text-xs space-y-0.5">
           <div className="flex items-center gap-2">
             <span className="text-white font-medium">{f.name}</span>
-            {f.required ? (
-              <span className="text-red-400 text-[10px]">必須</span>
-            ) : (
-              <span className="text-gray-600 text-[10px]">任意</span>
-            )}
+            {f.required ? <span className="text-red-400 text-[10px]">必須</span> : <span className="text-gray-600 text-[10px]">任意</span>}
           </div>
           <p className="text-gray-500">例: {f.example}</p>
           <p className="text-gray-500">{f.note}</p>
@@ -208,9 +195,8 @@ function PresetupSection1a({ openIds, toggle, onNavigate }: GuideProps) {
         badgeColor="bg-red-700 text-red-200"
       >
         <Desc>
-          大会の部門・クラスを「ルール」として登録します。
-          ルール名は対戦表作成の絞り込み、エントリーフォームの参加ルール選択、AI アナウンスの読み上げなど、
-          システム全体で使われる最も重要な設定です。
+          大会の部門・クラスを「ルール」として登録します。 ルール名は対戦表作成の絞り込み、エントリーフォームの参加ルール選択、AI
+          アナウンスの読み上げなど、 システム全体で使われる最も重要な設定です。
         </Desc>
         <FieldTable
           fields={[
@@ -287,25 +273,21 @@ function PresetupSection1b({ openIds, toggle, onNavigate }: GuideProps) {
       >
         <Desc>
           試合の計時・得点管理に使う「タイマープリセット」を作成します。
-          1つのプリセットの中に、試合時間・延長戦・寝技・ポイント・反則など全ての設定が含まれます。 それぞれの項目は
-          ON/OFF で切り替えられるので、大会のルールに合わせて必要な項目だけ有効にしてください。
+          1つのプリセットの中に、試合時間・延長戦・寝技・ポイント・反則など全ての設定が含まれます。 それぞれの項目は ON/OFF
+          で切り替えられるので、大会のルールに合わせて必要な項目だけ有効にしてください。
         </Desc>
         <div className="text-xs text-gray-400 space-y-2 mt-1">
           <p className="font-medium text-gray-300">1つのタイマープリセットに含まれる設定:</p>
           <div className="space-y-1.5 ml-1">
             <div className="bg-gray-900 rounded px-3 py-2 space-y-0.5">
               <p className="text-white font-medium">基本設定</p>
-              <p className="text-gray-500">
-                タイマー名（管理用、画面には表示されない）、試合時間（分:秒）、カウント方向（ダウン/アップ）
-              </p>
+              <p className="text-gray-500">タイマー名（管理用、画面には表示されない）、試合時間（分:秒）、カウント方向（ダウン/アップ）</p>
             </div>
             <div className="bg-gray-900 rounded px-3 py-2 space-y-0.5">
               <p className="text-white font-medium">
                 延長戦 <span className="text-gray-600 font-normal">（ON/OFF）</span>
               </p>
-              <p className="text-gray-500">
-                時間延長（指定秒数で再戦）または先取延長（ポイント先取で決着）。再延長回数も設定可
-              </p>
+              <p className="text-gray-500">時間延長（指定秒数で再戦）または先取延長（ポイント先取で決着）。再延長回数も設定可</p>
             </div>
             <div className="bg-gray-900 rounded px-3 py-2 space-y-0.5">
               <p className="text-white font-medium">
@@ -334,9 +316,7 @@ function PresetupSection1b({ openIds, toggle, onNavigate }: GuideProps) {
             "時間見積もり → 対戦表作成画面でコートごとの所要時間を自動計算",
           ]}
         />
-        <Tip>
-          似た設定のタイマーを作る場合は「複製」ボタンが便利です。 例えば「組手3分」を複製して延長時間だけ変えるなど。
-        </Tip>
+        <Tip>似た設定のタイマーを作る場合は「複製」ボタンが便利です。 例えば「組手3分」を複製して延長時間だけ変えるなど。</Tip>
         <MockScreen>
           <MockLabel>設定 → タイマー</MockLabel>
           <div className="space-y-1.5">
@@ -421,9 +401,7 @@ function PresetupSection2a({ openIds, toggle, onNavigate }: GuideProps) {
             "プレビュー・試し聞き機能でテンプレートの確認が可能",
           ]}
         />
-        <Tip>
-          声質と読み上げ速度も設定画面で変更できます。「試し聞き」ボタンでサンプル音声を確認してから本番に臨みましょう。
-        </Tip>
+        <Tip>声質と読み上げ速度も設定画面で変更できます。「試し聞き」ボタンでサンプル音声を確認してから本番に臨みましょう。</Tip>
         <NavButton label="設定タブ（アナウンス）へ →" onClick={() => onNavigate("settings")} />
       </Section>
     </div>
@@ -445,8 +423,7 @@ function PresetupSection2b({ openIds, toggle, onNavigate }: GuideProps) {
         badgeColor="bg-gray-600 text-gray-300"
       >
         <Desc>
-          参加者の年齢に基づいて自動的に区分を割り当てるための設定です。 年少〜高3
-          の学年ベースの区分は固定されており変更できません。
+          参加者の年齢に基づいて自動的に区分を割り当てるための設定です。 年少〜高3 の学年ベースの区分は固定されており変更できません。
           「一般」「シニア」などの年齢ベースの区分はカスタマイズ可能です。
         </Desc>
         <div className="text-xs text-gray-400 space-y-2">
@@ -478,8 +455,7 @@ function PresetupSection2b({ openIds, toggle, onNavigate }: GuideProps) {
       >
         <Desc>
           流派（所属団体）のマスタデータです。参加者がエントリーフォームで所属団体名を入力すると自動的に追加されるため、
-          事前に登録しなくても使えます。事前に登録しておくと「読み仮名」を設定でき、AI
-          アナウンスの読み上げ精度が上がります。
+          事前に登録しなくても使えます。事前に登録しておくと「読み仮名」を設定でき、AI アナウンスの読み上げ精度が上がります。
         </Desc>
         <UsedIn
           items={[
@@ -488,8 +464,7 @@ function PresetupSection2b({ openIds, toggle, onNavigate }: GuideProps) {
           ]}
         />
         <Tip>
-          読み仮名が未設定の場合、AI が漢字から推測して読み上げます。
-          珍しい団体名の場合は事前に読み仮名を登録しておくことをおすすめします。
+          読み仮名が未設定の場合、AI が漢字から推測して読み上げます。 珍しい団体名の場合は事前に読み仮名を登録しておくことをおすすめします。
         </Tip>
         <NavButton label="設定タブ（流派）へ →" onClick={() => onNavigate("settings")} />
       </Section>
@@ -537,14 +512,7 @@ function OpSec1a1({ openIds, toggle, onNavigate }: GuideProps) {
   return (
     <div className="space-y-1.5">
       {/* ── 6. イベント作成 ── */}
-      <Section
-        id="event"
-        openIds={openIds}
-        toggle={toggle}
-        color="border-blue-500"
-        num={1}
-        title="イベント（大会）を作成する"
-      >
+      <Section id="event" openIds={openIds} toggle={toggle} color="border-blue-500" num={1} title="イベント（大会）を作成する">
         <Desc>「試合」タブでイベントを新規作成します。</Desc>
         <Steps
           steps={[
@@ -590,18 +558,8 @@ function OpSec1a2({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
   return (
     <div className="space-y-1.5">
       {/* ── 7. 参加者管理 ── */}
-      <Section
-        id="entry"
-        openIds={openIds}
-        toggle={toggle}
-        color="border-blue-500"
-        num={2}
-        title="参加者を集める（Step ①）"
-      >
-        <Desc>
-          イベント詳細画面の Step ① で参加者を管理します。 エントリーフォームの URL
-          を参加者に共有し、申し込みを受け付けます。
-        </Desc>
+      <Section id="entry" openIds={openIds} toggle={toggle} color="border-blue-500" num={2} title="参加者を集める（Step ①）">
+        <Desc>イベント詳細画面の Step ① で参加者を管理します。 エントリーフォームの URL を参加者に共有し、申し込みを受け付けます。</Desc>
         <Steps
           steps={[
             "イベント詳細画面の Step ① を開きます",
@@ -652,14 +610,7 @@ function OperationsSections1b({ openIds, toggle, onNavigate: _onNavigate }: Guid
   return (
     <div className="space-y-1.5">
       {/* ── 8. 対戦表作成 ── */}
-      <Section
-        id="bracket"
-        openIds={openIds}
-        toggle={toggle}
-        color="border-blue-500"
-        num={3}
-        title="対戦表を作成する（Step ②）"
-      >
+      <Section id="bracket" openIds={openIds} toggle={toggle} color="border-blue-500" num={3} title="対戦表を作成する（Step ②）">
         <Desc>
           参加者を絞り込み、対戦の組み合わせを作成します。
           トーナメント（勝ち抜き戦）またはワンマッチ（1試合のみ）を作成し、コートに割り当てます。
@@ -710,10 +661,7 @@ function OperationsSections1b({ openIds, toggle, onNavigate: _onNavigate }: Guid
             </div>
             <div className="flex gap-2">
               <div className="flex-1 bg-blue-600 text-white rounded px-3 py-1.5 text-center text-[10px]">登録する</div>
-              <select
-                id="guide-demo-court"
-                className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-[10px] text-white"
-              >
+              <select id="guide-demo-court" className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-[10px] text-white">
                 <option>未割当</option>
                 <option>Aコート</option>
                 <option>Bコート</option>
@@ -731,17 +679,9 @@ function OperationsSections2({ openIds, toggle, onNavigate: _onNavigate }: Guide
     <>
       <div className="space-y-1.5">
         {/* ── 9. 試合番号設定 ── */}
-        <Section
-          id="label"
-          openIds={openIds}
-          toggle={toggle}
-          color="border-blue-500"
-          num={4}
-          title="試合番号を設定する（Step ③）"
-        >
+        <Section id="label" openIds={openIds} toggle={toggle} color="border-blue-500" num={4} title="試合番号を設定する（Step ③）">
           <Desc>
-            確定したトーナメントの各試合に番号を割り当てます。
-            この番号はアナウンスの「第○試合」やライブ速報の表示順に使われます。
+            確定したトーナメントの各試合に番号を割り当てます。 この番号はアナウンスの「第○試合」やライブ速報の表示順に使われます。
           </Desc>
           <Steps
             steps={[
@@ -811,8 +751,7 @@ function OpSec3a1({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
         title="試合を進行する（タイマー＋操作パネル）"
       >
         <Desc>
-          試合の進行は「タイマー表示画面」と「操作パネル」の2画面で行います。
-          イベントを「開催中」に設定すると、コート画面（/court/1
+          試合の進行は「タイマー表示画面」と「操作パネル」の2画面で行います。 イベントを「開催中」に設定すると、コート画面（/court/1
           など）が有効になり、そこからタイマーと操作パネルを開けます。
           操作パネルで試合の開始・計時・得点記録・勝者確定まで一連の操作を行います。
         </Desc>
@@ -949,18 +888,10 @@ function OpSec3b1({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
   return (
     <div className="space-y-1.5">
       {/* ── 12. 試合速報 ── */}
-      <Section
-        id="live"
-        openIds={openIds}
-        toggle={toggle}
-        color="border-blue-500"
-        num={7}
-        title="試合速報を観客に共有する"
-        badge="任意"
-      >
+      <Section id="live" openIds={openIds} toggle={toggle} color="border-blue-500" num={7} title="試合速報を観客に共有する" badge="任意">
         <Desc>
-          /live ページは観客向けのリアルタイム速報画面です。
-          試合の進行状況・結果がリアルタイムで更新されます（5秒間隔）。 スマートフォンに最適化されたデザインです。
+          /live ページは観客向けのリアルタイム速報画面です。 試合の進行状況・結果がリアルタイムで更新されます（5秒間隔）。
+          スマートフォンに最適化されたデザインです。
         </Desc>
         <div className="text-xs text-gray-400 space-y-1">
           <p className="font-medium text-gray-300">表示内容:</p>
@@ -971,17 +902,10 @@ function OpSec3b1({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
             <li>・コート画面で勝者を確定するとすぐに反映されます</li>
           </ul>
           <p className="font-medium text-gray-300 mt-1">共有方法:</p>
-          <p className="ml-3">
-            下の「URLをコピー」ボタンで速報ページの URL を取得し、LINE グループや会場の QR コードで共有してください。
-          </p>
+          <p className="ml-3">下の「URLをコピー」ボタンで速報ページの URL を取得し、LINE グループや会場の QR コードで共有してください。</p>
         </div>
         <div className="flex items-center gap-3 pt-2">
-          <a
-            href="/live"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-blue-400 hover:text-blue-300 underline"
-          >
+          <a href="/live" target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 underline">
             /live を開く →
           </a>
           <CopyLiveUrlButton />

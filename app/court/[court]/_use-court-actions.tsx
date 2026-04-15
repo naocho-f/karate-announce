@@ -11,11 +11,7 @@ import { addPendingWinner, removePendingWinner } from "@/lib/optimistic-update";
 
 type MatchApiResult = "ok" | "failed" | "queued";
 
-async function callMatchApi(
-  matchId: string,
-  payload: Record<string, unknown>,
-  offlineMode: string,
-): Promise<MatchApiResult> {
+async function callMatchApi(matchId: string, payload: Record<string, unknown>, offlineMode: string): Promise<MatchApiResult> {
   try {
     const res = await resilientFetch(
       `/api/court/matches/${matchId}`,
@@ -36,12 +32,7 @@ async function callMatchApi(
   }
 }
 
-function getMatchContext(
-  matchesMap: Record<string, Match[]>,
-  tournaments: Tournament[],
-  tournamentId: string,
-  matchId: string,
-) {
+function getMatchContext(matchesMap: Record<string, Match[]>, tournaments: Tournament[], tournamentId: string, matchId: string) {
   const matches = matchesMap[tournamentId] ?? [];
   const match = matches.find((m) => m.id === matchId);
   const rounds = Math.max(...matches.map((m) => m.round), 1);

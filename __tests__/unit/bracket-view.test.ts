@@ -156,9 +156,7 @@ describe("formatResultMethod", () => {
   });
 
   it("ポイント", () => {
-    expect(formatResultMethod("point", { red_points: 3, white_points: 1, red_wazaari: 1, white_wazaari: 0 })).toBe(
-      "ポイント (3-1 技1-0)",
-    );
+    expect(formatResultMethod("point", { red_points: 3, white_points: 1, red_wazaari: 1, white_wazaari: 0 })).toBe("ポイント (3-1 技1-0)");
   });
 
   it("ポイント（detail なし）", () => {

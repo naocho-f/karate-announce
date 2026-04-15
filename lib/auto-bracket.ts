@@ -51,11 +51,7 @@ function matchesAge(entry: Entry, rule: BracketRule): boolean {
 }
 
 /** 範囲条件（体重・身長） */
-function matchesRange(
-  value: number | null | undefined,
-  min: number | null | undefined,
-  max: number | null | undefined,
-): boolean {
+function matchesRange(value: number | null | undefined, min: number | null | undefined, max: number | null | undefined): boolean {
   if (min != null && (value == null || value < min)) return false;
   if (max != null && (value == null || value > max)) return false;
   return true;
@@ -75,11 +71,7 @@ function matchesGradeByNumber(entryGradeNum: number, rule: BracketRule): boolean
 }
 
 /** 年齢カテゴリベースで年代条件を判定 */
-function matchesAgeByCategoryRange(
-  entryAge: number,
-  minCat: { minAge: number } | null,
-  maxCat: { maxAge: number | null } | null,
-): boolean {
+function matchesAgeByCategoryRange(entryAge: number, minCat: { minAge: number } | null, maxCat: { maxAge: number | null } | null): boolean {
   if (minCat && entryAge < minCat.minAge) return false;
   if (maxCat && maxCat.maxAge != null && entryAge > maxCat.maxAge) return false;
   return true;
@@ -182,11 +174,7 @@ function splitByGradeDiff(entries: Entry[], maxGradeDiff: number): Entry[][] {
  * 3. max_grade_diff がある場合はサブグループに分割
  * 4. どのルールにも合致しなかった選手は「未分類」として返す
  */
-export function groupEntriesByRules(
-  entries: Entry[],
-  bracketRules: BracketRule[],
-  entryRuleIds: Record<string, Set<string>>,
-): AutoGroup[] {
+export function groupEntriesByRules(entries: Entry[], bracketRules: BracketRule[], entryRuleIds: Record<string, Set<string>>): AutoGroup[] {
   // ルールを sort_order 順に処理
   const sortedRules = [...bracketRules].sort((a, b) => a.sort_order - b.sort_order);
   const assignedIds = new Set<string>();

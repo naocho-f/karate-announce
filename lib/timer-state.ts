@@ -566,8 +566,7 @@ function releaseNewaza(state: TimerState, s: TimerState, p: TimerPreset): void {
   const totalElapsed = getNewazaElapsedMs(state);
   const freeMs = p.newaza_free_release * 1000;
   // 累積モード: 今回区間の経過時間で無消費判定。非累積: 累積合計で判定
-  const segmentElapsed =
-    p.newaza_accumulate && state.newaza.startedAt ? Date.now() - state.newaza.startedAt : totalElapsed;
+  const segmentElapsed = p.newaza_accumulate && state.newaza.startedAt ? Date.now() - state.newaza.startedAt : totalElapsed;
   const consumed = segmentElapsed > freeMs;
   // 累積モード無消費解除: 今回区間分をロールバック（「なかったこと」にする）
   const newElapsedMs = p.newaza_accumulate ? (consumed ? totalElapsed : totalElapsed - segmentElapsed) : 0;

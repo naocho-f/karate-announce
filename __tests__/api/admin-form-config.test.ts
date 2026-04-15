@@ -92,9 +92,7 @@ describe("/api/admin/form-config PUT", () => {
     const req = createAdminRequest("PUT", "/api/admin/form-config", {
       body: {
         config_id: "fc1",
-        fields: [
-          { id: "ff1", visible: true, required: true, sort_order: 0, has_other_option: false, custom_choices: null },
-        ],
+        fields: [{ id: "ff1", visible: true, required: true, sort_order: 0, has_other_option: false, custom_choices: null }],
       },
     });
     const res = await PUT(req);

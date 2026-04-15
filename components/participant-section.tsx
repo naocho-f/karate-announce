@@ -52,19 +52,12 @@ function EntryFormUrl({ eventId }: { eventId: string }) {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs text-gray-400">参加申込フォーム URL</span>
-        <a
-          href={`/entry/${eventId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-blue-400 hover:text-blue-300"
-        >
+        <a href={`/entry/${eventId}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300">
           フォームを開く →
         </a>
       </div>
       <div className="flex items-center gap-2">
-        <span className="flex-1 text-xs text-gray-300 bg-gray-700 rounded px-3 py-2 truncate font-mono select-all">
-          {url}
-        </span>
+        <span className="flex-1 text-xs text-gray-300 bg-gray-700 rounded px-3 py-2 truncate font-mono select-all">{url}</span>
         <button
           onClick={copy}
           className={`shrink-0 text-xs px-3 py-2 rounded-lg transition font-medium ${
@@ -236,18 +229,7 @@ const DEMO_EXPERIENCES = [
   "大会経験あり",
   "全国大会出場経験あり",
 ];
-const DEMO_PREFECTURES = [
-  "北海道",
-  "青森県",
-  "岩手県",
-  "宮城県",
-  "東京都",
-  "神奈川県",
-  "大阪府",
-  "愛知県",
-  "福岡県",
-  "沖縄県",
-];
+const DEMO_PREFECTURES = ["北海道", "青森県", "岩手県", "宮城県", "東京都", "神奈川県", "大阪府", "愛知県", "福岡県", "沖縄県"];
 const DEMO_GUARDIAN_NAMES = [
   "山田花子",
   "田中美紀",
@@ -370,18 +352,12 @@ function generateDemoEntries(
   const matchExpChoices = getChoiceValues("match_experience", ["none", "1-3", "4-10", "11+"]);
   const desiredMatchChoices = getChoiceValues("desired_match_count", ["1", "2", "3", "4"]);
   const headButtChoices = getChoiceValues("head_butt_preference", ["with_headbutt", "without_headbutt", "either"]);
-  const equipmentChoices = getChoiceValues("equipment_owned", [
-    "gi",
-    "shield_mask",
-    "fist_guard",
-    "leg_guard",
-    "groin_guard",
-    "belt",
-  ]);
+  const equipmentChoices = getChoiceValues("equipment_owned", ["gi", "shield_mask", "fist_guard", "leg_guard", "groin_guard", "belt"]);
   const rentalFields = ["shield_mask", "fist_guard", "leg_guard", "groin_guard", "belt", "gi"] as const;
-  const rentalChoicesMap = Object.fromEntries(
-    rentalFields.map((key) => [key, getChoiceValues(key, ["own", "rental", "buy"])]),
-  ) as Record<string, string[]>;
+  const rentalChoicesMap = Object.fromEntries(rentalFields.map((key) => [key, getChoiceValues(key, ["own", "rental", "buy"])])) as Record<
+    string,
+    string[]
+  >;
   const rulePool = buildDemoRulePool(count, ruleIds);
   // __any__ 選択肢の検出（「どちらでもOK」対応）
   const rpConfig = fieldConfigs?.find((f) => f.field_key === "rule_preference");
@@ -481,12 +457,7 @@ function getRulePreferenceValue(entry: Entry, entryRuleIds: Record<string, Set<s
   );
 }
 
-function getFieldValue(
-  entry: Entry,
-  key: string,
-  entryRuleIds: Record<string, Set<string>>,
-  eventRules: Rule[],
-): string {
+function getFieldValue(entry: Entry, key: string, entryRuleIds: Record<string, Set<string>>, eventRules: Rule[]): string {
   const specialGetter = SPECIAL_FIELD_GETTERS[key];
   if (specialGetter) return specialGetter(entry);
   if (key === "rule_preference") return getRulePreferenceValue(entry, entryRuleIds, eventRules);
@@ -501,12 +472,7 @@ function getFieldValue(
   return String(extra);
 }
 
-function resolveArrayChoices(
-  arr: string[],
-  fieldConfigs: FormFieldConfig[],
-  customFieldDefs: CustomFieldDef[],
-  key: string,
-): string {
+function resolveArrayChoices(arr: string[], fieldConfigs: FormFieldConfig[], customFieldDefs: CustomFieldDef[], key: string): string {
   const fc = fieldConfigs.find((f) => f.field_key === key);
   const def = isCustomField(key) ? customFieldDefs.find((d) => d.field_key === key) : null;
   const choices = fc?.custom_choices ?? def?.choices ?? getFieldDef(key)?.defaultChoices ?? [];
@@ -521,12 +487,7 @@ function resolveArrayChoices(
 
 const SEX_LABELS: Record<string, string> = { male: "男性", female: "女性" };
 
-function resolveChoiceLabel(
-  key: string,
-  raw: string,
-  fieldConfigs: FormFieldConfig[],
-  customFieldDefs: CustomFieldDef[],
-): string | null {
+function resolveChoiceLabel(key: string, raw: string, fieldConfigs: FormFieldConfig[], customFieldDefs: CustomFieldDef[]): string | null {
   const fc = fieldConfigs.find((f) => f.field_key === key);
   const def = isCustomField(key) ? customFieldDefs.find((d) => d.field_key === key) : null;
   const poolDef = getFieldDef(key);
@@ -536,12 +497,7 @@ function resolveChoiceLabel(
   return c?.label ?? null;
 }
 
-function formatValue(
-  key: string,
-  raw: string,
-  fieldConfigs: FormFieldConfig[],
-  customFieldDefs: CustomFieldDef[],
-): string {
+function formatValue(key: string, raw: string, fieldConfigs: FormFieldConfig[], customFieldDefs: CustomFieldDef[]): string {
   if (raw.startsWith("other:")) return `その他: ${raw.slice(6)}`;
   if (key === "sex") return SEX_LABELS[raw] ?? raw;
   if (raw.startsWith("[")) {
@@ -565,10 +521,7 @@ function csvCell(val: string, forceText?: boolean): string {
   return val;
 }
 
-function buildCsvDisplayFields(
-  fieldConfigs: FormFieldConfig[],
-  customFieldDefs: CustomFieldDef[],
-): { key: string; label: string }[] {
+function buildCsvDisplayFields(fieldConfigs: FormFieldConfig[], customFieldDefs: CustomFieldDef[]): { key: string; label: string }[] {
   const mergedKeys = new Set(["age", "kana", "organization_kana", "branch_kana"]);
   return fieldConfigs
     .filter((fc) => !mergedKeys.has(fc.field_key))
@@ -627,9 +580,7 @@ function buildCsvRow(
     { val: entry.form_version != null ? String(entry.form_version) : "", forceText: false },
   ];
 
-  return [{ val: String(idx + 1), forceText: false }, ...fieldCells, ...suffix]
-    .map((c) => csvCell(c.val, c.forceText))
-    .join(",");
+  return [{ val: String(idx + 1), forceText: false }, ...fieldCells, ...suffix].map((c) => csvCell(c.val, c.forceText)).join(",");
 }
 
 async function downloadCsvData(
@@ -644,12 +595,7 @@ async function downloadCsvData(
   let customFieldDefs: CustomFieldDef[] = [];
   if (config) {
     const [{ data: fields }, { data: defs }] = await Promise.all([
-      supabase
-        .from("form_field_configs")
-        .select("*")
-        .eq("form_config_id", config.id)
-        .eq("visible", true)
-        .order("sort_order"),
+      supabase.from("form_field_configs").select("*").eq("form_config_id", config.id).eq("visible", true).order("sort_order"),
       supabase.from("custom_field_defs").select("*").eq("form_config_id", config.id).order("sort_order"),
     ]);
     fieldConfigs = (fields ?? []) as FormFieldConfig[];
@@ -657,19 +603,9 @@ async function downloadCsvData(
   }
 
   const displayFields = buildCsvDisplayFields(fieldConfigs, customFieldDefs);
-  const textForceKeys = new Set(
-    fieldConfigs.filter((fc) => getFieldDef(fc.field_key)?.type === "tel").map((fc) => fc.field_key),
-  );
+  const textForceKeys = new Set(fieldConfigs.filter((fc) => getFieldDef(fc.field_key)?.type === "tel").map((fc) => fc.field_key));
 
-  const headers = [
-    "No.",
-    ...displayFields.map((f) => f.label),
-    "管理者メモ",
-    "欠場",
-    "テスト",
-    "申込日時",
-    "フォームver",
-  ];
+  const headers = ["No.", ...displayFields.map((f) => f.label), "管理者メモ", "欠場", "テスト", "申込日時", "フォームver"];
 
   const rows = entries.map((entry, idx) =>
     buildCsvRow(entry, idx, displayFields, fieldConfigs, customFieldDefs, textForceKeys, entryRuleIds, eventRules),
@@ -761,10 +697,7 @@ function EntriesSectionHeader({
         >
           {refreshing ? "更新中..." : "↻ 最新に更新"}
         </button>
-        <button
-          onClick={onToggleForm}
-          className="text-xs bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition"
-        >
+        <button onClick={onToggleForm} className="text-xs bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition">
           {showForm ? "キャンセル" : "+ 追加"}
         </button>
         <button onClick={onToggleOpen} className="text-xs text-gray-400 hover:text-gray-200">
@@ -775,15 +708,7 @@ function EntriesSectionHeader({
   );
 }
 
-function EntryNameCell({
-  entry,
-  eventId,
-  currentFormVersion,
-}: {
-  entry: Entry;
-  eventId: string;
-  currentFormVersion: number | null;
-}) {
+function EntryNameCell({ entry, eventId, currentFormVersion }: { entry: Entry; eventId: string; currentFormVersion: number | null }) {
   return (
     <td className="px-2 py-1.5 whitespace-nowrap">
       <a
@@ -802,10 +727,7 @@ function EntryNameCell({
         </span>
       )}
       {currentFormVersion != null && entry.form_version == null && (
-        <span
-          className="ml-1.5 text-xs bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded"
-          title="フォーム設定導入前の申込"
-        >
+        <span className="ml-1.5 text-xs bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded" title="フォーム設定導入前の申込">
           旧ver
         </span>
       )}
@@ -1046,9 +968,7 @@ function EntryTableRow({
       <tr className={`border-b border-gray-700 ${rowBg}`}>
         <td className="px-2 py-1.5 text-xs text-gray-600 text-right w-7">{index + 1}</td>
         <EntryNameCell entry={entry} eventId={eventId} currentFormVersion={currentFormVersion} />
-        <td className="px-2 py-1.5 text-xs text-gray-400">
-          {[entry.school_name, entry.dojo_name].filter(Boolean).join(" ")}
-        </td>
+        <td className="px-2 py-1.5 text-xs text-gray-400">{[entry.school_name, entry.dojo_name].filter(Boolean).join(" ")}</td>
         <td className="px-2 py-1.5 text-xs text-gray-500 whitespace-nowrap">{entryPhysicalInfo(entry)}</td>
         <RuleButtonsCell
           entry={entry}
@@ -1074,13 +994,7 @@ function EntryTableRow({
           onExpire={onExpire}
         />
       </tr>
-      <EntryExpandedRows
-        entry={entry}
-        memoOpen={memoOpen}
-        appMemoOpen={appMemoOpen}
-        colSpan={colSpan}
-        onAdded={onAdded}
-      />
+      <EntryExpandedRows entry={entry} memoOpen={memoOpen} appMemoOpen={appMemoOpen} colSpan={colSpan} onAdded={onAdded} />
     </>
   );
 }
@@ -1328,15 +1242,7 @@ function EntriesSection({
   );
 }
 
-function InlineMemoEditor({
-  entryId,
-  initialValue,
-  onSaved,
-}: {
-  entryId: string;
-  initialValue: string | null;
-  onSaved: () => void;
-}) {
+function InlineMemoEditor({ entryId, initialValue, onSaved }: { entryId: string; initialValue: string | null; onSaved: () => void }) {
   const [memo, setMemo] = useState(initialValue ?? "");
   const [prevInitialValue, setPrevInitialValue] = useState(initialValue);
   if (initialValue !== prevInitialValue) {
@@ -1482,25 +1388,14 @@ function AddEntryNameFields({
         placeholder="名読み"
         className={`w-28 ${inp}`}
       />
-      <input
-        value={schoolName}
-        onChange={(e) => setSchoolName(e.target.value)}
-        placeholder="流派 *"
-        className={`w-28 ${inp}`}
-        required
-      />
+      <input value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="流派 *" className={`w-28 ${inp}`} required />
       <input
         value={schoolNameReading}
         onChange={(e) => setSchoolNameReading(e.target.value)}
         placeholder="流派読み"
         className={`w-28 ${inp}`}
       />
-      <input
-        value={dojoName}
-        onChange={(e) => setDojoName(e.target.value)}
-        placeholder="道場名"
-        className={`w-32 ${inp}`}
-      />
+      <input value={dojoName} onChange={(e) => setDojoName(e.target.value)} placeholder="道場名" className={`w-32 ${inp}`} />
       <input
         value={dojoNameReading}
         onChange={(e) => setDojoNameReading(e.target.value)}
@@ -1746,9 +1641,7 @@ function AddEntryForm({
         disabled={saving || !familyName.trim()}
         className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-1.5 rounded text-sm font-medium transition flex items-center justify-center gap-1.5"
       >
-        {saving && (
-          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-        )}
+        {saving && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
         {saving ? "追加中..." : "追加"}
       </button>
     </form>
@@ -1778,8 +1671,7 @@ function FormConfigStatusBadge({ eventId }: { eventId: string }) {
     none: "bg-gray-700 text-gray-400",
   };
   const labels = { ready: "公開中", draft: "準備中", none: "未設定" };
-  const versionLabel =
-    status !== "none" && version > 0 ? ` v${version}` : status !== "none" && version === 0 ? " 未公開" : "";
+  const versionLabel = status !== "none" && version > 0 ? ` v${version}` : status !== "none" && version === 0 ? " 未公開" : "";
   return (
     <span className={`text-xs px-2 py-0.5 rounded ${styles[status]}`}>
       {labels[status]}
@@ -1850,9 +1742,7 @@ function FormConfigCard({
           <span className="text-sm font-semibold text-gray-200">フォーム設定</span>
           <FormConfigStatusBadge eventId={eventId} key={formConfigVersion} />
         </div>
-        <span className={`text-gray-500 text-xs transition-transform ${entrySubTab === "form" ? "rotate-180" : ""}`}>
-          ▼
-        </span>
+        <span className={`text-gray-500 text-xs transition-transform ${entrySubTab === "form" ? "rotate-180" : ""}`}>▼</span>
       </button>
       {entrySubTab === "form" && (
         <div className="border-t border-gray-700">
@@ -1872,8 +1762,7 @@ function EntryClosedButton({
   togglingClosed: boolean;
   onToggleEntryClosed: () => void;
 }) {
-  const isEffectivelyClosed =
-    event.entry_closed || (event.entry_close_at != null && new Date(event.entry_close_at) <= new Date());
+  const isEffectivelyClosed = event.entry_closed || (event.entry_close_at != null && new Date(event.entry_close_at) <= new Date());
   return (
     <button
       onClick={onToggleEntryClosed}
@@ -1884,9 +1773,7 @@ function EntryClosedButton({
           : "bg-green-700 hover:bg-green-600 text-white border-transparent"
       }`}
     >
-      {togglingClosed && (
-        <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
-      )}
+      {togglingClosed && <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />}
       {togglingClosed
         ? "処理中..."
         : event.entry_closed
@@ -2000,9 +1887,7 @@ function AutoCloseSection({
         </button>
       )}
       {event.entry_close_at && (
-        <span className="text-xs text-gray-500">
-          ({new Date(event.entry_close_at) <= new Date() ? "期限切れ" : "予約済み"})
-        </span>
+        <span className="text-xs text-gray-500">({new Date(event.entry_close_at) <= new Date() ? "期限切れ" : "予約済み"})</span>
       )}
     </div>
   );
@@ -2052,9 +1937,7 @@ function EntryReceptionCard({
       {showClosedGuide && event.entry_closed && (
         <div className="flex items-center gap-3 px-3 py-2 bg-blue-950/50 border border-blue-700/50 rounded-lg">
           <span className="text-blue-400 shrink-0">💡</span>
-          <p className="text-sm text-blue-300">
-            参加受付を締め切りました。次は② 対戦表作成で対戦表を作成してください。
-          </p>
+          <p className="text-sm text-blue-300">参加受付を締め切りました。次は② 対戦表作成で対戦表を作成してください。</p>
           <button
             onClick={() => onNavigateStep(2)}
             className="ml-auto shrink-0 text-xs bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded transition"
@@ -2138,12 +2021,7 @@ export function ParticipantSection({
         onSetEntrySubTab={onSetEntrySubTab}
         onSetFormConfigVersion={onSetFormConfigVersion}
       />
-      <EmailConfigCard
-        event={event}
-        entrySubTab={entrySubTab}
-        onSetEntrySubTab={onSetEntrySubTab}
-        onSetEvent={onSetEvent}
-      />
+      <EmailConfigCard event={event} entrySubTab={entrySubTab} onSetEntrySubTab={onSetEntrySubTab} onSetEvent={onSetEvent} />
       <EntryReceptionCard
         eventId={eventId}
         event={event}

@@ -99,11 +99,7 @@ function matchApproxAge(entry: Entry, minNum: number | null, maxNum: number | nu
   return true;
 }
 
-export function gradeFilterPredicate(
-  minGrade: string,
-  maxGrade: string,
-  ageCategories?: AgeCategory[],
-): (entry: Entry) => boolean {
+export function gradeFilterPredicate(minGrade: string, maxGrade: string, ageCategories?: AgeCategory[]): (entry: Entry) => boolean {
   if (!minGrade && !maxGrade) return () => true;
 
   const minCat = minGrade ? findAgeCategory(minGrade, ageCategories) : null;

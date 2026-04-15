@@ -71,9 +71,7 @@ describe("flushTimerLogs", () => {
   });
 
   it("payload がある場合はそのまま渡す", () => {
-    const next = stateWithLogs([
-      { action: "time_adjust", payload: { deltaMs: -10000 }, elapsedMs: 30000, timestamp: Date.now() },
-    ]);
+    const next = stateWithLogs([{ action: "time_adjust", payload: { deltaMs: -10000 }, elapsedMs: 30000, timestamp: Date.now() }]);
     flushTimerLogs("match-1", 0, next);
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({

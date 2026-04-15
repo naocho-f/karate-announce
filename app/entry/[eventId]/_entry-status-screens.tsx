@@ -72,9 +72,7 @@ export function SubmittedScreen({
         <h1 className="text-xl font-bold">申込完了</h1>
         <p className="text-gray-400 text-sm">{displayName} さんの参加申込を受け付けました。</p>
         {emailSent && (
-          <p className="text-gray-400 text-xs mt-2">
-            確認メールを送信しました。届かない場合は迷惑メールフォルダをご確認ください。
-          </p>
+          <p className="text-gray-400 text-xs mt-2">確認メールを送信しました。届かない場合は迷惑メールフォルダをご確認ください。</p>
         )}
         <p className="text-gray-500 text-xs">{event.name}</p>
         <button onClick={onReset} className="text-blue-400 hover:text-blue-300 text-sm underline">

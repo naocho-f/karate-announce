@@ -53,12 +53,7 @@ export default function EntryDetailPage({ params }: Props) {
       const { data: config } = await supabase.from("form_configs").select("id").eq("event_id", eventId).maybeSingle();
       if (config) {
         const [{ data: fields }, { data: defs }] = await Promise.all([
-          supabase
-            .from("form_field_configs")
-            .select("*")
-            .eq("form_config_id", config.id)
-            .eq("visible", true)
-            .order("sort_order"),
+          supabase.from("form_field_configs").select("*").eq("form_config_id", config.id).eq("visible", true).order("sort_order"),
           supabase.from("custom_field_defs").select("*").eq("form_config_id", config.id).order("sort_order"),
         ]);
         setFieldConfigs((fields ?? []) as FormFieldConfig[]);
@@ -126,11 +121,7 @@ export default function EntryDetailPage({ params }: Props) {
 
 type ChoiceOption = { label: string; value: string };
 
-function resolveChoices(
-  key: string,
-  fieldConfigs: FormFieldConfig[],
-  customFieldDefs: CustomFieldDef[],
-): ChoiceOption[] {
+function resolveChoices(key: string, fieldConfigs: FormFieldConfig[], customFieldDefs: CustomFieldDef[]): ChoiceOption[] {
   const fc = fieldConfigs.find((f) => f.field_key === key);
   const def = isCustomField(key) ? customFieldDefs.find((d) => d.field_key === key) : null;
   const poolDef = getFieldDef(key);
@@ -142,12 +133,7 @@ function resolveChoiceLabel(value: string, choices: ChoiceOption[]): string | nu
   return c?.label ?? null;
 }
 
-function formatArrayValue(
-  key: string,
-  raw: string,
-  fieldConfigs: FormFieldConfig[],
-  customFieldDefs: CustomFieldDef[],
-): string | null {
+function formatArrayValue(key: string, raw: string, fieldConfigs: FormFieldConfig[], customFieldDefs: CustomFieldDef[]): string | null {
   try {
     const arr = JSON.parse(raw);
     if (!Array.isArray(arr)) return null;
@@ -165,12 +151,7 @@ function formatArrayValue(
 
 const SEX_LABELS: Record<string, string> = { male: "男性", female: "女性" };
 
-function formatFieldValue(
-  key: string,
-  raw: string,
-  fieldConfigs: FormFieldConfig[],
-  customFieldDefs: CustomFieldDef[],
-): string {
+function formatFieldValue(key: string, raw: string, fieldConfigs: FormFieldConfig[], customFieldDefs: CustomFieldDef[]): string {
   if (raw.startsWith("other:")) return `その他: ${raw.slice(6)}`;
   if (key === "sex") return SEX_LABELS[raw] ?? raw;
   if (raw.startsWith("[")) {
@@ -301,12 +282,7 @@ function EntryDetailContent({
             fieldConfigs={fieldConfigs}
             customFieldDefs={customFieldDefs}
           />
-          <AdminMemoSection
-            adminMemo={adminMemo}
-            saving={saving}
-            onChange={onAdminMemoChange}
-            onSave={onSaveAdminMemo}
-          />
+          <AdminMemoSection adminMemo={adminMemo} saving={saving} onChange={onAdminMemoChange} onSave={onSaveAdminMemo} />
         </div>
       </div>
     </main>

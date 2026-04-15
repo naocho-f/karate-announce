@@ -192,18 +192,13 @@ function ReportRow({
   const badge = STATUS_BADGE[report.status] ?? STATUS_BADGE.open;
   return (
     <div className="bg-gray-800 rounded-lg overflow-hidden">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-750 transition"
-      >
+      <button onClick={onToggle} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-750 transition">
         <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${badge.cls}`}>{badge.label}</span>
         <span className="text-sm text-gray-200 truncate flex-1">
           {report.what_did.length > 30 ? report.what_did.slice(0, 30) + "..." : report.what_did}
         </span>
         <span className="text-xs text-gray-500 whitespace-nowrap">{relativeTime(report.created_at)}</span>
-        {report.app_version && (
-          <span className="text-[10px] bg-gray-700 text-gray-400 px-1 py-0.5 rounded">{report.app_version}</span>
-        )}
+        {report.app_version && <span className="text-[10px] bg-gray-700 text-gray-400 px-1 py-0.5 rounded">{report.app_version}</span>}
       </button>
       {isExpanded && children}
     </div>
@@ -294,12 +289,7 @@ export default function BugReportsPanel() {
       {loading && <p className="text-sm text-gray-500">読み込み中...</p>}
       {!loading && filtered.length === 0 && <p className="text-sm text-gray-500">報告はありません</p>}
       {filtered.map((report) => (
-        <ReportRow
-          key={report.id}
-          report={report}
-          isExpanded={expandedId === report.id}
-          onToggle={() => toggleExpand(report)}
-        >
+        <ReportRow key={report.id} report={report} isExpanded={expandedId === report.id} onToggle={() => toggleExpand(report)}>
           <div className="px-3 pb-3 space-y-3 border-t border-gray-700">
             <ReportDetailSection report={report} />
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">

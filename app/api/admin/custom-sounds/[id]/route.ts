@@ -35,12 +35,7 @@ export async function DELETE(request: NextRequest, ctx: Ctx) {
   const { id } = await ctx.params;
 
   // 音源レコードを取得
-  const { data: sound } = await supabaseAdmin
-    .from("tenant_custom_sounds")
-    .select("file_url")
-    .eq("id", id)
-    .is("deleted_at", null)
-    .single();
+  const { data: sound } = await supabaseAdmin.from("tenant_custom_sounds").select("file_url").eq("id", id).is("deleted_at", null).single();
 
   if (!sound) {
     return NextResponse.json({ error: "Sound not found" }, { status: 404 });
@@ -56,10 +51,7 @@ export async function DELETE(request: NextRequest, ctx: Ctx) {
   }
 
   // レコード削除（ソフトデリート）
-  const { error } = await supabaseAdmin
-    .from("tenant_custom_sounds")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
+  const { error } = await supabaseAdmin.from("tenant_custom_sounds").update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) return dbError(error);
 
   return NextResponse.json({ ok: true });

@@ -15,15 +15,12 @@ function FixedGrades() {
           </span>
         ))}
       </div>
-      <p className="text-xs text-gray-500 mt-1">
-        これらの区分は固定です。エントリーフォームと対戦表フィルタで使用されます。
-      </p>
+      <p className="text-xs text-gray-500 mt-1">これらの区分は固定です。エントリーフォームと対戦表フィルタで使用されます。</p>
     </div>
   );
 }
 
-const INP_CLASS =
-  "bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500";
+const INP_CLASS = "bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-sm text-white outline-none focus:border-blue-500";
 
 function CategoryRow({
   cat,
@@ -147,9 +144,7 @@ export default function AgeCategoriesPanel() {
       <FixedGrades />
       <div>
         <h3 className="text-sm font-medium text-gray-300 mb-2">年齢ベース区分</h3>
-        <p className="text-xs text-gray-500 mb-3">
-          高校生以上の年齢区分を設定します。ラベル・最小年齢・最大年齢を指定してください。
-        </p>
+        <p className="text-xs text-gray-500 mb-3">高校生以上の年齢区分を設定します。ラベル・最小年齢・最大年齢を指定してください。</p>
         <div className="space-y-2">
           {categories.map((cat, idx) => (
             <CategoryRow key={idx} cat={cat} idx={idx} onUpdate={updateCategory} onRemove={removeCategory} />

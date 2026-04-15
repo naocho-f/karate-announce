@@ -120,13 +120,7 @@ function DashboardPanel({
     <div className="space-y-3">
       {matchCountInfo}
       {cards.map((c) => (
-        <DashboardCard
-          key={c.key}
-          label={c.label}
-          total={c.total}
-          unassigned={c.unassigned}
-          tournamentCount={c.tournamentCount}
-        />
+        <DashboardCard key={c.key} label={c.label} total={c.total} unassigned={c.unassigned} tournamentCount={c.tournamentCount} />
       ))}
     </div>
   );
@@ -323,12 +317,7 @@ export type BracketSectionProps = {
   onSetShowAutoDialog: (show: boolean) => void;
   onNavigateStep: (s: 1 | 2 | 3) => void;
   onLoad: () => void;
-  onHandleAutoCreateFromDialog: (
-    autoGroups: AutoGroup[],
-    eventId: string,
-    evtRules: Rule[],
-    reload: () => void,
-  ) => void;
+  onHandleAutoCreateFromDialog: (autoGroups: AutoGroup[], eventId: string, evtRules: Rule[], reload: () => void) => void;
 };
 
 function BracketStatusBanners({
@@ -364,10 +353,7 @@ function BracketStatusBanners({
         <div className="bg-green-950 border border-green-700 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap">
           <span className="text-green-400 shrink-0">✅</span>
           <p className="text-sm text-green-300">全員の対戦表が確定しました。試合番号を設定してください。</p>
-          <button
-            onClick={() => onNavigateStep(3)}
-            className="ml-auto shrink-0 text-xs text-green-400 hover:text-green-300 underline"
-          >
+          <button onClick={() => onNavigateStep(3)} className="ml-auto shrink-0 text-xs text-green-400 hover:text-green-300 underline">
             ③ 試合番号設定へ →
           </button>
         </div>
@@ -375,13 +361,8 @@ function BracketStatusBanners({
       {!isEntryClosed && !hasTournaments && (
         <div className="bg-blue-950/50 border border-blue-700/50 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap">
           <span className="text-blue-400 shrink-0">💡</span>
-          <p className="text-sm text-blue-300">
-            参加受付が終了していません。締め切ってから対戦表を作成することをおすすめします。
-          </p>
-          <button
-            onClick={() => onNavigateStep(1)}
-            className="ml-auto shrink-0 text-xs text-blue-400 hover:text-blue-300"
-          >
+          <p className="text-sm text-blue-300">参加受付が終了していません。締め切ってから対戦表を作成することをおすすめします。</p>
+          <button onClick={() => onNavigateStep(1)} className="ml-auto shrink-0 text-xs text-blue-400 hover:text-blue-300">
             ① 参加者管理へ →
           </button>
         </div>
@@ -454,11 +435,7 @@ export function BracketSection({
             tournamentMatchFighterIds={tournamentMatchFighterIds}
           />
 
-          <RuleDistributionPanel
-            entries={entries.filter((e) => !e.is_withdrawn)}
-            eventRules={eventRules}
-            entryRuleIds={entryRuleIds}
-          />
+          <RuleDistributionPanel entries={entries.filter((e) => !e.is_withdrawn)} eventRules={eventRules} entryRuleIds={entryRuleIds} />
 
           <TournamentEditor
             eventId={eventId}

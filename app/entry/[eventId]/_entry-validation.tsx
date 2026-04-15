@@ -22,11 +22,7 @@ function validateKana(values: Record<string, string>, errors: Record<string, str
   }
 }
 
-function validateConsents(
-  notices: NoticeWithImages[],
-  consents: Record<string, boolean>,
-  errors: Record<string, string>,
-) {
+function validateConsents(notices: NoticeWithImages[], consents: Record<string, boolean>, errors: Record<string, string>) {
   for (const n of notices) {
     if (n.require_consent && !consents[n.id]) {
       errors[`consent_${n.id}`] = `「${n.consent_label || "上記に同意します"}」にチェックしてください`;
@@ -34,12 +30,7 @@ function validateConsents(
   }
 }
 
-function validateEmail(
-  visibleFields: VisibleField[],
-  emailMismatch: boolean,
-  emailConfirm: string,
-  errors: Record<string, string>,
-) {
+function validateEmail(visibleFields: VisibleField[], emailMismatch: boolean, emailConfirm: string, errors: Record<string, string>) {
   if (emailMismatch) errors["email"] = "メールアドレスが一致しません";
   const emailField = visibleFields.find((f) => f.def.key === "email");
   if (emailField && emailField.config.required && emailField.def.hasConfirmInput && !emailConfirm.trim()) {
@@ -127,8 +118,7 @@ function computeAgeFromBirth(birthDate: string, eventDate: string | null): numbe
   const birth = new Date(birthDate);
   let age = refDate.getFullYear() - birth.getFullYear();
   const hasBday =
-    refDate.getMonth() > birth.getMonth() ||
-    (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
+    refDate.getMonth() > birth.getMonth() || (refDate.getMonth() === birth.getMonth() && refDate.getDate() >= birth.getDate());
   if (!hasBday) age--;
   return age;
 }

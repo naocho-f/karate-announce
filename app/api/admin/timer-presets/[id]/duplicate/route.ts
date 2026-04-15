@@ -11,11 +11,7 @@ export async function POST(request: NextRequest, ctx: Ctx) {
   if (!verifyAdminAuth(request)) return unauthorized();
   const { id } = await ctx.params;
 
-  const { data: original, error: fetchErr } = await supabaseAdmin
-    .from("timer_presets")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const { data: original, error: fetchErr } = await supabaseAdmin.from("timer_presets").select("*").eq("id", id).single();
   if (fetchErr || !original) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

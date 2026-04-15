@@ -336,8 +336,7 @@ describe("email-template", () => {
     });
 
     it("DEFAULT_BODY をカスタムテンプレートで上書きできる", () => {
-      const customBody =
-        "{{participant_name}}様、{{event_name}}にお申し込みいただきありがとうございます。\n{{entry_details}}";
+      const customBody = "{{participant_name}}様、{{event_name}}にお申し込みいただきありがとうございます。\n{{entry_details}}";
       const result = renderTemplate(customBody, {
         participant_name: "田中一郎",
         event_name: "秋季大会",

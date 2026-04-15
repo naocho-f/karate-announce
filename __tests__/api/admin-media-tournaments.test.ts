@@ -8,14 +8,7 @@
  * - /api/admin/tournaments (POST)
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  createMockSupabase,
-  mockResult,
-  createAdminRequest,
-  createParams,
-  resetAll,
-  getCallsFor,
-} from "../helpers/supabase-mock";
+import { createMockSupabase, mockResult, createAdminRequest, createParams, resetAll, getCallsFor } from "../helpers/supabase-mock";
 
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: createMockSupabase() }));
 vi.mock("@/lib/admin-auth", async (importOriginal) => {
@@ -209,8 +202,7 @@ describe("/api/admin/timer-presets/[id]/buzzer", () => {
   it("DELETE: カスタムブザー音源を削除できる", async () => {
     mockResult("timer_presets", "select", {
       data: {
-        buzzer_custom_path:
-          "https://mock.supabase.co/storage/v1/object/public/form-notice-images/timer-buzzer/p1/buzz.mp3",
+        buzzer_custom_path: "https://mock.supabase.co/storage/v1/object/public/form-notice-images/timer-buzzer/p1/buzz.mp3",
       },
     });
     const { DELETE } = await import("@/app/api/admin/timer-presets/[id]/buzzer/route");
@@ -750,8 +742,7 @@ describe("/api/admin/tournaments POST", () => {
       (c) =>
         c.args[0] &&
         typeof c.args[0] === "object" &&
-        ("fighter1_id" in (c.args[0] as Record<string, unknown>) ||
-          "fighter2_id" in (c.args[0] as Record<string, unknown>)),
+        ("fighter1_id" in (c.args[0] as Record<string, unknown>) || "fighter2_id" in (c.args[0] as Record<string, unknown>)),
     );
     expect(advanceCalls.length).toBeGreaterThanOrEqual(1);
   });

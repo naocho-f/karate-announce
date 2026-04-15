@@ -5,16 +5,7 @@
  * fake-indexeddb により IndexedDB をポリフィル済み（vitest.config.ts の setupFiles）。
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  enqueue,
-  getPendingCount,
-  getAll,
-  remove,
-  clearAll,
-  cacheData,
-  getCachedData,
-  flush,
-} from "@/lib/offline-queue";
+import { enqueue, getPendingCount, getAll, remove, clearAll, cacheData, getCachedData, flush } from "@/lib/offline-queue";
 
 beforeEach(async () => {
   await clearAll();

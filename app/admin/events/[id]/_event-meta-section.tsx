@@ -76,10 +76,7 @@ function MetaDisplayView({ event, onEdit }: { event: Event; onEdit: () => void }
       </span>
       {event.court_names && event.court_names.some((n) => n?.trim()) && (
         <span className="text-sm text-gray-400">
-          コート名:{" "}
-          <span className="text-gray-200">
-            {event.court_names.map((n, i) => n?.trim() || `コート${i + 1}`).join(" / ")}
-          </span>
+          コート名: <span className="text-gray-200">{event.court_names.map((n, i) => n?.trim() || `コート${i + 1}`).join(" / ")}</span>
         </span>
       )}
       <button onClick={onEdit} className="ml-auto text-xs text-blue-400 hover:text-blue-300">
@@ -150,9 +147,7 @@ function MetaEditForm({
           disabled={savingMeta}
           className="px-4 py-1.5 text-sm rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium disabled:opacity-50 flex items-center gap-1.5"
         >
-          {savingMeta && (
-            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-          )}
+          {savingMeta && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
           {savingMeta ? "保存中..." : "保存"}
         </button>
         <button

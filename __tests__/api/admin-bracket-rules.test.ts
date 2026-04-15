@@ -6,14 +6,7 @@
  * - /api/admin/bracket-rules/[id] (PUT, DELETE)
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  createMockSupabase,
-  mockResult,
-  createAdminRequest,
-  createRequest,
-  createParams,
-  resetAll,
-} from "../helpers/supabase-mock";
+import { createMockSupabase, mockResult, createAdminRequest, createRequest, createParams, resetAll } from "../helpers/supabase-mock";
 
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: createMockSupabase() }));
 vi.mock("@/lib/admin-auth", async (importOriginal) => {

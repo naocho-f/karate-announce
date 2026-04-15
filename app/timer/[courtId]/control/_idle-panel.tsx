@@ -46,9 +46,7 @@ export default function IdlePanel({
         onClick={onSwapSides}
         disabled={swapping}
         className={`w-full py-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2 ${
-          swapSides
-            ? "bg-yellow-700 hover:bg-yellow-600 text-yellow-100"
-            : "bg-gray-800 hover:bg-gray-700 text-gray-300"
+          swapSides ? "bg-yellow-700 hover:bg-yellow-600 text-yellow-100" : "bg-gray-800 hover:bg-gray-700 text-gray-300"
         } disabled:opacity-60`}
       >
         {swapping ? (
@@ -111,9 +109,7 @@ function MatchCandidateList({
   if (loadingTournament) return <p className="text-gray-600 text-sm">読み込み中...</p>;
   if (matchCandidates.length === 0)
     return (
-      <p className="text-gray-600 text-sm">
-        開始可能な試合がありません（コートにトーナメントが割り当てられていない可能性があります）
-      </p>
+      <p className="text-gray-600 text-sm">開始可能な試合がありません（コートにトーナメントが割り当てられていない可能性があります）</p>
     );
   const firstReadyId = matchCandidates.find((c) => c.match.status === "ready")?.match.id ?? null;
   return (
@@ -191,9 +187,7 @@ function MatchCard({
       className={`w-full text-left rounded-xl border-2 transition overflow-hidden ${CARD_BORDER[ms]}`}
     >
       <div className={`px-3 py-1.5 flex items-center justify-between ${HEADER_BG[ms]}`}>
-        <span className={`text-sm font-bold ${LABEL_COLOR[ms]}`}>
-          {c.match.match_label ?? `R${c.match.round}-P${c.match.position}`}
-        </span>
+        <span className={`text-sm font-bold ${LABEL_COLOR[ms]}`}>{c.match.match_label ?? `R${c.match.round}-P${c.match.position}`}</span>
         <MatchBadge status={ms} />
       </div>
       <div className="px-3 py-2">
@@ -231,14 +225,9 @@ function MatchCard({
 }
 
 function MatchBadge({ status }: { status: MatchStatus }) {
-  if (status === "done")
-    return <span className="text-xs text-gray-500 bg-gray-700 px-1.5 py-0.5 rounded font-bold">終了</span>;
+  if (status === "done") return <span className="text-xs text-gray-500 bg-gray-700 px-1.5 py-0.5 rounded font-bold">終了</span>;
   if (status === "ongoing")
-    return (
-      <span className="text-xs text-yellow-400 bg-yellow-900/60 px-1.5 py-0.5 rounded font-bold animate-pulse">
-        試合中
-      </span>
-    );
+    return <span className="text-xs text-yellow-400 bg-yellow-900/60 px-1.5 py-0.5 rounded font-bold animate-pulse">試合中</span>;
   if (status === "firstReady")
     return <span className="text-xs text-blue-400 bg-blue-900/60 px-1.5 py-0.5 rounded font-bold">次の試合</span>;
   return null;
@@ -259,12 +248,8 @@ function FighterRow({
     <div className="flex items-center gap-2">
       <span className={`w-2 h-5 rounded-sm shrink-0 ${sideColor}`} />
       <div className="min-w-0">
-        <span className={`text-sm font-bold block truncate ${nameColor}`}>
-          {fighter ? fighterFullName(fighter) : "未定"}
-        </span>
-        {showAff && fighter?.affiliation && (
-          <span className="text-[10px] text-gray-500 block truncate">{fighter.affiliation}</span>
-        )}
+        <span className={`text-sm font-bold block truncate ${nameColor}`}>{fighter ? fighterFullName(fighter) : "未定"}</span>
+        {showAff && fighter?.affiliation && <span className="text-[10px] text-gray-500 block truncate">{fighter.affiliation}</span>}
       </div>
     </div>
   );

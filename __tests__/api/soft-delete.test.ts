@@ -8,14 +8,7 @@
  * - SELECTクエリが削除済みレコードを適切にフィルタすること
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  createMockSupabase,
-  mockResult,
-  createAdminRequest,
-  createParams,
-  resetAll,
-  getCallsFor,
-} from "../helpers/supabase-mock";
+import { createMockSupabase, mockResult, createAdminRequest, createParams, resetAll, getCallsFor } from "../helpers/supabase-mock";
 
 // Supabase モック
 vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: createMockSupabase() }));

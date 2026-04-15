@@ -48,8 +48,7 @@ export function bracketQuality(pairCount: number): {
 } {
   if (pairCount <= 0) return { isClean: true, nextCleanPairs: 0, prevCleanPairs: 0, addNeeded: 0, removeNeeded: 0 };
   const isClean = pairCount >= 1 && (pairCount & (pairCount - 1)) === 0;
-  if (isClean)
-    return { isClean: true, nextCleanPairs: pairCount, prevCleanPairs: pairCount, addNeeded: 0, removeNeeded: 0 };
+  if (isClean) return { isClean: true, nextCleanPairs: pairCount, prevCleanPairs: pairCount, addNeeded: 0, removeNeeded: 0 };
   let next = 1;
   while (next < pairCount) next <<= 1;
   const prev = next >> 1;
@@ -172,8 +171,7 @@ export function BracketQualityBadge({ pairCount }: { pairCount: number }) {
           <div className="border-t border-gray-700 pt-1.5 space-y-1">
             <p className="text-xs text-gray-300">
               推奨: <span className="text-white font-medium">{q.prevCleanPairs}対戦</span>（{q.prevCleanPairs * 2}
-              名以下）または <span className="text-white font-medium">{q.nextCleanPairs}対戦</span>（
-              {q.nextCleanPairs * 2}名以下）
+              名以下）または <span className="text-white font-medium">{q.nextCleanPairs}対戦</span>（{q.nextCleanPairs * 2}名以下）
             </p>
             <p className="text-xs text-yellow-300">{hint}</p>
           </div>

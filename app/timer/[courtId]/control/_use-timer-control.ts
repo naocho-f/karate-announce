@@ -148,11 +148,7 @@ export function useTimerControl() {
 
   // ── トーナメントデータ読み込み ──
   const loadTournamentData = useCallback(async () => {
-    const { data: activeEvent } = await supabase
-      .from("events")
-      .select("id, court_names")
-      .eq("is_active", true)
-      .maybeSingle();
+    const { data: activeEvent } = await supabase.from("events").select("id, court_names").eq("is_active", true).maybeSingle();
     if (!activeEvent) {
       setLoadingTournament(false);
       return;
@@ -162,9 +158,7 @@ export function useTimerControl() {
     const names: string[] | null = activeEvent.court_names;
     setCourtDisplayName(names?.[courtIdx]?.trim() || `${courtId}コート`);
 
-    const presetsRes = await resilientFetch("/api/admin/timer-presets", {}, { maxRetries: 2, timeout: 5000 }).catch(
-      () => null,
-    );
+    const presetsRes = await resilientFetch("/api/admin/timer-presets", {}, { maxRetries: 2, timeout: 5000 }).catch(() => null);
     if (presetsRes?.ok) {
       const allPresets: TimerPreset[] = await presetsRes.json();
       const filtered = allPresets.filter((p) => !p.event_id || p.event_id === activeEvent.id);
@@ -189,12 +183,7 @@ export function useTimerControl() {
     }
 
     const tournIds = tourns.map((t) => t.id);
-    const { data: allMatches } = await supabase
-      .from("matches")
-      .select("*")
-      .in("tournament_id", tournIds)
-      .order("round")
-      .order("position");
+    const { data: allMatches } = await supabase.from("matches").select("*").in("tournament_id", tournIds).order("round").order("position");
 
     if (!allMatches?.length) {
       setMatchCandidates([]);
@@ -314,11 +303,7 @@ export function useTimerControl() {
         broadcast(next);
         flushTimerLogs(next.matchId, prevLogsLen, next);
         // 試合開始ブザー: ready/extension → running に遷移した場合
-        if (
-          (prev.phase === "ready" || prev.phase === "extension") &&
-          next.phase === "running" &&
-          next.preset?.buzzer_on_start === "auto"
-        ) {
+        if ((prev.phase === "ready" || prev.phase === "extension") && next.phase === "running" && next.preset?.buzzer_on_start === "auto") {
           void playBuzzer(
             next.preset.buzzer_sound_start ?? "mid-square-single",
             next.preset.buzzer_duration_start ?? 1.5,
@@ -526,11 +511,7 @@ export function useTimerControl() {
       return;
     }
     setWritingBack(true);
-    const { data: matchData } = await supabase
-      .from("matches")
-      .select("round, position, tournament_id")
-      .eq("id", s.matchId)
-      .single();
+    const { data: matchData } = await supabase.from("matches").select("round, position, tournament_id").eq("id", s.matchId).single();
     const { data: allMatches } = await supabase.from("matches").select("round").eq("tournament_id", s.tournamentId);
     const rounds = allMatches ? Math.max(...allMatches.map((m) => m.round), 1) : 1;
     try {
@@ -616,13 +597,7 @@ export function useTimerControl() {
     setIsPlaying(true);
     try {
       const winner = s.winnerSide === "red" ? s.red : s.white;
-      await announceWinner(
-        winner.name,
-        winner.affiliation,
-        winner.nameReading,
-        winner.affiliationReading,
-        announceTemplates,
-      );
+      await announceWinner(winner.name, winner.affiliation, winner.nameReading, winner.affiliationReading, announceTemplates);
     } finally {
       setIsPlaying(false);
     }

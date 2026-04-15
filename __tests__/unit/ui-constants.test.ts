@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { BTN, INPUT, BADGE } from "@/lib/ui-constants";
+import { BTN, BADGE } from "@/lib/ui-constants";
 
 describe("ui-constants", () => {
   it("BTN には primary / secondary / danger / micro が定義されている", () => {
@@ -13,11 +13,6 @@ describe("ui-constants", () => {
     for (const [key, cls] of Object.entries(BTN)) {
       expect(cls, `BTN.${key}`).toContain("disabled:opacity-50");
     }
-  });
-
-  it("INPUT に bg-gray-700 と focus:border-blue-500 が含まれる", () => {
-    expect(INPUT).toContain("bg-gray-700");
-    expect(INPUT).toContain("focus:border-blue-500");
   });
 
   it("BADGE には active / warning / error / info / neutral が定義されている", () => {

@@ -25,9 +25,7 @@ export default function ShortcutsPage() {
   return (
     <div className="min-h-screen bg-main-bg text-white p-8 print:bg-white print:text-black print:p-4">
       <h1 className="text-2xl font-bold mb-1">タイマー操作 ショートカット一覧</h1>
-      <p className="text-gray-400 print:text-gray-500 text-sm mb-6 print:mb-4">
-        印刷してタイムキーパー席に置いてください
-      </p>
+      <p className="text-gray-400 print:text-gray-500 text-sm mb-6 print:mb-4">印刷してタイムキーパー席に置いてください</p>
 
       <table className="w-full border-collapse">
         <thead>
@@ -59,10 +57,7 @@ export default function ShortcutsPage() {
 
       {/* 印刷ボタン（画面表示のみ） */}
       <div className="mt-6 print:hidden">
-        <button
-          onClick={() => window.print()}
-          className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 font-bold"
-        >
+        <button onClick={() => window.print()} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 font-bold">
           印刷する
         </button>
       </div>

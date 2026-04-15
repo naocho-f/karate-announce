@@ -103,12 +103,7 @@ function useLiveData() {
   const prevCourtsRef = useRef<string>("");
 
   const load = useCallback(async () => {
-    const { data: ae } = await supabase
-      .from("events")
-      .select("*")
-      .eq("is_active", true)
-      .is("deleted_at", null)
-      .maybeSingle();
+    const { data: ae } = await supabase.from("events").select("*").eq("is_active", true).is("deleted_at", null).maybeSingle();
     setActiveEvent(ae ?? null);
     if (!ae) return;
     const { data: allTourns } = await supabase
@@ -122,9 +117,7 @@ function useLiveData() {
       tournIds.length > 0
         ? await supabase
             .from("matches")
-            .select(
-              "*, fighter1:fighters!fighter1_id(id,name), fighter2:fighters!fighter2_id(id,name), winner:fighters!winner_id(id,name)",
-            )
+            .select("*, fighter1:fighters!fighter1_id(id,name), fighter2:fighters!fighter2_id(id,name), winner:fighters!winner_id(id,name)")
             .in("tournament_id", tournIds)
             .order("round")
             .order("position")
@@ -296,9 +289,7 @@ function LiveHeader({
     <div className="sticky top-0 z-10 bg-gray-900 backdrop-blur border-b border-gray-700/60">
       <div className="max-w-lg mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="shrink-0 text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded-full font-medium">
-            LIVE
-          </span>
+          <span className="shrink-0 text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded-full font-medium">LIVE</span>
           <span className="font-bold text-sm truncate">{activeEvent.name}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -327,20 +318,9 @@ function LiveHeader({
   );
 }
 
-function CourtTabs({
-  courts,
-  selectedCourt,
-  onSelect,
-}: {
-  courts: CourtData[];
-  selectedCourt: number;
-  onSelect: (idx: number) => void;
-}) {
+function CourtTabs({ courts, selectedCourt, onSelect }: { courts: CourtData[]; selectedCourt: number; onSelect: (idx: number) => void }) {
   return (
-    <div
-      className="max-w-lg mx-auto grid px-3 pb-2 gap-1.5"
-      style={{ gridTemplateColumns: `repeat(${courts.length}, 1fr)` }}
-    >
+    <div className="max-w-lg mx-auto grid px-3 pb-2 gap-1.5" style={{ gridTemplateColumns: `repeat(${courts.length}, 1fr)` }}>
       {courts.map((court, idx) => {
         const hasOngoing = court.tournaments.some(({ matches }) => matches.some((m) => m.status === "ongoing"));
         const isActive = idx === selectedCourt;
@@ -355,9 +335,7 @@ function CourtTabs({
             }`}
           >
             {court.courtName}
-            {hasOngoing && (
-              <span className="absolute top-1 right-2 w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse" />
-            )}
+            {hasOngoing && <span className="absolute top-1 right-2 w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse" />}
           </button>
         );
       })}
@@ -395,9 +373,9 @@ function WatchPanel({ watch }: { watch: WatchState }) {
                   + {name}
                 </button>
               ))}
-            {allFighterNames.filter(
-              (n) => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n),
-            ).length === 0 && <p className="text-xs text-gray-500 py-1">該当する選手がいません</p>}
+            {allFighterNames.filter((n) => n.toLowerCase().includes(watchSearch.toLowerCase()) && !watchList.includes(n)).length === 0 && (
+              <p className="text-xs text-gray-500 py-1">該当する選手がいません</p>
+            )}
           </div>
         )}
         {watchList.length > 0 && (
@@ -441,9 +419,7 @@ function CourtView({ court }: { court: CourtData }) {
 
   const ongoingMatch = sortedMatches.find((m) => m.status === "ongoing") ?? null;
   // ongoing がなければ、最初の ready 試合を「次の試合」とする
-  const nextMatch = ongoingMatch
-    ? null
-    : (sortedMatches.find((m) => m.status === "ready" && m.fighter1_id && m.fighter2_id) ?? null);
+  const nextMatch = ongoingMatch ? null : (sortedMatches.find((m) => m.status === "ready" && m.fighter1_id && m.fighter2_id) ?? null);
   // 不戦勝（round 1 で fighter2 なし）を除外
   const visibleMatches = sortedMatches.filter((m) => m.fighter2_id || m.round > 1);
 
@@ -553,13 +529,7 @@ function FighterName({
   isRight?: boolean;
   hasFighter?: boolean;
 }) {
-  const textClass = isWinner
-    ? "font-bold text-white"
-    : isDone
-      ? "text-gray-400"
-      : hasFighter !== false
-        ? "text-gray-100"
-        : "text-gray-500";
+  const textClass = isWinner ? "font-bold text-white" : isDone ? "text-gray-400" : hasFighter !== false ? "text-gray-100" : "text-gray-500";
   return (
     <span className={`flex-1 min-w-0 flex items-center ${isRight ? "justify-end" : ""} gap-1 text-sm ${textClass}`}>
       <span className={`truncate ${isRight ? "text-right" : ""}`}>{fighter?.name ?? "未定"}</span>
@@ -587,16 +557,8 @@ function MatchRow({ match, isOngoing, isNext }: { match: Match; isOngoing: boole
   return (
     <div className={`px-3 py-2.5 rounded-xl ${getMatchRowStyle(isOngoing, isNext, isDone)}`}>
       <div className="flex items-center gap-1.5 mb-1">
-        {match.match_label && (
-          <span className={`text-xs font-semibold ${getMatchLabelColor(isOngoing, isDone)}`}>{match.match_label}</span>
-        )}
-        <MatchStatusBadge
-          isOngoing={isOngoing}
-          isNext={isNext}
-          isDone={isDone}
-          hasWinner={!!winner}
-          hasFighter2={!!f2}
-        />
+        {match.match_label && <span className={`text-xs font-semibold ${getMatchLabelColor(isOngoing, isDone)}`}>{match.match_label}</span>}
+        <MatchStatusBadge isOngoing={isOngoing} isNext={isNext} isDone={isDone} hasWinner={!!winner} hasFighter2={!!f2} />
       </div>
       <div className="flex items-center gap-2">
         <FighterName fighter={f1} isWinner={winner?.id === f1?.id} isDone={isDone} />

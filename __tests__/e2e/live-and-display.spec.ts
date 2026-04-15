@@ -6,12 +6,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { adminLogin, createTestEvent, cleanupEvent } from "./helpers";
 
-async function createTournamentWithEntries(
-  page: Page,
-  eventId: string,
-  courtNum: string,
-  namePrefix: string,
-): Promise<string> {
+async function createTournamentWithEntries(page: Page, eventId: string, courtNum: string, namePrefix: string): Promise<string> {
   const entries: string[] = [];
   for (let i = 0; i < 2; i++) {
     const res = await page.request.post("/api/admin/entries", {

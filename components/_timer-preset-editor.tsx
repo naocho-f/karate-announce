@@ -3,14 +3,7 @@
 import { useEffect, useState } from "react";
 import type { TimerPreset } from "@/lib/types";
 import { DEFAULT_LAYOUT, DEFAULT_KOURYUUKAI_FONT_SIZES } from "@/lib/types";
-import type {
-  LayoutConfig,
-  LayoutRow,
-  LayoutRowType,
-  LayoutAlignment,
-  LayoutVerticalAlign,
-  KouryuukaiFontSizes,
-} from "@/lib/types";
+import type { LayoutConfig, LayoutRow, LayoutRowType, LayoutAlignment, LayoutVerticalAlign, KouryuukaiFontSizes } from "@/lib/types";
 import { rowTypeLabel } from "@/lib/timer-layout";
 import { resolveLayout } from "@/lib/timer-layout";
 import { BUILTIN_SOUNDS, SOUND_CATEGORIES, testBuzzer, preloadCustomBuzzer } from "@/lib/timer-buzzer";
@@ -105,15 +98,7 @@ const ROW_DEFAULTS: Record<LayoutRowType, LayoutRow> = {
   },
 };
 
-const ALL_ROW_TYPES: LayoutRowType[] = [
-  "timer",
-  "timer_with_newaza",
-  "scores",
-  "player_names",
-  "match_info",
-  "newaza",
-  "spacer",
-];
+const ALL_ROW_TYPES: LayoutRowType[] = ["timer", "timer_with_newaza", "scores", "player_names", "match_info", "newaza", "spacer"];
 
 // ── フィールドレンダラー ──
 function PresetField({
@@ -135,12 +120,7 @@ function PresetField({
   if (type === "checkbox") {
     return (
       <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={!!val}
-          onChange={(e) => onChange({ [editKey]: e.target.checked })}
-          className="rounded"
-        />
+        <input type="checkbox" checked={!!val} onChange={(e) => onChange({ [editKey]: e.target.checked })} className="rounded" />
         {label}
       </label>
     );
@@ -424,9 +404,7 @@ function EditorFormSections({
   return (
     <>
       {F("name", "タイマー名", "text")}
-      <p className="text-xs text-gray-600 mt-1">
-        試合時間・延長有無などの設定名を入力（例: 3分カウントダウン・延長1分）
-      </p>
+      <p className="text-xs text-gray-600 mt-1">試合時間・延長有無などの設定名を入力（例: 3分カウントダウン・延長1分）</p>
       <BasicSection editing={editing} F={F} />
       <NewazaSection editing={editing} F={F} />
       <PointsSection F={F} />
@@ -519,9 +497,7 @@ function ExtensionFields({
         </div>
       )}
       {editing.extension_mode === "sudden_death" && (
-        <div className="grid grid-cols-2 gap-3">
-          {F("extension_show_timer", "タイマー表示（カウントアップ）", "checkbox")}
-        </div>
+        <div className="grid grid-cols-2 gap-3">{F("extension_show_timer", "タイマー表示（カウントアップ）", "checkbox")}</div>
       )}
     </div>
   );
@@ -720,12 +696,8 @@ function LayoutSection({
   if (layout.templateId === "kouryuukai") {
     return (
       <>
-        <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">
-          レイアウト（交流会テンプレート）
-        </h3>
-        <p className="text-xs text-gray-500 mt-1">
-          固定グリッドレイアウト。各領域のフォントサイズを個別調整できます（vh単位）。
-        </p>
+        <h3 className="text-sm font-bold text-gray-400 border-b border-gray-800 pb-1 pt-2">レイアウト（交流会テンプレート）</h3>
+        <p className="text-xs text-gray-500 mt-1">固定グリッドレイアウト。各領域のフォントサイズを個別調整できます（vh単位）。</p>
         <KouryuukaiFontSizeEditor layout={layout} setLayout={setLayout} />
       </>
     );
@@ -772,13 +744,7 @@ const KOURYUUKAI_FONT_FIELDS: {
   { key: "borderWidth", label: "区切り線の太さ", max: 10, unit: "px" },
 ];
 
-function KouryuukaiFontSizeEditor({
-  layout,
-  setLayout,
-}: {
-  layout: LayoutConfig;
-  setLayout: (l: LayoutConfig) => void;
-}) {
+function KouryuukaiFontSizeEditor({ layout, setLayout }: { layout: LayoutConfig; setLayout: (l: LayoutConfig) => void }) {
   const currentFs: KouryuukaiFontSizes = { ...DEFAULT_KOURYUUKAI_FONT_SIZES, ...layout.kouryuukaiFontSizes };
   const updateFs = (key: keyof KouryuukaiFontSizes, value: number) => {
     setLayout({ ...layout, kouryuukaiFontSizes: { ...currentFs, [key]: value } });
@@ -816,13 +782,7 @@ function KouryuukaiFontSizeEditor({
 }
 
 function LayoutLabelSettings({ layout, setLayout }: { layout: LayoutConfig; setLayout: (l: LayoutConfig) => void }) {
-  const labelField = (
-    label: string,
-    value: string | undefined,
-    placeholder: string,
-    key: keyof LayoutConfig,
-    hint: string,
-  ) => (
+  const labelField = (label: string, value: string | undefined, placeholder: string, key: keyof LayoutConfig, hint: string) => (
     <label className="text-xs">
       <span className="text-gray-400">{label}</span>
       <input
@@ -924,9 +884,7 @@ function BuzzerSection({
         onSoundChange={(v) => update({ buzzer_sound_start: v })}
         onDurationChange={(v) => update({ buzzer_duration_start: v })}
         onRepeatChange={(v) => update({ buzzer_repeat_start: v })}
-        onCustomPathChange={(v) =>
-          update({ buzzer_custom_path: v, buzzer_sound_start: v ? "custom" : "mid-square-single" })
-        }
+        onCustomPathChange={(v) => update({ buzzer_custom_path: v, buzzer_sound_start: v ? "custom" : "mid-square-single" })}
       />
       <p className="text-xs text-gray-500 mt-3 mb-1">試合終了ブザー音源</p>
       <BuzzerSoundSelector
@@ -1100,24 +1058,9 @@ function RowDetailPanel({
       <div className="flex items-center gap-2">
         <span className="text-xs text-gray-400 w-20 shrink-0">水平揃え</span>
         <div className="grid grid-cols-3 gap-1">
-          <AlignButton
-            current={row.align}
-            value="left"
-            label="左"
-            onChange={(v) => onUpdateRow(idx, { align: v as LayoutAlignment })}
-          />
-          <AlignButton
-            current={row.align}
-            value="center"
-            label="中"
-            onChange={(v) => onUpdateRow(idx, { align: v as LayoutAlignment })}
-          />
-          <AlignButton
-            current={row.align}
-            value="right"
-            label="右"
-            onChange={(v) => onUpdateRow(idx, { align: v as LayoutAlignment })}
-          />
+          <AlignButton current={row.align} value="left" label="左" onChange={(v) => onUpdateRow(idx, { align: v as LayoutAlignment })} />
+          <AlignButton current={row.align} value="center" label="中" onChange={(v) => onUpdateRow(idx, { align: v as LayoutAlignment })} />
+          <AlignButton current={row.align} value="right" label="右" onChange={(v) => onUpdateRow(idx, { align: v as LayoutAlignment })} />
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -1319,15 +1262,7 @@ function buildKouryuukaiDummyData(editing: EditablePreset, layout: LayoutConfig)
   };
 }
 
-function PreviewModal({
-  editing,
-  layout,
-  onClose,
-}: {
-  editing: EditablePreset;
-  layout: LayoutConfig;
-  onClose: () => void;
-}) {
+function PreviewModal({ editing, layout, onClose }: { editing: EditablePreset; layout: LayoutConfig; onClose: () => void }) {
   const { state, theme, sides, durationMs, newazaDispMs } = buildKouryuukaiDummyData(editing, layout);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 cursor-pointer" onClick={onClose}>

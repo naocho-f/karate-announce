@@ -33,10 +33,7 @@ function CourtCard({
     <div className="bg-gray-800/80 border border-gray-700/40 rounded-xl overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-600/40">
         <h2 className="font-semibold">{courtName}</h2>
-        <Link
-          href={`/court/${courtNum}`}
-          className="text-sm bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition"
-        >
+        <Link href={`/court/${courtNum}`} className="text-sm bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition">
           アナウンス →
         </Link>
       </div>
@@ -95,9 +92,7 @@ async function fetchFighterMaps(allMatches: Match[]) {
   }
   return {
     nameMap: Object.fromEntries(Object.entries(fighterMap).map(([id, f]) => [id, fighterFullName(f)])),
-    affiliationMap: Object.fromEntries(
-      Object.entries(fighterMap).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""]),
-    ),
+    affiliationMap: Object.fromEntries(Object.entries(fighterMap).map(([id, f]) => [id, f.affiliation ?? f.dojo?.name ?? ""])),
   };
 }
 
@@ -131,12 +126,7 @@ export default function Home() {
   const [courts, setCourts] = useState<CourtData[]>([]);
 
   const load = useCallback(async () => {
-    const { data: ae } = await supabase
-      .from("events")
-      .select("*")
-      .eq("is_active", true)
-      .is("deleted_at", null)
-      .maybeSingle();
+    const { data: ae } = await supabase.from("events").select("*").eq("is_active", true).is("deleted_at", null).maybeSingle();
     setActiveEvent(ae ?? null);
     if (!ae) return;
 
@@ -216,12 +206,7 @@ export default function Home() {
             <EventHeader event={activeEvent} />
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
               {courts.map(({ courtNum, tournaments }) => (
-                <CourtCard
-                  key={courtNum}
-                  courtNum={courtNum}
-                  tournaments={tournaments}
-                  courtNames={activeEvent.court_names}
-                />
+                <CourtCard key={courtNum} courtNum={courtNum} tournaments={tournaments} courtNames={activeEvent.court_names} />
               ))}
             </div>
           </>

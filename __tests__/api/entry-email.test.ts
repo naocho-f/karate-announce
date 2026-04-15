@@ -90,9 +90,7 @@ describe("確認メール送信", () => {
     mockResult("form_configs", "select", { data: [{ id: "fc-123" }] });
     mockResult("form_field_configs", "select", { data: [] });
     mockResult("custom_field_defs", "select", {
-      data: [
-        { field_key: "match_experience", label: "武道・格闘技の試合経験", choices: [{ value: "none", label: "なし" }] },
-      ],
+      data: [{ field_key: "match_experience", label: "武道・格闘技の試合経験", choices: [{ value: "none", label: "なし" }] }],
     });
 
     const { POST } = await import("@/app/api/public/entry/route");

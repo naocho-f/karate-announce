@@ -16,11 +16,7 @@ import { type Pair, type Group, type GroupFilters, type MatchRow } from "@/compo
 
 // ── Group manipulation helpers ──────────────────────────────
 
-function addGroupToList(
-  groups: Group[],
-  type: "tournament" | "one_match",
-  mismatchSettings: MismatchSettings,
-): Group[] {
+function addGroupToList(groups: Group[], type: "tournament" | "one_match", mismatchSettings: MismatchSettings): Group[] {
   const existingOfType = groups.filter((g) => g.type === type).length;
   const n = existingOfType + 1;
   const name = type === "one_match" ? `ワンマッチ${n}` : `トーナメント${n}`;
@@ -102,17 +98,7 @@ function buildGroupPayload(g: Group, rules: Rule[], defaultRule: Rule | undefine
 
 function hasAnyFilter(f: Group["filters"]): boolean {
   if (!f) return false;
-  return !!(
-    f.minWeight ||
-    f.maxWeight ||
-    f.minAge ||
-    f.maxAge ||
-    f.sexFilter ||
-    f.minGrade ||
-    f.maxGrade ||
-    f.minHeight ||
-    f.maxHeight
-  );
+  return !!(f.minWeight || f.maxWeight || f.minAge || f.maxAge || f.sexFilter || f.minGrade || f.maxGrade || f.minHeight || f.maxHeight);
 }
 
 function toFloatOrNull(v: string | undefined): number | null {
@@ -170,15 +156,8 @@ async function confirmGroups(input: ConfirmGroupsInput): Promise<{ ok: boolean; 
 
   const responses = await Promise.all(
     activeGroups.map((g, i) => {
-      const payload = buildGroupPayload(
-        g,
-        rules,
-        defaultRule,
-        eventId,
-        baseSortOrder + i + (editingSortOrder != null ? 0 : 1),
-      );
-      const url =
-        editingTournamentId && i === 0 ? `/api/admin/tournaments/${editingTournamentId}` : "/api/admin/tournaments";
+      const payload = buildGroupPayload(g, rules, defaultRule, eventId, baseSortOrder + i + (editingSortOrder != null ? 0 : 1));
+      const url = editingTournamentId && i === 0 ? `/api/admin/tournaments/${editingTournamentId}` : "/api/admin/tournaments";
       const method = editingTournamentId && i === 0 ? "PUT" : "POST";
       return fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     }),
@@ -216,9 +195,7 @@ async function performAutoAssignCourts(
       ),
     );
   }
-  const sorted = [...unassignedT].sort(
-    (a, b) => countActualMatches(allMatchRows, [b.id]) - countActualMatches(allMatchRows, [a.id]),
-  );
+  const sorted = [...unassignedT].sort((a, b) => countActualMatches(allMatchRows, [b.id]) - countActualMatches(allMatchRows, [a.id]));
   const assignments: Array<{ id: string; court: string }> = [];
   for (const t of sorted) {
     const minIdx = courtMatchCounts.indexOf(Math.min(...courtMatchCounts));
@@ -237,11 +214,7 @@ async function performAutoAssignCourts(
   return true;
 }
 
-function makeDefaultGroup(
-  ms: MismatchSettings,
-  name = "トーナメント1",
-  type: "tournament" | "one_match" = "tournament",
-): Group {
+function makeDefaultGroup(ms: MismatchSettings, name = "トーナメント1", type: "tournament" | "one_match" = "tournament"): Group {
   return {
     id: crypto.randomUUID(),
     name,
@@ -329,9 +302,7 @@ function useTournamentEditorState(
     if (!e.fighter_id) return true;
     return (fighterMatchCounts[e.fighter_id] ?? 0) + (groupFighterCounts[e.fighter_id] ?? 0) < getDesiredMatchCount(e);
   });
-  const assignedIds = new Set(
-    groups.flatMap((g) => g.pairs.flatMap((p) => [p.e1.id, p.e2?.id].filter((x): x is string => !!x))),
-  );
+  const assignedIds = new Set(groups.flatMap((g) => g.pairs.flatMap((p) => [p.e1.id, p.e2?.id].filter((x): x is string => !!x))));
   const unassigned = filteredEntries.filter((e) => !assignedIds.has(e.id));
 
   const autoAssignGroup = (gid: string, es: Entry[]) => {
@@ -368,20 +339,14 @@ function useTournamentEditorState(
   const updateE1 = (gid: string, pid: string, eid: string) => {
     const e = entries.find((x) => x.id === eid);
     if (!e) return;
-    setGroups((prev) =>
-      prev.map((g) => (g.id !== gid ? g : { ...g, pairs: g.pairs.map((p) => (p.id !== pid ? p : { ...p, e1: e })) })),
-    );
+    setGroups((prev) => prev.map((g) => (g.id !== gid ? g : { ...g, pairs: g.pairs.map((p) => (p.id !== pid ? p : { ...p, e1: e })) })));
   };
   const updateE2 = (gid: string, pid: string, eid: string | null) => {
     const e = eid ? (entries.find((x) => x.id === eid) ?? null) : null;
-    setGroups((prev) =>
-      prev.map((g) => (g.id !== gid ? g : { ...g, pairs: g.pairs.map((p) => (p.id !== pid ? p : { ...p, e2: e })) })),
-    );
+    setGroups((prev) => prev.map((g) => (g.id !== gid ? g : { ...g, pairs: g.pairs.map((p) => (p.id !== pid ? p : { ...p, e2: e })) })));
   };
   const updateField = (gid: string, pid: string, f: "matchLabel" | "ruleId", v: string) => {
-    setGroups((prev) =>
-      prev.map((g) => (g.id !== gid ? g : { ...g, pairs: g.pairs.map((p) => (p.id !== pid ? p : { ...p, [f]: v })) })),
-    );
+    setGroups((prev) => prev.map((g) => (g.id !== gid ? g : { ...g, pairs: g.pairs.map((p) => (p.id !== pid ? p : { ...p, [f]: v })) })));
   };
   const movePair = (gid: string, pid: string, dir: "up" | "down") => {
     setGroups((prev) => movePairInGroup(prev, gid, pid, dir));
@@ -513,16 +478,7 @@ export function TournamentEditor({
   const [intervalMin, setIntervalMin] = useState(1);
   const sectionRef = useRef<HTMLDivElement>(null);
 
-  const courtEstimates = useCourtEstimates(
-    tournaments,
-    allMatchRows,
-    courtCount,
-    courtNames,
-    rules,
-    timerPresets,
-    intervalMin,
-    startTime,
-  );
+  const courtEstimates = useCourtEstimates(tournaments, allMatchRows, courtCount, courtNames, rules, timerPresets, intervalMin, startTime);
 
   const autoAssignCourts = async () => {
     s.setAutoAssigning(true);
@@ -623,9 +579,7 @@ export function TournamentEditor({
             onClick={bracketRuleCount > 0 ? onAutoCreate : onNavigateToBracketRules}
             className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-medium text-white transition shadow-lg"
           >
-            {bracketRuleCount > 0
-              ? `登録済み振り分けルールで対戦表を作成（${s.filteredEntries.length}名）`
-              : "振り分けルールを登録する"}
+            {bracketRuleCount > 0 ? `登録済み振り分けルールで対戦表を作成（${s.filteredEntries.length}名）` : "振り分けルールを登録する"}
           </button>
         </div>
       )}
@@ -655,8 +609,7 @@ function CreateButtons({
   setShowCreateForm: (v: boolean) => void;
 }) {
   const startCreate = (type: "tournament" | "one_match") => {
-    const count =
-      tournaments.filter((t) => (type === "one_match" ? t.type === "one_match" : t.type !== "one_match")).length + 1;
+    const count = tournaments.filter((t) => (type === "one_match" ? t.type === "one_match" : t.type !== "one_match")).length + 1;
     const name = type === "one_match" ? `ワンマッチ${count}` : `トーナメント${count}`;
     setGroups([makeDefaultGroup(mismatchSettings, name, type)]);
     setShowCreateForm(true);
@@ -944,9 +897,7 @@ function EditFormHeader({
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="font-semibold text-gray-200">
           {editFormTitle}
-          {!editingTournamentId && tournaments.length > 0 && (
-            <span className="text-gray-400 text-sm font-normal ml-2">（追加）</span>
-          )}
+          {!editingTournamentId && tournaments.length > 0 && <span className="text-gray-400 text-sm font-normal ml-2">（追加）</span>}
         </h2>
         <span className="text-xs text-gray-500">
           {defaultRuleId && filteredEntries.length < entries.length
@@ -1002,24 +953,22 @@ function EditFormFooter({
 }) {
   return (
     <>
-      {unassigned.length > 0 &&
-        !groups.every((g) => g.type === "one_match") &&
-        groups.every((g) => g.pairs.length > 0) && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => onAddGroup("tournament")}
-              className="flex-1 border border-dashed border-gray-600 hover:border-blue-500 rounded-lg py-2 text-xs text-gray-400 hover:text-blue-400 transition"
-            >
-              ＋ トーナメントを追加
-            </button>
-            <button
-              onClick={() => onAddGroup("one_match")}
-              className="flex-1 border border-dashed border-gray-600 hover:border-green-500 rounded-lg py-2 text-xs text-gray-400 hover:text-green-400 transition"
-            >
-              ＋ ワンマッチを追加
-            </button>
-          </div>
-        )}
+      {unassigned.length > 0 && !groups.every((g) => g.type === "one_match") && groups.every((g) => g.pairs.length > 0) && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => onAddGroup("tournament")}
+            className="flex-1 border border-dashed border-gray-600 hover:border-blue-500 rounded-lg py-2 text-xs text-gray-400 hover:text-blue-400 transition"
+          >
+            ＋ トーナメントを追加
+          </button>
+          <button
+            onClick={() => onAddGroup("one_match")}
+            className="flex-1 border border-dashed border-gray-600 hover:border-green-500 rounded-lg py-2 text-xs text-gray-400 hover:text-green-400 transition"
+          >
+            ＋ ワンマッチを追加
+          </button>
+        </div>
+      )}
       <div className="flex gap-2 pt-1">
         <button
           onClick={() => {
@@ -1035,9 +984,7 @@ function EditFormFooter({
           disabled={confirming || totalPairs === 0 || !hasDefaultRule}
           className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
         >
-          {confirming && (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-          )}
+          {confirming && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
           {confirming ? "保存中..." : confirmLabel}
         </button>
       </div>
@@ -1315,9 +1262,7 @@ function TournamentListItem({
             </button>
             <button
               disabled={visibleIdx === visibleArr.length - 1 || !!reorderingId}
-              onClick={() =>
-                swapSortOrder(visibleArr, visibleIdx, "down", onSetLocalOrder, onSetReorderingId, onCreated)
-              }
+              onClick={() => swapSortOrder(visibleArr, visibleIdx, "down", onSetLocalOrder, onSetReorderingId, onCreated)}
               className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed leading-none"
             >
               ▼
@@ -1454,8 +1399,7 @@ function ExistingTournamentSection({
   const heightDiff = tournament.max_height_diff;
 
   async function handleDelete() {
-    if (!confirm(`「${tournament.name}」を削除して組み直しますか？\n進行中・完了済みのデータもすべて失われます。`))
-      return;
+    if (!confirm(`「${tournament.name}」を削除して組み直しますか？\n進行中・完了済みのデータもすべて失われます。`)) return;
     setDeleting(true);
     const res = await fetch(`/api/admin/tournaments/${tournament.id}`, { method: "DELETE" });
     if (!res.ok) {
@@ -1499,11 +1443,7 @@ function ExistingTournamentSection({
         onRestore={() => void handleRestore()}
       />
       {affectedMatches.length > 0 && (
-        <WithdrawnMatchesPanel
-          affectedMatches={affectedMatches}
-          withdrawnFighterIds={withdrawnFighterIds}
-          fighterMap={fighterMap}
-        />
+        <WithdrawnMatchesPanel affectedMatches={affectedMatches} withdrawnFighterIds={withdrawnFighterIds} fighterMap={fighterMap} />
       )}
       {open && (
         <TournamentMatchesView
@@ -1528,9 +1468,7 @@ function WithdrawnMatchesPanel({
 }) {
   return (
     <div className="bg-orange-950 border border-orange-700 rounded-xl p-3 space-y-2">
-      <p className="text-sm font-semibold text-orange-200">
-        ⚠ 欠場選手がいます。必要に応じて「登録前に戻る」で組み直してください。
-      </p>
+      <p className="text-sm font-semibold text-orange-200">⚠ 欠場選手がいます。必要に応じて「登録前に戻る」で組み直してください。</p>
       <div className="space-y-1">
         {affectedMatches.map((match) => {
           const f1Withdrawn = !!(match.fighter1_id && withdrawnFighterIds.has(match.fighter1_id));
@@ -1729,12 +1667,7 @@ function ExistingTournamentHeader({
         {tournament.name && <span className="text-sm font-medium text-white">{tournament.name}</span>}
         {!deleted && <TournamentHeaderBadges tournament={tournament} />}
         {!deleted && (
-          <TournamentCourtSelect
-            tournament={tournament}
-            courtCount={courtCount}
-            courtNames={courtNames}
-            onCourtChanged={onCourtChanged}
-          />
+          <TournamentCourtSelect tournament={tournament} courtCount={courtCount} courtNames={courtNames} onCourtChanged={onCourtChanged} />
         )}
         {tournament.default_rules && <span className="text-xs text-gray-500">{tournament.default_rules}</span>}
         {weightDiff != null && <span className="text-xs text-gray-500">体重差 {weightDiff}kg以内</span>}
@@ -1777,9 +1710,7 @@ function ExistingTournamentHeader({
 function TournamentHeaderBadges({ tournament }: { tournament: Tournament }) {
   return (
     <>
-      {tournament.type === "one_match" && (
-        <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">ワンマッチ</span>
-      )}
+      {tournament.type === "one_match" && <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">ワンマッチ</span>}
       <span
         className={`text-xs px-2 py-0.5 rounded ${tournament.status === "finished" ? "bg-green-900 text-green-300" : tournament.status === "ongoing" ? "bg-yellow-900 text-yellow-300" : "bg-gray-700 text-gray-400"}`}
       >
@@ -1828,9 +1759,7 @@ function TournamentCourtSelect({
           </option>
         ))}
       </select>
-      {tournament.court === "" && (
-        <span className="text-xs bg-orange-900 text-orange-300 px-2 py-0.5 rounded">コート未割当</span>
-      )}
+      {tournament.court === "" && <span className="text-xs bg-orange-900 text-orange-300 px-2 py-0.5 rounded">コート未割当</span>}
       {tournament.court !== "" && (
         <Link
           href={`/court/${tournament.court}`}

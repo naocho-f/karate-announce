@@ -77,11 +77,7 @@ async function attemptFetch(
   }
 }
 
-export async function resilientFetch(
-  url: string,
-  init: RequestInit,
-  options: ResilientFetchOptions,
-): Promise<Response> {
+export async function resilientFetch(url: string, init: RequestInit, options: ResilientFetchOptions): Promise<Response> {
   const { maxRetries, signal, onQueueFallback, offlineMode } = options;
 
   if (offlineMode && onQueueFallback) {
@@ -113,12 +109,7 @@ export async function resilientFetch(
  * タイムアウト付き fetch。
  * 外部 signal と内部タイムアウト signal を合成する。
  */
-async function fetchWithTimeout(
-  url: string,
-  init: RequestInit,
-  timeout: number,
-  externalSignal?: AbortSignal,
-): Promise<Response> {
+async function fetchWithTimeout(url: string, init: RequestInit, timeout: number, externalSignal?: AbortSignal): Promise<Response> {
   const controller = new AbortController();
 
   // 外部 signal が abort されたら内部も abort

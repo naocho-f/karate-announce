@@ -278,24 +278,18 @@ async function loadEventSecondaryData(
 ) {
   const entryIds = entryList.map((x) => x.id);
   const tournamentIds = tournamentList.map((t) => t.id);
-  const [{ data: rs }, { data: erul }, { data: matchRows }, { data: tp }, { count: brCount }, { data: settingsRows }] =
-    await Promise.all([
-      ruleIds.length > 0
-        ? supabase.from("rules").select("*").in("id", ruleIds).order("name")
-        : Promise.resolve({ data: [] as Rule[] }),
-      entryIds.length > 0
-        ? supabase.from("entry_rules").select("entry_id, rule_id").in("entry_id", entryIds)
-        : Promise.resolve({ data: [] as Array<{ entry_id: string; rule_id: string }> }),
-      tournamentIds.length > 0
-        ? supabase
-            .from("matches")
-            .select("tournament_id, fighter1_id, fighter2_id, round, rules")
-            .in("tournament_id", tournamentIds)
-        : Promise.resolve({ data: [] as MatchRow[] }),
-      supabase.from("timer_presets").select("*").order("created_at", { ascending: false }),
-      supabase.from("bracket_rules").select("id", { count: "exact", head: true }).eq("event_id", id),
-      supabase.from("settings").select("key, value").eq("key", "age_categories").maybeSingle(),
-    ]);
+  const [{ data: rs }, { data: erul }, { data: matchRows }, { data: tp }, { count: brCount }, { data: settingsRows }] = await Promise.all([
+    ruleIds.length > 0 ? supabase.from("rules").select("*").in("id", ruleIds).order("name") : Promise.resolve({ data: [] as Rule[] }),
+    entryIds.length > 0
+      ? supabase.from("entry_rules").select("entry_id, rule_id").in("entry_id", entryIds)
+      : Promise.resolve({ data: [] as Array<{ entry_id: string; rule_id: string }> }),
+    tournamentIds.length > 0
+      ? supabase.from("matches").select("tournament_id, fighter1_id, fighter2_id, round, rules").in("tournament_id", tournamentIds)
+      : Promise.resolve({ data: [] as MatchRow[] }),
+    supabase.from("timer_presets").select("*").order("created_at", { ascending: false }),
+    supabase.from("bracket_rules").select("id", { count: "exact", head: true }).eq("event_id", id),
+    supabase.from("settings").select("key, value").eq("key", "age_categories").maybeSingle(),
+  ]);
   s.setRules(rs ?? []);
   s.setTimerPresets((tp ?? []) as TimerPreset[]);
   const { fidsMap, pairs, allMatchRows: amr } = processMatchRows((matchRows ?? []) as MatchRow[]);
@@ -432,10 +426,7 @@ export default function EventDetailPage({ params }: Props) {
     },
     [id, router, setters],
   );
-  const hasEntryChanges = useMemo(
-    () => computeHasEntryChanges(st.entries, st.tournaments),
-    [st.entries, st.tournaments],
-  );
+  const hasEntryChanges = useMemo(() => computeHasEntryChanges(st.entries, st.tournaments), [st.entries, st.tournaments]);
   const entryChangeSummary = useMemo(
     () => computeEntryChangeSummary(st.entries, st.tournaments, hasEntryChanges),
     [hasEntryChanges, st.entries, st.tournaments],
@@ -446,11 +437,7 @@ export default function EventDetailPage({ params }: Props) {
   );
 
   if (!st.event) {
-    return (
-      <div className="min-h-screen bg-main-bg text-white flex items-center justify-center text-gray-400">
-        読み込み中...
-      </div>
-    );
+    return <div className="min-h-screen bg-main-bg text-white flex items-center justify-center text-gray-400">読み込み中...</div>;
   }
   const eventRules = st.rules.filter((r) => st.eventRuleIds.has(r.id));
   return (
@@ -531,11 +518,7 @@ function computeEntryChangeSummary(entries: Entry[], tournaments: Tournament[], 
   return parts.join(" / ");
 }
 
-function computeAllEntriesAssigned(
-  entries: Entry[],
-  tournaments: Tournament[],
-  fidsMap: Record<string, Set<string>>,
-): boolean {
+function computeAllEntriesAssigned(entries: Entry[], tournaments: Tournament[], fidsMap: Record<string, Set<string>>): boolean {
   if (tournaments.length === 0) return false;
   const allFighterIds = new Set<string>();
   for (const fids of Object.values(fidsMap)) fids.forEach((fid) => allFighterIds.add(fid));
@@ -745,12 +728,7 @@ function useEventActions(id: string, deps: EventActionDeps) {
 
 // ── 自動振り分け ────────────────────────────────────────────────
 
-async function handleAutoCreateFromDialog(
-  autoGroups: AutoGroup[],
-  eventId: string,
-  evtRules: Rule[],
-  reload: () => void,
-) {
+async function handleAutoCreateFromDialog(autoGroups: AutoGroup[], eventId: string, evtRules: Rule[], reload: () => void) {
   for (const group of autoGroups) {
     const courtNum = group.courtNum ?? 1;
     const ruleName = group.ruleId ? (evtRules.find((r) => r.id === group.ruleId)?.name ?? null) : null;
@@ -837,12 +815,7 @@ function EventPageContent(props: {
           eventId={p.id}
           onEventUpdate={(updates) => p.onSetEvent((prev) => (prev ? { ...prev, ...updates } : prev))}
         />
-        <StepNav
-          step={p.step}
-          tournaments={p.tournaments}
-          onStepChange={p.onNavigateStep}
-          phaseStep={phase.stepHighlight}
-        />
+        <StepNav step={p.step} tournaments={p.tournaments} onStepChange={p.onNavigateStep} phaseStep={phase.stepHighlight} />
         {p.step === 1 && (
           <ParticipantSection
             eventId={p.id}

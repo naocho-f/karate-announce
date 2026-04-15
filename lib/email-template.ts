@@ -62,11 +62,7 @@ function buildBasicLines(entry: Record<string, unknown>, ruleNames: string[]): s
   return lines;
 }
 
-function resolveLabel(
-  key: string,
-  raw: string,
-  fieldChoices?: Record<string, { value: string; label: string }[]>,
-): string {
+function resolveLabel(key: string, raw: string, fieldChoices?: Record<string, { value: string; label: string }[]>): string {
   if (raw.startsWith("other:")) return `その他: ${raw.slice(6)}`;
   const found = fieldChoices?.[key]?.find((c) => c.value === raw);
   return found ? found.label : raw;

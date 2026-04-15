@@ -4,14 +4,7 @@
 
 export type LayoutAlignment = "left" | "center" | "right";
 export type LayoutVerticalAlign = "top" | "middle" | "bottom";
-export type LayoutRowType =
-  | "timer"
-  | "scores"
-  | "player_names"
-  | "match_info"
-  | "newaza"
-  | "spacer"
-  | "timer_with_newaza";
+export type LayoutRowType = "timer" | "scores" | "player_names" | "match_info" | "newaza" | "spacer" | "timer_with_newaza";
 
 export type LayoutRow = {
   type: LayoutRowType;

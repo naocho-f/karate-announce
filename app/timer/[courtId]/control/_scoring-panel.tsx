@@ -30,9 +30,7 @@ function resolveSide(state: TimerState, swapSides: boolean, position: "left" | "
     label: isRed ? "赤" : "白",
     name: isRed ? state.red.name : state.white.name,
     score: isRed ? state.redScore : state.whiteScore,
-    bgClass: isRed
-      ? "bg-red-900/50 hover:bg-red-800/60 text-red-300"
-      : "bg-gray-700/50 hover:bg-gray-600/60 text-gray-200",
+    bgClass: isRed ? "bg-red-900/50 hover:bg-red-800/60 text-red-300" : "bg-gray-700/50 hover:bg-gray-600/60 text-gray-200",
     labelColor: isRed ? "text-red-400" : "text-gray-200",
   };
 }
@@ -131,10 +129,7 @@ function ScoringColumn({
         </button>
       )}
       {p?.show_ippon && (
-        <button
-          onClick={() => onIpponConfirm(side)}
-          className={`w-full py-4 rounded ${bgClass} text-sm font-bold transition`}
-        >
+        <button onClick={() => onIpponConfirm(side)} className={`w-full py-4 rounded ${bgClass} text-sm font-bold transition`}>
           一本
         </button>
       )}

@@ -55,17 +55,9 @@ function OneMatchNumberCard({
         >
           {assignedNumber ?? "−"}
         </div>
-        <span
-          className={`text-sm font-medium ${match.winner_id === match.fighter1_id ? "text-green-400" : "text-white"}`}
-        >
-          {f1Name}
-        </span>
+        <span className={`text-sm font-medium ${match.winner_id === match.fighter1_id ? "text-green-400" : "text-white"}`}>{f1Name}</span>
         <span className="text-xs text-gray-500">vs</span>
-        <span
-          className={`text-sm font-medium ${match.winner_id === match.fighter2_id ? "text-green-400" : "text-white"}`}
-        >
-          {f2Name}
-        </span>
+        <span className={`text-sm font-medium ${match.winner_id === match.fighter2_id ? "text-green-400" : "text-white"}`}>{f2Name}</span>
         {!isDone && (
           <button
             onClick={(e) => {
@@ -153,9 +145,7 @@ function useMatchLabelData(eventId: string) {
   };
 }
 
-async function loadTournamentMatches(
-  tourns: { id: string; name: string; sort_order: number; court: string; type: string }[],
-) {
+async function loadTournamentMatches(tourns: { id: string; name: string; sort_order: number; court: string; type: string }[]) {
   const tournIds = tourns.map((t) => t.id);
   const { data: matches } = await supabase
     .from("matches")
@@ -335,8 +325,7 @@ export function MatchLabelEditor({
   const allLabeledInDb = useMemo(() => {
     if (totalCount === 0) return false;
     const c = d.tournaments.reduce(
-      (s, t) =>
-        s + t.matches.filter((m) => !(m.round === 1 && !!m.fighter1_id && !m.fighter2_id) && !!m.match_label).length,
+      (s, t) => s + t.matches.filter((m) => !(m.round === 1 && !!m.fighter1_id && !m.fighter2_id) && !!m.match_label).length,
       0,
     );
     return c === totalCount;
@@ -372,9 +361,7 @@ export function MatchLabelEditor({
             selectedCourt={selectedCourt}
             assignedNumbers={d.assignedNumbers}
             swappingIds={d.swappingIds}
-            onNumberClick={(id) =>
-              d.setOrder((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
-            }
+            onNumberClick={(id) => d.setOrder((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))}
             onSwapFighters={(id) => void handleSwapFighters(id)}
             onSwapWithNext={(r, id) => void handleSwapWithNext(r, id)}
           />
@@ -403,16 +390,10 @@ function MatchLabelToolbar({
 }) {
   return (
     <div className="flex gap-2 mb-4 flex-wrap items-center">
-      <button
-        onClick={onAutoAssign}
-        className="text-xs bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded transition"
-      >
+      <button onClick={onAutoAssign} className="text-xs bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded transition">
         ラウンド順で自動割り当て
       </button>
-      <button
-        onClick={onClearAll}
-        className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded transition"
-      >
+      <button onClick={onClearAll} className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded transition">
         全解除
       </button>
       <span className="text-xs text-gray-500 ml-1">
@@ -465,9 +446,7 @@ function TournamentBracketCard({
     <div>
       <div className="flex items-center gap-2 mb-2">
         <h3 className="text-sm font-medium text-gray-400">{t.name}</h3>
-        {t.type === "one_match" && (
-          <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">ワンマッチ</span>
-        )}
+        {t.type === "one_match" && <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">ワンマッチ</span>}
         {extraLabel && <span className="text-xs text-orange-400">{extraLabel}</span>}
       </div>
       <div className="bg-gray-800 rounded-xl p-3">

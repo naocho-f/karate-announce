@@ -111,10 +111,7 @@ export function NoticeRenderer({
   onConsent: (noticeId: string, checked: boolean) => void;
 }) {
   return (
-    <div
-      id={`field-consent_${notice.id}`}
-      className="bg-gray-800/30 border-l-2 border-yellow-600/40 rounded-r-lg pl-3 pr-2 py-2 space-y-2"
-    >
+    <div id={`field-consent_${notice.id}`} className="bg-gray-800/30 border-l-2 border-yellow-600/40 rounded-r-lg pl-3 pr-2 py-2 space-y-2">
       {/* テキスト */}
       {notice.text_content && (
         <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">
@@ -135,15 +132,7 @@ export function NoticeRenderer({
           {notice.images
             .sort((a, b) => a.sort_order - b.sort_order)
             .map((img) => (
-              <Image
-                key={img.id}
-                src={img.public_url}
-                alt=""
-                className="w-full rounded-lg"
-                width={800}
-                height={600}
-                unoptimized
-              />
+              <Image key={img.id} src={img.public_url} alt="" className="w-full rounded-lg" width={800} height={600} unoptimized />
             ))}
         </div>
       )}
@@ -188,12 +177,7 @@ function isSingleSelect(config: FormFieldConfig) {
 }
 
 /** チェックボックスのトグル処理。rule_preference の __any__ 排他制御を含む */
-function toggleCheckboxValue(
-  current: Set<string> | undefined,
-  value: string,
-  wasChecked: boolean,
-  fieldKey: string,
-): Set<string> {
+function toggleCheckboxValue(current: Set<string> | undefined, value: string, wasChecked: boolean, fieldKey: string): Set<string> {
   const next = new Set(current ?? []);
   if (wasChecked) {
     next.delete(value);
@@ -416,16 +400,7 @@ function FieldItem(props: FieldItemProps) {
 }
 
 // ── FullName ──
-function FullNameField({
-  config,
-  def,
-  visibleFields,
-  values,
-  fieldErrors,
-  inp,
-  onSetValue,
-  renderFieldNotices,
-}: FieldItemProps) {
+function FullNameField({ config, def, visibleFields, values, fieldErrors, inp, onSetValue, renderFieldNotices }: FieldItemProps) {
   const key = def.key;
   const isReq = config.required;
   const label = config.custom_label || def.label;
@@ -621,16 +596,7 @@ function OrganizationField({
 }
 
 // ── Branch ──
-function BranchField({
-  config,
-  def,
-  visibleFields,
-  values,
-  fieldErrors,
-  inp,
-  onSetValue,
-  renderFieldNotices,
-}: FieldItemProps) {
+function BranchField({ config, def, visibleFields, values, fieldErrors, inp, onSetValue, renderFieldNotices }: FieldItemProps) {
   const key = def.key;
   const isReq = config.required;
   const kanaConfig = visibleFields.find((f) => f.def.key === "branch_kana");
@@ -703,8 +669,7 @@ function SimpleInput({
 }) {
   const errCls = hasError ? "border-red-500" : "";
   const val = values[fieldKey] ?? "";
-  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    onSetValue(fieldKey, e.target.value);
+  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onSetValue(fieldKey, e.target.value);
   if (type === "textarea")
     return (
       <textarea
@@ -730,8 +695,7 @@ function SimpleInput({
         required={isReq}
       />
     );
-  if (type === "date")
-    return <input type="date" value={val} onChange={onChange} className={`${inp} ${errCls}`} required={isReq} />;
+  if (type === "date") return <input type="date" value={val} onChange={onChange} className={`${inp} ${errCls}`} required={isReq} />;
   const inputType = type === "tel" ? "tel" : "text";
   return (
     <input
@@ -1096,9 +1060,7 @@ function CheckboxInput({
 // Hooks — visibleFields / isSingleSelect を再利用
 // ──────────────────────────────────────────────
 
-export function useVisibleFields(
-  formConfig: { ready: boolean; fields?: FormFieldConfig[]; customFieldDefs?: CustomFieldDef[] } | null,
-) {
+export function useVisibleFields(formConfig: { ready: boolean; fields?: FormFieldConfig[]; customFieldDefs?: CustomFieldDef[] } | null) {
   const customFieldDefs = useMemo(() => formConfig?.customFieldDefs ?? [], [formConfig?.customFieldDefs]);
   return useMemo(() => {
     if (!formConfig?.ready || !formConfig.fields) return [];

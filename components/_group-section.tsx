@@ -3,13 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Entry, Rule } from "@/lib/types";
 import { entryFullName } from "@/lib/types";
-import {
-  checkCompatibility,
-  COMPAT_COLORS,
-  COMPAT_LABEL,
-  type CompatibilityLevel,
-  type MismatchSettings,
-} from "@/lib/compatibility";
+import { checkCompatibility, COMPAT_COLORS, COMPAT_LABEL, type CompatibilityLevel, type MismatchSettings } from "@/lib/compatibility";
 import { BracketView } from "@/lib/bracket-view";
 import { buildRuleGroups } from "@/lib/rule-grouping";
 import { getGradeOptions } from "@/lib/grade-options";
@@ -59,12 +53,7 @@ function buildAutoGroupName(f: {
   return parts.length > 0 ? parts.join(" ") : null;
 }
 
-function inRange(
-  value: number | null | undefined,
-  minStr: string,
-  maxStr: string,
-  parseFn: (s: string) => number,
-): boolean {
+function inRange(value: number | null | undefined, minStr: string, maxStr: string, parseFn: (s: string) => number): boolean {
   if (minStr !== "" && (value == null || value < parseFn(minStr))) return false;
   if (maxStr !== "" && (value == null || value > parseFn(maxStr))) return false;
   return true;
@@ -163,14 +152,10 @@ function useGroupFilters(
     onUpdateFilters(filters);
   }, [filters, onUpdateFilters]);
 
-  const filteredUnassigned = unassigned.filter((e) =>
-    filterEntry(e, filters, ageCategories, getTotalMatchCount, getDesiredMatchCount),
-  );
+  const filteredUnassigned = unassigned.filter((e) => filterEntry(e, filters, ageCategories, getTotalMatchCount, getDesiredMatchCount));
   const sortComparator = buildFilterSortComparator(filters);
   const sortedFilteredUnassigned = [...filteredUnassigned].sort(sortComparator);
-  const validSelectedIds = new Set(
-    [...selectedEntryIds].filter((id) => sortedFilteredUnassigned.some((e) => e.id === id)),
-  );
+  const validSelectedIds = new Set([...selectedEntryIds].filter((id) => sortedFilteredUnassigned.some((e) => e.id === id)));
 
   return {
     filters,
@@ -250,20 +235,11 @@ export function GroupSection({
   onUpdateFilters: (filters: GroupFilters) => void;
 }) {
   const [previewMode, setPreviewMode] = useState(false);
-  const gf = useGroupFilters(
-    group,
-    unassigned,
-    ageCategories,
-    getTotalMatchCount,
-    getDesiredMatchCount,
-    onRename,
-    onUpdateFilters,
-  );
+  const gf = useGroupFilters(group, unassigned, ageCategories, getTotalMatchCount, getDesiredMatchCount, onRename, onUpdateFilters);
   const groupMismatch: MismatchSettings = { maxWeightDiff: group.maxWeightDiff, maxHeightDiff: group.maxHeightDiff };
   const isOneMatch = group.type === "one_match";
   const preview = !isOneMatch && previewMode && group.pairs.length > 1 ? buildBracketPreview(group.pairs) : null;
-  const inpSm =
-    "bg-gray-700 border border-gray-600 rounded px-1.5 py-1 text-xs text-white outline-none focus:border-blue-500";
+  const inpSm = "bg-gray-700 border border-gray-600 rounded px-1.5 py-1 text-xs text-white outline-none focus:border-blue-500";
 
   return (
     <div className="border border-gray-600 rounded-xl p-3 space-y-3">
@@ -529,9 +505,7 @@ function GroupFilterPanel(props: GroupFilterPanelProps) {
   } = props;
   return (
     <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-2.5 space-y-2">
-      <p className="text-xs text-gray-400 font-medium">
-        {isOneMatch ? "選手を選択" : "選手を絞り込んでこのトーナメントに追加"}
-      </p>
+      <p className="text-xs text-gray-400 font-medium">{isOneMatch ? "選手を選択" : "選手を絞り込んでこのトーナメントに追加"}</p>
       {!isOneMatch && (
         <FilterInputs
           inpSm={inpSm}
@@ -578,9 +552,7 @@ function GroupFilterPanel(props: GroupFilterPanelProps) {
           group={group}
         />
       ) : (
-        <p className="text-xs text-gray-500">
-          {unassigned.length === 0 ? "未割当の選手はいません" : "条件に合う選手がいません"}
-        </p>
+        <p className="text-xs text-gray-500">{unassigned.length === 0 ? "未割当の選手はいません" : "条件に合う選手がいません"}</p>
       )}
     </div>
   );
@@ -660,26 +632,15 @@ function SelectionControls({
       >
         全選択
       </button>
-      <button
-        onClick={() => onSetSelectedEntryIds(new Set())}
-        className="text-xs text-gray-400 hover:text-gray-300 transition"
-      >
+      <button onClick={() => onSetSelectedEntryIds(new Set())} className="text-xs text-gray-400 hover:text-gray-300 transition">
         全解除
       </button>
-      <span className="text-xs text-gray-500">
-        {validSelectedIds.size > 0 ? `${validSelectedIds.size}名選択中` : ""}
-      </span>
+      <span className="text-xs text-gray-500">{validSelectedIds.size > 0 ? `${validSelectedIds.size}名選択中` : ""}</span>
     </div>
   );
 }
 
-function BracketQualityWarning({
-  group,
-  sortedFilteredUnassigned,
-}: {
-  group: Group;
-  sortedFilteredUnassigned: Entry[];
-}) {
+function BracketQualityWarning({ group, sortedFilteredUnassigned }: { group: Group; sortedFilteredUnassigned: Entry[] }) {
   const totalEntries = group.pairs.reduce((s, p) => s + 1 + (p.e2 ? 1 : 0), 0) + sortedFilteredUnassigned.length;
   const totalPairs = Math.ceil(totalEntries / 2);
   const q = bracketQuality(totalPairs);
@@ -937,12 +898,7 @@ function FilterInputs({
       </div>
       <div className="flex items-center gap-1">
         <span className="text-xs text-gray-500">名前</span>
-        <input
-          value={nameFilter}
-          onChange={(e) => onSetNameFilter(e.target.value)}
-          placeholder="山田"
-          className={`w-20 ${inpSm}`}
-        />
+        <input value={nameFilter} onChange={(e) => onSetNameFilter(e.target.value)} placeholder="山田" className={`w-20 ${inpSm}`} />
       </div>
       <ClearableSelect
         id="group-filter-match-count"
@@ -979,12 +935,7 @@ function GradeRangeFilter({
   return (
     <div className="flex items-center gap-1">
       <span className="text-xs text-gray-500">年代</span>
-      <select
-        id="group-filter-min-grade"
-        value={minGrade}
-        onChange={(e) => onSetMinGrade(e.target.value)}
-        className={`w-20 ${inpSm}`}
-      >
+      <select id="group-filter-min-grade" value={minGrade} onChange={(e) => onSetMinGrade(e.target.value)} className={`w-20 ${inpSm}`}>
         <option value="">下限</option>
         {gradeOpts.map((o) => (
           <option key={o.value} value={o.value}>
@@ -993,12 +944,7 @@ function GradeRangeFilter({
         ))}
       </select>
       <span className="text-xs text-gray-500">〜</span>
-      <select
-        id="group-filter-max-grade"
-        value={maxGrade}
-        onChange={(e) => onSetMaxGrade(e.target.value)}
-        className={`w-20 ${inpSm}`}
-      >
+      <select id="group-filter-max-grade" value={maxGrade} onChange={(e) => onSetMaxGrade(e.target.value)} className={`w-20 ${inpSm}`}>
         <option value="">上限</option>
         {gradeOpts.map((o) => (
           <option key={o.value} value={o.value}>
@@ -1032,13 +978,7 @@ function EntryChipList({
   onSetSelectedEntryIds: React.Dispatch<React.SetStateAction<Set<string>>>;
 }) {
   const allRules = eventRules.length > 0 ? eventRules : [];
-  const ruleGroups = buildRuleGroups(
-    sortedFilteredUnassigned,
-    allRules,
-    defaultRuleId,
-    entryRuleIds,
-    getDesiredMatchCount,
-  );
+  const ruleGroups = buildRuleGroups(sortedFilteredUnassigned, allRules, defaultRuleId, entryRuleIds, getDesiredMatchCount);
 
   const renderEntryChip = (e: Entry) => {
     const desired = getDesiredMatchCount(e);
@@ -1103,14 +1043,8 @@ function EntryChipList({
 // ── PairList ──────────────────────────────────────────────
 
 function buildCompatText(pair: Pair, compat: CompatibilityLevel): string | null {
-  const wt =
-    pair.e2 && pair.e1.weight && pair.e2.weight
-      ? `体重差 ${Math.abs(pair.e1.weight - pair.e2.weight).toFixed(1)}kg`
-      : null;
-  const ht =
-    pair.e2 && pair.e1.height && pair.e2.height
-      ? `身長差 ${Math.abs(pair.e1.height - pair.e2.height).toFixed(0)}cm`
-      : null;
+  const wt = pair.e2 && pair.e1.weight && pair.e2.weight ? `体重差 ${Math.abs(pair.e1.weight - pair.e2.weight).toFixed(1)}kg` : null;
+  const ht = pair.e2 && pair.e1.height && pair.e2.height ? `身長差 ${Math.abs(pair.e1.height - pair.e2.height).toFixed(0)}cm` : null;
   const parts = [wt, ht].filter(Boolean);
   if (compat === "ok") return `規定内${parts.map((t) => `（${t}）`).join("")}`;
   if (compat === "warn") return `注意 — ${parts.join("・")}`;
@@ -1241,10 +1175,7 @@ function PairRow({
                 ▼
               </button>
             </div>
-            <button
-              onClick={() => onRemovePair(pair.id)}
-              className="text-xs text-red-400 hover:text-red-300 shrink-0 transition"
-            >
+            <button onClick={() => onRemovePair(pair.id)} className="text-xs text-red-400 hover:text-red-300 shrink-0 transition">
               削除
             </button>
           </div>
@@ -1288,9 +1219,7 @@ function PairMemos({ memos }: { memos: { name: string; text: string; kind: "admi
           <p className="text-[10px] text-gray-500">
             {m.kind === "admin" ? "📋" : "📝"} {m.name}
           </p>
-          <p className={`text-xs leading-tight ${m.kind === "admin" ? "text-yellow-200" : "text-gray-400 italic"}`}>
-            {m.text}
-          </p>
+          <p className={`text-xs leading-tight ${m.kind === "admin" ? "text-yellow-200" : "text-gray-400 italic"}`}>{m.text}</p>
         </div>
       ))}
     </div>

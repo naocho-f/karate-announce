@@ -876,9 +876,7 @@ describe("timer-state", () => {
     });
 
     it("timeUp: 累積モードで区間判定が適用される", () => {
-      let s = startTimer(
-        readyState({ newaza_enabled: true, newaza_free_release: 10, newaza_accumulate: true, newaza_duration: 120 }),
-      );
+      let s = startTimer(readyState({ newaza_enabled: true, newaza_free_release: 10, newaza_accumulate: true, newaza_duration: 120 }));
       s = toggleNewaza(s);
       // 1回目: 30秒使用 → 消費確定
       s = { ...s, newaza: { ...s.newaza, startedAt: Date.now() - 30000 } };

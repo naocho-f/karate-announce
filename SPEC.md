@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-15（テストCI安定性向上）
+> 最終更新: 2026-04-15（Prettier printWidth 120→140に変更）
 
 ---
 
@@ -770,3 +770,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **finishAuto/timeUpの寝技解除をreleaseNewazaに統一（2026-04-15）**: 自動判定時・タイムアップ時の寝技停止でreleaseNewazaを呼び出し、無消費判定・回数消費・rounds記録を統一。仕様書のトースト→バナー表記修正・訂正ボタン古い表記の削除
 - **undo時タイマー再計算・adjustNewazaCount rounds整合・寝技表示統一（2026-04-15）**: undo時にtimerStartedAt=Date.now()/timerBaseMs=prevTimerMsで再計算。adjustNewazaCount -1時にrounds末尾も削除。CenterNewaza/NewazaRowでnewazaRoundDisplayMsを使用するよう修正
 - **pushUndoでrunning中の実残り時間を保存（2026-04-15）**: prevTimerMsにstate.timerMs（初期値のまま）ではなくgetMainElapsedMs(state)を使用。undo→running復帰時にタイマーが初期値に戻る問題を修正
+- **Prettier printWidth 120→140に変更（2026-04-15）**: Tailwind CSS+JSXプロジェクトで不自然な改行が多発していたため、printWidthを120から140に拡大

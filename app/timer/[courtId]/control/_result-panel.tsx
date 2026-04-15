@@ -69,12 +69,7 @@ export default function ResultPanel({
         />
       )}
       {phase === "finished" && (
-        <FinishedDisplay
-          state={state}
-          writingBack={writingBack}
-          onWriteBack={onWriteBack}
-          onResetToIdle={onResetToIdle}
-        />
+        <FinishedDisplay state={state} writingBack={writingBack} onWriteBack={onWriteBack} onResetToIdle={onResetToIdle} />
       )}
     </section>
   );
@@ -148,8 +143,7 @@ function MethodSelection({
   onSelectingResultFor: (s: FighterSide | null) => void;
   onFinishManual: (s: FighterSide | null, m: ResultMethod) => void;
 }) {
-  const sideLabel =
-    selectingResultFor === "red" ? `赤 (${state.red.name || "赤"})` : `白 (${state.white.name || "白"})`;
+  const sideLabel = selectingResultFor === "red" ? `赤 (${state.red.name || "赤"})` : `白 (${state.white.name || "白"})`;
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">

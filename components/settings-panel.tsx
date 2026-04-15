@@ -40,11 +40,7 @@ function DojoPanel() {
   const [restoringId, setRestoringId] = useState<string | null>(null);
 
   async function load() {
-    const { data } = await supabase
-      .from("dojos")
-      .select("*")
-      .or(`deleted_at.is.null,deleted_at.gt.${softDeleteCutoff()}`)
-      .order("name");
+    const { data } = await supabase.from("dojos").select("*").or(`deleted_at.is.null,deleted_at.gt.${softDeleteCutoff()}`).order("name");
     setDojos(data ?? []);
     setLoading(false);
   }
@@ -52,11 +48,7 @@ function DojoPanel() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const { data } = await supabase
-        .from("dojos")
-        .select("*")
-        .or(`deleted_at.is.null,deleted_at.gt.${softDeleteCutoff()}`)
-        .order("name");
+      const { data } = await supabase.from("dojos").select("*").or(`deleted_at.is.null,deleted_at.gt.${softDeleteCutoff()}`).order("name");
       if (!cancelled) {
         setDojos(data ?? []);
         setLoading(false);
@@ -193,9 +185,7 @@ function DojoAddForm({
           disabled={adding}
           className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50 flex items-center gap-1.5"
         >
-          {adding && (
-            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-          )}
+          {adding && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
           {adding ? "追加中..." : "追加"}
         </button>
       </div>
@@ -479,9 +469,7 @@ function RuleAddForm({
           disabled={adding}
           className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium shrink-0 disabled:opacity-50 flex items-center gap-1.5"
         >
-          {adding && (
-            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-          )}
+          {adding && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
           {adding ? "追加中..." : "追加"}
         </button>
       </div>
@@ -849,10 +837,7 @@ function AnnounceSettingsPanel() {
           >
             {playing ? "再生中..." : "試し聞き"}
           </button>
-          <button
-            onClick={save}
-            className="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-medium transition"
-          >
+          <button onClick={save} className="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-medium transition">
             {saved ? "保存しました" : "保存"}
           </button>
         </div>
@@ -980,26 +965,14 @@ function TemplateEditor() {
         className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500 resize-none font-mono leading-relaxed"
       />
       <TemplatePreviewBox preview={preview} />
-      <TemplateActionButtons
-        playing={playing}
-        saving={saving}
-        saved={saved}
-        onPlay={() => void playPreview()}
-        onSave={() => void save()}
-      />
+      <TemplateActionButtons playing={playing} saving={saving} saved={saved} onPlay={() => void playPreview()} onSave={() => void save()} />
       <TemplateVarReference vars={vars} />
       <p className="text-xs text-gray-600">※ テンプレートはこのブラウザに保存されます</p>
     </div>
   );
 }
 
-function TemplateVarChips({
-  vars,
-  onInsertVar,
-}: {
-  vars: { key: string; desc: string }[];
-  onInsertVar: (key: string) => void;
-}) {
+function TemplateVarChips({ vars, onInsertVar }: { vars: { key: string; desc: string }[]; onInsertVar: (key: string) => void }) {
   return (
     <div className="space-y-1.5">
       <p className="text-xs text-gray-500">クリックしてカーソル位置に挿入</p>
@@ -1055,9 +1028,7 @@ function TemplateActionButtons({
         disabled={saving}
         className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
       >
-        {saving && (
-          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-        )}
+        {saving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
         {saving ? "保存中..." : saved ? "保存しました" : "保存"}
       </button>
     </div>
@@ -1087,15 +1058,7 @@ function TemplateVarReference({ vars }: { vars: { key: string; desc: string; sam
 
 // ── 共通入力コンポーネント ──────────────────────────────────────────────────
 
-function ReadingInput({
-  value,
-  placeholder,
-  onSave,
-}: {
-  value: string;
-  placeholder: string;
-  onSave: (v: string) => Promise<void> | void;
-}) {
+function ReadingInput({ value, placeholder, onSave }: { value: string; placeholder: string; onSave: (v: string) => Promise<void> | void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
@@ -1137,11 +1100,7 @@ function ReadingInput({
         disabled={saving}
         className="flex-1 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none disabled:opacity-50"
       />
-      <button
-        type="submit"
-        disabled={saving}
-        className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded disabled:opacity-50"
-      >
+      <button type="submit" disabled={saving} className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded disabled:opacity-50">
         {saving ? "保存中..." : "保存"}
       </button>
       <button
@@ -1201,11 +1160,7 @@ function DescriptionInput({ value, onSave }: { value: string; onSave: (v: string
         className="w-full bg-gray-700 border border-blue-500 rounded px-2 py-1 text-xs text-white placeholder:text-gray-500 outline-none resize-none disabled:opacity-50"
       />
       <div className="flex gap-1">
-        <button
-          type="submit"
-          disabled={saving}
-          className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded disabled:opacity-50"
-        >
+        <button type="submit" disabled={saving} className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded disabled:opacity-50">
           {saving ? "保存中..." : "保存"}
         </button>
         <button

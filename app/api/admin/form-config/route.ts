@@ -282,11 +282,7 @@ async function ensureFormConfig(eventId: string) {
   const { data: existing } = await supabaseAdmin.from("form_configs").select("*").eq("event_id", eventId).maybeSingle();
   if (existing) return existing;
 
-  const { data: created, error } = await supabaseAdmin
-    .from("form_configs")
-    .insert({ event_id: eventId })
-    .select()
-    .single();
+  const { data: created, error } = await supabaseAdmin.from("form_configs").insert({ event_id: eventId }).select().single();
   if (error) return null;
 
   const baseSortOrder = await initializeDefaultFields(created.id);
@@ -295,15 +291,9 @@ async function ensureFormConfig(eventId: string) {
   return created;
 }
 
-async function backfillCustomDefs(
-  configId: string,
-  fieldKeys: string[],
-  currentDefs: Record<string, unknown>[] | null,
-) {
+async function backfillCustomDefs(configId: string, fieldKeys: string[], currentDefs: Record<string, unknown>[] | null) {
   const existingDefKeys = new Set((currentDefs ?? []).map((d: Record<string, unknown>) => d.field_key as string));
-  const missingDefs = DEFAULT_CUSTOM_FIELDS.filter(
-    (cf) => fieldKeys.includes(cf.field_key) && !existingDefKeys.has(cf.field_key),
-  );
+  const missingDefs = DEFAULT_CUSTOM_FIELDS.filter((cf) => fieldKeys.includes(cf.field_key) && !existingDefKeys.has(cf.field_key));
   if (missingDefs.length === 0) return currentDefs;
 
   await supabaseAdmin.from("custom_field_defs").insert(
@@ -316,11 +306,7 @@ async function backfillCustomDefs(
       sort_order: cf.sort_order,
     })),
   );
-  const { data: refreshed } = await supabaseAdmin
-    .from("custom_field_defs")
-    .select("*")
-    .eq("form_config_id", configId)
-    .order("sort_order");
+  const { data: refreshed } = await supabaseAdmin.from("custom_field_defs").select("*").eq("form_config_id", configId).order("sort_order");
   return refreshed;
 }
 
@@ -333,11 +319,7 @@ export async function GET(request: NextRequest) {
   const config = await ensureFormConfig(eventId);
   if (!config) return dbError(null, "フォーム設定の作成に失敗しました");
 
-  const { data: fields } = await supabaseAdmin
-    .from("form_field_configs")
-    .select("*")
-    .eq("form_config_id", config.id)
-    .order("sort_order");
+  const { data: fields } = await supabaseAdmin.from("form_field_configs").select("*").eq("form_config_id", config.id).order("sort_order");
   const { data: notices } = await supabaseAdmin
     .from("form_notices")
     .select("*, images:form_notice_images(*)")
@@ -388,11 +370,7 @@ async function processDeletions(
     await Promise.all(
       customDeleteKeys.map(async (fieldKey) => {
         await supabaseAdmin.from("custom_field_defs").delete().eq("form_config_id", configId).eq("field_key", fieldKey);
-        await supabaseAdmin
-          .from("form_field_configs")
-          .delete()
-          .eq("form_config_id", configId)
-          .eq("field_key", fieldKey);
+        await supabaseAdmin.from("form_field_configs").delete().eq("form_config_id", configId).eq("field_key", fieldKey);
       }),
     );
   }
@@ -425,11 +403,7 @@ async function upsertNotices(configId: string, upsertList: Record<string, unknow
   );
 }
 
-function buildCustomFieldConfig(
-  configId: string,
-  cf: Record<string, unknown>,
-  matchingField: Record<string, unknown> | undefined,
-) {
+function buildCustomFieldConfig(configId: string, cf: Record<string, unknown>, matchingField: Record<string, unknown> | undefined) {
   const sortOrder = (matchingField?.sort_order as number) ?? 0;
   return {
     def: {
@@ -453,11 +427,7 @@ function buildCustomFieldConfig(
   };
 }
 
-async function createCustomFields(
-  configId: string,
-  createList: Record<string, unknown>[],
-  fields: Record<string, unknown>[],
-) {
+async function createCustomFields(configId: string, createList: Record<string, unknown>[], fields: Record<string, unknown>[]) {
   await Promise.all(
     createList.map(async (cf) => {
       const matchingField = fields.find((f) => f.field_key === cf.field_key);
@@ -490,10 +460,7 @@ async function updateFieldConfigs(fields: Record<string, unknown>[]) {
 async function incrementVersion(configId: string) {
   const { data: current } = await supabaseAdmin.from("form_configs").select("version").eq("id", configId).single();
   const newVersion = (current?.version ?? 0) + 1;
-  await supabaseAdmin
-    .from("form_configs")
-    .update({ version: newVersion, updated_at: new Date().toISOString() })
-    .eq("id", configId);
+  await supabaseAdmin.from("form_configs").update({ version: newVersion, updated_at: new Date().toISOString() }).eq("id", configId);
   return newVersion;
 }
 

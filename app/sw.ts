@@ -49,9 +49,7 @@ self.addEventListener("activate", (event) => {
       .keys()
       .then((keys) =>
         Promise.all(
-          keys
-            .filter((key) => !key.includes(SW_CACHE_VERSION) && !key.startsWith("serwist-precache"))
-            .map((key) => caches.delete(key)),
+          keys.filter((key) => !key.includes(SW_CACHE_VERSION) && !key.startsWith("serwist-precache")).map((key) => caches.delete(key)),
         ),
       ),
   );

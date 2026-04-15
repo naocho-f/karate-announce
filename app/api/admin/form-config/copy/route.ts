@@ -12,11 +12,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ソースの form_config を取得
-  const { data: sourceConfig } = await supabaseAdmin
-    .from("form_configs")
-    .select("id")
-    .eq("event_id", source_event_id)
-    .maybeSingle();
+  const { data: sourceConfig } = await supabaseAdmin.from("form_configs").select("id").eq("event_id", source_event_id).maybeSingle();
 
   if (!sourceConfig) {
     return NextResponse.json({ error: "ソース大会にフォーム設定がありません" }, { status: 404 });

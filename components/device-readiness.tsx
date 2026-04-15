@@ -65,9 +65,7 @@ export function DeviceReadiness() {
               <p className="text-xs text-gray-400">・Service Worker が未登録です。ページをリロードしてください</p>
             )}
             {status.cache === "not_ready" && (
-              <p className="text-xs text-gray-400">
-                ・キャッシュが未構築です。各画面を一度開いてデータが表示されるまでお待ちください
-              </p>
+              <p className="text-xs text-gray-400">・キャッシュが未構築です。各画面を一度開いてデータが表示されるまでお待ちください</p>
             )}
           </div>
         )}
