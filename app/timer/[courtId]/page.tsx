@@ -27,7 +27,16 @@ function newazaRoundDisplayMs(
   const recorded = state.newaza.rounds[roundIndex];
   if (isActive) return newazaDispMs;
   if (recorded !== undefined) {
-    return state.preset?.newaza_direction === "countdown" ? Math.max(0, newazaDur - recorded) : recorded;
+    if (state.preset?.newaza_direction === "countdown") {
+      // 累積モード: rounds[0]〜[roundIndex]の合計を制限時間から引く
+      if (state.preset?.newaza_accumulate) {
+        const cumulativeElapsed = state.newaza.rounds.slice(0, roundIndex + 1).reduce((a, b) => a + b, 0);
+        return Math.max(0, newazaDur - cumulativeElapsed);
+      }
+      return Math.max(0, newazaDur - recorded);
+    }
+    // カウントアップ: 累積モードでも区間経過をそのまま表示
+    return recorded;
   }
   // 累積モードでinactive・1回目が終わっていない場合
   if (roundIndex === 0 && state.preset?.newaza_accumulate && state.newaza.elapsedMs > 0 && !state.newaza.active) {

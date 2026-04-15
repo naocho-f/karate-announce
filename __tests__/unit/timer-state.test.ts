@@ -1124,6 +1124,99 @@ describe("timer-state", () => {
       expect(s.newaza.usedCount).toBe(0); // freeRelease内なので消費なし
       expect(s.newaza.rounds).toHaveLength(0); // roundsにも記録されない
     });
+
+    it("累積モード: 無消費解除時にelapsedMsがロールバックされる", () => {
+      const s = readyState({
+        ...accumPreset,
+        newaza_free_release: 5,
+        newaza_limit_type: "limited",
+        newaza_max_count: 2,
+      });
+      let st = startTimer(s);
+      // 1回目: 3秒で解除（無消費、freeRelease=5秒以内）
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 3000 } };
+      st = toggleNewaza(st);
+      expect(st.newaza.usedCount).toBe(0);
+      expect(st.newaza.elapsedMs).toBe(0); // 3秒分がロールバックされて0に戻る
+    });
+
+    it("累積モード: 消費確定後に無消費解除してもelapsedMsが正しくロールバック", () => {
+      const s = readyState({
+        ...accumPreset,
+        newaza_free_release: 5,
+        newaza_limit_type: "limited",
+        newaza_max_count: 2,
+      });
+      let st = startTimer(s);
+      // 1回目: 10秒で解除（消費）
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 10000 } };
+      st = toggleNewaza(st);
+      expect(st.newaza.usedCount).toBe(1);
+      expect(st.newaza.rounds).toHaveLength(1);
+      const elapsedAfterFirst = st.newaza.elapsedMs; // ~10000
+      // 2回目: 3秒で解除（無消費）
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 3000 } };
+      st = toggleNewaza(st);
+      expect(st.newaza.usedCount).toBe(1); // 変わらず
+      expect(st.newaza.rounds).toHaveLength(1); // 追加されない
+      // elapsedMsが1回目消費後の値に戻る（3秒分がロールバック）
+      expect(st.newaza.elapsedMs).toBeGreaterThanOrEqual(elapsedAfterFirst - 500);
+      expect(st.newaza.elapsedMs).toBeLessThanOrEqual(elapsedAfterFirst + 500);
+    });
+
+    it("累積モード: ユーザーシナリオ全体（2分・無消費5秒・最大2回）", () => {
+      const s = readyState({
+        ...accumPreset,
+        newaza_free_release: 5,
+        newaza_limit_type: "limited",
+        newaza_max_count: 2,
+      });
+      let st = startTimer(s);
+
+      // ① 起動→3秒で解除（無消費）→ なかったことになる
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 3000 } };
+      st = toggleNewaza(st);
+      expect(st.newaza.usedCount).toBe(0);
+      expect(st.newaza.rounds).toHaveLength(0);
+      expect(st.newaza.elapsedMs).toBe(0);
+
+      // ② 起動→10秒で解除（消費）→ rounds[0]=10000, elapsedMs~10000
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 10000 } };
+      st = toggleNewaza(st);
+      expect(st.newaza.usedCount).toBe(1);
+      expect(st.newaza.rounds).toHaveLength(1);
+      expect(st.newaza.rounds[0]).toBeGreaterThanOrEqual(9500);
+      expect(st.newaza.rounds[0]).toBeLessThanOrEqual(10500);
+
+      // ③ 起動→3秒で解除（無消費）→ なかったことになる
+      const elapsedBeforeThird = st.newaza.elapsedMs;
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 3000 } };
+      st = toggleNewaza(st);
+      expect(st.newaza.usedCount).toBe(1);
+      expect(st.newaza.rounds).toHaveLength(1);
+      expect(st.newaza.elapsedMs).toBeGreaterThanOrEqual(elapsedBeforeThird - 500);
+      expect(st.newaza.elapsedMs).toBeLessThanOrEqual(elapsedBeforeThird + 500);
+
+      // ④ 起動→30秒で解除（消費）→ rounds[1]=30000, usedCount=2
+      st = toggleNewaza(st);
+      st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 30000 } };
+      st = toggleNewaza(st);
+      expect(st.newaza.usedCount).toBe(2);
+      expect(st.newaza.rounds).toHaveLength(2);
+      expect(st.newaza.rounds[1]).toBeGreaterThanOrEqual(29500);
+      expect(st.newaza.rounds[1]).toBeLessThanOrEqual(30500);
+
+      // ⑤ もう起動できない
+      const beforeToggle = st;
+      st = toggleNewaza(st);
+      expect(st).toBe(beforeToggle); // 変化なし
+    });
   });
 
   // ── 注意(caution)テスト ──
