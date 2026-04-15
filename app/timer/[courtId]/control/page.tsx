@@ -51,6 +51,12 @@ export default function TimerControlPage() {
         onToggleMute={() => tc.setIsMuted((prev) => !prev)}
       />
 
+      {tc.newazaStopBanner && (
+        <div className="bg-cyan-900 border-b border-cyan-700 px-4 py-3 text-center">
+          <p className="text-cyan-100 text-base font-bold">{tc.newazaStopBanner}</p>
+        </div>
+      )}
+
       {tc.buzzerWarning && (
         <div className="bg-yellow-900 border-b border-yellow-700 px-4 py-2 flex items-center justify-between">
           <p className="text-yellow-200 text-sm font-medium">
@@ -109,6 +115,7 @@ export default function TimerControlPage() {
             onSetIpponConfirmSide={tc.setIpponConfirmSide}
             onSetSelectingResultFor={tc.setSelectingResultFor}
             onSetBuzzerWarning={tc.setBuzzerWarning}
+            onSetNewazaStopBanner={tc.setNewazaStopBanner}
             onAnnounceStart={() => void tc.handleAnnounceStart()}
             onAnnounceWinner={() => void tc.handleAnnounceWinner()}
             onWriteBack={() => void tc.handleWriteBack()}

@@ -33,7 +33,6 @@ type Props = {
   onSelectingResultFor: (side: FighterSide | null) => void;
   onFinishManual: (side: FighterSide | null, method: ResultMethod) => void;
   onWriteBack: () => void;
-  onCancelResult: () => void;
   onResetToIdle: () => void;
 };
 
@@ -46,7 +45,6 @@ export default function ResultPanel({
   onSelectingResultFor,
   onFinishManual,
   onWriteBack,
-  onCancelResult,
   onResetToIdle,
 }: Props) {
   const phase = state.phase;
@@ -75,7 +73,6 @@ export default function ResultPanel({
           state={state}
           writingBack={writingBack}
           onWriteBack={onWriteBack}
-          onCancelResult={onCancelResult}
           onResetToIdle={onResetToIdle}
         />
       )}
@@ -183,13 +180,11 @@ function FinishedDisplay({
   state,
   writingBack,
   onWriteBack,
-  onCancelResult,
   onResetToIdle,
 }: {
   state: TimerState;
   writingBack: boolean;
   onWriteBack: () => void;
-  onCancelResult: () => void;
   onResetToIdle: () => void;
 }) {
   return (
@@ -207,21 +202,13 @@ function FinishedDisplay({
         <p className="text-green-400 font-bold text-lg">{resultMethodLabel(state.resultMethod)}</p>
       </div>
       {!state.resultWritten && (
-        <>
-          <button
-            onClick={onWriteBack}
-            disabled={writingBack}
-            className="w-full py-5 rounded-lg bg-green-700 hover:bg-green-600 text-white font-bold text-lg transition disabled:opacity-50"
-          >
-            {writingBack ? "書き戻し中..." : "確定する"}
-          </button>
-          <button
-            onClick={onCancelResult}
-            className="w-full py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition"
-          >
-            訂正する
-          </button>
-        </>
+        <button
+          onClick={onWriteBack}
+          disabled={writingBack}
+          className="w-full py-5 rounded-lg bg-green-700 hover:bg-green-600 text-white font-bold text-lg transition disabled:opacity-50"
+        >
+          {writingBack ? "書き戻し中..." : "確定する"}
+        </button>
       )}
       {state.resultWritten && <p className="text-center text-green-400 text-sm font-bold">結果を書き戻しました</p>}
       {state.resultWritten && (

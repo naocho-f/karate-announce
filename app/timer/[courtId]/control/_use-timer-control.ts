@@ -118,6 +118,7 @@ export function useTimerControl() {
   const [swapping, setSwapping] = useState(false);
   const [ipponConfirmSide, setIpponConfirmSide] = useState<FighterSide | null>(null);
   const [buzzerWarning, setBuzzerWarning] = useState(false);
+  const [newazaStopBanner, setNewazaStopBanner] = useState<string | null>(null);
 
   // ブザー警告バナーの自動消去
   useEffect(() => {
@@ -125,6 +126,13 @@ export function useTimerControl() {
     const timer = setTimeout(() => setBuzzerWarning(false), 5000);
     return () => clearTimeout(timer);
   }, [buzzerWarning]);
+
+  // 寝技停止バナーの自動消去（3秒）
+  useEffect(() => {
+    if (!newazaStopBanner) return;
+    const timer = setTimeout(() => setNewazaStopBanner(null), 3000);
+    return () => clearTimeout(timer);
+  }, [newazaStopBanner]);
 
   // カスタム音源プリロード
   useEffect(() => {
@@ -361,7 +369,7 @@ export function useTimerControl() {
             });
           }
           if (next.phase === "paused" && prev.phase === "running") {
-            showToast("寝技タイムアップによりメインタイマーを停止しました");
+            setNewazaStopBanner("寝技タイムアップによりメインタイマーを停止しました");
           }
           return next;
         });
@@ -651,6 +659,8 @@ export function useTimerControl() {
     setIpponConfirmSide,
     buzzerWarning,
     setBuzzerWarning,
+    newazaStopBanner,
+    setNewazaStopBanner,
     matchItemRefs,
     matchListTopRef,
     update,

@@ -113,6 +113,10 @@ export interface UndoEntry {
   prevNewazaUsedCount: number;
   /** 自動判定で finished に遷移した場合の復帰先 */
   prevPhase: TimerPhase | null;
+  /** タイマー状態（finished→running復帰時にタイマーを再開するため） */
+  prevTimerStartedAt: number | null;
+  prevTimerBaseMs: number;
+  prevTimerMs: number;
 }
 
 export interface LogEntry {
@@ -406,6 +410,9 @@ function pushUndo(state: TimerState, action: string, prevPhase?: TimerPhase): vo
     prevWhiteScore: cloneScore(state.whiteScore),
     prevNewazaUsedCount: state.newaza.usedCount,
     prevPhase: prevPhase ?? null,
+    prevTimerStartedAt: state.timerStartedAt,
+    prevTimerBaseMs: state.timerBaseMs,
+    prevTimerMs: state.timerMs,
   });
   if (state.undoStack.length > 100) state.undoStack.shift();
 }
@@ -664,13 +671,16 @@ export function undo(state: TimerState): TimerState {
   s.redScore = entry.prevRedScore;
   s.whiteScore = entry.prevWhiteScore;
   s.newaza = { ...s.newaza, usedCount: entry.prevNewazaUsedCount };
-  // 自動判定で finished に遷移していた場合、元のフェーズに復帰
+  // 自動判定で finished に遷移していた場合、元のフェーズとタイマー状態に復帰
   if (entry.prevPhase && s.phase === "finished") {
     s.phase = entry.prevPhase;
     s.winnerId = null;
     s.winnerSide = null;
     s.resultMethod = null;
     s.resultDetail = null;
+    s.timerStartedAt = entry.prevTimerStartedAt;
+    s.timerBaseMs = entry.prevTimerBaseMs;
+    s.timerMs = entry.prevTimerMs;
   }
   log(s, "undo", { undone: entry.action });
   return s;
@@ -727,21 +737,6 @@ export function markResultWritten(state: TimerState): TimerState {
   s.resultWritten = true;
   s.undoStack = [];
   log(s, "result_written");
-  return s;
-}
-
-/** 結果取り消し — finished → time_up */
-export function cancelResult(state: TimerState): TimerState {
-  if (state.phase !== "finished") return state;
-  const s = { ...state };
-  s.phase = "time_up";
-  s.winnerId = null;
-  s.winnerSide = null;
-  s.resultMethod = null;
-  s.resultDetail = null;
-  s.resultWritten = false;
-  s.undoStack = [];
-  log(s, "cancel_result");
   return s;
 }
 

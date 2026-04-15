@@ -26,7 +26,6 @@ import {
   undo,
   finishManual,
   markResultWritten,
-  cancelResult,
   resetToIdle,
   getDisplayMs,
   getNewazaElapsedMs,
@@ -200,15 +199,6 @@ describe("timer-state", () => {
       expect(s.winnerSide).toBe("red");
       expect(s.winnerId).toBe("red-1");
       expect(s.resultMethod).toBe("decision");
-    });
-
-    it("cancelResult: finished → time_up", () => {
-      const tu = timeUp(startTimer(readyState()));
-      const fin = finishManual(tu, "red", "decision");
-      const s = cancelResult(fin);
-      expect(s.phase).toBe("time_up");
-      expect(s.winnerId).toBeNull();
-      expect(s.resultMethod).toBeNull();
     });
 
     it("resetToIdle: → idle", () => {
@@ -608,6 +598,38 @@ describe("timer-state", () => {
       expect(undone.phase).toBe("running");
       expect(undone.redScore.ippon).toBe(0);
       expect(undone.winnerId).toBeNull();
+    });
+
+    it("finished→running復帰時にtimerStartedAtが復元される", () => {
+      const running = startTimer(readyState({ ippon_wins: true }));
+      expect(running.timerStartedAt).not.toBeNull();
+      const savedStartedAt = running.timerStartedAt;
+      const savedTimerMs = running.timerMs;
+      const savedBaseMs = running.timerBaseMs;
+
+      const finished = addIppon(running, "red");
+      expect(finished.phase).toBe("finished");
+      expect(finished.timerStartedAt).toBeNull(); // finishAutoで停止
+
+      const undone = undo(finished);
+      expect(undone.phase).toBe("running");
+      expect(undone.timerStartedAt).toBe(savedStartedAt);
+      expect(undone.timerMs).toBe(savedTimerMs);
+      expect(undone.timerBaseMs).toBe(savedBaseMs);
+    });
+
+    it("finished→paused復帰時はtimerStartedAtがnullのまま", () => {
+      const running = startTimer(readyState({ point_win_threshold: 3 }));
+      const paused = pauseTimer(running);
+      // paused状態でポイント追加して先取り勝ち
+      let s = addPoint(paused, "red");
+      s = addPoint(s, "red");
+      s = addPoint(s, "red");
+      expect(s.phase).toBe("finished");
+
+      const undone = undo(s);
+      expect(undone.phase).toBe("paused");
+      expect(undone.timerStartedAt).toBeNull(); // pausedなのでnull
     });
 
     it("Undo スタックが空なら何もしない", () => {

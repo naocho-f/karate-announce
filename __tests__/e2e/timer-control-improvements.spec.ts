@@ -8,7 +8,7 @@
  * #4: 試合一覧に戻るボタン
  * #5: 画面全体を使うレイアウト
  * #6: 勝利理由のボタン化
- * #7: 勝利確定後フロー（確定する/訂正する）
+ * #7: 勝利確定後フロー（確定する/取消で復帰）
  * #8: 結果ボタン左右均等
  * #9: 反則ポイント設定の表示
  * #10: ボタン縦幅の増大
@@ -115,7 +115,7 @@ test.describe("タイマー操作パネル改善", () => {
     }
   });
 
-  test("#7: 勝利確定後に確定する/訂正するボタンが表示される", async ({ page }) => {
+  test("#7: 勝利確定後に確定するボタンが表示される", async ({ page }) => {
     await page.goto("/timer/1/control");
 
     // クイック試合を開始
@@ -131,8 +131,6 @@ test.describe("タイマー操作パネル改善", () => {
 
     // 確定するボタンが表示される
     await expect(page.locator("button", { hasText: "確定する" })).toBeVisible({ timeout: 3_000 });
-    // 訂正するボタンが表示される
-    await expect(page.locator("button", { hasText: "訂正する" })).toBeVisible();
 
     // 確定するをクリック → 結果書き戻し → 「次の試合へ」ボタンが表示される
     await page.locator("button", { hasText: "確定する" }).click();
@@ -173,7 +171,7 @@ test.describe("タイマー操作パネル改善", () => {
     await expect(page.locator("button", { hasText: "ブザー" })).toBeVisible();
   });
 
-  test("訂正するボタンで結果を取り消して勝者を再選択できる", async ({ page }) => {
+  test("取消ボタン（undo）で勝利判定を取り消して試合中に復帰できる", async ({ page }) => {
     await page.goto("/timer/1/control");
 
     // クイック試合を開始
@@ -187,10 +185,11 @@ test.describe("タイマー操作パネル改善", () => {
     await page.getByRole("button", { name: "一本を記録" }).click();
     await expect(page.locator("text=終了")).toBeVisible({ timeout: 5_000 });
 
-    // 訂正するボタンをクリック
-    await page.locator("button", { hasText: "訂正する" }).click();
+    // 操作履歴パネルの取消ボタンをクリック
+    await page.locator("button", { hasText: "取消" }).click();
 
-    // 結果がクリアされ、スコア操作セクションが再び表示される
+    // 結果がクリアされ、試合中に復帰
+    await expect(page.locator("text=試合中")).toBeVisible({ timeout: 5_000 });
     await expect(page.locator("h3", { hasText: "スコア操作" })).toBeVisible({ timeout: 5_000 });
   });
 

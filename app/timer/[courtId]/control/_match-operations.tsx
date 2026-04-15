@@ -14,14 +14,12 @@ import {
   toggleNewaza,
   adjustNewazaCount,
   finishManual,
-  cancelResult,
   resetToIdle,
   type TimerState,
   type FighterSide,
 } from "@/lib/timer-state";
 import { playBuzzer } from "@/lib/timer-buzzer";
 import type { TimerPreset } from "@/lib/types";
-import { showToast } from "@/components/toast";
 import ScoringPanel from "./_scoring-panel";
 import ResultPanel from "./_result-panel";
 
@@ -51,6 +49,7 @@ type MatchOperationsProps = {
   onSetIpponConfirmSide: (v: FighterSide | null) => void;
   onSetSelectingResultFor: (v: FighterSide | null) => void;
   onSetBuzzerWarning: (v: boolean) => void;
+  onSetNewazaStopBanner: (v: string | null) => void;
   onAnnounceStart: () => void;
   onAnnounceWinner: () => void;
   onWriteBack: () => void;
@@ -92,7 +91,6 @@ export default function MatchOperations(props: MatchOperationsProps) {
           onSelectingResultFor={props.onSetSelectingResultFor}
           onFinishManual={(side, method) => props.onUpdate((s) => finishManual(s, side, method))}
           onWriteBack={props.onWriteBack}
-          onCancelResult={() => props.onUpdate(cancelResult)}
           onResetToIdle={props.onResetToIdle}
         />
       )}
@@ -149,7 +147,8 @@ function AnnounceSelection({
   );
 }
 
-function MainControls({ props: { state, phase, p, newazaDispMs, onUpdate } }: { props: MatchOperationsProps }) {
+function MainControls({ props }: { props: MatchOperationsProps }) {
+  const { state, phase, p, newazaDispMs, onUpdate } = props;
   return (
     <section>
       <h3 className="text-sm font-bold text-gray-400 mb-2">メイン操作</h3>
@@ -180,7 +179,7 @@ function MainControls({ props: { state, phase, p, newazaDispMs, onUpdate } }: { 
         )}
       </div>
       {p?.newaza_enabled && phase !== "finished" && (
-        <NewazaControls state={state} p={p} newazaDispMs={newazaDispMs} onUpdate={onUpdate} />
+        <NewazaControls state={state} p={p} newazaDispMs={newazaDispMs} onUpdate={onUpdate} props={props} />
       )}
     </section>
   );
@@ -191,11 +190,13 @@ function NewazaControls({
   p,
   newazaDispMs,
   onUpdate,
+  props,
 }: {
   state: TimerState;
   p: TimerPreset;
   newazaDispMs: number;
   onUpdate: (fn: (s: TimerState) => TimerState) => void;
+  props: MatchOperationsProps;
 }) {
   const isDisabled =
     !state.newaza.active &&
@@ -211,7 +212,7 @@ function NewazaControls({
             const wasActive = state.newaza.active;
             onUpdate(toggleNewaza);
             if (wasActive && state.phase === "running" && p.newaza_stops_main) {
-              showToast("寝技解除によりメインタイマーを停止しました");
+              props.onSetNewazaStopBanner("寝技解除によりメインタイマーを停止しました");
             }
           }}
           className={`w-1/2 py-3 rounded-lg font-bold text-lg transition ${state.newaza.active ? "bg-cyan-700 hover:bg-cyan-600 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"}`}
