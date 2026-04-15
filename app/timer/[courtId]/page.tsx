@@ -1025,6 +1025,8 @@ function KouryuukaiNewazaCell({
   bw,
   borderBottom,
   sz,
+  hideNum,
+  fullHeight,
 }: {
   num: number;
   timeText: React.ReactNode;
@@ -1032,11 +1034,14 @@ function KouryuukaiNewazaCell({
   bw: string;
   borderBottom?: boolean;
   sz: (v: number) => string;
+  hideNum?: boolean;
+  fullHeight?: boolean;
 }) {
   return (
     <div
+      data-testid={`newaza-row-${num}`}
       style={{
-        height: "50%",
+        height: fullHeight ? "100%" : "50%",
         display: "flex",
         borderBottom: borderBottom ? bw : undefined,
       }}
@@ -1054,9 +1059,15 @@ function KouryuukaiNewazaCell({
         <span className="text-cyan-400 font-bold" style={{ fontSize: sz(fs.newazaLabel), lineHeight: 1 }}>
           寝
         </span>
-        <span className="text-cyan-400 font-bold" style={{ fontSize: sz(fs.newazaNumber), lineHeight: 1 }}>
-          {num}
-        </span>
+        {!hideNum && (
+          <span
+            data-testid={`newaza-num-${num}`}
+            className="text-cyan-400 font-bold"
+            style={{ fontSize: sz(fs.newazaNumber), lineHeight: 1 }}
+          >
+            {num}
+          </span>
+        )}
       </div>
       {/* 右側: 時間表示（右揃え） */}
       <div
@@ -1245,34 +1256,52 @@ export function KouryuukaiLayout({
         </KouryuukaiCell>
         {/* 寝技 35% */}
         <div style={{ width: "35%", display: "flex", flexDirection: "column", borderLeft: bw }}>
-          <KouryuukaiNewazaCell
-            num={1}
-            fs={fs}
-            bw={bw}
-            sz={sz}
-            borderBottom
-            timeText={
-              <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: sz(fs.newaza) }}>
-                {formatTime(newazaRoundDisplayMs(state, 0, newazaDispMs, newazaDur) ?? newazaDur)}
-              </span>
-            }
-          />
-          {/* 寝技2: ラベルは常に表示、時間は開始後のみ表示 */}
-          <KouryuukaiNewazaCell
-            num={2}
-            fs={fs}
-            bw={bw}
-            sz={sz}
-            timeText={(() => {
-              const ms = newazaRoundDisplayMs(state, 1, newazaDispMs, newazaDur);
-              if (ms === null) return null;
-              return (
+          {theme.p?.newaza_limit_type === "unlimited" ? (
+            <KouryuukaiNewazaCell
+              num={1}
+              fs={fs}
+              bw={bw}
+              sz={sz}
+              hideNum
+              fullHeight
+              timeText={
                 <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: sz(fs.newaza) }}>
-                  {formatTime(ms)}
+                  {formatTime(newazaRoundDisplayMs(state, 0, newazaDispMs, newazaDur) ?? newazaDur)}
                 </span>
-              );
-            })()}
-          />
+              }
+            />
+          ) : (
+            <>
+              <KouryuukaiNewazaCell
+                num={1}
+                fs={fs}
+                bw={bw}
+                sz={sz}
+                borderBottom
+                timeText={
+                  <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: sz(fs.newaza) }}>
+                    {formatTime(newazaRoundDisplayMs(state, 0, newazaDispMs, newazaDur) ?? newazaDur)}
+                  </span>
+                }
+              />
+              {/* 寝技2: ラベルは常に表示、時間は開始後のみ表示 */}
+              <KouryuukaiNewazaCell
+                num={2}
+                fs={fs}
+                bw={bw}
+                sz={sz}
+                timeText={(() => {
+                  const ms = newazaRoundDisplayMs(state, 1, newazaDispMs, newazaDur);
+                  if (ms === null) return null;
+                  return (
+                    <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: sz(fs.newaza) }}>
+                      {formatTime(ms)}
+                    </span>
+                  );
+                })()}
+              />
+            </>
+          )}
         </div>
       </div>
 
