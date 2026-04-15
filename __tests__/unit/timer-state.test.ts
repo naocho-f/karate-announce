@@ -573,6 +573,29 @@ describe("timer-state", () => {
       const adjusted = adjustNewazaCount(s, -5);
       expect(adjusted.newaza.usedCount).toBe(0);
     });
+
+    it("adjustNewazaCount: -1時にroundsも末尾が削除される", () => {
+      let s = startTimer(readyState({ newaza_enabled: true, newaza_duration: 30 }));
+      s = toggleNewaza(s);
+      s = { ...s, newaza: { ...s.newaza, startedAt: Date.now() - 10000 } };
+      s = toggleNewaza(s); // rounds=[~10000], usedCount=1
+      s = toggleNewaza(s);
+      s = { ...s, newaza: { ...s.newaza, startedAt: Date.now() - 20000 } };
+      s = toggleNewaza(s); // rounds=[~10000, ~20000], usedCount=2
+      expect(s.newaza.rounds).toHaveLength(2);
+      expect(s.newaza.usedCount).toBe(2);
+
+      const adjusted = adjustNewazaCount(s, -1);
+      expect(adjusted.newaza.usedCount).toBe(1);
+      expect(adjusted.newaza.rounds).toHaveLength(1); // 末尾削除
+    });
+
+    it("adjustNewazaCount: +1時はroundsは変わらない", () => {
+      const s = readyState({ newaza_enabled: true });
+      const adjusted = adjustNewazaCount(s, 1);
+      expect(adjusted.newaza.usedCount).toBe(1);
+      expect(adjusted.newaza.rounds).toHaveLength(0); // 追加されない
+    });
   });
 
   // ── 11. Undo ──
@@ -600,22 +623,22 @@ describe("timer-state", () => {
       expect(undone.winnerId).toBeNull();
     });
 
-    it("finished→running復帰時にtimerStartedAtが復元される", () => {
+    it("finished→running復帰時にtimerStartedAtが再計算される", () => {
       const running = startTimer(readyState({ ippon_wins: true }));
       expect(running.timerStartedAt).not.toBeNull();
-      const savedStartedAt = running.timerStartedAt;
       const savedTimerMs = running.timerMs;
-      const savedBaseMs = running.timerBaseMs;
 
       const finished = addIppon(running, "red");
       expect(finished.phase).toBe("finished");
-      expect(finished.timerStartedAt).toBeNull(); // finishAutoで停止
+      expect(finished.timerStartedAt).toBeNull();
 
       const undone = undo(finished);
       expect(undone.phase).toBe("running");
-      expect(undone.timerStartedAt).toBe(savedStartedAt);
-      expect(undone.timerMs).toBe(savedTimerMs);
-      expect(undone.timerBaseMs).toBe(savedBaseMs);
+      // timerStartedAtはundo実行時のDate.now()に近い値
+      expect(undone.timerStartedAt).not.toBeNull();
+      expect(undone.timerStartedAt).toBeGreaterThanOrEqual(Date.now() - 100);
+      // timerBaseMsは操作前のtimerMs（カウントダウン残り時間）
+      expect(undone.timerBaseMs).toBe(savedTimerMs);
     });
 
     it("finished→paused復帰時はtimerStartedAtがnullのまま", () => {

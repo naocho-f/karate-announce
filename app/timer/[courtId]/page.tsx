@@ -637,14 +637,16 @@ function NewazaRow({
   newazaMs: number;
 }) {
   if (!theme.showNewaza) return null;
-  const progress = theme.newazaDuration > 0 ? Math.min(1, newazaMs / theme.newazaDuration) : 0;
+  const newazaDur = theme.newazaDuration;
+  const displayMs = newazaRoundDisplayMs(state, 0, newazaDispMs, newazaDur) ?? newazaDispMs;
+  const progress = newazaDur > 0 ? Math.min(1, newazaMs / newazaDur) : 0;
   return (
     <div className="gap-3" style={bs}>
       <span className="text-gray-500 font-bold" style={{ fontSize: `${Math.max(row.fontSize * 0.5, 1)}vh` }}>
         {theme.layout.labelNewaza || "寝技"}
       </span>
       <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${row.fontSize}vh` }}>
-        {formatTime(newazaDispMs)}
+        {formatTime(displayMs)}
       </span>
       {theme.newazaMax !== null && (
         <span className="text-gray-600" style={{ fontSize: `${Math.max(row.fontSize * 0.4, 0.8)}vh` }}>
@@ -738,6 +740,7 @@ function ScoresRow({
       ) : (
         <CenterNewaza
           row={row}
+          state={state}
           theme={theme}
           showNewaza={showNewaza}
           isDraw={isDraw}
@@ -917,6 +920,7 @@ function ScoreContent({
 
 function CenterNewaza({
   row,
+  state,
   theme,
   showNewaza,
   isDraw,
@@ -925,6 +929,7 @@ function CenterNewaza({
   dividerThickness,
 }: {
   row: LayoutRow;
+  state: TimerState;
   theme: TimerTheme;
   showNewaza: boolean;
   isDraw: boolean;
@@ -932,6 +937,8 @@ function CenterNewaza({
   dividerColor: string;
   dividerThickness: number;
 }) {
+  const newazaDur = (theme.p?.newaza_duration ?? 30) * 1000;
+  const displayMs = newazaRoundDisplayMs(state, 0, newazaDispMs, newazaDur) ?? newazaDispMs;
   return (
     <div
       className="flex flex-col items-center justify-center"
@@ -947,7 +954,7 @@ function CenterNewaza({
             {theme.layout.labelNewaza || "寝技"}
           </span>
           <span className="font-bold text-cyan-400 tabular-nums" style={{ fontSize: `${row.fontSize * 0.45}vh` }}>
-            {formatTime(newazaDispMs)}
+            {formatTime(displayMs)}
           </span>
         </>
       ) : (

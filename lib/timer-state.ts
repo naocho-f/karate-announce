@@ -643,9 +643,12 @@ export function newazaTimeUp(state: TimerState): TimerState {
 export function adjustNewazaCount(state: TimerState, delta: number): TimerState {
   const s = { ...state };
   pushUndo(s, "newaza_count_adjust", state.phase);
+  const newCount = Math.max(0, s.newaza.usedCount + delta);
   s.newaza = {
     ...s.newaza,
-    usedCount: Math.max(0, s.newaza.usedCount + delta),
+    usedCount: newCount,
+    // -1時はroundsも末尾から削除（usedCountとroundsの整合性を維持）
+    rounds: newCount < s.newaza.rounds.length ? s.newaza.rounds.slice(0, newCount) : s.newaza.rounds,
   };
   log(s, "newaza_count_adjust", { delta });
   return s;
@@ -668,9 +671,15 @@ export function undo(state: TimerState): TimerState {
     s.winnerSide = null;
     s.resultMethod = null;
     s.resultDetail = null;
-    s.timerStartedAt = entry.prevTimerStartedAt;
-    s.timerBaseMs = entry.prevTimerBaseMs;
     s.timerMs = entry.prevTimerMs;
+    // running復帰時: undoの瞬間からカウントダウン再開（finished中の経過時間を反映しない）
+    if (entry.prevPhase === "running") {
+      s.timerStartedAt = Date.now();
+      s.timerBaseMs = entry.prevTimerMs;
+    } else {
+      s.timerStartedAt = entry.prevTimerStartedAt;
+      s.timerBaseMs = entry.prevTimerBaseMs;
+    }
   }
   log(s, "undo", { undone: entry.action });
   return s;

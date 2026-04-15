@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-15（finishAuto/timeUpの寝技解除統一・仕様書整合性修正）
+> 最終更新: 2026-04-15（undo時タイマー再計算・adjustNewazaCount rounds整合・寝技表示統一）
 
 ---
 
@@ -768,3 +768,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **メインタイマー一時停止時に寝技も解除（2026-04-15）**: pauseTimer時に寝技アクティブなら通常解除と同じ処理（無消費判定・回数消費・rounds記録）を実行するよう変更
 - **undo時タイマー状態復元・訂正ボタン削除・寝技通知バナー化（2026-04-15）**: finished→running復帰時にtimerStartedAt等を復元。cancelResult/訂正ボタンを削除しundoに統一。寝技解除通知を画面上部バナーに変更
 - **finishAuto/timeUpの寝技解除をreleaseNewazaに統一（2026-04-15）**: 自動判定時・タイムアップ時の寝技停止でreleaseNewazaを呼び出し、無消費判定・回数消費・rounds記録を統一。仕様書のトースト→バナー表記修正・訂正ボタン古い表記の削除
+- **undo時タイマー再計算・adjustNewazaCount rounds整合・寝技表示統一（2026-04-15）**: undo時にtimerStartedAt=Date.now()/timerBaseMs=prevTimerMsで再計算。adjustNewazaCount -1時にrounds末尾も削除。CenterNewaza/NewazaRowでnewazaRoundDisplayMsを使用するよう修正
