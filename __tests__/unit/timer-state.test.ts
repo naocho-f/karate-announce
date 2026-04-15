@@ -623,22 +623,22 @@ describe("timer-state", () => {
       expect(undone.winnerId).toBeNull();
     });
 
-    it("finished→running復帰時にtimerStartedAtが再計算される", () => {
-      const running = startTimer(readyState({ ippon_wins: true }));
-      expect(running.timerStartedAt).not.toBeNull();
-      const savedTimerMs = running.timerMs;
+    it("finished→running復帰時にタイマーが操作時の残り時間から再開する", () => {
+      let running = startTimer(readyState({ ippon_wins: true }));
+      // 30秒経過を模擬（timerStartedAtを30秒前に設定）
+      running = { ...running, timerStartedAt: Date.now() - 30000 };
+      // この時点のgetMainElapsedMs ≈ 120000 - 30000 = 90000（残り1:30）
 
       const finished = addIppon(running, "red");
       expect(finished.phase).toBe("finished");
-      expect(finished.timerStartedAt).toBeNull();
 
       const undone = undo(finished);
       expect(undone.phase).toBe("running");
-      // timerStartedAtはundo実行時のDate.now()に近い値
       expect(undone.timerStartedAt).not.toBeNull();
       expect(undone.timerStartedAt).toBeGreaterThanOrEqual(Date.now() - 100);
-      // timerBaseMsは操作前のtimerMs（カウントダウン残り時間）
-      expect(undone.timerBaseMs).toBe(savedTimerMs);
+      // timerBaseMsはpushUndo時のgetMainElapsedMs(≈90000)で、初期値120000ではない
+      expect(undone.timerBaseMs).toBeGreaterThanOrEqual(88000);
+      expect(undone.timerBaseMs).toBeLessThanOrEqual(92000);
     });
 
     it("finished→paused復帰時はtimerStartedAtがnullのまま", () => {

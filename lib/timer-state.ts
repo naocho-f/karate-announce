@@ -402,7 +402,7 @@ function pushUndo(state: TimerState, action: string, prevPhase?: TimerPhase): vo
     prevPhase: prevPhase ?? null,
     prevTimerStartedAt: state.timerStartedAt,
     prevTimerBaseMs: state.timerBaseMs,
-    prevTimerMs: state.timerMs,
+    prevTimerMs: getMainElapsedMs(state),
   });
   if (state.undoStack.length > 100) state.undoStack.shift();
 }
