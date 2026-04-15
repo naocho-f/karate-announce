@@ -280,13 +280,9 @@ export function pauseTimer(state: TimerState): TimerState {
   s.timerMs = getMainElapsedMs(state);
   s.timerStartedAt = null;
   s.phase = "paused";
-  // 寝技も一時停止
-  if (s.newaza.active && s.newaza.startedAt) {
-    s.newaza = {
-      ...s.newaza,
-      elapsedMs: getNewazaElapsedMs(state),
-      startedAt: null,
-    };
+  // 寝技アクティブなら解除（回数消費・rounds記録を含む通常解除処理）
+  if (s.newaza.active && state.preset) {
+    releaseNewaza(state, s, state.preset);
   }
   log(s, "pause");
   return s;

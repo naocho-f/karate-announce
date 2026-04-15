@@ -745,23 +745,39 @@ describe("timer-state", () => {
   // ── 13d. 寝技つき一時停止・再開・タイムアップ ──
 
   describe("寝技と状態遷移の連携", () => {
-    it("pauseTimer: 寝技アクティブ中に一時停止すると寝技も停止", () => {
-      let s = startTimer(readyState({ newaza_enabled: true }));
+    it("pauseTimer: 寝技アクティブ中に一時停止すると寝技が解除される", () => {
+      let s = startTimer(readyState({ newaza_enabled: true, newaza_free_release: 5 }));
       s = toggleNewaza(s);
       expect(s.newaza.active).toBe(true);
       expect(s.newaza.startedAt).not.toBeNull();
+      // 十分な時間経過を模擬（freeRelease超え）
+      s = { ...s, newaza: { ...s.newaza, startedAt: Date.now() - 10000 } };
       const paused = pauseTimer(s);
+      expect(paused.newaza.active).toBe(false);
       expect(paused.newaza.startedAt).toBeNull();
-      expect(paused.newaza.active).toBe(true); // active のままだが startedAt は null
+      expect(paused.newaza.usedCount).toBe(1); // 回数消費
+      expect(paused.newaza.rounds).toHaveLength(1); // rounds記録
     });
 
-    it("resumeTimer: 寝技アクティブ中に再開すると寝技も再開", () => {
-      let s = startTimer(readyState({ newaza_enabled: true }));
+    it("pauseTimer: 寝技がfreeRelease以内なら回数消費なし", () => {
+      let s = startTimer(readyState({ newaza_enabled: true, newaza_free_release: 10 }));
       s = toggleNewaza(s);
+      // 3秒だけ経過（freeRelease=10秒以内）
+      s = { ...s, newaza: { ...s.newaza, startedAt: Date.now() - 3000 } };
+      const paused = pauseTimer(s);
+      expect(paused.newaza.active).toBe(false);
+      expect(paused.newaza.usedCount).toBe(0); // 無消費
+      expect(paused.newaza.rounds).toHaveLength(0); // rounds記録なし
+    });
+
+    it("resumeTimer: 一時停止後の再開で寝技は再開しない（解除済み）", () => {
+      let s = startTimer(readyState({ newaza_enabled: true, newaza_free_release: 5 }));
+      s = toggleNewaza(s);
+      s = { ...s, newaza: { ...s.newaza, startedAt: Date.now() - 10000 } };
       const paused = pauseTimer(s);
       const resumed = resumeTimer(paused);
-      expect(resumed.newaza.active).toBe(true);
-      expect(resumed.newaza.startedAt).toBeTypeOf("number");
+      expect(resumed.newaza.active).toBe(false); // 解除済みなので再開しない
+      expect(resumed.newaza.startedAt).toBeNull();
     });
 
     it("timeUp: 寝技アクティブ中にタイムアップすると寝技も停止", () => {
@@ -1016,20 +1032,17 @@ describe("timer-state", () => {
       expect(st.newaza.elapsedMs).toBeGreaterThanOrEqual(9000); // 累積値保持
     });
 
-    it("pauseTimer/resumeTimer で累積の elapsedMs が正しく保持・再開される", () => {
+    it("pauseTimer で累積モード寝技が解除され elapsedMs が保持される", () => {
       const s = readyState(accumPreset);
       let st = startTimer(s);
       st = toggleNewaza(st);
       st = { ...st, newaza: { ...st.newaza, startedAt: Date.now() - 5000 } };
-      st = pauseTimer(st); // 一時停止
-      expect(st.newaza.active).toBe(true);
+      st = pauseTimer(st); // 一時停止 → 寝技解除
+      expect(st.newaza.active).toBe(false);
       expect(st.newaza.startedAt).toBeNull();
-      expect(st.newaza.elapsedMs).toBeGreaterThanOrEqual(4000);
-      const pausedElapsed = st.newaza.elapsedMs;
-      st = resumeTimer(st); // 再開
-      expect(st.newaza.active).toBe(true);
-      expect(st.newaza.startedAt).not.toBeNull();
-      expect(st.newaza.elapsedMs).toBe(pausedElapsed); // 保持されたまま
+      expect(st.newaza.elapsedMs).toBeGreaterThanOrEqual(4000); // 累積値保持
+      expect(st.newaza.usedCount).toBe(1); // 回数消費
+      expect(st.newaza.rounds).toHaveLength(1);
     });
 
     it("非累積モードで newazaTimeUp 後に exhausted=false", () => {
