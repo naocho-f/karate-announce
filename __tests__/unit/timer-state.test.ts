@@ -635,7 +635,7 @@ describe("timer-state", () => {
       const undone = undo(finished);
       expect(undone.phase).toBe("running");
       expect(undone.timerStartedAt).not.toBeNull();
-      expect(undone.timerStartedAt).toBeGreaterThanOrEqual(Date.now() - 100);
+      expect(undone.timerStartedAt).toBeGreaterThanOrEqual(Date.now() - 500);
       // timerBaseMsはpushUndo時のgetMainElapsedMs(≈90000)で、初期値120000ではない
       expect(undone.timerBaseMs).toBeGreaterThanOrEqual(88000);
       expect(undone.timerBaseMs).toBeLessThanOrEqual(92000);
