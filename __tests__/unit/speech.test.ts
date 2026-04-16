@@ -171,19 +171,38 @@ describe("getTtsSettings / saveTtsSettings", () => {
     const settings = getTtsSettings();
     expect(settings.voice).toBe("nova");
     expect(settings.speed).toBe(1.0);
+    expect(settings.model).toBe("tts-1");
+    expect(settings.format).toBe("mp3");
+    expect(settings.instructions).toBe("");
   });
 
   it("保存した値を取得できる", () => {
-    saveTtsSettings("echo", 1.5);
+    saveTtsSettings({ voice: "echo", speed: 1.5, model: "tts-1-hd", format: "opus", instructions: "" });
     const settings = getTtsSettings();
     expect(settings.voice).toBe("echo");
     expect(settings.speed).toBe(1.5);
+    expect(settings.model).toBe("tts-1-hd");
+    expect(settings.format).toBe("opus");
   });
 
   it("不正な speed は 1.0 にフォールバック", () => {
     store.set("tts_speed", "invalid");
     const settings = getTtsSettings();
     expect(settings.speed).toBe(1.0);
+  });
+
+  it("gpt-4o-mini-tts モデルで instructions を保存・取得できる", () => {
+    saveTtsSettings({ voice: "nova", speed: 1.0, model: "gpt-4o-mini-tts", format: "mp3", instructions: "落ち着いたアナウンサー風" });
+    const settings = getTtsSettings();
+    expect(settings.model).toBe("gpt-4o-mini-tts");
+    expect(settings.instructions).toBe("落ち着いたアナウンサー風");
+  });
+
+  it("新しい音声（ash/ballad/coral/sage/verse）を保存・取得できる", () => {
+    saveTtsSettings({ voice: "ash", speed: 1.0, model: "tts-1", format: "mp3", instructions: "" });
+    expect(getTtsSettings().voice).toBe("ash");
+    saveTtsSettings({ voice: "coral", speed: 1.0, model: "tts-1", format: "mp3", instructions: "" });
+    expect(getTtsSettings().voice).toBe("coral");
   });
 });
 

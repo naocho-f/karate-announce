@@ -9,10 +9,14 @@ import { isDeletePending, softDeleteCutoff } from "@/lib/soft-delete-shared";
 import { DeletePendingBar } from "@/components/delete-pending-bar";
 import {
   TTS_VOICES,
+  TTS_MODELS,
+  TTS_FORMATS,
   getTtsSettings,
   saveTtsSettings,
   announceCustom,
   type TtsVoice,
+  type TtsModel,
+  type TtsFormat,
   renderTemplate,
   DEFAULT_TEMPLATES,
   MATCH_VARS,
@@ -755,6 +759,9 @@ function PresetSelector({
 function AnnounceSettingsPanel() {
   const [voice, setVoice] = useState<TtsVoice>("nova");
   const [speed, setSpeed] = useState(1.0);
+  const [model, setModel] = useState<TtsModel>("tts-1");
+  const [format, setFormat] = useState<TtsFormat>("mp3");
+  const [instructions, setInstructions] = useState("");
   const [playing, setPlaying] = useState(false);
   const [saved, setSaved] = useState(false);
   const [initialized, setInitialized] = useState(false);
@@ -763,18 +770,25 @@ function AnnounceSettingsPanel() {
       const s = getTtsSettings();
       setVoice(s.voice);
       setSpeed(s.speed);
+      setModel(s.model);
+      setFormat(s.format);
+      setInstructions(s.instructions);
     }
     setInitialized(true);
   }
 
+  function currentSettings() {
+    return { voice, speed, model, format, instructions };
+  }
+
   function save() {
-    saveTtsSettings(voice, speed);
+    saveTtsSettings(currentSettings());
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
 
   async function preview() {
-    saveTtsSettings(voice, speed);
+    saveTtsSettings(currentSettings());
     setPlaying(true);
     await new Promise<void>((resolve) => {
       void announceCustom(SAMPLE_TEXT);
@@ -805,6 +819,59 @@ function AnnounceSettingsPanel() {
             ))}
           </div>
         </div>
+
+        {/* モデル */}
+        <div className="space-y-2">
+          <span className="text-xs text-gray-400">モデル</span>
+          <div className="space-y-1.5">
+            {TTS_MODELS.map((m) => (
+              <button
+                key={m.value}
+                onClick={() => setModel(m.value)}
+                className={`w-full px-3 py-2.5 rounded-lg text-sm text-left transition ${
+                  model === m.value ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                }`}
+              >
+                <div className="font-medium">{m.label}</div>
+                <div className={`text-xs ${model === m.value ? "text-blue-200" : "text-gray-500"}`}>{m.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* フォーマット */}
+        <div className="space-y-2">
+          <span className="text-xs text-gray-400">音声フォーマット</span>
+          <div className="grid grid-cols-3 gap-2">
+            {TTS_FORMATS.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setFormat(f.value)}
+                className={`px-3 py-2.5 rounded-lg text-sm text-center transition ${
+                  format === f.value ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                }`}
+              >
+                <div className="font-medium">{f.label}</div>
+                <div className={`text-xs ${format === f.value ? "text-blue-200" : "text-gray-500"}`}>{f.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 指示（gpt-4o-mini-tts のみ） */}
+        {model === "gpt-4o-mini-tts" && (
+          <div className="space-y-2">
+            <span className="text-xs text-gray-400">声の指示（instructions）</span>
+            <textarea
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              placeholder="例: 落ち着いたアナウンサー風で、はっきりと発声してください"
+              className="w-full bg-gray-700 text-white text-sm rounded-lg px-3 py-2 border border-gray-600 outline-none focus:border-blue-500 resize-none"
+              rows={3}
+            />
+            <p className="text-xs text-gray-500">gpt-4o-mini-tts モデル専用。声のトーン・スタイルを自然言語で指示できます。</p>
+          </div>
+        )}
 
         {/* 速度 */}
         <div className="space-y-2">

@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-16（アナウンステンプレートのコート名・ルール名接尾語正規化）
+> 最終更新: 2026-04-16（TTS設定拡張: モデル・新音声・フォーマット・instructions対応）
 
 ---
 
@@ -772,3 +772,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **pushUndoでrunning中の実残り時間を保存（2026-04-15）**: prevTimerMsにstate.timerMs（初期値のまま）ではなくgetMainElapsedMs(state)を使用。undo→running復帰時にタイマーが初期値に戻る問題を修正
 - **Prettier printWidth 120→140に変更（2026-04-15）**: Tailwind CSS+JSXプロジェクトで不自然な改行が多発していたため、printWidthを120から140に拡大
 - **アナウンステンプレートのコート名・ルール名接尾語正規化（2026-04-16）**: 変数展開後に「コートコート」「ルールルール」の重複除去、接尾語がない場合の補完（「A」→「Aコート」等）
+- **TTS設定拡張（2026-04-16）**: モデル選択（tts-1/tts-1-hd/gpt-4o-mini-tts）、新音声5種追加（ash/ballad/coral/sage/verse）、フォーマット選択（mp3/opus/aac）、gpt-4o-mini-tts用instructions入力を追加

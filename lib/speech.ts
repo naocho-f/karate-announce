@@ -1,6 +1,10 @@
 "use client";
 
-export type TtsVoice = "alloy" | "echo" | "fable" | "nova" | "onyx" | "shimmer";
+export type TtsVoice = "alloy" | "ash" | "ballad" | "coral" | "echo" | "fable" | "nova" | "onyx" | "sage" | "shimmer" | "verse";
+
+export type TtsModel = "tts-1" | "tts-1-hd" | "gpt-4o-mini-tts";
+
+export type TtsFormat = "mp3" | "opus" | "aac";
 
 export const TTS_VOICES: { value: TtsVoice; label: string }[] = [
   { value: "nova", label: "Nova（女性・明瞭）" },
@@ -9,18 +13,49 @@ export const TTS_VOICES: { value: TtsVoice; label: string }[] = [
   { value: "echo", label: "Echo（男性・軽め）" },
   { value: "fable", label: "Fable（男性・物語風）" },
   { value: "onyx", label: "Onyx（男性・重厚）" },
+  { value: "ash", label: "Ash（男性・落ち着き）" },
+  { value: "ballad", label: "Ballad（男性・表現豊か）" },
+  { value: "coral", label: "Coral（女性・自然）" },
+  { value: "sage", label: "Sage（女性・知的）" },
+  { value: "verse", label: "Verse（中性・多用途）" },
 ];
 
-export function getTtsSettings(): { voice: TtsVoice; speed: number } {
-  if (typeof window === "undefined") return { voice: "nova", speed: 1.0 };
+export const TTS_MODELS: { value: TtsModel; label: string; desc: string }[] = [
+  { value: "tts-1", label: "TTS-1（標準）", desc: "低遅延・標準品質。$0.015/1K文字" },
+  { value: "tts-1-hd", label: "TTS-1 HD（高品質）", desc: "高品質。$0.030/1K文字（標準の2倍）" },
+  { value: "gpt-4o-mini-tts", label: "GPT-4o mini TTS（最新）", desc: "最新モデル。声の指示（instructions）に対応" },
+];
+
+export const TTS_FORMATS: { value: TtsFormat; label: string; desc: string }[] = [
+  { value: "mp3", label: "MP3", desc: "互換性最高。全ブラウザ対応" },
+  { value: "opus", label: "Opus", desc: "低遅延・高圧縮。Safari非対応" },
+  { value: "aac", label: "AAC", desc: "MP3同等品質で軽量。Apple系に強い" },
+];
+
+export type TtsSettings = {
+  voice: TtsVoice;
+  speed: number;
+  model: TtsModel;
+  format: TtsFormat;
+  instructions: string;
+};
+
+export function getTtsSettings(): TtsSettings {
+  if (typeof window === "undefined") return { voice: "nova", speed: 1.0, model: "tts-1", format: "mp3", instructions: "" };
   const voice = (localStorage.getItem("tts_voice") as TtsVoice) ?? "nova";
   const speed = parseFloat(localStorage.getItem("tts_speed") ?? "1.0");
-  return { voice, speed: isNaN(speed) ? 1.0 : speed };
+  const model = (localStorage.getItem("tts_model") as TtsModel) ?? "tts-1";
+  const format = (localStorage.getItem("tts_format") as TtsFormat) ?? "mp3";
+  const instructions = localStorage.getItem("tts_instructions") ?? "";
+  return { voice, speed: isNaN(speed) ? 1.0 : speed, model, format, instructions };
 }
 
-export function saveTtsSettings(voice: TtsVoice, speed: number) {
-  localStorage.setItem("tts_voice", voice);
-  localStorage.setItem("tts_speed", String(speed));
+export function saveTtsSettings(s: TtsSettings) {
+  localStorage.setItem("tts_voice", s.voice);
+  localStorage.setItem("tts_speed", String(s.speed));
+  localStorage.setItem("tts_model", s.model);
+  localStorage.setItem("tts_format", s.format);
+  localStorage.setItem("tts_instructions", s.instructions);
 }
 
 // ── アナウンステンプレート ────────────────────────────────────────────
@@ -166,8 +201,8 @@ export function stopSpeech(): void {
 const TTS_CACHE_NAME = "karate-tts-cache";
 
 /** TTS キャッシュのキーを生成 */
-function ttsCacheKey(text: string, voice: string, speed: number): string {
-  return `tts:${voice}:${speed}:${text}`;
+function ttsCacheKey(s: TtsSettings, text: string): string {
+  return `tts:${s.model}:${s.voice}:${s.speed}:${s.format}:${text}`;
 }
 
 /** Cache API から TTS 音声を取得。キャッシュミスなら null */
@@ -195,9 +230,9 @@ async function speak(text: string): Promise<void> {
   // 再生中なら新しい再生要求を無視
   if (speaking) return;
   speaking = true;
-  const { voice, speed } = getTtsSettings();
+  const settings = getTtsSettings();
   try {
-    const cacheKey = ttsCacheKey(text, voice, speed);
+    const cacheKey = ttsCacheKey(settings, text);
 
     // 1. Cache API から取得を試みる
     let res = await getCachedTts(cacheKey);
@@ -207,7 +242,14 @@ async function speak(text: string): Promise<void> {
       const apiRes = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, voice, speed }),
+        body: JSON.stringify({
+          text,
+          voice: settings.voice,
+          speed: settings.speed,
+          model: settings.model,
+          format: settings.format,
+          instructions: settings.model === "gpt-4o-mini-tts" ? settings.instructions : undefined,
+        }),
       });
       if (!apiRes.ok) throw new Error("TTS API error");
       // レスポンスを clone して1つをキャッシュに保存、もう1つを再生に使う
@@ -254,8 +296,8 @@ async function speak(text: string): Promise<void> {
  */
 export async function prefetchTts(text: string): Promise<void> {
   if (!text) return;
-  const { voice, speed } = getTtsSettings();
-  const cacheKey = ttsCacheKey(text, voice, speed);
+  const settings = getTtsSettings();
+  const cacheKey = ttsCacheKey(settings, text);
 
   // 既にキャッシュ済みならスキップ
   const cached = await getCachedTts(cacheKey);
@@ -272,7 +314,14 @@ export async function prefetchTts(text: string): Promise<void> {
     const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, voice, speed }),
+      body: JSON.stringify({
+        text,
+        voice: settings.voice,
+        speed: settings.speed,
+        model: settings.model,
+        format: settings.format,
+        instructions: settings.model === "gpt-4o-mini-tts" ? settings.instructions : undefined,
+      }),
     });
     if (res.ok) {
       await cacheTts(cacheKey, res);
