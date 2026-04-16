@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-15（Prettier printWidth 120→140に変更）
+> 最終更新: 2026-04-16（アナウンステンプレートのコート名・ルール名接尾語正規化）
 
 ---
 
@@ -771,3 +771,4 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 - **undo時タイマー再計算・adjustNewazaCount rounds整合・寝技表示統一（2026-04-15）**: undo時にtimerStartedAt=Date.now()/timerBaseMs=prevTimerMsで再計算。adjustNewazaCount -1時にrounds末尾も削除。CenterNewaza/NewazaRowでnewazaRoundDisplayMsを使用するよう修正
 - **pushUndoでrunning中の実残り時間を保存（2026-04-15）**: prevTimerMsにstate.timerMs（初期値のまま）ではなくgetMainElapsedMs(state)を使用。undo→running復帰時にタイマーが初期値に戻る問題を修正
 - **Prettier printWidth 120→140に変更（2026-04-15）**: Tailwind CSS+JSXプロジェクトで不自然な改行が多発していたため、printWidthを120から140に拡大
+- **アナウンステンプレートのコート名・ルール名接尾語正規化（2026-04-16）**: 変数展開後に「コートコート」「ルールルール」の重複除去、接尾語がない場合の補完（「A」→「Aコート」等）

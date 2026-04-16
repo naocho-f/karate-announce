@@ -67,8 +67,39 @@ export const SAMPLE_WINNER_VARS: Record<string, string> = Object.fromEntries(WIN
 export const SAMPLE_TEXT =
   "Aコート、男子一般部、準決勝。極真会所属、山田太郎選手。対。正道会館所属、鈴木一郎選手。これより試合を開始します。";
 
+/** 接尾語の正規化ルール: 変数キー → [漢字接尾語, 読み仮名接尾語] */
+const SUFFIX_RULES: Record<string, [string, string]> = {
+  コート名: ["コート", "こーと"],
+  ルール: ["ルール", "るーる"],
+};
+
 export function renderTemplate(template: string, vars: Record<string, string>): string {
-  return template.replace(/\{\{([^}]+)\}\}/g, (_, key: string) => vars[key] ?? "");
+  // 1. 変数を展開（接尾語の補完・重複除去を同時に処理）
+  let result = template.replace(/\{\{([^}]+)\}\}/g, (match, key: string) => {
+    const value = vars[key];
+    if (value === undefined) return "";
+    if (!value) return ""; // 空文字は補完しない
+    const rule = SUFFIX_RULES[key];
+    if (!rule) return value;
+    const [kanjiSuffix, readingSuffix] = rule;
+    // 補完: 値に接尾語（漢字/読み）が含まれなければ付与
+    if (!value.endsWith(kanjiSuffix) && !value.endsWith(readingSuffix)) {
+      // 読み仮名かどうかを判定（全てひらがな+長音のみ。カタカナは漢字扱い）
+      const isReading = /^[\u3040-\u309Fー]+$/.test(value);
+      return value + (isReading ? readingSuffix : kanjiSuffix);
+    }
+    return value;
+  });
+  // 2. 重複除去: 「コートコート」→「コート」、「こーとコート」→「こーと」等
+  for (const [kanjiSuffix, readingSuffix] of Object.values(SUFFIX_RULES)) {
+    // 漢字+漢字、読み+漢字、漢字+読み、読み+読み の4パターンを除去
+    for (const s1 of [kanjiSuffix, readingSuffix]) {
+      for (const s2 of [kanjiSuffix, readingSuffix]) {
+        result = result.replaceAll(s1 + s2, s1);
+      }
+    }
+  }
+  return result;
 }
 
 /**
