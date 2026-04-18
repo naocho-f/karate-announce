@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-16（TTS設定拡張: モデル・新音声・フォーマット・instructions対応）
+> 最終更新: 2026-04-18（テナント対応: ドメイン・団体名の環境変数化）
 
 ---
 
@@ -17,7 +17,7 @@
 - スタイリング: Tailwind CSS 4
 - データベース: Supabase (PostgreSQL)
 - AI音声: OpenAI TTS (tts-1 モデル)
-- デプロイ: Vercel（karate.naocho.net）
+- デプロイ: Vercel（ドメインは環境変数 `NEXT_PUBLIC_APP_DOMAIN` で管理）
 - レンダリング: 全ページ動的レンダリング（ルートレイアウトで `force-dynamic` 設定）
 
 ---
@@ -618,7 +618,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 | カスタムカラー    | メイン背景色 `--color-main-bg: #101828`（gray-900 相当）。Tailwind の `bg-main-bg` で全ページ共通使用。カード背景は `bg-gray-800`、ボーダーは `border-gray-700`（参加申込フォームの入力欄は `border-gray-600`）。注意書きは外枠線なし・左ボーダーのみ（`border-l-2 border-yellow-600/40`）で項目の補足情報として表示                                                                        |
 | LocalStorage 利用 | TTS設定、アナウンステンプレート（試合順序は DB 管理に移行）                                                                                                                                                                                                                                                                                                                                 |
 | オフライン対応    | PWA（Serwist による Service Worker）。App Shell キャッシュ + API リクエストキューイング + 楽観的更新。詳細は [OFFLINE_SPEC.md](docs/OFFLINE_SPEC.md)                                                                                                                                                                                                                                        |
-| デプロイ          | Vercel（karate.naocho.net）                                                                                                                                                                                                                                                                                                                                                                 |
+| デプロイ          | Vercel（ドメインは環境変数 `NEXT_PUBLIC_APP_DOMAIN` で管理。テナントごとに `*.budo-taikai.com` サブドメインを割当）                                                                                                                                                                                                                                                                         |
 | セキュリティ      | ESLint セキュリティプラグイン + Semgrep + gitleaks + osv-scanner + CodeQL。pre-commit と CI の両方で自動チェック。詳細は [SECURITY.md](docs/SECURITY.md)                                                                                                                                                                                                                                    |
 
 ---
@@ -627,6 +627,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 
 ユーザーからの要望に基づく仕様決定の履歴。
 
+- **テナント対応: ドメイン・団体名の環境変数化（2026-04-18）**: ハードコードされていたドメイン（karate.naocho.net）と団体名（柔空会）を環境変数（`NEXT_PUBLIC_APP_DOMAIN`, `NEXT_PUBLIC_ORG_NAME`）に変更。manifest.jsonを動的生成に変換。テナント追加手順書を新設
 - **最終整合性修正（2026-04-07）**: 未実装機能の統合（cacheData/offlineMode/UnifiedStatusBar）、dead export削除、仕様書のステータス更新、各画面仕様書にオフライン参照追加、CLAUDE.mdにエクスポート確認チェックリスト追加
 - **レビュー指摘修正: dead code削除・enqueue追加・テスト補完（2026-04-07）**: ConnectionStatusBanner削除、court-index-clientにenqueue追加、resilient-fetchにofflineModeテスト、offline-queueに401/ネットワークエラーテスト追加
 - **E2Eテスト修正（2026-04-07）**: entry-form-autosaveテストをテストイベント作成方式に修正、SWテストに開発環境スキップ追加

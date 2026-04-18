@@ -587,7 +587,7 @@ function OpSec1a2({ openIds, toggle, onNavigate: _onNavigate }: GuideProps) {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <div className="flex-1 bg-gray-700 rounded px-2 py-1.5 text-gray-400 font-mono text-[10px] truncate">
-                https://karate.naocho.net/entry/xxxx
+                https://{process.env.NEXT_PUBLIC_APP_DOMAIN || "example.com"}/entry/xxxx
               </div>
               <div className="bg-gray-600 text-white rounded px-2 py-1 text-[10px] shrink-0">コピー</div>
             </div>

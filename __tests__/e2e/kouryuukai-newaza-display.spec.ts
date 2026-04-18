@@ -8,7 +8,7 @@
 import { test, expect } from "@playwright/test";
 import { adminLogin } from "./helpers";
 
-const BASE_URL = "https://karate.naocho.net";
+const BASE_URL = `https://${process.env.NEXT_PUBLIC_APP_DOMAIN || "ju-ku.budo-taikai.com"}`;
 
 test.describe("交流会テンプレート寝技無制限時の表示", () => {
   let createdPresetId: string | null = null;

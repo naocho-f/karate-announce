@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
         <div className="text-center space-y-1">
           <div className="text-4xl mb-3">🥋</div>
           <h1 className="text-2xl font-bold">管理画面</h1>
-          <p className="text-sm text-gray-500">柔空会 - 試合管理 ＆ AI アナウンス</p>
+          <p className="text-sm text-gray-500">{process.env.NEXT_PUBLIC_ORG_NAME || "試合管理"} - 試合管理 ＆ AI アナウンス</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-gray-800 rounded-2xl p-6 space-y-4">

@@ -56,7 +56,8 @@
 
 - `.env.local` で管理。`.gitignore` 済み。
 - 新しい環境変数を追加する場合は、Vercel の Environment Variables にも追加すること。
-- 必要な変数: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_MODE`
+- 必要な変数: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_MODE`, `NEXT_PUBLIC_APP_DOMAIN`, `NEXT_PUBLIC_ORG_NAME`
+- テナント固有変数: `NEXT_PUBLIC_APP_DOMAIN`（サイトドメイン）、`NEXT_PUBLIC_ORG_NAME`（団体名）。テナント追加手順は [docs/TENANT_SETUP.md](docs/TENANT_SETUP.md) を参照
 
 ## Vercel デプロイ時の注意事項
 
@@ -171,7 +172,7 @@
 
 **4e. UI 変更時はブラウザで目視確認**
 
-- **デプロイ後に本番サイト（https://karate.naocho.net/）で確認する。** localhost での確認は認証・環境差異で無駄な問題が発生するため行わない
+- **デプロイ後に本番サイト（`https://${NEXT_PUBLIC_APP_DOMAIN}/`）で確認する。** localhost での確認は認証・環境差異で無駄な問題が発生するため行わない
 - 要素の重なり・はみ出し・余白の崩れがないか目視チェック
 - コードの diff だけで「問題ない」と判断しない
 
@@ -326,11 +327,11 @@ Dependabot PR が作成されたら、ユーザーに確認せず自分で判断
   node -e "const crypto = require('crypto'); const pw = 'ADMIN_PASSWORDの値'; console.log(crypto.createHash('sha256').update(pw + 'karate-announce-v1').digest('hex'));" > /tmp/admin-auth-cookie
 
   # 取得（結果をファイルに保存してから処理）
-  curl -s "https://karate.naocho.net/api/bug-reports" -H "Cookie: admin_auth=<COOKIE値>" -o /tmp/bug-reports.json
+  curl -s "https://${NEXT_PUBLIC_APP_DOMAIN}/api/bug-reports" -H "Cookie: admin_auth=<COOKIE値>" -o /tmp/bug-reports.json
   # → 別コマンドで python3 -c "..." で /tmp/bug-reports.json を読む
 
   # 更新
-  curl -s "https://karate.naocho.net/api/bug-reports/{id}" -X PATCH -H "Cookie: admin_auth=<COOKIE値>" -H "Content-Type: application/json" -d '{"status":"resolved","resolution":"対応内容","fixed_in_version":"コミットSHA先頭7桁"}'
+  curl -s "https://${NEXT_PUBLIC_APP_DOMAIN}/api/bug-reports/{id}" -X PATCH -H "Cookie: admin_auth=<COOKIE値>" -H "Content-Type: application/json" -d '{"status":"resolved","resolution":"対応内容","fixed_in_version":"コミットSHA先頭7桁"}'
   ```
 
 ## 全体レビュー

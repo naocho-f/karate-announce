@@ -186,7 +186,7 @@ export default function Home() {
     <main className="min-h-screen bg-main-bg text-white p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">柔空会 - 試合管理 ＆ AI アナウンス</h1>
+          <h1 className="text-2xl font-bold">{process.env.NEXT_PUBLIC_ORG_NAME || "試合管理"} - 試合管理 ＆ AI アナウンス</h1>
           <div className="flex items-center gap-4">
             <Link href="/live" target="_blank" className="text-sm text-blue-400 hover:text-blue-300">
               試合速報

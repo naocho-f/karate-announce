@@ -87,4 +87,4 @@ npm run security:check
 ## デプロイ
 
 Vercel と GitHub の連携による自動デプロイ。
-`main` ブランチへの push で本番環境（karate.naocho.net）に自動反映される。
+`main` ブランチへの push で本番環境に自動反映される。ドメインは環境変数 `NEXT_PUBLIC_APP_DOMAIN` で管理（テナントごとに `*.budo-taikai.com` サブドメインを割当）。

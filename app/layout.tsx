@@ -23,10 +23,11 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
+const orgName = process.env.NEXT_PUBLIC_ORG_NAME || "試合管理";
+
 export const metadata: Metadata = {
-  title: "柔空会 - 試合管理 ＆ AI アナウンス",
+  title: `${orgName} - 試合管理 ＆ AI アナウンス`,
   description: "試合管理・参加受付・対戦表作成・AI アナウンス",
-  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
