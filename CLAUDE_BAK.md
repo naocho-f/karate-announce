@@ -15,7 +15,7 @@
 - Next.js 16（App Router）+ TypeScript + Tailwind CSS 4
 - DB: Supabase（PostgreSQL）
 - 音声: OpenAI TTS
-- デプロイ: Vercel（Stop hook 経由で自動）
+- デプロイ: Vercel（GitHub 連携による自動デプロイ）
 - パッケージマネージャ: npm
 - ブランチ戦略: **main 直接プッシュ**（feature ブランチは使わない）
 - Lint: ESLint（eslint-config-next + @typescript-eslint + import）。`npm run lint` で実行。警告 0 を維持すること
@@ -184,7 +184,6 @@
 - `git status` で意図しないファイル（デバッグ用一時ファイル等）が含まれていないか確認してから `git add -A && git commit` を1回だけ実行する。
 - SPEC.md が diff に含まれていないコミットは禁止。SPEC.md のヘッダー「最終更新」日付も当日に更新すること。
 - コミットメッセージは実装内容を日本語で簡潔に（例：「対戦表作成後に該当トーナメントへスクロール」）。
-- 未コミットの変更が残っていると Stop hook がブロックする。必ず commit まで完了させてから応答を終えること。
 
 ### Step 6: プッシュ
 

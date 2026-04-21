@@ -6,24 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path // \"\"'); echo \"$f\" | grep -qE '\\.(ts|tsx|css|sql)$' && touch /tmp/karate-code-changed || true; echo \"$f\" | grep -q 'supabase/migrations/.*\\.sql$' && supabase db push 2>&1 || true",
-            "statusMessage": "変更を検知中..."
-          },
-          {
-            "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path // \"\"'); echo \"$f\" | grep -qE '\\.(ts|tsx)$' && cd /Users/naoki/RubymineProjects/karate-announce && npx tsc --noEmit 2>&1 || true",
+            "command": "command -v jq >/dev/null 2>&1 || exit 0; f=$(jq -r '.tool_input.file_path // \"\"'); echo \"$f\" | grep -qE '\\.(ts|tsx)$' && cd /Users/naoki/RubymineProjects/karate-announce && npx tsc --noEmit 2>&1 || true",
             "statusMessage": "型チェック中..."
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "if [ -f /tmp/karate-code-changed ]; then rm /tmp/karate-code-changed && npm run build && vercel --prod && echo '{\"systemMessage\": \"✅ デプロイ完了。テスト・動作確認は完了しましたか？（npm run dev + curl）\"}' || echo '{\"systemMessage\": \"❌ ビルドまたはデプロイに失敗しました。エラーを確認してください。\"}'; fi",
-            "statusMessage": "ビルド・デプロイ中..."
           }
         ]
       }
