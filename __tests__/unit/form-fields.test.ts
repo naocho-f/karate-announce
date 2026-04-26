@@ -1,14 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
   FIELD_POOL,
-  CATEGORY_LABELS,
-  DB_COLUMN_FIELDS,
-  EXTRA_FIELDS,
   FIXED_FIELD_KEYS,
   DEFAULT_CUSTOM_FIELDS,
   getFieldDef,
   isKanaField,
-  getKanaFieldKey,
   isCustomField,
   customFieldToPoolItem,
 } from "@/lib/form-fields";
@@ -167,105 +163,6 @@ describe("isKanaField", () => {
 
   it("should return false for non-existent keys", () => {
     expect(isKanaField("non_existent")).toBe(false);
-  });
-});
-
-// ──────────────────────────────────────────────
-// getKanaFieldKey
-// ──────────────────────────────────────────────
-
-describe("getKanaFieldKey", () => {
-  it("should return kana key for full_name", () => {
-    expect(getKanaFieldKey("full_name")).toBe("kana");
-  });
-
-  it("should return kana key for organization", () => {
-    expect(getKanaFieldKey("organization")).toBe("organization_kana");
-  });
-
-  it("should return kana key for branch", () => {
-    expect(getKanaFieldKey("branch")).toBe("branch_kana");
-  });
-
-  it("should return undefined for fields without kana", () => {
-    expect(getKanaFieldKey("age")).toBeUndefined();
-    expect(getKanaFieldKey("email")).toBeUndefined();
-  });
-
-  it("should return undefined for non-existent keys", () => {
-    expect(getKanaFieldKey("non_existent")).toBeUndefined();
-  });
-});
-
-// ──────────────────────────────────────────────
-// CATEGORY_LABELS
-// ──────────────────────────────────────────────
-
-describe("CATEGORY_LABELS", () => {
-  it("should have labels for all categories", () => {
-    expect(CATEGORY_LABELS.basic).toBe("基本情報");
-    expect(CATEGORY_LABELS.affiliation).toBe("所属・経験");
-    expect(CATEGORY_LABELS.competition).toBe("競技");
-    expect(CATEGORY_LABELS.equipment).toBe("防具");
-  });
-
-  it("should have exactly 4 categories", () => {
-    expect(Object.keys(CATEGORY_LABELS)).toHaveLength(4);
-  });
-});
-
-// ──────────────────────────────────────────────
-// DB_COLUMN_FIELDS / EXTRA_FIELDS
-// ──────────────────────────────────────────────
-
-describe("DB_COLUMN_FIELDS", () => {
-  it("should include fields with dbColumn", () => {
-    expect(DB_COLUMN_FIELDS).toContain("full_name");
-    expect(DB_COLUMN_FIELDS).toContain("kana");
-    expect(DB_COLUMN_FIELDS).toContain("age");
-    expect(DB_COLUMN_FIELDS).toContain("sex");
-    expect(DB_COLUMN_FIELDS).toContain("height");
-    expect(DB_COLUMN_FIELDS).toContain("weight");
-    expect(DB_COLUMN_FIELDS).toContain("grade");
-  });
-
-  it("should not include fields without dbColumn", () => {
-    expect(DB_COLUMN_FIELDS).not.toContain("prefecture");
-    expect(DB_COLUMN_FIELDS).not.toContain("phone");
-    expect(DB_COLUMN_FIELDS).not.toContain("email");
-    expect(DB_COLUMN_FIELDS).not.toContain("organization");
-    expect(DB_COLUMN_FIELDS).not.toContain("rule_preference");
-  });
-});
-
-describe("EXTRA_FIELDS", () => {
-  it("should include fields without dbColumn", () => {
-    expect(EXTRA_FIELDS).toContain("prefecture");
-    expect(EXTRA_FIELDS).toContain("phone");
-    expect(EXTRA_FIELDS).toContain("email");
-    expect(EXTRA_FIELDS).toContain("organization");
-    expect(EXTRA_FIELDS).toContain("rule_preference");
-  });
-
-  it("should not include fields with dbColumn", () => {
-    expect(EXTRA_FIELDS).not.toContain("full_name");
-    expect(EXTRA_FIELDS).not.toContain("age");
-    expect(EXTRA_FIELDS).not.toContain("height");
-  });
-});
-
-describe("DB_COLUMN_FIELDS + EXTRA_FIELDS", () => {
-  it("should cover all FIELD_POOL keys", () => {
-    const allKeys = [...DB_COLUMN_FIELDS, ...EXTRA_FIELDS].sort();
-    const poolKeys = FIELD_POOL.map((f) => f.key).sort();
-    expect(allKeys).toEqual(poolKeys);
-  });
-
-  it("should have no overlap", () => {
-    const dbSet = new Set(DB_COLUMN_FIELDS);
-    const extraSet = new Set(EXTRA_FIELDS);
-    const intersection = [...dbSet].filter((k) => extraSet.has(k));
-    expect(intersection).toEqual([]);
   });
 });
 

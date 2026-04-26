@@ -216,6 +216,7 @@ export const FIELD_POOL: FieldPoolItem[] = [
     dbColumn: "dojo_name_reading",
     defaultRequired: true,
     kanaParent: "branch",
+    placeholder: "ほんぶどうじょう",
   },
   {
     key: "martial_arts_experience",
@@ -295,24 +296,6 @@ export function isKanaField(key: string): boolean {
   return !!FIELD_POOL.find((f) => f.key === key)?.kanaParent;
 }
 
-/** 親フィールドの key から読み仮名フィールドの key を取得 */
-export function getKanaFieldKey(parentKey: string): string | undefined {
-  return FIELD_POOL.find((f) => f.kanaParent === parentKey)?.key;
-}
-
-/** カテゴリ表示名 */
-export const CATEGORY_LABELS: Record<FieldCategory, string> = {
-  basic: "基本情報",
-  affiliation: "所属・経験",
-  competition: "競技",
-  equipment: "防具",
-};
-
-/** entries テーブルの既存カラムに直接保存する項目の key 一覧 */
-export const DB_COLUMN_FIELDS = FIELD_POOL.filter((f) => f.dbColumn).map((f) => f.key);
-
-/** extra_fields に保存する項目の key 一覧 */
-export const EXTRA_FIELDS = FIELD_POOL.filter((f) => !f.dbColumn).map((f) => f.key);
 
 // ──────────────────────────────────────────────
 // カスタム（自由設問）フィールド
