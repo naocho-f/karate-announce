@@ -811,8 +811,9 @@ function FieldLabel({
       <span className="text-xs text-gray-200 font-medium">{field.custom_label || def.label}</span>
       {field.required && <span className="text-red-400 text-xs">*</span>}
       {def.unit && <span className="text-xs text-gray-500">（{def.unit}）</span>}
-      {isCustomField(def.key) && def.type === "checkbox" && <span className="text-xs text-gray-500">（複数選択可）</span>}
-      {isCustomField(def.key) && def.type === "radio" && <span className="text-xs text-gray-500">（単一選択）</span>}
+      {def.type === "checkbox" && !(field.custom_choices?.some((c) => c.value === "__single_select__") ?? false) && (
+        <span className="text-xs text-gray-500">（複数選択可）</span>
+      )}
       {kanaField && <span className="text-xs text-gray-500">+ 読み仮名</span>}
       {ageField && <span className="text-xs text-gray-500">+ 年齢自動計算</span>}
     </div>

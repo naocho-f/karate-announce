@@ -645,13 +645,9 @@ function GenericField(props: FieldItemProps & { choices: { label: string; value:
   const isReq = config.required;
   const label = config.custom_label || def.label;
   const hasError = !!fieldErrors[key];
-  const selectionHint = isCustomField(key)
-    ? def.type === "checkbox"
-      ? "複数選択可"
-      : def.type === "radio"
-        ? "単一選択"
-        : undefined
-    : undefined;
+  // 標準フィールド (rule_preference 等) も含めて、checkbox 型かつ単一選択モードでない場合に「複数選択可」を表示。
+  // radio や単一選択モードの checkbox には表示しない (UI 上 ○ で1つだけ選ぶことが見て取れるため)。
+  const selectionHint = def.type === "checkbox" && !isSingleSelect(config) ? "複数選択可" : undefined;
   return (
     <div id={`field-${key}`} className="space-y-2">
       <FieldLabel label={label} required={isReq} unit={def.unit} selectionHint={selectionHint} />
