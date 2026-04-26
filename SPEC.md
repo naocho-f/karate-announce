@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-26（エントリーフォームの白背景デザイン仕上げ: NoticeRenderer を budo-taikai-web 同等の orange-50 / orange-500 left-border スタイルに刷新。.entry-form スコープでプレースホルダ色と autofill 背景をライトモード用 (#d1d5db / #f3f4f6) に統一）
+> 最終更新: 2026-04-26（エントリーフォーム NoticeRenderer の左 4px アクセント枠を border-l-orange-500 → border-l-orange-300 に。budo-taikai-web の bg-warning/border-warning の淡い見た目に合わせて主張を抑える）
 
 ---
 

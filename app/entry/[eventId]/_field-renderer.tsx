@@ -113,7 +113,7 @@ export function NoticeRenderer({
   return (
     <div
       id={`field-consent_${notice.id}`}
-      className="bg-orange-50 border border-orange-200 border-l-4 border-l-orange-500 rounded-lg p-3 space-y-2"
+      className="bg-orange-50 border border-orange-200 border-l-4 border-l-orange-300 rounded-lg p-3 space-y-2"
     >
       {/* テキスト */}
       {notice.text_content && <p className="text-sm text-gray-900 leading-relaxed whitespace-pre-wrap">{notice.text_content}</p>}
