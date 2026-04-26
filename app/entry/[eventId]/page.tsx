@@ -216,6 +216,7 @@ function useEntryPageData(eventId: string) {
     supabase
       .from("dojos")
       .select("name, name_reading")
+      .is("deleted_at", null)
       .order("name")
       .then(({ data }) => {
         if (data) setDojoMaster(data);
