@@ -1887,7 +1887,7 @@ function AddCustomFieldFormBody({
   onAdd: (label: string, fieldType: string, choices: { label: string; value: string }[] | null) => void;
   onClose: () => void;
 }) {
-  const needsChoices = fieldType === "select" || fieldType === "checkbox";
+  const needsChoices = fieldType === "select" || fieldType === "checkbox" || fieldType === "radio";
 
   function handleAdd() {
     if (!label.trim()) {
@@ -1946,6 +1946,7 @@ function AddCustomFieldFormBody({
           <option value="number">数値</option>
           <option value="select">プルダウン選択</option>
           <option value="checkbox">チェックボックス（複数選択）</option>
+          <option value="radio">チェックボックス（単一選択）</option>
         </select>
       </div>
       {needsChoices && (

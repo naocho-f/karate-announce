@@ -454,7 +454,7 @@ export type CustomFieldDef = {
   form_config_id: string;
   field_key: string;
   label: string;
-  field_type: "text" | "number" | "select" | "checkbox" | "textarea";
+  field_type: "text" | "number" | "select" | "checkbox" | "radio" | "textarea";
   choices: { label: string; value: string }[] | null;
   sort_order: number;
   deleted_at?: string | null;

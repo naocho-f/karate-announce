@@ -460,6 +460,7 @@ export function customFieldToPoolItem(def: CustomFieldDef): FieldPoolItem {
     number: "number",
     select: "select",
     checkbox: "checkbox",
+    radio: "radio",
     textarea: "textarea",
   };
   return {
