@@ -171,3 +171,19 @@ select:-webkit-autofill {
   caret-color: white !important;
   transition: background-color 5000s ease-in-out 0s;
 }
+
+/* エントリーフォーム (白背景) 用の上書き — プレースホルダ色と autofill 背景を ライトモードに合わせる。 */
+.entry-form input::placeholder,
+.entry-form textarea::placeholder {
+  color: #d1d5db !important; /* gray-300 */
+  opacity: 1 !important;
+}
+.entry-form input:-webkit-autofill,
+.entry-form input:-webkit-autofill:hover,
+.entry-form input:-webkit-autofill:focus,
+.entry-form textarea:-webkit-autofill,
+.entry-form select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px #f3f4f6 inset !important; /* gray-100 */
+  -webkit-text-fill-color: #111827 !important; /* gray-900 */
+  caret-color: #111827 !important;
+}

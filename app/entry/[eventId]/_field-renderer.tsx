@@ -111,17 +111,16 @@ export function NoticeRenderer({
   onConsent: (noticeId: string, checked: boolean) => void;
 }) {
   return (
-    <div id={`field-consent_${notice.id}`} className="bg-white/30 border-l-2 border-yellow-300/40 rounded-r-lg pl-3 pr-2 py-2 space-y-2">
+    <div
+      id={`field-consent_${notice.id}`}
+      className="bg-orange-50 border border-orange-200 border-l-4 border-l-orange-500 rounded-lg p-3 space-y-2"
+    >
       {/* テキスト */}
-      {notice.text_content && (
-        <p className="text-xs text-orange-700/80 bg-yellow-50/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">
-          {notice.text_content}
-        </p>
-      )}
+      {notice.text_content && <p className="text-sm text-gray-900 leading-relaxed whitespace-pre-wrap">{notice.text_content}</p>}
 
       {/* スクロール可能テキスト（規約など） */}
       {notice.scrollable_text && (
-        <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3 text-xs text-gray-700 leading-relaxed whitespace-pre-wrap bg-white">
+        <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap bg-gray-100">
           {notice.scrollable_text}
         </div>
       )}
@@ -158,7 +157,7 @@ export function NoticeRenderer({
             onChange={(e) => onConsent(notice.id, e.target.checked)}
             className="mt-0.5 accent-blue-500"
           />
-          <span className="text-xs text-gray-700">{notice.consent_label || "上記に同意します"}</span>
+          <span className="text-xs text-gray-600">{notice.consent_label || "上記に同意します"}</span>
         </label>
       )}
     </div>

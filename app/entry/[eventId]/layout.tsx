@@ -44,5 +44,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default function EntryLayout({ children }: Props) {
-  return <div className="min-h-screen bg-white text-gray-900">{children}</div>;
+  return <div className="entry-form min-h-screen bg-white text-gray-900">{children}</div>;
 }

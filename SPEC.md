@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-26（エントリーフォームを白背景デザインに変更: app/entry/[eventId]/ 配下 6 ファイルの色クラスをライトモード用に一括置換。layout.tsx に bg-white/text-gray-900 のラッパ追加。karate-announce 他画面の黒背景は据え置き）
+> 最終更新: 2026-04-26（エントリーフォームの白背景デザイン仕上げ: NoticeRenderer を budo-taikai-web 同等の orange-50 / orange-500 left-border スタイルに刷新。.entry-form スコープでプレースホルダ色と autofill 背景をライトモード用 (#d1d5db / #f3f4f6) に統一）
 
 ---
 
