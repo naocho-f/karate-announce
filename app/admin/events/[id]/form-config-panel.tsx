@@ -811,7 +811,7 @@ function FieldLabel({
       <span className="text-xs text-gray-200 font-medium">{field.custom_label || def.label}</span>
       {field.required && <span className="text-red-400 text-xs">*</span>}
       {def.unit && <span className="text-xs text-gray-500">（{def.unit}）</span>}
-      {isCustomField(def.key) && def.type === "checkbox" && <span className="text-xs text-gray-500">（複数選択）</span>}
+      {isCustomField(def.key) && def.type === "checkbox" && <span className="text-xs text-gray-500">（複数選択可）</span>}
       {isCustomField(def.key) && def.type === "radio" && <span className="text-xs text-gray-500">（単一選択）</span>}
       {kanaField && <span className="text-xs text-gray-500">+ 読み仮名</span>}
       {ageField && <span className="text-xs text-gray-500">+ 年齢自動計算</span>}
@@ -1947,7 +1947,7 @@ function AddCustomFieldFormBody({
           <option value="textarea">テキスト（複数行）</option>
           <option value="number">数値</option>
           <option value="select">プルダウン選択</option>
-          <option value="checkbox">チェックボックス（複数選択）</option>
+          <option value="checkbox">チェックボックス（複数選択可）</option>
           <option value="radio">チェックボックス（単一選択）</option>
         </select>
       </div>
