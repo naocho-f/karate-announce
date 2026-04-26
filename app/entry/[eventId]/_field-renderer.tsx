@@ -502,12 +502,23 @@ function NameInput({
   );
 }
 
-function FieldLabel({ label, required, unit }: { label: string; required: boolean; unit?: string }) {
+function FieldLabel({
+  label,
+  required,
+  unit,
+  selectionHint,
+}: {
+  label: string;
+  required: boolean;
+  unit?: string;
+  selectionHint?: string;
+}) {
   return (
     <p className="text-xs text-gray-700 font-medium">
       {label}
       {required && <span className="text-red-700 ml-1">*</span>}
       {unit && <span className="text-gray-500 ml-1">（{unit}）</span>}
+      {selectionHint && <span className="text-gray-500 ml-1">（{selectionHint}）</span>}
     </p>
   );
 }
@@ -634,9 +645,16 @@ function GenericField(props: FieldItemProps & { choices: { label: string; value:
   const isReq = config.required;
   const label = config.custom_label || def.label;
   const hasError = !!fieldErrors[key];
+  const selectionHint = isCustomField(key)
+    ? def.type === "checkbox"
+      ? "複数選択可"
+      : def.type === "radio"
+        ? "単一選択"
+        : undefined
+    : undefined;
   return (
     <div id={`field-${key}`} className="space-y-2">
-      <FieldLabel label={label} required={isReq} unit={def.unit} />
+      <FieldLabel label={label} required={isReq} unit={def.unit} selectionHint={selectionHint} />
       <GenericInput {...props} hasError={hasError} choices={choices} />
       {key === "age" && ageConflict && <p className="text-xs text-red-700">{ageConflict}</p>}
       {renderFieldNotices(key)}
