@@ -43,9 +43,9 @@ type BirthdayFieldProps = {
 
 function AgeDisplay({ computedAge, eventDate }: { computedAge: number | null; eventDate?: string | null }) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 min-w-0">
       <label className="text-xs text-gray-600">{eventDate ? "大会日時点の年齢" : "年齢"}</label>
-      <div className="w-full bg-white/60 border border-gray-300/50 rounded-lg px-3 py-2 text-base text-gray-600">
+      <div className="w-full bg-white/60 border border-gray-300/50 rounded-lg px-3 py-2 text-base text-gray-600 truncate">
         {computedAge !== null ? `${computedAge}歳（自動計算）` : "生年月日を入力してください"}
       </div>
     </div>
@@ -87,7 +87,7 @@ function BirthdayInput({
           onDateChange(e.target.value);
         }}
         onBlur={(e) => onDateChange(e.target.value)}
-        className={`${inp} ${hasError ? "border-red-500" : ""}`}
+        className={`${inp} ${hasError ? "border-red-500" : ""} block min-w-0 appearance-none`}
         required={isReq}
       />
     </div>

@@ -178,6 +178,14 @@ select:-webkit-autofill {
   color: #d1d5db !important; /* gray-300 */
   opacity: 1 !important;
 }
+/* iOS / Android で白背景に同化して見えないため、ネイティブのカレンダーアイコンを非表示に。input 自体タップでカレンダーは開く。 */
+.entry-form input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none;
+}
+.entry-form input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
 .entry-form input:-webkit-autofill,
 .entry-form input:-webkit-autofill:hover,
 .entry-form input:-webkit-autofill:focus,
