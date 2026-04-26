@@ -220,6 +220,7 @@ function useCustomFieldActions(
   setDeletedCustomFieldKeys: React.Dispatch<React.SetStateAction<string[]>>,
   setDirty: (v: boolean) => void,
   ni: ReturnType<typeof useNoticesAndImages>,
+  setRecentlyAddedKey: (key: string | null) => void,
 ) {
   const addCustomField = (label: string, ft: string, ch: { label: string; value: string }[] | null) => {
     if (!config) return;
@@ -243,18 +244,25 @@ function useCustomFieldActions(
     const sc = fields.find((x) => x.field_key === fieldKey);
     if (!src || !sc) return;
     const nk = `custom_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
-    const no = Math.max(...fields.map((f) => f.sort_order)) + 1;
-    setCustomFieldDefs((p) => [...p, buildCustomFieldDef(config.id, nk, `${src.label}(コピー)`, src.field_type, src.choices, no)]);
-    setFields((p) => [
-      ...p,
-      buildFieldConfig(config.id, nk, no, {
-        visible: sc.visible,
-        required: sc.required,
-        hasOther: sc.has_other_option,
-        choices: sc.custom_choices,
-        label: `${src.label}(コピー)`,
-      }),
+    const insertOrder = sc.sort_order + 1;
+    const newCustomDef = buildCustomFieldDef(config.id, nk, `${src.label}(コピー)`, src.field_type, src.choices, insertOrder);
+    const newFieldConfig = buildFieldConfig(config.id, nk, insertOrder, {
+      visible: sc.visible,
+      required: sc.required,
+      hasOther: sc.has_other_option,
+      choices: sc.custom_choices,
+      label: `${src.label}(コピー)`,
+    });
+    // 複製元の直後に挿入: sort_order >= insertOrder の既存項目を +1 シフトしてから新規追加
+    setCustomFieldDefs((p) => [
+      ...p.map((x) => (x.sort_order >= insertOrder ? { ...x, sort_order: x.sort_order + 1 } : x)),
+      newCustomDef,
     ]);
+    setFields((p) => [
+      ...p.map((x) => (x.sort_order >= insertOrder ? { ...x, sort_order: x.sort_order + 1 } : x)),
+      newFieldConfig,
+    ]);
+    setRecentlyAddedKey(nk);
     setDirty(true);
   };
   return { addCustomField, deleteCustomField, duplicateCustomField };
@@ -276,6 +284,12 @@ function useFormConfig(eventId: string) {
   const [deletingCustomKey] = useState<string | null>(null);
   const [duplicatingCustomKey] = useState<string | null>(null);
   const [deletedCustomFieldKeys, setDeletedCustomFieldKeys] = useState<string[]>([]);
+  const [recentlyAddedKey, setRecentlyAddedKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (!recentlyAddedKey) return;
+    const t = setTimeout(() => setRecentlyAddedKey(null), 600);
+    return () => clearTimeout(t);
+  }, [recentlyAddedKey]);
   const ni = useNoticesAndImages(setDirty);
   const { resetNotices } = ni;
   const load = useCallback(
@@ -391,7 +405,17 @@ function useFormConfig(eventId: string) {
   const addNotice = (anchorType: "form_start" | "field" | "form_end", k?: string) => {
     if (config) ni.addNotice(config.id, anchorType, k);
   };
-  const cf = useCustomFieldActions(config, fields, customFieldDefs, setFields, setCustomFieldDefs, setDeletedCustomFieldKeys, setDirty, ni);
+  const cf = useCustomFieldActions(
+    config,
+    fields,
+    customFieldDefs,
+    setFields,
+    setCustomFieldDefs,
+    setDeletedCustomFieldKeys,
+    setDirty,
+    ni,
+    setRecentlyAddedKey,
+  );
   return {
     config,
     fields,
@@ -420,6 +444,7 @@ function useFormConfig(eventId: string) {
     addCustomField: cf.addCustomField,
     deleteCustomField: cf.deleteCustomField,
     duplicateCustomField: cf.duplicateCustomField,
+    recentlyAddedKey,
     uploadImage: ni.uploadImage,
     deleteImage: ni.deleteImage,
   };
@@ -683,6 +708,7 @@ function FieldPreviewCardWrapper({
       onDuplicateCustom={isCustomField(key) ? state.duplicateCustomField : undefined}
       deletingCustom={state.deletingCustomKey === key}
       duplicatingCustom={state.duplicatingCustomKey === key}
+      recentlyAdded={state.recentlyAddedKey === key}
     />
   );
 }
@@ -717,10 +743,11 @@ type FieldPreviewCardProps = {
   onDuplicateCustom?: (fieldKey: string) => void;
   deletingCustom?: boolean;
   duplicatingCustom?: boolean;
+  recentlyAdded?: boolean;
 };
 
 function FieldPreviewCard(props: FieldPreviewCardProps) {
-  const { field, def, kanaField, ageField, notices, allFields, onUpdate, busyNotices, rules } = props;
+  const { field, def, kanaField, ageField, notices, allFields, onUpdate, busyNotices, rules, recentlyAdded } = props;
   const [expanded, setExpanded] = useState(false);
   const key = def.key;
   const choices = (field.custom_choices?.length ? field.custom_choices : (def.fixedChoices ?? def.defaultChoices ?? [])).filter(
@@ -729,7 +756,7 @@ function FieldPreviewCard(props: FieldPreviewCardProps) {
   const isHidden = !field.visible;
 
   return (
-    <div className="group">
+    <div className={`group ${recentlyAdded ? "animate-fade-in" : ""}`}>
       <CardHeader {...props} expanded={expanded} setExpanded={setExpanded} />
       <div
         className={`border rounded-b-xl transition relative ${
