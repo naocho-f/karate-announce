@@ -58,7 +58,7 @@ function ComboInput({
         autoComplete="off"
       />
       {open && filtered.length > 0 && (
-        <ul className="absolute z-20 left-0 right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+        <ul className="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
           {filtered.map((s) => (
             <li key={s}>
               <button
@@ -68,7 +68,7 @@ function ComboInput({
                   (onSelect ?? onChange)(s);
                   setOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 transition"
+                className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-gray-100 transition"
               >
                 {s}
               </button>
@@ -111,17 +111,17 @@ export function NoticeRenderer({
   onConsent: (noticeId: string, checked: boolean) => void;
 }) {
   return (
-    <div id={`field-consent_${notice.id}`} className="bg-gray-800/30 border-l-2 border-yellow-600/40 rounded-r-lg pl-3 pr-2 py-2 space-y-2">
+    <div id={`field-consent_${notice.id}`} className="bg-white/30 border-l-2 border-yellow-300/40 rounded-r-lg pl-3 pr-2 py-2 space-y-2">
       {/* テキスト */}
       {notice.text_content && (
-        <p className="text-xs text-yellow-500/80 bg-yellow-900/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">
+        <p className="text-xs text-orange-700/80 bg-yellow-50/20 rounded-lg px-3 py-2 leading-relaxed whitespace-pre-wrap">
           {notice.text_content}
         </p>
       )}
 
       {/* スクロール可能テキスト（規約など） */}
       {notice.scrollable_text && (
-        <div className="max-h-40 overflow-y-auto border border-gray-600 rounded-lg p-3 text-xs text-gray-300 leading-relaxed whitespace-pre-wrap bg-gray-900">
+        <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3 text-xs text-gray-700 leading-relaxed whitespace-pre-wrap bg-white">
           {notice.scrollable_text}
         </div>
       )}
@@ -143,7 +143,7 @@ export function NoticeRenderer({
           href={notice.link_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-block text-sm text-blue-400 hover:text-blue-300 underline"
+          className="inline-block text-sm text-blue-700 hover:text-blue-700 underline"
         >
           {notice.link_label || notice.link_url}
         </a>
@@ -158,7 +158,7 @@ export function NoticeRenderer({
             onChange={(e) => onConsent(notice.id, e.target.checked)}
             className="mt-0.5 accent-blue-500"
           />
-          <span className="text-xs text-gray-300">{notice.consent_label || "上記に同意します"}</span>
+          <span className="text-xs text-gray-700">{notice.consent_label || "上記に同意します"}</span>
         </label>
       )}
     </div>
@@ -460,8 +460,8 @@ function FullNameField({ config, def, visibleFields, values, fieldErrors, inp, o
       </div>
       {renderFieldNotices(key)}
       {showKana && renderFieldNotices("kana")}
-      {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
-      {fieldErrors["kana"] && <p className="text-xs text-red-400">{fieldErrors["kana"]}</p>}
+      {fieldErrors[key] && <p className="text-xs text-red-700">{fieldErrors[key]}</p>}
+      {fieldErrors["kana"] && <p className="text-xs text-red-700">{fieldErrors["kana"]}</p>}
     </div>
   );
 }
@@ -487,9 +487,9 @@ function NameInput({
 }) {
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className="text-xs text-gray-400">
+      <label htmlFor={id} className="text-xs text-gray-600">
         {label}
-        {required && <span className="text-red-400 ml-1">*</span>}
+        {required && <span className="text-red-700 ml-1">*</span>}
       </label>
       <input
         id={id}
@@ -505,9 +505,9 @@ function NameInput({
 
 function FieldLabel({ label, required, unit }: { label: string; required: boolean; unit?: string }) {
   return (
-    <p className="text-xs text-gray-300 font-medium">
+    <p className="text-xs text-gray-700 font-medium">
       {label}
-      {required && <span className="text-red-400 ml-1">*</span>}
+      {required && <span className="text-red-700 ml-1">*</span>}
       {unit && <span className="text-gray-500 ml-1">（{unit}）</span>}
     </p>
   );
@@ -534,9 +534,9 @@ function KanaSubField({
   const kLabel = kanaConfig.config.custom_label || (getFieldDef(kanaKey)?.label ?? "よみがな");
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className="text-xs text-gray-400">
+      <label htmlFor={id} className="text-xs text-gray-600">
         {kLabel}
-        {required && <span className="text-red-400 ml-1">*</span>}
+        {required && <span className="text-red-700 ml-1">*</span>}
       </label>
       <input
         id={id}
@@ -590,7 +590,7 @@ function OrganizationField({
       />
       {renderFieldNotices(key)}
       {kanaConfig && renderFieldNotices("organization_kana")}
-      {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
+      {fieldErrors[key] && <p className="text-xs text-red-700">{fieldErrors[key]}</p>}
     </div>
   );
 }
@@ -623,7 +623,7 @@ function BranchField({ config, def, visibleFields, values, fieldErrors, inp, onS
       />
       {renderFieldNotices(key)}
       {kanaConfig && renderFieldNotices("branch_kana")}
-      {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
+      {fieldErrors[key] && <p className="text-xs text-red-700">{fieldErrors[key]}</p>}
     </div>
   );
 }
@@ -639,9 +639,9 @@ function GenericField(props: FieldItemProps & { choices: { label: string; value:
     <div id={`field-${key}`} className="space-y-2">
       <FieldLabel label={label} required={isReq} unit={def.unit} />
       <GenericInput {...props} hasError={hasError} choices={choices} />
-      {key === "age" && ageConflict && <p className="text-xs text-red-400">{ageConflict}</p>}
+      {key === "age" && ageConflict && <p className="text-xs text-red-700">{ageConflict}</p>}
       {renderFieldNotices(key)}
-      {hasError && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
+      {hasError && <p className="text-xs text-red-700">{fieldErrors[key]}</p>}
     </div>
   );
 }
@@ -843,7 +843,7 @@ function EmailInput({
       />
       {def.hasConfirmInput && (
         <div className="space-y-1">
-          <label htmlFor="field-email-confirm" className="text-xs text-gray-400">
+          <label htmlFor="field-email-confirm" className="text-xs text-gray-600">
             メールアドレス（確認）
           </label>
           <input
@@ -855,7 +855,7 @@ function EmailInput({
             className={`${inp} ${emailMismatch || hasError ? "border-red-500" : ""}`}
             required={isReq}
           />
-          {emailMismatch && <p className="text-xs text-red-400">メールアドレスが一致しません</p>}
+          {emailMismatch && <p className="text-xs text-red-700">メールアドレスが一致しません</p>}
         </div>
       )}
     </>
@@ -949,7 +949,7 @@ function RadioInput({
             onChange={() => onSetValue(fieldKey, c.value)}
             className="accent-blue-500"
           />
-          <span className="text-sm text-gray-200">{c.label}</span>
+          <span className="text-sm text-gray-800">{c.label}</span>
         </label>
       ))}
       {config.has_other_option && (
@@ -962,7 +962,7 @@ function RadioInput({
             onChange={() => onSetValue(fieldKey, "__other__")}
             className="accent-blue-500"
           />
-          <span className="text-sm text-gray-200">その他</span>
+          <span className="text-sm text-gray-800">その他</span>
         </label>
       )}
       {values[fieldKey] === "__other__" && config.has_other_option && (
@@ -1015,7 +1015,7 @@ function CheckboxInput({
               onChange={() => onSetValue(fieldKey, c.value)}
               className="accent-blue-500"
             />
-            <span className="text-sm text-gray-200">{c.label}</span>
+            <span className="text-sm text-gray-800">{c.label}</span>
           </label>
         ))}
       </div>
@@ -1036,13 +1036,13 @@ function CheckboxInput({
               }}
               className="mt-0.5 accent-blue-500"
             />
-            <span className="text-sm text-gray-200">{c.label}</span>
+            <span className="text-sm text-gray-800">{c.label}</span>
           </label>
         );
       })}
       {config.has_other_option && (
         <div className="flex items-start gap-2 py-1">
-          <span className="text-sm text-gray-200">その他：</span>
+          <span className="text-sm text-gray-800">その他：</span>
           <input
             id={`field-checkbox-other-${fieldKey}`}
             value={otherValues[fieldKey] ?? ""}

@@ -633,12 +633,12 @@ function EntryFormView({
   onSubmit: () => Promise<void>;
 }) {
   const inp =
-    "w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-base text-white placeholder:text-gray-500 outline-none focus:border-blue-500";
+    "w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-base text-gray-900 placeholder:text-gray-500 outline-none focus:border-blue-500";
   const formStartNotices = notices.filter((n) => n.anchor_type === "form_start");
   const formEndNotices = notices.filter((n) => n.anchor_type === "form_end");
 
   return (
-    <main className="min-h-screen bg-main-bg text-white p-6">
+    <main className="min-h-screen bg-white text-gray-900 p-6">
       <ValidationBanner fieldErrors={fieldErrors} onClear={() => onSetFieldErrors({})} />
       <div className="max-w-md mx-auto">
         <EntryFormHeader event={event} isClosed={isClosed} />
@@ -694,15 +694,15 @@ function EntryFormView({
             .map((n) => (
               <NoticeRenderer key={n.id} notice={n} consents={consents} onConsent={onConsent} />
             ))}
-          {error && <p className="text-sm text-red-400 bg-red-900/30 rounded-lg px-3 py-2">{error}</p>}
+          {error && <p className="text-sm text-red-700 bg-red-900/30 rounded-lg px-3 py-2">{error}</p>}
           <button
             type="submit"
             disabled={submitting}
             className={`w-full py-3 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${
-              canSubmit ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-600 hover:bg-gray-500 text-gray-300"
+              canSubmit ? "bg-blue-600 hover:bg-blue-500 text-gray-900" : "bg-gray-200 hover:bg-gray-300 text-gray-700"
             } disabled:opacity-50`}
           >
-            {submitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />}
+            {submitting && <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin shrink-0" />}
             {submitting ? "送信中..." : "申し込む"}
           </button>
         </form>
@@ -721,14 +721,14 @@ function ValidationBanner({ fieldErrors, onClear }: { fieldErrors: Record<string
       <div className="max-w-md mx-auto">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0 space-y-1">
-            <p className="text-sm font-bold text-red-200">入力内容を確認してください（{keys.length}件）</p>
+            <p className="text-sm font-bold text-red-700">入力内容を確認してください（{keys.length}件）</p>
             {Object.values(fieldErrors).map((msg, i) => (
-              <p key={i} className="text-xs text-red-300/80">
+              <p key={i} className="text-xs text-red-700/80">
                 ・{msg}
               </p>
             ))}
           </div>
-          <button onClick={onClear} className="text-red-300 hover:text-white text-lg leading-none shrink-0 mt-0.5" aria-label="閉じる">
+          <button onClick={onClear} className="text-red-700 hover:text-gray-900 text-lg leading-none shrink-0 mt-0.5" aria-label="閉じる">
             ×
           </button>
         </div>
@@ -751,9 +751,9 @@ function EntryFormHeader({ event, isClosed }: { event: Event; isClosed: boolean 
         />
       )}
       <h1 className="text-xl font-bold mb-1">{event.name}</h1>
-      <p className="text-sm text-gray-400 mb-1">参加申込フォーム</p>
+      <p className="text-sm text-gray-600 mb-1">参加申込フォーム</p>
       {event.entry_close_at && !isClosed ? (
-        <p className="text-xs text-yellow-400 mb-5">
+        <p className="text-xs text-orange-700 mb-5">
           受付期限:{" "}
           {new Date(event.entry_close_at).toLocaleString("ja-JP", {
             year: "numeric",
@@ -785,7 +785,7 @@ function FallbackRuleSelector({
   if (hasRuleField || eventRules.length === 0) return null;
   return (
     <div className="space-y-2">
-      <p className="text-xs text-gray-300 font-medium">出場希望ルール（複数選択可）</p>
+      <p className="text-xs text-gray-700 font-medium">出場希望ルール（複数選択可）</p>
       <div className="flex flex-wrap gap-2">
         {eventRules.map((r) => {
           const checked = selectedRules.has(r.id);
@@ -794,7 +794,7 @@ function FallbackRuleSelector({
               key={r.id}
               type="button"
               onClick={() => onToggle(r.id)}
-              className={`px-4 py-2 rounded-lg text-sm transition ${checked ? "bg-blue-600 text-white font-medium" : "bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700"}`}
+              className={`px-4 py-2 rounded-lg text-sm transition ${checked ? "bg-blue-600 text-gray-900 font-medium" : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"}`}
             >
               {checked ? "✓ " : ""}
               {r.name}

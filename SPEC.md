@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-26（管理画面エントリーフォーム設定: 「選択肢設定」ボタンが FieldDetailEditor を展開しなかったバグを修正。CardHeaderRow2 内のローカル expanded state を削除し FieldPreviewCard 側の state を CardHeader 経由で受け取る構造に変更）
+> 最終更新: 2026-04-26（エントリーフォームを白背景デザインに変更: app/entry/[eventId]/ 配下 6 ファイルの色クラスをライトモード用に一括置換。layout.tsx に bg-white/text-gray-900 のラッパ追加。karate-announce 他画面の黒背景は据え置き）
 
 ---
 

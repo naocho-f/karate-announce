@@ -44,8 +44,8 @@ type BirthdayFieldProps = {
 function AgeDisplay({ computedAge, eventDate }: { computedAge: number | null; eventDate?: string | null }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs text-gray-400">{eventDate ? "大会日時点の年齢" : "年齢"}</label>
-      <div className="w-full bg-gray-800/60 border border-gray-700/50 rounded-lg px-3 py-2 text-base text-gray-400">
+      <label className="text-xs text-gray-600">{eventDate ? "大会日時点の年齢" : "年齢"}</label>
+      <div className="w-full bg-white/60 border border-gray-200/50 rounded-lg px-3 py-2 text-base text-gray-600">
         {computedAge !== null ? `${computedAge}歳（自動計算）` : "生年月日を入力してください"}
       </div>
     </div>
@@ -74,7 +74,7 @@ function BirthdayInput({
   return (
     <div className="space-y-1">
       {showAgeLabel && (
-        <label htmlFor="field-birth_date" className="text-xs text-gray-400">
+        <label htmlFor="field-birth_date" className="text-xs text-gray-600">
           生年月日
         </label>
       )}
@@ -115,9 +115,9 @@ export default function BirthdayField({
 
   return (
     <div id={`field-${key}`} className="space-y-2">
-      <p className="text-xs text-gray-300 font-medium">
+      <p className="text-xs text-gray-700 font-medium">
         {label}
-        {config.required && <span className="text-red-400 ml-1">*</span>}
+        {config.required && <span className="text-red-700 ml-1">*</span>}
         {showAge && <span className="text-gray-500 ml-1">+ 年齢自動計算</span>}
       </p>
       <div className={`grid ${showAge ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-2 items-end`}>
@@ -133,9 +133,9 @@ export default function BirthdayField({
         />
         {showAge && <AgeDisplay computedAge={computedAge} eventDate={event?.event_date} />}
       </div>
-      {ageConflict && <p className="text-xs text-red-400">{ageConflict}</p>}
+      {ageConflict && <p className="text-xs text-red-700">{ageConflict}</p>}
       {renderFieldNotices(key)}
-      {fieldErrors[key] && <p className="text-xs text-red-400">{fieldErrors[key]}</p>}
+      {fieldErrors[key] && <p className="text-xs text-red-700">{fieldErrors[key]}</p>}
     </div>
   );
 }
