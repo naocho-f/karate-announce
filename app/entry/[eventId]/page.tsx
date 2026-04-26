@@ -699,7 +699,7 @@ function EntryFormView({
             type="submit"
             disabled={submitting}
             className={`w-full py-3 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${
-              canSubmit ? "bg-blue-600 hover:bg-blue-500 text-gray-900" : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+              canSubmit ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-gray-200 hover:bg-gray-300 text-gray-700"
             } disabled:opacity-50`}
           >
             {submitting && <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin shrink-0" />}
