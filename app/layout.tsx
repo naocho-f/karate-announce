@@ -3,7 +3,6 @@ export const dynamic = "force-dynamic";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { BugReportFab } from "@/components/bug-report-fab";
 import { ToastContainer } from "@/components/toast";
 import { SwRegister } from "@/components/sw-register";
 
@@ -39,7 +38,6 @@ export default function RootLayout({
     <html lang="ja">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
-        <BugReportFab />
         <ToastContainer />
         <SwRegister />
       </body>
