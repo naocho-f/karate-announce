@@ -730,7 +730,7 @@ function FieldPreviewCard(props: FieldPreviewCardProps) {
 
   return (
     <div className="group">
-      <CardHeader {...props} />
+      <CardHeader {...props} expanded={expanded} setExpanded={setExpanded} />
       <div
         className={`border rounded-b-xl transition relative ${
           isHidden ? "border-gray-600/40 bg-gray-900/40 px-3 py-2" : "border-gray-500 bg-gray-800/40 px-3 py-3 space-y-2"
@@ -791,7 +791,7 @@ function FieldLabel({
 }
 
 // ── カードヘッダー ──
-function CardHeader(props: FieldPreviewCardProps) {
+function CardHeader(props: FieldPreviewCardProps & { expanded: boolean; setExpanded: (v: boolean) => void }) {
   const {
     field,
     def,
@@ -804,6 +804,8 @@ function CardHeader(props: FieldPreviewCardProps) {
     onDuplicateCustom,
     deletingCustom,
     duplicatingCustom,
+    expanded,
+    setExpanded,
   } = props;
   const key = def.key;
   const isHidden = !field.visible;
@@ -839,6 +841,8 @@ function CardHeader(props: FieldPreviewCardProps) {
           dbManagedFields={dbManagedFields}
           onUpdate={onUpdate}
           onAddNotice={onAddNotice}
+          expanded={expanded}
+          setExpanded={setExpanded}
         />
       )}
     </div>
@@ -1038,6 +1042,8 @@ function CardHeaderRow2({
   dbManagedFields,
   onUpdate,
   onAddNotice,
+  expanded,
+  setExpanded,
 }: {
   field: FormFieldConfig;
   def: FieldPoolItem;
@@ -1046,8 +1052,9 @@ function CardHeaderRow2({
   dbManagedFields: string[];
   onUpdate: (id: string, patch: Partial<FormFieldConfig>) => void;
   onAddNotice: () => void;
+  expanded: boolean;
+  setExpanded: (v: boolean) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 border-t border-gray-700/30 flex-wrap">
       <div className="flex items-center gap-1">

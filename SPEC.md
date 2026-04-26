@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-21（Phase 0: Claude Code Stop hook / PostToolUse 自動デプロイ hook 無効化、CLAUDE_BAK.md から Stop hook 関連記述削除）
+> 最終更新: 2026-04-26（管理画面エントリーフォーム設定: 「選択肢設定」ボタンが FieldDetailEditor を展開しなかったバグを修正。CardHeaderRow2 内のローカル expanded state を削除し FieldPreviewCard 側の state を CardHeader 経由で受け取る構造に変更）
 
 ---
 
