@@ -45,7 +45,7 @@ function AgeDisplay({ computedAge, eventDate }: { computedAge: number | null; ev
   return (
     <div className="space-y-1">
       <label className="text-xs text-gray-600">{eventDate ? "大会日時点の年齢" : "年齢"}</label>
-      <div className="w-full bg-white/60 border border-gray-200/50 rounded-lg px-3 py-2 text-base text-gray-600">
+      <div className="w-full bg-white/60 border border-gray-300/50 rounded-lg px-3 py-2 text-base text-gray-600">
         {computedAge !== null ? `${computedAge}歳（自動計算）` : "生年月日を入力してください"}
       </div>
     </div>

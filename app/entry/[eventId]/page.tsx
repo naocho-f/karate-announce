@@ -633,7 +633,7 @@ function EntryFormView({
   onSubmit: () => Promise<void>;
 }) {
   const inp =
-    "w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-base text-gray-900 placeholder:text-gray-500 outline-none focus:border-blue-500";
+    "w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-900 placeholder:text-gray-500 outline-none focus:border-blue-500";
   const formStartNotices = notices.filter((n) => n.anchor_type === "form_start");
   const formEndNotices = notices.filter((n) => n.anchor_type === "form_end");
 
@@ -794,7 +794,7 @@ function FallbackRuleSelector({
               key={r.id}
               type="button"
               onClick={() => onToggle(r.id)}
-              className={`px-4 py-2 rounded-lg text-sm transition ${checked ? "bg-blue-600 text-gray-900 font-medium" : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"}`}
+              className={`px-4 py-2 rounded-lg text-sm transition ${checked ? "bg-blue-600 text-gray-900 font-medium" : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"}`}
             >
               {checked ? "✓ " : ""}
               {r.name}

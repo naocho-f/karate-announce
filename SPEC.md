@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-26（エントリーフォーム NoticeRenderer の左 4px アクセント枠を border-l-orange-500 → border-l-orange-300 に。budo-taikai-web の bg-warning/border-warning の淡い見た目に合わせて主張を抑える）
+> 最終更新: 2026-04-26（エントリーフォーム入力欄等の border-gray-200 (#e5e7eb) が薄すぎたので border-gray-300 (#d1d5dc) に。注意書きの border-orange-200 は維持）
 
 ---
 

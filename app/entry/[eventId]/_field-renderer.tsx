@@ -58,7 +58,7 @@ function ComboInput({
         autoComplete="off"
       />
       {open && filtered.length > 0 && (
-        <ul className="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+        <ul className="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-gray-300 rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
           {filtered.map((s) => (
             <li key={s}>
               <button
@@ -120,7 +120,7 @@ export function NoticeRenderer({
 
       {/* スクロール可能テキスト（規約など） */}
       {notice.scrollable_text && (
-        <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap bg-gray-100">
+        <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap bg-gray-100">
           {notice.scrollable_text}
         </div>
       )}
