@@ -59,6 +59,10 @@ function buildBasicLines(entry: Record<string, unknown>, ruleNames: string[]): s
   if (entry.dojo_name) lines.push(`所属: ${String(entry.dojo_name)}`);
   if (entry.school_name) lines.push(`支部: ${String(entry.school_name)}`);
   if (ruleNames.length > 0) lines.push(`参加ルール: ${ruleNames.join(", ")}`);
+  if (entry.memo) {
+    const memoVal = String(entry.memo);
+    lines.push(memoVal.includes("\n") ? `主催者への要望・備考:\n  ${memoVal.split("\n").join("\n  ")}` : `主催者への要望・備考: ${memoVal}`);
+  }
   return lines;
 }
 
@@ -82,7 +86,9 @@ function buildExtraLines(
   const lines: string[] = [];
   for (const [k, v] of Object.entries(extra)) {
     if (k === "email" || k === "email_confirm" || !v) continue;
-    const label = fieldLabels?.[k] ?? k;
+    // 英語キー名がメールヘッダーに漏れないよう、日本語ラベルが解決できないキーはスキップ。
+    const label = fieldLabels?.[k];
+    if (!label) continue;
     if (Array.isArray(v)) {
       const items = v.map((item: string) => resolveLabel(k, item, fieldChoices));
       if (items.length > 0) lines.push(`${label}:\n  ${items.join("\n  ")}`);

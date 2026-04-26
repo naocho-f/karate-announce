@@ -125,11 +125,12 @@ describe("email-template", () => {
           },
         },
         [],
+        { phone: "電話番号", prefecture: "都道府県" },
       );
       expect(result).not.toContain("email");
       expect(result).not.toContain("test@example.com");
-      expect(result).toContain("phone: 090-1234-5678");
-      expect(result).toContain("prefecture: 東京都");
+      expect(result).toContain("電話番号: 090-1234-5678");
+      expect(result).toContain("都道府県: 東京都");
     });
 
     it("fieldLabels が渡された場合、キー名の代わりに表示名を使う", () => {
@@ -156,7 +157,7 @@ describe("email-template", () => {
       expect(result).not.toContain("custom_abc123:");
     });
 
-    it("fieldLabels にないキーはキー名がそのまま表示される", () => {
+    it("fieldLabels にないキーは表示しない (英語キーがメールに混入するのを防止)", () => {
       const result = buildEntryDetails(
         {
           extra_fields: {
@@ -168,7 +169,8 @@ describe("email-template", () => {
         { phone: "携帯電話番号" },
       );
       expect(result).toContain("携帯電話番号: 090-1234-5678");
-      expect(result).toContain("unknown_field: 値");
+      expect(result).not.toContain("unknown_field");
+      expect(result).not.toContain("値");
     });
 
     it("extra_fields の配列値は改行区切りで表示", () => {
@@ -179,8 +181,9 @@ describe("email-template", () => {
           },
         },
         [],
+        { categories: "階級" },
       );
-      expect(result).toContain("categories:\n  軽量級\n  中量級");
+      expect(result).toContain("階級:\n  軽量級\n  中量級");
     });
 
     it("fieldChoices が渡された場合、選択肢の value を label に変換する", () => {
@@ -192,7 +195,7 @@ describe("email-template", () => {
           },
         },
         [],
-        {},
+        { match_experience: "試合経験", head_butt_preference: "頭突き" },
         {
           match_experience: [
             { value: "none", label: "なし" },
@@ -219,7 +222,7 @@ describe("email-template", () => {
           },
         },
         [],
-        {},
+        { equipment_owned: "持っている防具" },
         {
           equipment_owned: [
             { value: "gi", label: "道着" },
@@ -306,8 +309,9 @@ describe("email-template", () => {
           },
         },
         [],
+        { phone: "電話番号", empty_field: "空", null_field: "null" },
       );
-      expect(result).toBe("phone: 090-1234-5678");
+      expect(result).toBe("電話番号: 090-1234-5678");
     });
   });
 
@@ -391,7 +395,7 @@ describe("email-template", () => {
         event_name: "春季大会",
         event_date: "2026-04-01",
         venue_info: "市立体育館",
-        entry_details: buildEntryDetails(entry, ruleNames),
+        entry_details: buildEntryDetails(entry, ruleNames, { phone: "電話番号" }),
         submission_date: "2026/3/27 10:00:00",
       };
 
@@ -406,7 +410,7 @@ describe("email-template", () => {
       expect(body).toContain("氏名: 佐藤 花子");
       expect(body).toContain("性別: 女性");
       expect(body).toContain("参加ルール: 組手, 形");
-      expect(body).toContain("phone: 080-1111-2222");
+      expect(body).toContain("電話番号: 080-1111-2222");
       expect(body).not.toContain("email");
     });
   });

@@ -6,7 +6,7 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getResend } from "@/lib/resend";
 import { renderTemplate, DEFAULT_SUBJECT, DEFAULT_BODY, buildEntryDetails } from "@/lib/email-template";
-import { getFieldDef } from "@/lib/form-fields";
+import { getFieldDef, FIELD_POOL } from "@/lib/form-fields";
 
 // ── 型定義 ──
 
@@ -120,6 +120,13 @@ function applyCustomDefs(
 
 async function buildFieldMappings(eventId: string): Promise<FieldMapping> {
   const mapping: FieldMapping = { fieldLabels: {}, fieldChoices: {} };
+
+  // FIELD_POOL のラベル/選択肢をデフォルトとして登録 (form_field_configs に未登録のフィールドでも英語キーで漏れないように)
+  for (const f of FIELD_POOL) {
+    mapping.fieldLabels[f.key] = f.label;
+    const choices = f.fixedChoices ?? f.defaultChoices;
+    if (choices && choices.length > 0) mapping.fieldChoices[f.key] = choices;
+  }
 
   const { data: formConfigs } = await supabaseAdmin.from("form_configs").select("id").eq("event_id", eventId).limit(1);
   const formConfigId = formConfigs?.[0]?.id;
