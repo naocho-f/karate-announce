@@ -3,7 +3,6 @@
 export const dynamic = "force-dynamic";
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import type { Event, FormFieldConfig, FormNotice, CustomFieldDef } from "@/lib/types";
 import type { FieldPoolItem } from "@/lib/form-fields";
@@ -11,6 +10,7 @@ import type { AgeCategory } from "@/lib/grade-options";
 import { NoticeRenderer, FieldRenderer, useVisibleFields, isSingleSelect } from "./_field-renderer";
 import { LoadingScreen, NotFoundScreen, ClosedScreen, NotReadyScreen, SubmittedScreen } from "./_entry-status-screens";
 import { validateEntry, buildEntryPayload } from "./_entry-validation";
+import { ZoomableImage } from "./_zoomable-image";
 
 type Props = { params: Promise<{ eventId: string }> };
 
@@ -742,13 +742,12 @@ function EntryFormHeader({ event, isClosed }: { event: Event; isClosed: boolean 
   return (
     <>
       {event.banner_image_path && (
-        <Image
+        <ZoomableImage
           src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/form-notice-images/${event.banner_image_path}`}
           alt={event.name}
           className="w-full rounded-xl mb-4"
           width={800}
           height={400}
-          unoptimized
         />
       )}
       <h1 className="text-xl font-bold mb-1">{event.name}</h1>

@@ -2,12 +2,12 @@
 
 import { useMemo } from "react";
 import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
 import type { FormFieldConfig, Event, CustomFieldDef } from "@/lib/types";
 import { getFieldDef, isKanaField, isCustomField, customFieldToPoolItem } from "@/lib/form-fields";
 import type { FieldPoolItem } from "@/lib/form-fields";
 import { getGradeOptions, type AgeCategory } from "@/lib/grade-options";
 import BirthdayField from "./_birthday-field";
+import { ZoomableImage } from "./_zoomable-image";
 
 // ──────────────────────────────────────────────
 // ComboInput（流派候補など）
@@ -131,7 +131,7 @@ export function NoticeRenderer({
           {notice.images
             .sort((a, b) => a.sort_order - b.sort_order)
             .map((img) => (
-              <Image key={img.id} src={img.public_url} alt="" className="w-full rounded-lg" width={800} height={600} unoptimized />
+              <ZoomableImage key={img.id} src={img.public_url} alt="注意書きの添付画像" className="w-full rounded-lg" width={800} height={600} />
             ))}
         </div>
       )}
