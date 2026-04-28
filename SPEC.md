@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-28（問い合わせフォーム `/contact` と管理画面 `/admin/inquiries` を追加。inquiries テーブル新設 (migration 0025)、エントリーフォーム/ライブページ最下部に導線、送信時に events.notification_emails の union を BCC で通知）
+> 最終更新: 2026-04-28（公開ページを `/entry/*` `/live` `/contact` に限定。`/`, `/admin/*` (login 除く), `/court/*`, `/timer/*` は proxy.ts で admin_auth Cookie によるログイン必須化。問い合わせ完了画面とフォーム下の「トップに戻る」リンク削除）
 
 ---
 

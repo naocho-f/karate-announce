@@ -4,7 +4,6 @@ export const dynamic = "force-dynamic";
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 
 function ContactFormInner() {
   const searchParams = useSearchParams();
@@ -53,9 +52,6 @@ function ContactFormInner() {
           <p className="text-sm text-gray-400">
             ご連絡ありがとうございました。返信が必要な場合は、入力いただいたメールアドレス宛にお送りします。
           </p>
-          <Link href="/" className="inline-block text-sm text-blue-400 hover:text-blue-300 underline mt-4">
-            トップに戻る
-          </Link>
         </div>
       </main>
     );
@@ -144,11 +140,6 @@ function ContactFormInner() {
             {status === "sending" ? "送信中..." : "送信する"}
           </button>
         </form>
-        <div className="mt-4 text-center">
-          <Link href="/" className="text-sm text-gray-400 hover:text-gray-300 underline">
-            トップに戻る
-          </Link>
-        </div>
       </div>
     </main>
   );
