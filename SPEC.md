@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-28（`@sentry/nextjs` の SDK 同梱と config ファイル雛形を追加。Vercel 側に `NEXT_PUBLIC_SENTRY_DSN` を登録するまでは init をスキップする no-op 動作）
+> 最終更新: 2026-04-28（問い合わせフォーム `/contact` と管理画面 `/admin/inquiries` を追加。inquiries テーブル新設 (migration 0025)、エントリーフォーム/ライブページ最下部に導線、送信時に events.notification_emails の union を BCC で通知）
 
 ---
 
@@ -520,6 +520,10 @@ settings (
 | GET      | `/api/bug-reports`      | 一覧取得（認証必須）               |
 | PATCH    | `/api/bug-reports/[id]` | ステータス更新（認証必須）         |
 | DELETE   | `/api/bug-reports/[id]` | 不具合報告削除（認証必須）         |
+| POST     | `/api/contact`               | 問い合わせフォーム送信（公開、認証不要、honeypot 付き）。inquiries テーブルに insert + Resend 経由で events.notification_emails の union を BCC 通知 |
+| GET      | `/api/admin/inquiries`       | 問い合わせ一覧取得（認証必須）。`?unresponded=1` で未対応のみ                              |
+| PATCH    | `/api/admin/inquiries/[id]`  | 対応済/未対応の切替・対応メモ更新（認証必須）                                              |
+| DELETE   | `/api/admin/inquiries/[id]`  | 問い合わせ削除（認証必須）                                                                  |
 
 ---
 

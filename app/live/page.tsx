@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import type { Event, FighterInfo, Match, Tournament } from "@/lib/types";
 import { matchLabelNum } from "@/lib/match-utils";
@@ -260,6 +261,12 @@ export default function LivePage() {
       )}
 
       <div className="max-w-lg mx-auto px-3 py-3">{activeCourt && <CourtView court={activeCourt} />}</div>
+      <div className="max-w-lg mx-auto px-3 py-6 text-center text-sm text-gray-500">
+        運営への質問・要望は{" "}
+        <Link href="/contact" className="text-blue-400 hover:text-blue-300 underline">
+          お問い合わせ
+        </Link>
+      </div>
     </main>
   );
 }

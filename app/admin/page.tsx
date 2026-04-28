@@ -38,8 +38,11 @@ export default function AdminPage() {
             ← トップに戻る
           </Link>
           <h1 className="text-2xl font-bold">管理画面</h1>
+          <Link href="/admin/inquiries" className="ml-auto text-sm text-blue-400 hover:text-blue-300 underline">
+            問い合わせ
+          </Link>
           {isDev() && (
-            <Link href="/admin/spec" className="ml-auto text-xs text-gray-500 hover:text-gray-300 transition">
+            <Link href="/admin/spec" className="text-xs text-gray-500 hover:text-gray-300 transition">
               仕様書
             </Link>
           )}

@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import type { Event, FormFieldConfig, FormNotice, CustomFieldDef } from "@/lib/types";
 import type { FieldPoolItem } from "@/lib/form-fields";
@@ -707,6 +708,12 @@ function EntryFormView({
             {submitting ? "送信中..." : "申し込む"}
           </button>
         </form>
+        <div className="mt-6 text-center text-sm text-gray-500">
+          申込で困ったときは{" "}
+          <Link href={`/contact?event=${event.id}`} className="text-blue-400 hover:text-blue-300 underline">
+            お問い合わせ
+          </Link>
+        </div>
       </div>
     </main>
   );
