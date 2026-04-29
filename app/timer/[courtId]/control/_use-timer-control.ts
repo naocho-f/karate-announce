@@ -173,6 +173,7 @@ export function useTimerControl() {
       .select("*")
       .eq("event_id", activeEvent.id)
       .eq("court", courtId)
+      .is("deleted_at", null)
       .order("sort_order")
       .order("created_at");
 
@@ -251,6 +252,7 @@ export function useTimerControl() {
     supabase
       .from("rules")
       .select("name, name_reading")
+      .is("deleted_at", null)
       .then(({ data }) => {
         if (data) {
           const map: Record<string, string> = {};
@@ -416,6 +418,7 @@ export function useTimerControl() {
     supabase
       .from("rules")
       .select("name, timer_preset_id")
+      .is("deleted_at", null)
       .then(({ data }) => {
         if (data) {
           const map: Record<string, string> = {};

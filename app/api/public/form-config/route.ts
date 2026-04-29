@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
     .from("form_notices")
     .select("*, images:form_notice_images(*)")
     .eq("form_config_id", config.id)
+    .is("deleted_at", null)
     .order("sort_order");
 
   // 画像に公開URLを付与
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
     .from("custom_field_defs")
     .select("*")
     .eq("form_config_id", config.id)
+    .is("deleted_at", null)
     .order("sort_order");
 
   // 既存大会の自動補完: form_field_configs にあるが custom_field_defs にない自由設問を補完

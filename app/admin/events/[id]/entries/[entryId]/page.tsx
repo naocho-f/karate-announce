@@ -36,8 +36,8 @@ export default function EntryDetailPage({ params }: Props) {
   useEffect(() => {
     async function load() {
       const [{ data: e }, { data: rs }, { data: er }, { data: ev }] = await Promise.all([
-        supabase.from("entries").select("*").eq("id", entryId).maybeSingle(),
-        supabase.from("rules").select("*"),
+        supabase.from("entries").select("*").eq("id", entryId).is("deleted_at", null).maybeSingle(),
+        supabase.from("rules").select("*").is("deleted_at", null),
         supabase.from("entry_rules").select("rule_id").eq("entry_id", entryId),
         supabase.from("events").select("name").eq("id", eventId).maybeSingle(),
       ]);
@@ -54,7 +54,7 @@ export default function EntryDetailPage({ params }: Props) {
       if (config) {
         const [{ data: fields }, { data: defs }] = await Promise.all([
           supabase.from("form_field_configs").select("*").eq("form_config_id", config.id).eq("visible", true).order("sort_order"),
-          supabase.from("custom_field_defs").select("*").eq("form_config_id", config.id).order("sort_order"),
+          supabase.from("custom_field_defs").select("*").eq("form_config_id", config.id).is("deleted_at", null).order("sort_order"),
         ]);
         setFieldConfigs((fields ?? []) as FormFieldConfig[]);
         setCustomFieldDefs((defs ?? []) as CustomFieldDef[]);

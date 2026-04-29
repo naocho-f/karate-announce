@@ -286,7 +286,7 @@ async function loadEventSecondaryData(
     tournamentIds.length > 0
       ? supabase.from("matches").select("tournament_id, fighter1_id, fighter2_id, round, rules").in("tournament_id", tournamentIds)
       : Promise.resolve({ data: [] as MatchRow[] }),
-    supabase.from("timer_presets").select("*").order("created_at", { ascending: false }),
+    supabase.from("timer_presets").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
     supabase.from("bracket_rules").select("id", { count: "exact", head: true }).eq("event_id", id),
     supabase.from("settings").select("key, value").eq("key", "age_categories").maybeSingle(),
   ]);

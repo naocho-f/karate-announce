@@ -64,7 +64,13 @@ function useCourtPanelData(courtNum: string): CourtPanelData & { load: () => Pro
   const prevDataRef = useRef<string>("");
 
   const load = useCallback(async () => {
-    const { data: tourns } = await supabase.from("tournaments").select("*").eq("court", courtNum).order("sort_order").order("created_at");
+    const { data: tourns } = await supabase
+      .from("tournaments")
+      .select("*")
+      .eq("court", courtNum)
+      .is("deleted_at", null)
+      .order("sort_order")
+      .order("created_at");
     if (!tourns?.length) {
       setTournaments([]);
       setMatchesMap({});
@@ -85,7 +91,8 @@ function useCourtPanelData(courtNum: string): CourtPanelData & { load: () => Pro
         .from("entries")
         .select("id, fighter_id, is_withdrawn")
         .eq("event_id", eventId)
-        .in("fighter_id", [...allFighterIds]);
+        .in("fighter_id", [...allFighterIds])
+        .is("deleted_at", null);
       allEntries = e ?? [];
     }
     const serialized = JSON.stringify({ allMatches, allEntries });
@@ -494,6 +501,7 @@ export default function CourtIndexClient() {
     supabase
       .from("rules")
       .select("name, name_reading")
+      .is("deleted_at", null)
       .then(({ data }) => {
         if (data) {
           const map: Record<string, string> = {};

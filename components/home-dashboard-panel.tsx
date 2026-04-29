@@ -33,10 +33,11 @@ function useDashboardData() {
         supabase
           .from("events")
           .select("*")
+          .is("deleted_at", null)
           .order("event_date", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false }),
-        supabase.from("entries").select("event_id").eq("is_withdrawn", false).eq("is_test", false),
-        supabase.from("tournaments").select("event_id"),
+        supabase.from("entries").select("event_id").eq("is_withdrawn", false).eq("is_test", false).is("deleted_at", null),
+        supabase.from("tournaments").select("event_id").is("deleted_at", null),
       ]),
       timeout,
     ])
@@ -55,10 +56,11 @@ function useDashboardData() {
         supabase
           .from("events")
           .select("*")
+          .is("deleted_at", null)
           .order("event_date", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false }),
-        supabase.from("entries").select("event_id").eq("is_withdrawn", false).eq("is_test", false),
-        supabase.from("tournaments").select("event_id"),
+        supabase.from("entries").select("event_id").eq("is_withdrawn", false).eq("is_test", false).is("deleted_at", null),
+        supabase.from("tournaments").select("event_id").is("deleted_at", null),
       ]),
       timeout,
     ])
@@ -137,9 +139,9 @@ function InactiveDashboard({
   tournamentEventIds: Set<string>;
   onNavigate: (tab: AdminTab) => void;
 }) {
-  const upcomingEvents = events.filter((e) => e.status !== "finished" && !e.is_active);
+  const upcomingEvents = events.filter((e) => e.status !== "finished" && !e.is_active && !e.deleted_at);
   const nextEvent = upcomingEvents
-    .filter((e) => e.event_date)
+    .filter((e) => e.event_date && daysUntilDate(e.event_date) >= 0)
     .sort((a, b) => new Date(a.event_date as string).getTime() - new Date(b.event_date as string).getTime())[0];
   const actionNeeded = upcomingEvents.filter((e) => (entryCounts[e.id] ?? 0) > 0 && !tournamentEventIds.has(e.id));
   return (

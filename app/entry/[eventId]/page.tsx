@@ -190,7 +190,7 @@ function useEntryPageData(eventId: string) {
       if (settingsRow?.value && Array.isArray(settingsRow.value)) setAgeCategories(settingsRow.value as AgeCategory[]);
       const ruleIds = (er ?? []).map((r) => r.rule_id);
       if (ruleIds.length > 0) {
-        const { data: rs } = await supabase.from("rules").select("*").in("id", ruleIds).order("name");
+        const { data: rs } = await supabase.from("rules").select("*").in("id", ruleIds).is("deleted_at", null).order("name");
         setEventRules(rs ?? []);
       }
     }

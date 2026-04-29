@@ -111,6 +111,7 @@ function useCourtPageLoader(court: string, d: ReturnType<typeof useCourtPageData
         .select("*")
         .eq("event_id", eventId)
         .eq("court", court)
+        .is("deleted_at", null)
         .order("sort_order")
         .order("created_at");
       if (!tourns?.length) {
@@ -138,7 +139,8 @@ function useCourtPageLoader(court: string, d: ReturnType<typeof useCourtPageData
           .from("entries")
           .select("id, fighter_id, is_withdrawn")
           .eq("event_id", evtId)
-          .in("fighter_id", [...fIds]);
+          .in("fighter_id", [...fIds])
+          .is("deleted_at", null);
         entries = e ?? [];
       }
       const serialized = JSON.stringify({ allMatches, entries });
@@ -214,6 +216,7 @@ function useCourtPageLoader(court: string, d: ReturnType<typeof useCourtPageData
     supabase
       .from("rules")
       .select("name, name_reading")
+      .is("deleted_at", null)
       .then(({ data }) => {
         if (data) {
           const m: Record<string, string> = {};
