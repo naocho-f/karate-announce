@@ -2,7 +2,7 @@
 
 > **このドキュメントについて**
 > 開発の進捗に合わせて随時更新すること。新機能追加・仕様変更・廃止した機能は必ずこのドキュメントに反映する。
-> 最終更新: 2026-04-29（CLAUDE.md からグローバル化に伴い AI 運用 6 原則 / every_chat / language タグを削除。`~/.claude/CLAUDE.md` に集約）
+> 最終更新: 2026-04-30（pre-commit hook の lib export 参照スキャンを Next.js root エントリーまで拡張）
 
 ---
 
@@ -631,6 +631,7 @@ LocalStorage（`announce_templates`）に保存。デフォルト値は `lib/spe
 
 ユーザーからの要望に基づく仕様決定の履歴。
 
+- **pre-commit hook: lib export 参照スキャンを Next.js root エントリーまで拡張（2026-04-30）**: ルール #11 (lib export がアプリコードから使われているか) の参照対象を `app/ components/ lib/` のみから、Next.js 規約で root 配置必須の `instrumentation-client.ts` / `instrumentation.ts` / `middleware.ts` も含めるよう修正。本番エントリーポイントから使われている lib export を「テストのみ」と誤判定する false positive を解消
 - **テナント対応: ドメイン・団体名の環境変数化（2026-04-18）**: ハードコードされていたドメイン（karate.naocho.net）と団体名（柔空会）を環境変数（`NEXT_PUBLIC_APP_DOMAIN`, `NEXT_PUBLIC_ORG_NAME`）に変更。manifest.jsonを動的生成に変換。テナント追加手順書を新設
 - **最終整合性修正（2026-04-07）**: 未実装機能の統合（cacheData/offlineMode/UnifiedStatusBar）、dead export削除、仕様書のステータス更新、各画面仕様書にオフライン参照追加、CLAUDE.mdにエクスポート確認チェックリスト追加
 - **レビュー指摘修正: dead code削除・enqueue追加・テスト補完（2026-04-07）**: ConnectionStatusBanner削除、court-index-clientにenqueue追加、resilient-fetchにofflineModeテスト、offline-queueに401/ネットワークエラーテスト追加
